@@ -103,21 +103,27 @@ export async function searchProducts(query: string): Promise<Product[]> {
   return [...products, ...parts].slice(0, 12)
 }
 
-export async function searchCustomerByCpf(cpf: string): Promise<Customer | null> {
-  const digits = cpf.replace(/\D/g, '')
-  if (digits.length !== 11) return null
+export async function searchCustomers(query: string): Promise<Customer[]> {
+  if (!query || query.trim().length < 2) return []
 
   const { supabase, user } = await requireAuth()
   const tenantId = getTenantId(user)
+  const q      = query.trim()
+  const digits = q.replace(/\D/g, '')
+
+  const filters: string[] = [`full_name.ilike.%${q}%`]
+  if (digits.length >= 8) filters.push(`whatsapp.ilike.%${digits}%`)
+  if (digits.length === 11) filters.push(`cpf_cnpj.eq.${digits}`)
 
   const { data } = await supabase
     .from('customers')
     .select('id, full_name, cpf_cnpj, whatsapp, email')
     .eq('tenant_id', tenantId)
-    .eq('cpf_cnpj', digits)
-    .maybeSingle()
+    .or(filters.join(','))
+    .order('full_name')
+    .limit(6)
 
-  return (data as Customer | null) ?? null
+  return (data ?? []) as Customer[]
 }
 
 export async function createCustomer(input: CreateCustomerInput): Promise<Customer> {

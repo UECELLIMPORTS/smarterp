@@ -7,7 +7,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
-  searchProducts, searchCustomerByCpf, createCustomer, createSale,
+  searchProducts, searchCustomers, createCustomer, createSale,
   type Product, type Customer,
 } from '@/actions/pos'
 
@@ -95,8 +95,10 @@ export function PosClient() {
 
   // ── Customer ──
   const [cpf, setCpf]                         = useState('')
+  const [customerResults, setCustomerResults] = useState<Customer[]>([])
   const [customer, setCustomer]               = useState<Customer | null>(null)
   const [searchingCpf, setSearchingCpf]       = useState(false)
+  const [showCustomerDrop, setShowCustomerDrop] = useState(false)
   const [showForm, setShowForm]               = useState(false)
   const [nc, setNc] = useState({
     name: '', cpf: '', whatsapp: '', email: '',
@@ -176,19 +178,26 @@ export function PosClient() {
   }
 
   // ── Customer search ──
-  async function handleCpfSearch() {
-    const digits = cpf.replace(/\D/g, '')
-    if (digits.length !== 11) { toast.error('CPF inválido (11 dígitos)'); return }
-    setSearchingCpf(true); setCustomer(null); setShowForm(false)
+  async function handleCustomerSearch() {
+    if (cpf.trim().length < 2) { toast.error('Digite ao menos 2 caracteres'); return }
+    setSearchingCpf(true); setCustomer(null); setShowForm(false); setShowCustomerDrop(false)
     try {
-      const found = await searchCustomerByCpf(digits)
-      if (found) { setCustomer(found); toast.success('Cliente encontrado!') }
-      else {
-        setNc(p => ({ ...p, cpf }))
+      const found = await searchCustomers(cpf.trim())
+      if (found.length === 1) {
+        setCustomer(found[0]); toast.success('Cliente encontrado!')
+      } else if (found.length > 1) {
+        setCustomerResults(found); setShowCustomerDrop(true)
+      } else {
+        const digits = cpf.replace(/\D/g, '')
+        setNc(p => ({ ...p, cpf: digits.length === 11 ? fmtCpf(cpf) : '' }))
         setShowForm(true)
-        toast.info('CPF não cadastrado — preencha os dados')
+        toast.info('Cliente não encontrado — preencha os dados para cadastrar')
       }
     } finally { setSearchingCpf(false) }
+  }
+
+  function selectCustomer(c: Customer) {
+    setCustomer(c); setShowCustomerDrop(false); setCustomerResults([]); toast.success('Cliente selecionado!')
   }
 
   // ── CEP lookup ──
@@ -253,6 +262,7 @@ export function PosClient() {
       })
       toast.success('Venda finalizada com sucesso!')
       setCart([]); setCustomer(null); setCpf(''); setShipping(''); setDiscount('')
+      setCustomerResults([]); setShowCustomerDrop(false)
       setMethod('pix'); setMxCash(''); setMxPix(''); setMxCard('')
     } catch { toast.error('Erro ao finalizar venda') }
     finally { setFinalizing(false) }
@@ -440,7 +450,7 @@ export function PosClient() {
                   {customer.email    && <p className="text-xs text-muted">{customer.email}</p>}
                 </div>
                 <button
-                  onClick={() => { setCustomer(null); setCpf(''); setShowForm(false) }}
+                  onClick={() => { setCustomer(null); setCpf(''); setShowForm(false); setCustomerResults([]); setShowCustomerDrop(false) }}
                   className="ml-2 text-muted hover:text-coral transition-colors"
                 >
                   <Pencil className="h-3.5 w-3.5" />
@@ -448,18 +458,18 @@ export function PosClient() {
               </div>
             ) : (
               <>
-                {/* CPF input + search */}
+                {/* Customer search input */}
                 <div className="flex gap-2">
                   <input
                     value={cpf}
-                    onChange={e => setCpf(fmtCpf(e.target.value))}
-                    onKeyDown={e => e.key === 'Enter' && handleCpfSearch()}
-                    placeholder="000.000.000-00"
+                    onChange={e => setCpf(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleCustomerSearch()}
+                    placeholder="Nome, CPF ou WhatsApp..."
                     className={inputCls + ' flex-1'}
                     style={inputStyle}
                   />
                   <button
-                    onClick={handleCpfSearch}
+                    onClick={handleCustomerSearch}
                     disabled={searchingCpf}
                     className="rounded-lg border px-3.5 py-2.5 text-sm font-medium text-accent hover:bg-card transition-colors disabled:opacity-60"
                     style={{ borderColor: '#1E2D45' }}
@@ -467,6 +477,26 @@ export function PosClient() {
                     {searchingCpf ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Buscar'}
                   </button>
                 </div>
+
+                {/* Multiple results dropdown */}
+                {showCustomerDrop && customerResults.length > 0 && (
+                  <div className="rounded-xl border overflow-hidden" style={{ background: '#0D1320', borderColor: '#1E2D45' }}>
+                    {customerResults.map(c => (
+                      <button
+                        key={c.id}
+                        onClick={() => selectCustomer(c)}
+                        className="flex w-full items-start justify-between px-4 py-3 text-sm hover:bg-card transition-colors border-b last:border-0"
+                        style={{ borderColor: '#1E2D45' }}
+                      >
+                        <div className="text-left">
+                          <p className="font-medium text-text">{c.full_name}</p>
+                          {c.cpf_cnpj && <p className="text-xs text-muted">CPF: {fmtCpf(c.cpf_cnpj)}</p>}
+                        </div>
+                        {c.whatsapp && <p className="text-xs text-muted shrink-0 ml-2">{c.whatsapp}</p>}
+                      </button>
+                    ))}
+                  </div>
+                )}
 
                 {/* New customer form */}
                 {showForm && (
@@ -581,8 +611,8 @@ export function PosClient() {
                   </div>
                 )}
 
-                {!showForm && (
-                  <p className="text-center text-xs text-muted">Opcional — busque por CPF ou finalize sem cliente</p>
+                {!showForm && !showCustomerDrop && (
+                  <p className="text-center text-xs text-muted">Opcional — busque por nome, CPF ou WhatsApp</p>
                 )}
               </>
             )}
