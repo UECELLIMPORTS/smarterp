@@ -295,11 +295,11 @@ export function PosClient() {
               </div>
               <button
                 onClick={() => setShowManual(true)}
-                className="flex items-center gap-1.5 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors hover:bg-card text-accent"
+                className="flex items-center gap-1.5 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors hover:bg-card text-accent whitespace-nowrap"
                 style={{ borderColor: '#1E2D45' }}
               >
                 <Plus className="h-4 w-4" />
-                Manual
+                Item / Serviço
               </button>
             </div>
 
@@ -311,17 +311,29 @@ export function PosClient() {
               >
                 {results.map(p => (
                   <button
-                    key={p.id}
+                    key={`${p.source}-${p.id}`}
                     onMouseDown={() => addProduct(p)}
                     className="flex w-full items-center justify-between px-4 py-3 text-sm hover:bg-card transition-colors"
                   >
                     <div className="text-left">
-                      <p className="font-medium text-text">{p.name}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-text">{p.name}</p>
+                        <span
+                          className="rounded px-1.5 py-0.5 text-[10px] font-semibold"
+                          style={p.source === 'parts_catalog'
+                            ? { background: '#FFB80018', color: '#FFB800' }
+                            : { background: '#00E5FF18', color: '#00E5FF' }}
+                        >
+                          {p.source === 'parts_catalog' ? 'Peça' : 'Produto'}
+                        </span>
+                      </div>
                       {p.code && <p className="text-xs text-muted">Cód: {p.code}</p>}
                     </div>
                     <div className="text-right ml-4 shrink-0">
                       <p className="font-semibold text-accent">{BRL(p.price_cents)}</p>
-                      <p className="text-xs text-muted">Estoque: {p.stock_qty}</p>
+                      {p.stock_qty != null && (
+                        <p className="text-xs text-muted">Estoque: {p.stock_qty}</p>
+                      )}
                     </div>
                   </button>
                 ))}
@@ -705,7 +717,7 @@ export function PosClient() {
         >
           <div className="w-full max-w-sm rounded-2xl border p-6 space-y-4" style={{ background: '#111827', borderColor: '#1E2D45' }}>
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-text">Adicionar Item Manual</h3>
+              <h3 className="text-sm font-semibold text-text">Adicionar Item ou Serviço</h3>
               <button onClick={() => setShowManual(false)} className="text-muted hover:text-coral transition-colors">
                 <X className="h-4 w-4" />
               </button>
@@ -714,7 +726,7 @@ export function PosClient() {
             <input
               value={mName}
               onChange={e => setMName(e.target.value)}
-              placeholder="Nome do produto ou serviço *"
+              placeholder="Ex: Troca de tela, Película 3D, Conserto de conector..."
               className={inputCls}
               style={inputStyle}
               autoFocus

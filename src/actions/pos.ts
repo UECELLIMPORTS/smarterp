@@ -10,7 +10,8 @@ export type Product = {
   code: string | null
   name: string
   price_cents: number
-  stock_qty: number
+  stock_qty: number | null
+  source: 'products' | 'parts_catalog'
 }
 
 export type Customer = {
@@ -60,18 +61,46 @@ export async function searchProducts(query: string): Promise<Product[]> {
 
   const { supabase, user } = await requireAuth()
   const tenantId = getTenantId(user)
+  const q = query.trim()
 
-  const { data, error } = await supabase
-    .from('products')
-    .select('id, code, name, price_cents, stock_qty')
-    .eq('tenant_id', tenantId)
-    .eq('active', true)
-    .or(`name.ilike.%${query.trim()}%,code.ilike.%${query.trim()}%`)
-    .order('name')
-    .limit(10)
+  const [productsRes, partsRes] = await Promise.all([
+    supabase
+      .from('products')
+      .select('id, code, name, price_cents, stock_qty')
+      .eq('tenant_id', tenantId)
+      .eq('active', true)
+      .or(`name.ilike.%${q}%,code.ilike.%${q}%`)
+      .order('name')
+      .limit(8),
+    supabase
+      .from('parts_catalog')
+      .select('id, sku, name, cost_cents')
+      .eq('tenant_id', tenantId)
+      .eq('is_active', true)
+      .ilike('name', `%${q}%`)
+      .order('name')
+      .limit(8),
+  ])
 
-  if (error) return []
-  return (data ?? []) as Product[]
+  const products: Product[] = (productsRes.data ?? []).map(p => ({
+    id:          p.id,
+    code:        p.code ?? null,
+    name:        p.name,
+    price_cents: p.price_cents,
+    stock_qty:   p.stock_qty,
+    source:      'products' as const,
+  }))
+
+  const parts: Product[] = (partsRes.data ?? []).map(p => ({
+    id:          p.id,
+    code:        p.sku ?? null,
+    name:        p.name,
+    price_cents: p.cost_cents,
+    stock_qty:   null,
+    source:      'parts_catalog' as const,
+  }))
+
+  return [...products, ...parts].slice(0, 12)
 }
 
 export async function searchCustomerByCpf(cpf: string): Promise<Customer | null> {
