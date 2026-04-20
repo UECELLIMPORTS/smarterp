@@ -15,8 +15,8 @@ export type Product = {
 
 export type Customer = {
   id: string
-  name: string
-  cpf: string | null
+  full_name: string
+  cpf_cnpj: string | null
   whatsapp: string | null
   email: string | null
 }
@@ -83,9 +83,9 @@ export async function searchCustomerByCpf(cpf: string): Promise<Customer | null>
 
   const { data } = await supabase
     .from('customers')
-    .select('id, name, cpf, whatsapp, email')
+    .select('id, full_name, cpf_cnpj, whatsapp, email')
     .eq('tenant_id', tenantId)
-    .eq('cpf', digits)
+    .eq('cpf_cnpj', digits)
     .maybeSingle()
 
   return (data as Customer | null) ?? null
@@ -99,18 +99,18 @@ export async function createCustomer(input: CreateCustomerInput): Promise<Custom
     .from('customers')
     .insert({
       tenant_id:          tenantId,
-      name:               input.name.trim(),
-      cpf:                input.cpf.replace(/\D/g, '') || null,
+      full_name:          input.name.trim(),
+      cpf_cnpj:           input.cpf.replace(/\D/g, '') || null,
       whatsapp:           input.whatsapp.replace(/\D/g, '') || null,
       email:              input.email.trim() || null,
-      cep:                input.cep.replace(/\D/g, '') || null,
+      address_zip:        input.cep.replace(/\D/g, '') || null,
       address_street:     input.addressStreet.trim() || null,
       address_number:     input.addressNumber.trim() || null,
       address_complement: input.addressComplement.trim() || null,
       address_city:       input.addressCity.trim() || null,
       address_state:      input.addressState.trim() || null,
     })
-    .select('id, name, cpf, whatsapp, email')
+    .select('id, full_name, cpf_cnpj, whatsapp, email')
     .single()
 
   if (error) throw new Error(error.message)

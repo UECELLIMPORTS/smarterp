@@ -422,10 +422,10 @@ export function PosClient() {
                 style={{ background: '#0D1320', borderColor: '#00E5FF30' }}
               >
                 <div>
-                  <p className="text-sm font-semibold text-text">{customer.name}</p>
-                  {customer.cpf     && <p className="mt-0.5 text-xs text-muted">CPF: {fmtCpf(customer.cpf)}</p>}
+                  <p className="text-sm font-semibold text-text">{customer.full_name}</p>
+                  {customer.cpf_cnpj && <p className="mt-0.5 text-xs text-muted">CPF: {fmtCpf(customer.cpf_cnpj)}</p>}
                   {customer.whatsapp && <p className="text-xs text-muted">WhatsApp: {customer.whatsapp}</p>}
-                  {customer.email   && <p className="text-xs text-muted">{customer.email}</p>}
+                  {customer.email    && <p className="text-xs text-muted">{customer.email}</p>}
                 </div>
                 <button
                   onClick={() => { setCustomer(null); setCpf(''); setShowForm(false) }}
