@@ -1,9 +1,17 @@
+import { requireAuth } from '@/lib/supabase/server'
+import { getTenantId } from '@/lib/tenant'
+import { redirect } from 'next/navigation'
 import {
   DollarSign, ShoppingCart, Users, Receipt,
   TrendingUp, Wrench, ArrowUpRight, ArrowDownRight,
 } from 'lucide-react'
+import { DashboardFilters } from './dashboard-filters'
 
-// ── Tipos ──────────────────────────────────────────────────────────────────
+// ── Types ──────────────────────────────────────────────────────────────────
+
+type Period = 'today' | '7d' | '30d' | 'custom'
+type Origin = 'all' | 'erp' | 'checksmart'
+
 type KPICardProps = {
   title:    string
   value:    string
@@ -13,7 +21,54 @@ type KPICardProps = {
   trend?:   { value: string; positive: boolean }
 }
 
+// ── Helpers ────────────────────────────────────────────────────────────────
+
+const BRL = (c: number) =>
+  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(c / 100)
+
+function todayBRL(): string {
+  return new Date().toLocaleDateString('fr-CA', { timeZone: 'America/Sao_Paulo' })
+}
+
+function getPeriodRange(period: Period, from?: string, to?: string): { start: Date; end: Date } {
+  const today = todayBRL()
+  const end = new Date(`${today}T23:59:59-03:00`)
+
+  if (period === 'custom' && from && to) {
+    return { start: new Date(`${from}T00:00:00-03:00`), end: new Date(`${to}T23:59:59-03:00`) }
+  }
+  if (period === '30d') {
+    const d = new Date(`${today}T00:00:00-03:00`)
+    d.setDate(d.getDate() - 29)
+    return { start: d, end }
+  }
+  if (period === '7d') {
+    const d = new Date(`${today}T00:00:00-03:00`)
+    d.setDate(d.getDate() - 6)
+    return { start: d, end }
+  }
+  // today
+  return { start: new Date(`${today}T00:00:00-03:00`), end }
+}
+
+function getMonthRange(): { start: Date; end: Date } {
+  const today = todayBRL()
+  const [y, m] = today.split('-')
+  const start = new Date(`${y}-${m}-01T00:00:00-03:00`)
+  const end = new Date(`${today}T23:59:59-03:00`)
+  return { start, end }
+}
+
+function periodLabel(period: Period, from?: string, to?: string): string {
+  if (period === 'today') return 'hoje'
+  if (period === '7d') return 'últimos 7 dias'
+  if (period === '30d') return 'últimos 30 dias'
+  if (from && to) return `${from} – ${to}`
+  return 'período selecionado'
+}
+
 // ── KPI Card ───────────────────────────────────────────────────────────────
+
 function KPICard({ title, value, subtitle, icon: Icon, color, trend }: KPICardProps) {
   return (
     <div
@@ -42,85 +97,253 @@ function KPICard({ title, value, subtitle, icon: Icon, color, trend }: KPICardPr
             : <ArrowDownRight className="h-3.5 w-3.5" style={{ color: '#FF5C5C' }} />
           }
           <span style={{ color: trend.positive ? '#00FF94' : '#FF5C5C' }}>{trend.value}</span>
-          <span style={{ color: '#64748B' }}>vs. ontem</span>
+          <span style={{ color: '#64748B' }}>vs. período anterior</span>
         </div>
       )}
     </div>
   )
 }
 
-// ── Atividade recente (mock) ───────────────────────────────────────────────
-const RECENT_ACTIVITY = [
-  { id: 1, type: 'venda',  desc: 'Venda #1042 — iPhone 15 Pro',    value: 'R$ 4.800,00', time: '14:32', color: '#00FF94' },
-  { id: 2, type: 'os',     desc: 'OS #0067 aberta — Samsung A55',   value: 'Recebido',    time: '13:15', color: '#00E5FF' },
-  { id: 3, type: 'venda',  desc: 'Venda #1041 — Acessórios',        value: 'R$ 320,00',  time: '11:50', color: '#00FF94' },
-  { id: 4, type: 'os',     desc: 'OS #0065 entregue — iPhone 12',   value: 'Entregue',   time: '10:20', color: '#00E5FF' },
-  { id: 5, type: 'pagto',  desc: 'Recebimento OS #0063',            value: 'R$ 750,00',  time: '09:05', color: '#FFB800' },
-]
-
 // ── Page ───────────────────────────────────────────────────────────────────
-export default function DashboardPage() {
+
+type SearchParams = { period?: string; origin?: string; from?: string; to?: string }
+
+export default async function DashboardPage(props: { searchParams: Promise<SearchParams> }) {
+  let auth: Awaited<ReturnType<typeof requireAuth>>
+  try { auth = await requireAuth() } catch { redirect('/login') }
+
+  const { supabase, user } = auth
+  const tenantId = getTenantId(user)
+
+  const sp = await props.searchParams
+  const period = (sp.period ?? 'today') as Period
+  const origin = (sp.origin ?? 'all') as Origin
+  const fromDate = sp.from
+  const toDate   = sp.to
+
+  const { start, end }       = getPeriodRange(period, fromDate, toDate)
+  const { start: mStart, end: mEnd } = getMonthRange()
+
+  const showERP = origin !== 'checksmart'
+  const showCS  = origin !== 'erp'
+
+  const EMPTY = Promise.resolve({ data: [] as never[], error: null, count: 0 })
+
+  // ── Parallel queries ─────────────────────────────────────────────────────
+
+  const [
+    salesPeriodRes,
+    ordersPeriodRes,
+    salesMonthRes,
+    ordersMonthRes,
+    recentSalesRes,
+    recentOrdersRes,
+    osAbertasRes,
+    clientesRes,
+  ] = await Promise.all([
+    // 1. Sales no período (ERP)
+    showERP
+      ? supabase
+          .from('sales')
+          .select('total_cents', { count: 'exact' })
+          .eq('tenant_id', tenantId)
+          .gte('created_at', start.toISOString())
+          .lte('created_at', end.toISOString())
+      : EMPTY,
+
+    // 2. Service orders no período (CheckSmart)
+    showCS
+      ? supabase
+          .from('service_orders')
+          .select('total_price_cents', { count: 'exact' })
+          .eq('tenant_id', tenantId)
+          .gte('received_at', start.toISOString())
+          .lte('received_at', end.toISOString())
+      : EMPTY,
+
+    // 3. Sales no mês (ERP)
+    showERP
+      ? supabase
+          .from('sales')
+          .select('total_cents')
+          .eq('tenant_id', tenantId)
+          .gte('created_at', mStart.toISOString())
+          .lte('created_at', mEnd.toISOString())
+      : EMPTY,
+
+    // 4. Service orders no mês (CheckSmart)
+    showCS
+      ? supabase
+          .from('service_orders')
+          .select('total_price_cents')
+          .eq('tenant_id', tenantId)
+          .gte('received_at', mStart.toISOString())
+          .lte('received_at', mEnd.toISOString())
+      : EMPTY,
+
+    // 5. Últimas sales (atividade)
+    showERP
+      ? supabase
+          .from('sales')
+          .select('id, total_cents, payment_method, created_at, customers ( full_name )')
+          .eq('tenant_id', tenantId)
+          .order('created_at', { ascending: false })
+          .limit(10)
+      : EMPTY,
+
+    // 6. Últimas service_orders (atividade)
+    showCS
+      ? supabase
+          .from('service_orders')
+          .select('id, total_price_cents, status, received_at, customers ( full_name )')
+          .eq('tenant_id', tenantId)
+          .order('received_at', { ascending: false })
+          .limit(10)
+      : EMPTY,
+
+    // 7. OS abertas
+    showCS
+      ? supabase
+          .from('service_orders')
+          .select('id', { count: 'exact', head: true })
+          .eq('tenant_id', tenantId)
+          .not('status', 'in', '("delivered","cancelled")')
+      : EMPTY,
+
+    // 8. Clientes ativos (últimos 90 dias)
+    supabase
+      .from('customers')
+      .select('id', { count: 'exact', head: true })
+      .eq('tenant_id', tenantId)
+      .gte('updated_at', new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString()),
+  ])
+
+  // ── KPI calculations ──────────────────────────────────────────────────────
+
+  const salesPeriod  = (salesPeriodRes.data  ?? []) as { total_cents: number }[]
+  const ordersPeriod = (ordersPeriodRes.data ?? []) as { total_price_cents: number }[]
+  const salesMonth   = (salesMonthRes.data   ?? []) as { total_cents: number }[]
+  const ordersMonth  = (ordersMonthRes.data  ?? []) as { total_price_cents: number }[]
+
+  const fatPeriod = salesPeriod.reduce((s, r) => s + r.total_cents, 0)
+               + ordersPeriod.reduce((s, r) => s + (r.total_price_cents ?? 0), 0)
+
+  const fatMonth = salesMonth.reduce((s, r) => s + r.total_cents, 0)
+               + ordersMonth.reduce((s, r) => s + (r.total_price_cents ?? 0), 0)
+
+  const salesCount  = salesPeriod.length
+  const ordersCount = ordersPeriod.length
+  const txCount     = salesCount + ordersCount
+  const ticketMedio = txCount > 0 ? Math.round(fatPeriod / txCount) : 0
+
+  const osAbertas      = osAbertasRes.count ?? 0
+  const clientesAtivos = clientesRes.count  ?? 0
+
+  // ── Activity merge ────────────────────────────────────────────────────────
+
+  type ActivityItem = {
+    id: string
+    desc: string
+    value: string
+    time: string
+    color: string
+    source: 'ERP' | 'CheckSmart'
+    date: Date
+  }
+
+  const recentSales  = (recentSalesRes.data  ?? []) as unknown as {
+    id: string; total_cents: number; payment_method: string; created_at: string
+    customers: { full_name: string } | null
+  }[]
+
+  const recentOrders = (recentOrdersRes.data ?? []) as unknown as {
+    id: string; total_price_cents: number; status: string; received_at: string
+    customers: { full_name: string } | null
+  }[]
+
+  const activityItems: ActivityItem[] = [
+    ...recentSales.map(s => ({
+      id:     `sale-${s.id}`,
+      desc:   `Venda — ${s.customers?.full_name ?? 'Sem cliente'}`,
+      value:  BRL(s.total_cents),
+      time:   new Date(s.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' }),
+      color:  '#00FF94',
+      source: 'ERP' as const,
+      date:   new Date(s.created_at),
+    })),
+    ...recentOrders.map(o => ({
+      id:     `os-${o.id}`,
+      desc:   `OS — ${o.customers?.full_name ?? 'Sem cliente'}`,
+      value:  BRL(o.total_price_cents ?? 0),
+      time:   new Date(o.received_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' }),
+      color:  '#00E5FF',
+      source: 'CheckSmart' as const,
+      date:   new Date(o.received_at),
+    })),
+  ]
+    .sort((a, b) => b.date.getTime() - a.date.getTime())
+    .slice(0, 10)
+
   const today = new Date().toLocaleDateString('pt-BR', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+    timeZone: 'America/Sao_Paulo',
   })
 
   return (
     <div className="space-y-6">
 
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-text">Dashboard</h1>
-        <p className="mt-1 text-sm capitalize" style={{ color: '#64748B' }}>{today}</p>
+      {/* Header + Filters */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-text">Dashboard</h1>
+          <p className="mt-1 text-sm capitalize" style={{ color: '#64748B' }}>{today}</p>
+        </div>
+        <DashboardFilters />
       </div>
 
       {/* KPIs */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <KPICard
-          title="Faturamento Hoje"
-          value="R$ 5.120,00"
-          subtitle="3 transações realizadas"
+          title={`Faturamento — ${periodLabel(period, fromDate, toDate)}`}
+          value={BRL(fatPeriod)}
+          subtitle={`${txCount} transaç${txCount === 1 ? 'ão' : 'ões'} realizadas`}
           icon={DollarSign}
           color="#00FF94"
-          trend={{ value: '+12%', positive: true }}
         />
         <KPICard
           title="Faturamento do Mês"
-          value="R$ 38.450,00"
-          subtitle="Abril 2026"
+          value={BRL(fatMonth)}
+          subtitle={new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric', timeZone: 'America/Sao_Paulo' })}
           icon={TrendingUp}
           color="#00E5FF"
-          trend={{ value: '+8%', positive: true }}
         />
         <KPICard
-          title="Vendas Hoje"
-          value="3"
-          subtitle="Meta diária: 5 vendas"
+          title="Vendas (ERP)"
+          value={String(salesCount)}
+          subtitle={periodLabel(period, fromDate, toDate)}
           icon={ShoppingCart}
           color="#FFB800"
         />
         <KPICard
           title="Ticket Médio"
-          value="R$ 1.707,00"
-          subtitle="Baseado nas vendas de hoje"
+          value={BRL(ticketMedio)}
+          subtitle={periodLabel(period, fromDate, toDate)}
           icon={Receipt}
           color="#00E5FF"
-          trend={{ value: '+5%', positive: true }}
         />
         <KPICard
           title="Clientes Ativos"
-          value="284"
+          value={String(clientesAtivos)}
           subtitle="Últimos 90 dias"
           icon={Users}
           color="#00FF94"
-          trend={{ value: '+3', positive: true }}
         />
         <KPICard
           title="OS Abertas"
-          value="12"
-          subtitle="No CheckSmart"
+          value={String(osAbertas)}
+          subtitle="CheckSmart"
           icon={Wrench}
           color="#FF5C5C"
-          trend={{ value: '2 novas', positive: false }}
         />
       </div>
 
@@ -128,28 +351,40 @@ export default function DashboardPage() {
       <div className="rounded-xl border" style={{ background: '#111827', borderColor: '#1E2D45' }}>
         <div className="flex items-center justify-between border-b px-5 py-4" style={{ borderColor: '#1E2D45' }}>
           <h2 className="text-sm font-semibold text-text">Atividade Recente</h2>
-          <span className="text-xs" style={{ color: '#64748B' }}>Hoje</span>
+          <span className="text-xs" style={{ color: '#64748B' }}>{activityItems.length} registros</span>
         </div>
-        <ul className="divide-y" style={{ borderColor: '#1E2D45' }}>
-          {RECENT_ACTIVITY.map((item) => (
-            <li key={item.id} className="flex items-center justify-between px-5 py-3.5">
-              <div className="flex items-center gap-3">
-                <div className="h-2 w-2 rounded-full flex-shrink-0" style={{ background: item.color }} />
-                <p className="text-sm text-text">{item.desc}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm font-semibold" style={{ color: item.color }}>{item.value}</p>
-                <p className="text-xs" style={{ color: '#64748B' }}>{item.time}</p>
-              </div>
-            </li>
-          ))}
-        </ul>
+
+        {activityItems.length === 0 ? (
+          <div className="flex flex-col items-center justify-center gap-2 py-16">
+            <Receipt className="h-8 w-8" style={{ color: '#1E2D45' }} />
+            <p className="text-sm" style={{ color: '#64748B' }}>Nenhuma atividade no período selecionado</p>
+          </div>
+        ) : (
+          <ul className="divide-y" style={{ borderColor: '#1E2D45' }}>
+            {activityItems.map((item) => (
+              <li key={item.id} className="flex items-center justify-between px-5 py-3.5">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="h-2 w-2 rounded-full flex-shrink-0" style={{ background: item.color }} />
+                  <div className="min-w-0">
+                    <p className="text-sm text-text truncate">{item.desc}</p>
+                    <span
+                      className="mt-0.5 inline-block rounded px-1.5 py-0.5 text-xs font-semibold"
+                      style={{ background: `${item.color}18`, color: item.color }}
+                    >
+                      {item.source}
+                    </span>
+                  </div>
+                </div>
+                <div className="text-right flex-shrink-0 ml-4">
+                  <p className="text-sm font-semibold" style={{ color: item.color }}>{item.value}</p>
+                  <p className="text-xs" style={{ color: '#64748B' }}>{item.time}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
-      {/* Aviso de dados mockados */}
-      <p className="text-center text-xs" style={{ color: '#1E2D45' }}>
-        * KPIs mockados — integração real em desenvolvimento
-      </p>
     </div>
   )
 }
