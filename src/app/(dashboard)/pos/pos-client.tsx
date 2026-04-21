@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import {
   Search, Plus, X, Loader2, ShoppingBag,
-  CheckCircle, User, Pencil,
+  CheckCircle, User, Pencil, UserCheck, Calendar,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -58,7 +58,7 @@ function randKey() {
   return Math.random().toString(36).slice(2)
 }
 
-// ── Shared input style ─────────────────────────────────────────────────────────
+// ── Shared styles ──────────────────────────────────────────────────────────────
 
 const inputCls =
   'w-full rounded-lg border px-3.5 py-2.5 text-sm text-text outline-none transition-colors focus:border-accent/60 placeholder:text-muted'
@@ -66,7 +66,7 @@ const inputStyle = { background: '#111827', borderColor: '#1E2D45' }
 
 // ── Component ──────────────────────────────────────────────────────────────────
 
-export function PosClient() {
+export function PosClient({ consumidorFinal }: { consumidorFinal: Customer }) {
   // ── Cart ──
   const [cart, setCart] = useState<CartItem[]>([])
 
@@ -78,26 +78,26 @@ export function PosClient() {
   const dropRef = useRef<HTMLDivElement>(null)
 
   // ── Manual item modal ──
-  const [showManual, setShowManual]   = useState(false)
-  const [mName, setMName]             = useState('')
-  const [mPrice, setMPrice]           = useState('')
-  const [mQty, setMQty]               = useState('1')
+  const [showManual, setShowManual] = useState(false)
+  const [mName, setMName]           = useState('')
+  const [mPrice, setMPrice]         = useState('')
+  const [mQty, setMQty]             = useState('1')
 
   // ── Adjustments ──
   const [shipping, setShipping] = useState('')
   const [discount, setDiscount] = useState('')
 
   // ── Payment ──
-  const [method, setMethod]     = useState<PaymentMethod>('pix')
-  const [mxCash, setMxCash]     = useState('')
-  const [mxPix, setMxPix]       = useState('')
-  const [mxCard, setMxCard]     = useState('')
+  const [method, setMethod] = useState<PaymentMethod>('pix')
+  const [mxCash, setMxCash] = useState('')
+  const [mxPix, setMxPix]   = useState('')
+  const [mxCard, setMxCard] = useState('')
 
   // ── Customer ──
-  const [cpf, setCpf]                         = useState('')
+  const [customer, setCustomer]               = useState<Customer>(consumidorFinal)
+  const [searchQuery, setSearchQuery]         = useState('')
   const [customerResults, setCustomerResults] = useState<Customer[]>([])
-  const [customer, setCustomer]               = useState<Customer | null>(null)
-  const [searchingCpf, setSearchingCpf]       = useState(false)
+  const [searchingCustomer, setSearchingCust] = useState(false)
   const [showCustomerDrop, setShowCustomerDrop] = useState(false)
   const [showForm, setShowForm]               = useState(false)
   const [nc, setNc] = useState({
@@ -105,8 +105,11 @@ export function PosClient() {
     cep: '', addressStreet: '', addressNumber: '',
     addressComplement: '', addressCity: '', addressState: '',
   })
-  const [fetchingCep, setFetchingCep]         = useState(false)
-  const [savingCustomer, setSavingCustomer]   = useState(false)
+  const [fetchingCep, setFetchingCep]       = useState(false)
+  const [savingCustomer, setSavingCustomer] = useState(false)
+
+  // whether the current customer is the default consumidor final
+  const isDefault = customer.id === consumidorFinal.id
 
   // ── Finalize ──
   const [finalizing, setFinalizing] = useState(false)
@@ -129,7 +132,7 @@ export function PosClient() {
     return () => clearTimeout(t)
   }, [query])
 
-  // ── Close dropdown on outside click ──
+  // ── Close product dropdown on outside click ──
   useEffect(() => {
     const fn = (e: MouseEvent) => {
       if (dropRef.current && !dropRef.current.contains(e.target as Node)) setShowDrop(false)
@@ -179,25 +182,31 @@ export function PosClient() {
 
   // ── Customer search ──
   async function handleCustomerSearch() {
-    if (cpf.trim().length < 2) { toast.error('Digite ao menos 2 caracteres'); return }
-    setSearchingCpf(true); setCustomer(null); setShowForm(false); setShowCustomerDrop(false)
+    if (searchQuery.trim().length < 2) { toast.error('Digite ao menos 2 caracteres'); return }
+    setSearchingCust(true); setShowForm(false); setShowCustomerDrop(false)
     try {
-      const found = await searchCustomers(cpf.trim())
+      const found = await searchCustomers(searchQuery.trim())
       if (found.length === 1) {
-        setCustomer(found[0]); toast.success('Cliente encontrado!')
+        setCustomer(found[0]); setSearchQuery(''); toast.success('Cliente encontrado!')
       } else if (found.length > 1) {
         setCustomerResults(found); setShowCustomerDrop(true)
       } else {
-        const digits = cpf.replace(/\D/g, '')
-        setNc(p => ({ ...p, cpf: digits.length === 11 ? fmtCpf(cpf) : '' }))
+        const digits = searchQuery.replace(/\D/g, '')
+        setNc(p => ({ ...p, cpf: digits.length === 11 ? fmtCpf(searchQuery) : '' }))
         setShowForm(true)
         toast.info('Cliente não encontrado — preencha os dados para cadastrar')
       }
-    } finally { setSearchingCpf(false) }
+    } finally { setSearchingCust(false) }
   }
 
   function selectCustomer(c: Customer) {
-    setCustomer(c); setShowCustomerDrop(false); setCustomerResults([]); toast.success('Cliente selecionado!')
+    setCustomer(c); setShowCustomerDrop(false); setCustomerResults([])
+    setSearchQuery(''); toast.success('Cliente selecionado!')
+  }
+
+  function resetToDefault() {
+    setCustomer(consumidorFinal)
+    setSearchQuery(''); setShowForm(false); setShowCustomerDrop(false); setCustomerResults([])
   }
 
   // ── CEP lookup ──
@@ -223,11 +232,11 @@ export function PosClient() {
     setSavingCustomer(true)
     try {
       const c = await createCustomer(nc)
-      setCustomer(c)
-      setShowForm(false)
+      setCustomer(c); setShowForm(false); setSearchQuery('')
       toast.success('Cliente cadastrado!')
-    } catch { toast.error('Erro ao cadastrar cliente') }
-    finally { setSavingCustomer(false) }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao cadastrar cliente')
+    } finally { setSavingCustomer(false) }
   }
 
   // ── Finalize sale ──
@@ -243,7 +252,7 @@ export function PosClient() {
     setFinalizing(true)
     try {
       await createSale({
-        customerId:     customer?.id ?? null,
+        customerId:     customer.id,
         subtotalCents:  subtotal,
         discountCents:  parseCents(discount),
         shippingCents:  parseCents(shipping),
@@ -253,17 +262,17 @@ export function PosClient() {
           ? { cash: parseCents(mxCash), pix: parseCents(mxPix), card: parseCents(mxCard) }
           : null,
         items: cart.map(i => ({
-          productId:       i.productId,
-          name:            i.name,
-          quantity:        i.quantity,
-          unitPriceCents:  i.unitPriceCents,
-          subtotalCents:   i.unitPriceCents * i.quantity,
+          productId:      i.productId,
+          name:           i.name,
+          quantity:       i.quantity,
+          unitPriceCents: i.unitPriceCents,
+          subtotalCents:  i.unitPriceCents * i.quantity,
         })),
       })
       toast.success('Venda finalizada com sucesso!')
-      setCart([]); setCustomer(null); setCpf(''); setShipping(''); setDiscount('')
-      setCustomerResults([]); setShowCustomerDrop(false)
+      setCart([]); setShipping(''); setDiscount('')
       setMethod('pix'); setMxCash(''); setMxPix(''); setMxCard('')
+      setCustomer(consumidorFinal)
     } catch { toast.error('Erro ao finalizar venda') }
     finally { setFinalizing(false) }
   }
@@ -287,7 +296,7 @@ export function PosClient() {
         {/* ── LEFT: search + cart ── */}
         <div className="space-y-4">
 
-          {/* Search bar */}
+          {/* Product search */}
           <div ref={dropRef} className="relative">
             <div className="flex gap-2">
               <div className="relative flex-1">
@@ -313,7 +322,7 @@ export function PosClient() {
               </button>
             </div>
 
-            {/* Dropdown */}
+            {/* Product dropdown */}
             {showDrop && (
               <div
                 className="absolute z-50 mt-1 w-full rounded-xl border shadow-xl overflow-hidden"
@@ -357,11 +366,11 @@ export function PosClient() {
               <div className="flex flex-col items-center justify-center gap-3 py-20">
                 <ShoppingBag className="h-10 w-10" style={{ color: '#1E2D45' }} />
                 <p className="text-sm text-muted">Nenhum item adicionado</p>
-                <p className="text-xs" style={{ color: '#1E2D45' }}>Busque um produto ou clique em "Manual"</p>
+                <p className="text-xs" style={{ color: '#1E2D45' }}>Busque um produto ou clique em "Item / Serviço"</p>
               </div>
             ) : (
               <>
-                {/* Header */}
+                {/* Cart header */}
                 <div
                   className="grid items-center gap-3 px-4 py-3 border-b text-xs font-medium uppercase tracking-wider text-muted"
                   style={{ borderColor: '#1E2D45', gridTemplateColumns: '1fr 88px 120px 100px 28px' }}
@@ -373,7 +382,7 @@ export function PosClient() {
                   <span />
                 </div>
 
-                {/* Items */}
+                {/* Cart items */}
                 {cart.map(item => (
                   <div
                     key={item.key}
@@ -397,7 +406,7 @@ export function PosClient() {
                       >+</button>
                     </div>
 
-                    {/* Unit price (editable) */}
+                    {/* Editable unit price */}
                     <input
                       key={`price-${item.key}`}
                       defaultValue={(item.unitPriceCents / 100).toFixed(2).replace('.', ',')}
@@ -418,9 +427,7 @@ export function PosClient() {
 
                 {/* Cart footer */}
                 <div className="flex items-center justify-between px-4 py-3">
-                  <span className="text-sm text-muted">
-                    {cart.length} {cart.length === 1 ? 'item' : 'itens'}
-                  </span>
+                  <span className="text-sm text-muted">{cart.length} {cart.length === 1 ? 'item' : 'itens'}</span>
                   <span className="text-base font-bold text-green">{BRL(subtotal)}</span>
                 </div>
               </>
@@ -431,190 +438,258 @@ export function PosClient() {
         {/* ── RIGHT: customer + summary + payment ── */}
         <div className="space-y-4">
 
-          {/* Customer */}
+          {/* ── Customer section ── */}
           <div className="rounded-xl border p-5 space-y-4" style={{ background: '#111827', borderColor: '#1E2D45' }}>
             <h3 className="flex items-center gap-2 text-sm font-semibold text-text">
               <User className="h-4 w-4 text-accent" />
               Cliente
             </h3>
 
-            {customer ? (
-              <div
-                className="flex items-start justify-between rounded-lg border p-3"
-                style={{ background: '#0D1320', borderColor: '#00E5FF30' }}
-              >
-                <div>
-                  <p className="text-sm font-semibold text-text">{customer.full_name}</p>
-                  {customer.cpf_cnpj && <p className="mt-0.5 text-xs text-muted">CPF: {fmtCpf(customer.cpf_cnpj)}</p>}
-                  {customer.whatsapp && <p className="text-xs text-muted">WhatsApp: {customer.whatsapp}</p>}
-                  {customer.email    && <p className="text-xs text-muted">{customer.email}</p>}
+            {/* Selected customer card */}
+            <div
+              className="flex items-start justify-between rounded-lg border p-3"
+              style={{
+                background: '#0D1320',
+                borderColor: isDefault ? '#1E2D45' : '#00E5FF30',
+              }}
+            >
+              <div className="flex items-start gap-2.5 min-w-0">
+                {isDefault
+                  ? <UserCheck className="h-4 w-4 mt-0.5 shrink-0 text-muted" />
+                  : <User className="h-4 w-4 mt-0.5 shrink-0" style={{ color: '#00E5FF' }} />
+                }
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-semibold text-text truncate">{customer.full_name}</p>
+                    {isDefault && (
+                      <span className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold"
+                        style={{ background: '#64748B18', color: '#64748B' }}>
+                        Padrão
+                      </span>
+                    )}
+                  </div>
+                  {customer.cpf_cnpj && (
+                    <p className="mt-0.5 text-xs text-muted">CPF: {fmtCpf(customer.cpf_cnpj)}</p>
+                  )}
+                  {customer.whatsapp && (
+                    <p className="text-xs text-muted">WhatsApp: {customer.whatsapp}</p>
+                  )}
+                  {customer.email && (
+                    <p className="text-xs text-muted truncate">{customer.email}</p>
+                  )}
                 </div>
-                <button
-                  onClick={() => { setCustomer(null); setCpf(''); setShowForm(false); setCustomerResults([]); setShowCustomerDrop(false) }}
-                  className="ml-2 text-muted hover:text-coral transition-colors"
-                >
-                  <Pencil className="h-3.5 w-3.5" />
-                </button>
               </div>
-            ) : (
-              <>
-                {/* Customer search input */}
+              <button
+                onClick={() => {
+                  setCustomer(consumidorFinal)
+                  setSearchQuery(''); setShowForm(false); setShowCustomerDrop(false); setCustomerResults([])
+                }}
+                className="ml-2 shrink-0 text-muted hover:text-accent transition-colors"
+                title="Alterar cliente"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
+            </div>
+
+            {/* Customer search (only when not showing form and not in dropdown) */}
+            {!showForm && !showCustomerDrop && (
+              <div className="space-y-2">
                 <div className="flex gap-2">
                   <input
-                    value={cpf}
-                    onChange={e => setCpf(e.target.value)}
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && handleCustomerSearch()}
-                    placeholder="Nome, CPF ou WhatsApp..."
+                    placeholder="Buscar cliente por nome, CPF ou WhatsApp..."
                     className={inputCls + ' flex-1'}
                     style={inputStyle}
                   />
                   <button
                     onClick={handleCustomerSearch}
-                    disabled={searchingCpf}
-                    className="rounded-lg border px-3.5 py-2.5 text-sm font-medium text-accent hover:bg-card transition-colors disabled:opacity-60"
+                    disabled={searchingCustomer}
+                    className="rounded-lg border px-3.5 py-2.5 text-sm font-medium text-accent hover:bg-card transition-colors disabled:opacity-60 shrink-0"
                     style={{ borderColor: '#1E2D45' }}
                   >
-                    {searchingCpf ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Buscar'}
+                    {searchingCustomer ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Buscar'}
                   </button>
                 </div>
+                {!isDefault && (
+                  <button
+                    onClick={resetToDefault}
+                    className="w-full rounded-lg border py-2 text-xs font-medium text-muted hover:bg-card transition-colors"
+                    style={{ borderColor: '#1E2D45' }}
+                  >
+                    ↩ Voltar ao Consumidor Final
+                  </button>
+                )}
+              </div>
+            )}
 
-                {/* Multiple results dropdown */}
-                {showCustomerDrop && customerResults.length > 0 && (
-                  <div className="rounded-xl border overflow-hidden" style={{ background: '#0D1320', borderColor: '#1E2D45' }}>
-                    {customerResults.map(c => (
-                      <button
-                        key={c.id}
-                        onClick={() => selectCustomer(c)}
-                        className="flex w-full items-start justify-between px-4 py-3 text-sm hover:bg-card transition-colors border-b last:border-0"
-                        style={{ borderColor: '#1E2D45' }}
-                      >
-                        <div className="text-left">
-                          <p className="font-medium text-text">{c.full_name}</p>
-                          {c.cpf_cnpj && <p className="text-xs text-muted">CPF: {fmtCpf(c.cpf_cnpj)}</p>}
-                        </div>
-                        {c.whatsapp && <p className="text-xs text-muted shrink-0 ml-2">{c.whatsapp}</p>}
-                      </button>
-                    ))}
+            {/* Multiple customer results */}
+            {showCustomerDrop && customerResults.length > 0 && (
+              <div className="rounded-xl border overflow-hidden" style={{ background: '#0D1320', borderColor: '#1E2D45' }}>
+                {customerResults.map(c => (
+                  <button
+                    key={c.id}
+                    onClick={() => selectCustomer(c)}
+                    className="flex w-full items-start justify-between px-4 py-3 text-sm hover:bg-card transition-colors border-b last:border-0"
+                    style={{ borderColor: '#1E2D45' }}
+                  >
+                    <div className="text-left">
+                      <p className="font-medium text-text">{c.full_name}</p>
+                      {c.cpf_cnpj && <p className="text-xs text-muted">CPF: {fmtCpf(c.cpf_cnpj)}</p>}
+                    </div>
+                    {c.whatsapp && <p className="text-xs text-muted shrink-0 ml-2">{c.whatsapp}</p>}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setShowCustomerDrop(false)}
+                  className="w-full py-2 text-xs text-muted hover:bg-card transition-colors"
+                >
+                  Cancelar
+                </button>
+              </div>
+            )}
+
+            {/* ── New customer form (full, matching clientes module) ── */}
+            {showForm && (
+              <div className="space-y-3 border-t pt-4" style={{ borderColor: '#1E2D45' }}>
+                <p className="text-xs font-semibold uppercase tracking-wider text-amber">Cadastro rápido</p>
+
+                {/* Name */}
+                <input
+                  value={nc.name}
+                  onChange={e => setNc(p => ({ ...p, name: e.target.value }))}
+                  placeholder="Nome completo *"
+                  className={inputCls}
+                  style={inputStyle}
+                />
+
+                {/* CPF + Birthday */}
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    value={nc.cpf}
+                    onChange={e => setNc(p => ({ ...p, cpf: fmtCpf(e.target.value) }))}
+                    placeholder="CPF"
+                    className={inputCls}
+                    style={inputStyle}
+                  />
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted pointer-events-none" />
+                    <input
+                      type="date"
+                      value={nc.birthDate}
+                      onChange={e => setNc(p => ({ ...p, birthDate: e.target.value }))}
+                      className={inputCls + ' pl-9'}
+                      style={inputStyle}
+                      title="Data de aniversário"
+                    />
                   </div>
-                )}
+                </div>
 
-                {/* New customer form */}
-                {showForm && (
-                  <div className="space-y-3 border-t pt-4" style={{ borderColor: '#1E2D45' }}>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-amber">Cadastro rápido</p>
+                {/* WhatsApp */}
+                <input
+                  value={nc.whatsapp}
+                  onChange={e => setNc(p => ({ ...p, whatsapp: fmtPhone(e.target.value) }))}
+                  placeholder="WhatsApp"
+                  className={inputCls}
+                  style={inputStyle}
+                />
 
+                {/* Email */}
+                <input
+                  type="email"
+                  value={nc.email}
+                  onChange={e => setNc(p => ({ ...p, email: e.target.value }))}
+                  placeholder="E-mail"
+                  className={inputCls}
+                  style={inputStyle}
+                />
+
+                {/* Address section */}
+                <div className="border-t pt-3 space-y-2" style={{ borderColor: '#1E2D45' }}>
+                  <p className="text-xs font-medium text-muted">Endereço (opcional)</p>
+
+                  {/* CEP — optional, auto-fills others */}
+                  <div className="relative">
                     <input
-                      value={nc.name}
-                      onChange={e => setNc(p => ({ ...p, name: e.target.value }))}
-                      placeholder="Nome completo *"
+                      value={nc.cep}
+                      onChange={e => setNc(p => ({ ...p, cep: fmtCep(e.target.value) }))}
+                      onBlur={e => handleCepBlur(e.target.value)}
+                      placeholder="CEP (auto-preenche)"
                       className={inputCls}
                       style={inputStyle}
                     />
-                    <input
-                      value={nc.whatsapp}
-                      onChange={e => setNc(p => ({ ...p, whatsapp: fmtPhone(e.target.value) }))}
-                      placeholder="WhatsApp"
-                      className={inputCls}
-                      style={inputStyle}
-                    />
-                    <input
-                      type="email"
-                      value={nc.email}
-                      onChange={e => setNc(p => ({ ...p, email: e.target.value }))}
-                      placeholder="E-mail"
-                      className={inputCls}
-                      style={inputStyle}
-                    />
-
-                    {/* CEP */}
-                    <div className="relative">
-                      <input
-                        value={nc.cep}
-                        onChange={e => setNc(p => ({ ...p, cep: fmtCep(e.target.value) }))}
-                        onBlur={e => handleCepBlur(e.target.value)}
-                        placeholder="CEP"
-                        className={inputCls}
-                        style={inputStyle}
-                      />
-                      {fetchingCep && (
-                        <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted" />
-                      )}
-                    </div>
-
-                    {/* Street (auto-filled by ViaCEP) */}
-                    {nc.addressStreet && (
-                      <input
-                        value={nc.addressStreet}
-                        onChange={e => setNc(p => ({ ...p, addressStreet: e.target.value }))}
-                        placeholder="Logradouro"
-                        className={inputCls}
-                        style={inputStyle}
-                      />
+                    {fetchingCep && (
+                      <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted" />
                     )}
-
-                    {/* Number + Complement */}
-                    <div className="grid grid-cols-2 gap-2">
-                      <input
-                        value={nc.addressNumber}
-                        onChange={e => setNc(p => ({ ...p, addressNumber: e.target.value }))}
-                        placeholder="Número"
-                        className={inputCls}
-                        style={inputStyle}
-                      />
-                      <input
-                        value={nc.addressComplement}
-                        onChange={e => setNc(p => ({ ...p, addressComplement: e.target.value }))}
-                        placeholder="Complemento"
-                        className={inputCls}
-                        style={inputStyle}
-                      />
-                    </div>
-
-                    {/* City + State (auto-filled) */}
-                    {(nc.addressCity || nc.addressState) && (
-                      <div className="grid grid-cols-[1fr_56px] gap-2">
-                        <input
-                          value={nc.addressCity}
-                          onChange={e => setNc(p => ({ ...p, addressCity: e.target.value }))}
-                          placeholder="Cidade"
-                          className={inputCls}
-                          style={inputStyle}
-                        />
-                        <input
-                          value={nc.addressState}
-                          onChange={e => setNc(p => ({ ...p, addressState: e.target.value }))}
-                          placeholder="UF"
-                          className={inputCls}
-                          style={inputStyle}
-                        />
-                      </div>
-                    )}
-
-                    <div className="flex gap-2 pt-1">
-                      <button
-                        onClick={() => { setShowForm(false); setCpf('') }}
-                        className="flex-1 rounded-lg border py-2.5 text-sm font-medium text-muted hover:bg-card transition-colors"
-                        style={{ borderColor: '#1E2D45' }}
-                      >
-                        Cancelar
-                      </button>
-                      <button
-                        onClick={handleSaveCustomer}
-                        disabled={savingCustomer || !nc.name.trim()}
-                        className="flex-1 flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold transition-opacity disabled:opacity-60"
-                        style={{ background: 'linear-gradient(135deg, #00E5FF, #00FF94)', color: '#080C14' }}
-                      >
-                        {savingCustomer && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                        Salvar
-                      </button>
-                    </div>
                   </div>
-                )}
 
-                {!showForm && !showCustomerDrop && (
-                  <p className="text-center text-xs text-muted">Opcional — busque por nome, CPF ou WhatsApp</p>
-                )}
-              </>
+                  {/* Street — always visible */}
+                  <input
+                    value={nc.addressStreet}
+                    onChange={e => setNc(p => ({ ...p, addressStreet: e.target.value }))}
+                    placeholder="Logradouro"
+                    className={inputCls}
+                    style={inputStyle}
+                  />
+
+                  {/* Number + Complement */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      value={nc.addressNumber}
+                      onChange={e => setNc(p => ({ ...p, addressNumber: e.target.value }))}
+                      placeholder="Número"
+                      className={inputCls}
+                      style={inputStyle}
+                    />
+                    <input
+                      value={nc.addressComplement}
+                      onChange={e => setNc(p => ({ ...p, addressComplement: e.target.value }))}
+                      placeholder="Complemento"
+                      className={inputCls}
+                      style={inputStyle}
+                    />
+                  </div>
+
+                  {/* City + State — always visible */}
+                  <div className="grid grid-cols-[1fr_56px] gap-2">
+                    <input
+                      value={nc.addressCity}
+                      onChange={e => setNc(p => ({ ...p, addressCity: e.target.value }))}
+                      placeholder="Cidade"
+                      className={inputCls}
+                      style={inputStyle}
+                    />
+                    <input
+                      value={nc.addressState}
+                      onChange={e => setNc(p => ({ ...p, addressState: e.target.value.toUpperCase().slice(0, 2) }))}
+                      placeholder="UF"
+                      className={inputCls}
+                      style={inputStyle}
+                    />
+                  </div>
+                </div>
+
+                {/* Form actions */}
+                <div className="flex gap-2 pt-1">
+                  <button
+                    onClick={() => { setShowForm(false); setSearchQuery('') }}
+                    className="flex-1 rounded-lg border py-2.5 text-sm font-medium text-muted hover:bg-card transition-colors"
+                    style={{ borderColor: '#1E2D45' }}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleSaveCustomer}
+                    disabled={savingCustomer || !nc.name.trim()}
+                    className="flex-1 flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold transition-opacity disabled:opacity-60"
+                    style={{ background: 'linear-gradient(135deg, #00E5FF, #00FF94)', color: '#080C14' }}
+                  >
+                    {savingCustomer && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                    Salvar
+                  </button>
+                </div>
+              </div>
             )}
           </div>
 
@@ -706,7 +781,6 @@ export function PosClient() {
                   </div>
                 ))}
 
-                {/* Remaining indicator */}
                 {(() => {
                   const filled    = parseCents(mxCash) + parseCents(mxPix) + parseCents(mxCard)
                   const remaining = total - filled
@@ -756,7 +830,7 @@ export function PosClient() {
             <input
               value={mName}
               onChange={e => setMName(e.target.value)}
-              placeholder="Ex: Troca de tela, Película 3D, Conserto de conector..."
+              placeholder="Ex: Troca de tela, Película 3D, Conserto..."
               className={inputCls}
               style={inputStyle}
               autoFocus

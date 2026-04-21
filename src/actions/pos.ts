@@ -129,6 +129,30 @@ export async function searchCustomers(query: string): Promise<Customer[]> {
   return (data ?? []) as Customer[]
 }
 
+export async function getOrCreateConsumidorFinal(): Promise<Customer> {
+  const { supabase, user } = await requireAuth()
+  const tenantId = getTenantId(user)
+
+  const { data: existing } = await supabase
+    .from('customers')
+    .select('id, full_name, cpf_cnpj, whatsapp, email')
+    .eq('tenant_id', tenantId)
+    .eq('full_name', 'Consumidor Final')
+    .is('cpf_cnpj', null)
+    .limit(1)
+
+  if (existing && existing.length > 0) return existing[0] as Customer
+
+  const { data, error } = await supabase
+    .from('customers')
+    .insert({ tenant_id: tenantId, full_name: 'Consumidor Final' })
+    .select('id, full_name, cpf_cnpj, whatsapp, email')
+    .single()
+
+  if (error) throw new Error(error.message)
+  return data as Customer
+}
+
 export async function createCustomer(input: CreateCustomerInput): Promise<Customer> {
   const { supabase, user } = await requireAuth()
   const tenantId = getTenantId(user)
