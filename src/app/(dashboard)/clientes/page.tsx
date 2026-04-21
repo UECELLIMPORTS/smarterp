@@ -2,7 +2,7 @@ import { requireAuth } from '@/lib/supabase/server'
 import { getTenantId } from '@/lib/tenant'
 import { redirect } from 'next/navigation'
 import { Users, ShoppingBag, Wrench } from 'lucide-react'
-import { ClientesClient } from './clientes-client'
+import { ClientesClient, type CustomerRow } from './clientes-client'
 
 export const metadata = { title: 'Clientes — Smart ERP' }
 
@@ -17,7 +17,7 @@ export default async function ClientesPage() {
     // range(0, 1999) supera o limite padrão de 1000 do PostgREST
     supabase
       .from('customers')
-      .select('id, full_name, cpf_cnpj, whatsapp, email, address_city, address_state, created_at')
+      .select('id, full_name, cpf_cnpj, whatsapp, email, birth_date, address_zip, address_street, address_number, address_complement, address_city, address_state, created_at')
       .eq('tenant_id', tenantId)
       .order('full_name')
       .range(0, 1999),
@@ -35,18 +35,7 @@ export default async function ClientesPage() {
       .not('customer_id', 'is', null),
   ])
 
-  type Customer = {
-    id: string
-    full_name: string
-    cpf_cnpj: string | null
-    whatsapp: string | null
-    email: string | null
-    address_city: string | null
-    address_state: string | null
-    created_at: string
-  }
-
-  const customers = (customersRes.data ?? []) as Customer[]
+  const customers = (customersRes.data ?? []) as CustomerRow[]
   const salesRows = (salesCountRes.data ?? []) as { customer_id: string }[]
   const osRows    = (osCountRes.data    ?? []) as { customer_id: string }[]
 

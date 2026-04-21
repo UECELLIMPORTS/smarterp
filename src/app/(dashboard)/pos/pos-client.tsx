@@ -101,7 +101,7 @@ export function PosClient() {
   const [showCustomerDrop, setShowCustomerDrop] = useState(false)
   const [showForm, setShowForm]               = useState(false)
   const [nc, setNc] = useState({
-    name: '', cpf: '', whatsapp: '', email: '',
+    name: '', cpf: '', whatsapp: '', email: '', birthDate: '',
     cep: '', addressStreet: '', addressNumber: '',
     addressComplement: '', addressCity: '', addressState: '',
   })

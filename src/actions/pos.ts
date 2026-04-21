@@ -27,6 +27,7 @@ export type CreateCustomerInput = {
   cpf: string
   whatsapp: string
   email: string
+  birthDate: string
   cep: string
   addressStreet: string
   addressNumber: string
@@ -34,6 +35,8 @@ export type CreateCustomerInput = {
   addressCity: string
   addressState: string
 }
+
+export type UpdateCustomerInput = CreateCustomerInput & { id: string }
 
 export type SaleItem = {
   productId: string | null
@@ -130,14 +133,39 @@ export async function createCustomer(input: CreateCustomerInput): Promise<Custom
   const { supabase, user } = await requireAuth()
   const tenantId = getTenantId(user)
 
+  // Duplicate CPF check
+  const cpfDigits = input.cpf.replace(/\D/g, '')
+  if (cpfDigits) {
+    const { data: dup } = await supabase
+      .from('customers')
+      .select('full_name')
+      .eq('tenant_id', tenantId)
+      .eq('cpf_cnpj', cpfDigits)
+      .maybeSingle()
+    if (dup) throw new Error(`CPF já cadastrado para: ${dup.full_name}`)
+  }
+
+  // Duplicate WhatsApp check
+  const whatsDigits = input.whatsapp.replace(/\D/g, '')
+  if (whatsDigits) {
+    const { data: dup } = await supabase
+      .from('customers')
+      .select('full_name')
+      .eq('tenant_id', tenantId)
+      .eq('whatsapp', whatsDigits)
+      .maybeSingle()
+    if (dup) throw new Error(`WhatsApp já cadastrado para: ${dup.full_name}`)
+  }
+
   const { data, error } = await supabase
     .from('customers')
     .insert({
       tenant_id:          tenantId,
       full_name:          input.name.trim(),
-      cpf_cnpj:           input.cpf.replace(/\D/g, '') || null,
-      whatsapp:           input.whatsapp.replace(/\D/g, '') || null,
+      cpf_cnpj:           cpfDigits || null,
+      whatsapp:           whatsDigits || null,
       email:              input.email.trim() || null,
+      birth_date:         input.birthDate || null,
       address_zip:        input.cep.replace(/\D/g, '') || null,
       address_street:     input.addressStreet.trim() || null,
       address_number:     input.addressNumber.trim() || null,
@@ -145,6 +173,61 @@ export async function createCustomer(input: CreateCustomerInput): Promise<Custom
       address_city:       input.addressCity.trim() || null,
       address_state:      input.addressState.trim() || null,
     })
+    .select('id, full_name, cpf_cnpj, whatsapp, email')
+    .single()
+
+  if (error) throw new Error(error.message)
+  return data as Customer
+}
+
+export async function updateCustomer(input: UpdateCustomerInput): Promise<Customer> {
+  const { supabase, user } = await requireAuth()
+  const tenantId = getTenantId(user)
+
+  const cpfDigits   = input.cpf.replace(/\D/g, '')
+  const whatsDigits = input.whatsapp.replace(/\D/g, '')
+
+  // Duplicate CPF check (exclude self)
+  if (cpfDigits) {
+    const { data: dup } = await supabase
+      .from('customers')
+      .select('full_name')
+      .eq('tenant_id', tenantId)
+      .eq('cpf_cnpj', cpfDigits)
+      .neq('id', input.id)
+      .maybeSingle()
+    if (dup) throw new Error(`CPF já cadastrado para: ${dup.full_name}`)
+  }
+
+  // Duplicate WhatsApp check (exclude self)
+  if (whatsDigits) {
+    const { data: dup } = await supabase
+      .from('customers')
+      .select('full_name')
+      .eq('tenant_id', tenantId)
+      .eq('whatsapp', whatsDigits)
+      .neq('id', input.id)
+      .maybeSingle()
+    if (dup) throw new Error(`WhatsApp já cadastrado para: ${dup.full_name}`)
+  }
+
+  const { data, error } = await supabase
+    .from('customers')
+    .update({
+      full_name:          input.name.trim(),
+      cpf_cnpj:           cpfDigits || null,
+      whatsapp:           whatsDigits || null,
+      email:              input.email.trim() || null,
+      birth_date:         input.birthDate || null,
+      address_zip:        input.cep.replace(/\D/g, '') || null,
+      address_street:     input.addressStreet.trim() || null,
+      address_number:     input.addressNumber.trim() || null,
+      address_complement: input.addressComplement.trim() || null,
+      address_city:       input.addressCity.trim() || null,
+      address_state:      input.addressState.trim() || null,
+    })
+    .eq('id', input.id)
+    .eq('tenant_id', tenantId)
     .select('id, full_name, cpf_cnpj, whatsapp, email')
     .single()
 
