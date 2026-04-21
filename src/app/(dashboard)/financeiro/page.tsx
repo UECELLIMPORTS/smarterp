@@ -14,6 +14,13 @@ const METHOD_LABEL: Record<string, string> = {
 const METHOD_COLOR: Record<string, string> = {
   cash: '#00FF94', pix: '#00E5FF', card: '#FFB800', mixed: '#FF5C5C',
 }
+const OS_STATUS_LABEL: Record<string, string> = {
+  open:        'Aberta',
+  in_progress: 'Em andamento',
+  ready:       'Pronta',
+  delivered:   'Entregue',
+  cancelled:   'Cancelada',
+}
 
 export default async function FinanceiroPage() {
   let auth: Awaited<ReturnType<typeof requireAuth>>
@@ -97,6 +104,7 @@ export default async function FinanceiroPage() {
     customerName: string
     description: string
     payment: string | null
+    status: string | null
     discount: number
     total: number
   }
@@ -113,6 +121,7 @@ export default async function FinanceiroPage() {
       customerName: s.customers?.full_name ?? 'Sem cliente',
       description:  s.sale_items.map(i => `${i.quantity}× ${i.name}`).join(', ') || '—',
       payment:      s.payment_method,
+      status:       null,
       discount:     s.discount_cents ?? 0,
       total:        s.total_cents,
     })),
@@ -127,6 +136,7 @@ export default async function FinanceiroPage() {
       customerName: o.customers?.full_name ?? 'Sem cliente',
       description:  `OS — ${o.status ?? ''}`,
       payment:      o.payment_method ?? null,
+      status:       o.status ?? null,
       discount:     o.discount_cents ?? 0,
       total:        o.total_price_cents ?? 0,
     })),
@@ -234,6 +244,14 @@ export default async function FinanceiroPage() {
                       style={{ background: `${pmColor}18`, color: pmColor }}
                     >
                       {METHOD_LABEL[row.payment] ?? row.payment}
+                    </span>
+                  ) : row.status ? (
+                    // OS sem pagamento registrado — mostra status
+                    <span
+                      className="inline-flex w-fit items-center rounded-md px-2 py-1 text-xs font-medium"
+                      style={{ background: '#64748B18', color: '#64748B' }}
+                    >
+                      {OS_STATUS_LABEL[row.status] ?? row.status}
                     </span>
                   ) : (
                     <span className="text-xs text-muted">—</span>
