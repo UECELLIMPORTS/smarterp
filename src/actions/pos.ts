@@ -136,25 +136,25 @@ export async function createCustomer(input: CreateCustomerInput): Promise<Custom
   // Duplicate CPF check
   const cpfDigits = input.cpf.replace(/\D/g, '')
   if (cpfDigits) {
-    const { data: dup } = await supabase
+    const { data: dups } = await supabase
       .from('customers')
       .select('full_name')
       .eq('tenant_id', tenantId)
       .eq('cpf_cnpj', cpfDigits)
-      .maybeSingle()
-    if (dup) throw new Error(`CPF já cadastrado para: ${dup.full_name}`)
+      .limit(1)
+    if (dups && dups.length > 0) throw new Error(`CPF já cadastrado para: ${dups[0].full_name}`)
   }
 
   // Duplicate WhatsApp check
   const whatsDigits = input.whatsapp.replace(/\D/g, '')
   if (whatsDigits) {
-    const { data: dup } = await supabase
+    const { data: dups } = await supabase
       .from('customers')
       .select('full_name')
       .eq('tenant_id', tenantId)
       .eq('whatsapp', whatsDigits)
-      .maybeSingle()
-    if (dup) throw new Error(`WhatsApp já cadastrado para: ${dup.full_name}`)
+      .limit(1)
+    if (dups && dups.length > 0) throw new Error(`WhatsApp já cadastrado para: ${dups[0].full_name}`)
   }
 
   const { data, error } = await supabase
@@ -189,26 +189,26 @@ export async function updateCustomer(input: UpdateCustomerInput): Promise<Custom
 
   // Duplicate CPF check (exclude self)
   if (cpfDigits) {
-    const { data: dup } = await supabase
+    const { data: dups } = await supabase
       .from('customers')
       .select('full_name')
       .eq('tenant_id', tenantId)
       .eq('cpf_cnpj', cpfDigits)
       .neq('id', input.id)
-      .maybeSingle()
-    if (dup) throw new Error(`CPF já cadastrado para: ${dup.full_name}`)
+      .limit(1)
+    if (dups && dups.length > 0) throw new Error(`CPF já cadastrado para: ${dups[0].full_name}`)
   }
 
   // Duplicate WhatsApp check (exclude self)
   if (whatsDigits) {
-    const { data: dup } = await supabase
+    const { data: dups } = await supabase
       .from('customers')
       .select('full_name')
       .eq('tenant_id', tenantId)
       .eq('whatsapp', whatsDigits)
       .neq('id', input.id)
-      .maybeSingle()
-    if (dup) throw new Error(`WhatsApp já cadastrado para: ${dup.full_name}`)
+      .limit(1)
+    if (dups && dups.length > 0) throw new Error(`WhatsApp já cadastrado para: ${dups[0].full_name}`)
   }
 
   const { data, error } = await supabase
