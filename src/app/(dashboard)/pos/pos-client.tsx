@@ -491,7 +491,7 @@ export function PosClient({ consumidorFinal }: { consumidorFinal: Customer }) {
               </button>
             </div>
 
-            {/* Customer search (only when not showing form and not in dropdown) */}
+            {/* Customer search + cadastrar (only when not showing form and not in dropdown) */}
             {!showForm && !showCustomerDrop && (
               <div className="space-y-2">
                 <div className="flex gap-2">
@@ -499,7 +499,7 @@ export function PosClient({ consumidorFinal }: { consumidorFinal: Customer }) {
                     value={searchQuery}
                     onChange={e => setSearchQuery(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && handleCustomerSearch()}
-                    placeholder="Buscar cliente por nome, CPF ou WhatsApp..."
+                    placeholder="Buscar por nome, CPF ou WhatsApp..."
                     className={inputCls + ' flex-1'}
                     style={inputStyle}
                   />
@@ -512,6 +512,17 @@ export function PosClient({ consumidorFinal }: { consumidorFinal: Customer }) {
                     {searchingCustomer ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Buscar'}
                   </button>
                 </div>
+
+                {/* Direct register button */}
+                <button
+                  onClick={() => { setShowForm(true); setSearchQuery('') }}
+                  className="w-full flex items-center justify-center gap-2 rounded-lg border py-2.5 text-sm font-medium transition-colors hover:bg-card"
+                  style={{ borderColor: '#00E5FF40', color: '#00E5FF' }}
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Cadastrar novo cliente
+                </button>
+
                 {!isDefault && (
                   <button
                     onClick={resetToDefault}
