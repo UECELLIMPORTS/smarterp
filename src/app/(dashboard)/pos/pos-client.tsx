@@ -10,6 +10,7 @@ import {
   searchProducts, searchCustomers, createCustomer, createSale,
   type Product, type Customer,
 } from '@/actions/pos'
+import { AddressCityState } from '@/components/ui/address-fields'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -662,23 +663,15 @@ export function PosClient({ consumidorFinal }: { consumidorFinal: Customer }) {
                     />
                   </div>
 
-                  {/* City + State — always visible */}
-                  <div className="grid grid-cols-[1fr_56px] gap-2">
-                    <input
-                      value={nc.addressCity}
-                      onChange={e => setNc(p => ({ ...p, addressCity: e.target.value }))}
-                      placeholder="Cidade"
-                      className={inputCls}
-                      style={inputStyle}
-                    />
-                    <input
-                      value={nc.addressState}
-                      onChange={e => setNc(p => ({ ...p, addressState: e.target.value.toUpperCase().slice(0, 2) }))}
-                      placeholder="UF"
-                      className={inputCls}
-                      style={inputStyle}
-                    />
-                  </div>
+                  {/* City + State — select from IBGE */}
+                  <AddressCityState
+                    state={nc.addressState}
+                    city={nc.addressCity}
+                    onStateChange={v => setNc(p => ({ ...p, addressState: v }))}
+                    onCityChange={v => setNc(p => ({ ...p, addressCity: v }))}
+                    inputCls={inputCls}
+                    inputStyle={inputStyle}
+                  />
                 </div>
 
                 {/* Form actions */}

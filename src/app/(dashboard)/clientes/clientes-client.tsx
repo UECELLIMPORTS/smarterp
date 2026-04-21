@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react'
 import { Search, Plus, X, Loader2, Phone, Mail, FileText, User, Pencil, Calendar } from 'lucide-react'
 import { toast } from 'sonner'
 import { createCustomer, updateCustomer } from '@/actions/pos'
+import { AddressCityState } from '@/components/ui/address-fields'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -275,22 +276,14 @@ function CustomerModal({
             />
           </div>
 
-          <div className="grid grid-cols-[1fr_56px] gap-2">
-            <input
-              value={form.addressCity}
-              onChange={e => set({ addressCity: e.target.value })}
-              placeholder="Cidade"
-              className={inputCls}
-              style={inputStyle}
-            />
-            <input
-              value={form.addressState}
-              onChange={e => set({ addressState: e.target.value.toUpperCase().slice(0, 2) })}
-              placeholder="UF"
-              className={inputCls}
-              style={inputStyle}
-            />
-          </div>
+          <AddressCityState
+            state={form.addressState}
+            city={form.addressCity}
+            onStateChange={v => set({ addressState: v, addressCity: '' })}
+            onCityChange={v => set({ addressCity: v })}
+            inputCls={inputCls}
+            inputStyle={inputStyle}
+          />
         </div>
 
         {/* Actions */}
