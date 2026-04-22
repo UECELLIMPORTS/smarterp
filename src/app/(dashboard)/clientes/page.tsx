@@ -1,57 +1,77 @@
 import { requireAuth } from '@/lib/supabase/server'
 import { getTenantId } from '@/lib/tenant'
 import { redirect } from 'next/navigation'
-import { Users, ShoppingBag, Wrench } from 'lucide-react'
+import { Users, Wrench, List } from 'lucide-react'
 import { ClientesClient, type CustomerRow } from './clientes-client'
 
 export const metadata = { title: 'Clientes — Smart ERP' }
 
-export default async function ClientesPage() {
+const PAGE_SIZE = 100
+
+export default async function ClientesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string; q?: string }>
+}) {
   let auth: Awaited<ReturnType<typeof requireAuth>>
   try { auth = await requireAuth() } catch { redirect('/login') }
 
   const { supabase, user } = auth
   const tenantId = getTenantId(user)
+  const { page: pageStr, q = '' } = await searchParams
+  const page   = Math.max(1, parseInt(pageStr ?? '1') || 1)
+  const offset = (page - 1) * PAGE_SIZE
+  const term   = q.trim()
 
-  const [customersRes, salesCountRes, osCountRes] = await Promise.all([
-    // range(0, 1999) supera o limite padrão de 1000 do PostgREST
-    supabase
-      .from('customers')
-      .select('id, full_name, cpf_cnpj, whatsapp, email, birth_date, address_zip, address_street, address_number, address_complement, address_city, address_state, created_at')
-      .eq('tenant_id', tenantId)
-      .order('full_name')
-      .range(0, 1999),
+  // ── Busca paginada ────────────────────────────────────────────────────────
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any
 
-    supabase
-      .from('sales')
-      .select('customer_id')
-      .eq('tenant_id', tenantId)
-      .not('customer_id', 'is', null),
+  const [customersRes, countRes, totalCountRes, totalOsRes] = await Promise.all([
+    term
+      ? sb.from('customers')
+          .select('id, full_name, cpf_cnpj, whatsapp, email, birth_date, address_zip, address_street, address_number, address_complement, address_city, address_state, created_at')
+          .eq('tenant_id', tenantId)
+          .or(`full_name.ilike.%${term}%,whatsapp.ilike.%${term}%,cpf_cnpj.ilike.%${term}%,email.ilike.%${term}%`)
+          .order('created_at', { ascending: false })
+          .range(offset, offset + PAGE_SIZE - 1)
+      : sb.from('customers')
+          .select('id, full_name, cpf_cnpj, whatsapp, email, birth_date, address_zip, address_street, address_number, address_complement, address_city, address_state, created_at')
+          .eq('tenant_id', tenantId)
+          .order('created_at', { ascending: false })
+          .range(offset, offset + PAGE_SIZE - 1),
 
-    supabase
-      .from('service_orders')
-      .select('customer_id')
-      .eq('tenant_id', tenantId)
-      .not('customer_id', 'is', null),
+    term
+      ? sb.from('customers').select('*', { count: 'exact', head: true })
+          .eq('tenant_id', tenantId)
+          .or(`full_name.ilike.%${term}%,whatsapp.ilike.%${term}%,cpf_cnpj.ilike.%${term}%,email.ilike.%${term}%`)
+      : sb.from('customers').select('*', { count: 'exact', head: true })
+          .eq('tenant_id', tenantId),
+
+    supabase.from('customers').select('*', { count: 'exact', head: true }).eq('tenant_id', tenantId),
+    supabase.from('service_orders').select('*', { count: 'exact', head: true }).eq('tenant_id', tenantId),
   ])
 
-  const customers = (customersRes.data ?? []) as CustomerRow[]
-  const salesRows = (salesCountRes.data ?? []) as { customer_id: string }[]
-  const osRows    = (osCountRes.data    ?? []) as { customer_id: string }[]
+  const customers     = (customersRes.data ?? []) as CustomerRow[]
+  const total         = (countRes.count ?? 0) as number
+  const totalPages    = Math.max(1, Math.ceil(total / PAGE_SIZE))
+  const totalClientes = (totalCountRes.count ?? 0) as number
+  const totalOs       = (totalOsRes.count    ?? 0) as number
 
-  const salesByCustomer = salesRows.reduce<Record<string, number>>((acc, r) => {
-    acc[r.customer_id] = (acc[r.customer_id] ?? 0) + 1
-    return acc
-  }, {})
+  // Conta vendas/OS apenas para os clientes visíveis na página
+  const ids = customers.map(c => c.id)
+  const [salesRows, osRows] = ids.length > 0
+    ? await Promise.all([
+        supabase.from('sales').select('customer_id').eq('tenant_id', tenantId).in('customer_id', ids),
+        supabase.from('service_orders').select('customer_id').eq('tenant_id', tenantId).in('customer_id', ids),
+      ])
+    : [{ data: [] as { customer_id: string }[] }, { data: [] as { customer_id: string }[] }]
 
-  const osByCustomer = osRows.reduce<Record<string, number>>((acc, r) => {
-    acc[r.customer_id] = (acc[r.customer_id] ?? 0) + 1
-    return acc
-  }, {})
+  const salesByCustomer = ((salesRows.data ?? []) as { customer_id: string }[])
+    .reduce<Record<string, number>>((acc, r) => { acc[r.customer_id] = (acc[r.customer_id] ?? 0) + 1; return acc }, {})
 
-  const totalActive = customers.filter(
-    c => (salesByCustomer[c.id] ?? 0) + (osByCustomer[c.id] ?? 0) > 0
-  ).length
+  const osByCustomer = ((osRows.data ?? []) as { customer_id: string }[])
+    .reduce<Record<string, number>>((acc, r) => { acc[r.customer_id] = (acc[r.customer_id] ?? 0) + 1; return acc }, {})
 
   return (
     <div className="space-y-6">
@@ -63,9 +83,9 @@ export default async function ClientesPage() {
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-3">
         {[
-          { label: 'Total de Clientes', value: String(customers.length), icon: Users,       color: '#00FF94' },
-          { label: 'Com Atividade',      value: String(totalActive),      icon: ShoppingBag, color: '#00E5FF' },
-          { label: 'OS no CheckSmart',  value: String(osRows.length),    icon: Wrench,      color: '#FFB800' },
+          { label: 'Total de Clientes', value: String(totalClientes), icon: Users, color: '#00FF94' },
+          { label: 'OS no CheckSmart',  value: String(totalOs),       icon: Wrench, color: '#00E5FF' },
+          { label: 'Nesta página',      value: String(customers.length), icon: List, color: '#FFB800' },
         ].map(({ label, value, icon: Icon, color }) => (
           <div key={label} className="rounded-xl border p-5" style={{ background: '#111827', borderColor: '#1E2D45' }}>
             <div className="flex items-start justify-between">
@@ -81,11 +101,14 @@ export default async function ClientesPage() {
         ))}
       </div>
 
-      {/* Client component: search + table + create modal */}
       <ClientesClient
         customers={customers}
         salesByCustomer={salesByCustomer}
         osByCustomer={osByCustomer}
+        page={page}
+        totalPages={totalPages}
+        total={total}
+        q={q}
       />
     </div>
   )
