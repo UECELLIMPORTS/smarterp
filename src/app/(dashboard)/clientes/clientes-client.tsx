@@ -104,7 +104,7 @@ function CustomerModal({
 
   const set = (patch: Partial<FormState>) => setForm(p => ({ ...p, ...patch }))
 
-  async function handleCepBlur(val: string) {
+  async function fetchCep(val: string) {
     const d = val.replace(/\D/g, '')
     if (d.length !== 8) return
     setFetching(true)
@@ -235,12 +235,15 @@ function CustomerModal({
         <div className="border-t pt-3 space-y-3" style={{ borderColor: '#1E2D45' }}>
           <p className="text-xs font-semibold uppercase tracking-wider text-muted">Endereço (opcional)</p>
 
-          {/* CEP — opcional, auto-preenche outros campos */}
+          {/* CEP — opcional, auto-preenche ao completar 8 dígitos */}
           <div className="relative">
             <input
               value={form.cep}
-              onChange={e => set({ cep: fmtCep(e.target.value) })}
-              onBlur={e => handleCepBlur(e.target.value)}
+              onChange={e => {
+                const v = fmtCep(e.target.value)
+                set({ cep: v })
+                fetchCep(v)
+              }}
               placeholder="CEP (opcional — auto-preenche)"
               className={inputCls}
               style={inputStyle}

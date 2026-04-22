@@ -10,6 +10,7 @@ import {
   searchProducts, searchCustomers, createCustomer, createSale,
   type Product, type Customer,
 } from '@/actions/pos'
+import type { StockControlMode } from '@/actions/settings'
 import { AddressCityState } from '@/components/ui/address-fields'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -17,6 +18,7 @@ import { AddressCityState } from '@/components/ui/address-fields'
 type CartItem = {
   key: string
   productId: string | null
+  source?: 'products' | 'parts_catalog'
   name: string
   quantity: number
   unitPriceCents: number
@@ -67,7 +69,7 @@ const inputStyle = { background: '#111827', borderColor: '#1E2D45' }
 
 // ── Component ──────────────────────────────────────────────────────────────────
 
-export function PosClient({ consumidorFinal }: { consumidorFinal: Customer }) {
+export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFinal: Customer; stockControlMode: StockControlMode }) {
   // ── Cart ──
   const [cart, setCart] = useState<CartItem[]>([])
 
@@ -144,6 +146,21 @@ export function PosClient({ consumidorFinal }: { consumidorFinal: Customer }) {
 
   // ── Cart helpers ──
   function addProduct(p: Product) {
+    // Verifica estoque apenas para produtos (não peças do CheckSmart)
+    if (p.source === 'products' && p.stock_qty !== null && p.stock_qty <= 0) {
+      if (stockControlMode === 'block') {
+        toast.error(`Produto sem estoque: "${p.name}" (${p.stock_qty} ${p.stock_qty === 0 ? 'un.' : 'un.'})`, {
+          description: 'Venda bloqueada. Ajuste o estoque antes de continuar.',
+        })
+        return
+      }
+      if (stockControlMode === 'warn') {
+        toast.warning(`Estoque insuficiente: "${p.name}"`, {
+          description: `Quantidade disponível: ${p.stock_qty}. A venda será registrada mesmo assim.`,
+        })
+      }
+    }
+
     setCart(prev => {
       const idx = prev.findIndex(i => i.productId === p.id)
       if (idx >= 0) {
@@ -151,7 +168,7 @@ export function PosClient({ consumidorFinal }: { consumidorFinal: Customer }) {
         next[idx] = { ...next[idx], quantity: next[idx].quantity + 1 }
         return next
       }
-      return [...prev, { key: randKey(), productId: p.id, name: p.name, quantity: 1, unitPriceCents: p.price_cents }]
+      return [...prev, { key: randKey(), productId: p.id, source: p.source, name: p.name, quantity: 1, unitPriceCents: p.price_cents }]
     })
     setQuery('')
     setShowDrop(false)
@@ -211,7 +228,7 @@ export function PosClient({ consumidorFinal }: { consumidorFinal: Customer }) {
   }
 
   // ── CEP lookup ──
-  async function handleCepBlur(val: string) {
+  async function fetchCep(val: string) {
     const d = val.replace(/\D/g, '')
     if (d.length !== 8) return
     setFetchingCep(true)
@@ -264,6 +281,7 @@ export function PosClient({ consumidorFinal }: { consumidorFinal: Customer }) {
           : null,
         items: cart.map(i => ({
           productId:      i.productId,
+          source:         i.source,
           name:           i.name,
           quantity:       i.quantity,
           unitPriceCents: i.unitPriceCents,
@@ -625,8 +643,11 @@ export function PosClient({ consumidorFinal }: { consumidorFinal: Customer }) {
                   <div className="relative">
                     <input
                       value={nc.cep}
-                      onChange={e => setNc(p => ({ ...p, cep: fmtCep(e.target.value) }))}
-                      onBlur={e => handleCepBlur(e.target.value)}
+                      onChange={e => {
+                        const v = fmtCep(e.target.value)
+                        setNc(p => ({ ...p, cep: v }))
+                        fetchCep(v)
+                      }}
                       placeholder="CEP (auto-preenche)"
                       className={inputCls}
                       style={inputStyle}
