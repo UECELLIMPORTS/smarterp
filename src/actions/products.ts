@@ -6,16 +6,31 @@ import { revalidatePath } from 'next/cache'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
+export type ProductFormat    = 'simples' | 'variacoes' | 'kit' | 'servico'
+export type ProductCondition = 'novo' | 'usado' | 'recondicionado'
+
 export type ProductRow = {
   id: string
   code: string | null
   name: string
   brand: string | null
+  category: string | null
+  format: ProductFormat
+  condition: ProductCondition
+  gtin: string | null
+  weight_g: number | null
+  gross_weight_g: number | null
+  height_cm: number | null
+  width_cm: number | null
+  depth_cm: number | null
   purchase_price_cents: number
   cost_cents: number
   price_cents: number
   unit: string
   stock_qty: number
+  stock_min: number
+  stock_max: number
+  location: string | null
   supplier: string | null
   image_urls: string[]
   description: string | null
@@ -28,18 +43,139 @@ export type ProductInput = {
   code: string
   name: string
   brand: string
+  category: string
+  format: ProductFormat
+  condition: ProductCondition
+  gtin: string
+  weightG: number | null
+  grossWeightG: number | null
+  heightCm: number | null
+  widthCm: number | null
+  depthCm: number | null
   purchasePriceCents: number
   costCents: number
   priceCents: number
   unit: string
   stockQty: number
+  stockMin: number
+  stockMax: number
+  location: string
   supplier: string
   imageUrls: string[]
   description: string
   active: boolean
 }
 
-// ── List ──────────────────────────────────────────────────────────────────────
+// Colunas para a listagem (tabela) — sem campos pesados que só o modal usa
+const LIST_COLS = `id, code, name, brand, category, format, condition,
+  purchase_price_cents, cost_cents, price_cents, unit,
+  stock_qty, stock_min, stock_max, location,
+  supplier, image_urls, active, gtin, created_at, updated_at`
+
+// Colunas completas — usadas no modal de edição/clone
+const SELECT_COLS = `id, code, name, brand, category, format, condition, gtin,
+  weight_g, gross_weight_g, height_cm, width_cm, depth_cm,
+  purchase_price_cents, cost_cents, price_cents, unit,
+  stock_qty, stock_min, stock_max, location,
+  supplier, image_urls, description, active, created_at, updated_at`
+
+// ── Params for paginated list ─────────────────────────────────────────────────
+
+export type ListParams = {
+  search?:   string
+  brand?:    string
+  category?: string
+  active?:   'all' | 'active' | 'inactive'
+  page?:     number
+  pageSize?: number
+}
+
+// ── List + brands + categories (initial page load) ────────────────────────────
+
+export async function listProductsWithMeta(): Promise<{
+  products:   ProductRow[]
+  total:      number
+  brands:     string[]
+  categories: string[]
+}> {
+  const { supabase, user } = await requireAuth()
+  const tenantId = getTenantId(user)
+
+  const [productsRes, brandsRes, catsRes] = await Promise.all([
+    supabase
+      .from('products')
+      .select(LIST_COLS, { count: 'exact' })
+      .eq('tenant_id', tenantId)
+      .order('name')
+      .range(0, 99),
+    supabase.from('products').select('brand').eq('tenant_id', tenantId).not('brand', 'is', null),
+    supabase.from('products').select('category').eq('tenant_id', tenantId).not('category', 'is', null),
+  ])
+
+  if (productsRes.error) throw new Error(productsRes.error.message)
+
+  const products   = (productsRes.data ?? []) as unknown as ProductRow[]
+  const total      = productsRes.count ?? 0
+  const brands     = [...new Set((brandsRes.data ?? []).map(r => r.brand as string))].sort()
+  const categories = [...new Set((catsRes.data ?? []).map(r => r.category as string))].sort()
+
+  return { products, total, brands, categories }
+}
+
+// ── Client-side pagination (sem brands/categories) ────────────────────────────
+
+export async function fetchProductsPage(params: ListParams): Promise<{
+  products: ProductRow[]
+  total:    number
+}> {
+  const { supabase, user } = await requireAuth()
+  const tenantId = getTenantId(user)
+  const page     = params.page ?? 0
+  const pageSize = params.pageSize ?? 100
+  const offset   = page * pageSize
+
+  let query = supabase
+    .from('products')
+    .select(LIST_COLS, { count: 'exact' })
+    .eq('tenant_id', tenantId)
+    .order('name')
+    .range(offset, offset + pageSize - 1)
+
+  if (params.search?.trim()) {
+    const s = params.search.trim()
+    query = query.or(`name.ilike.%${s}%,code.ilike.%${s}%,brand.ilike.%${s}%`)
+  }
+  if (params.brand)                 query = query.eq('brand', params.brand)
+  if (params.category)              query = query.eq('category', params.category)
+  if (params.active === 'active')   query = query.eq('active', true)
+  if (params.active === 'inactive') query = query.eq('active', false)
+
+  const { data, count, error } = await query
+  if (error) throw new Error(error.message)
+  return {
+    products: (data ?? []) as unknown as ProductRow[],
+    total:    count ?? 0,
+  }
+}
+
+// ── Get single product by ID ──────────────────────────────────────────────────
+
+export async function getProductById(id: string): Promise<ProductRow | null> {
+  const { supabase, user } = await requireAuth()
+  const tenantId = getTenantId(user)
+
+  const { data, error } = await supabase
+    .from('products')
+    .select(SELECT_COLS)
+    .eq('id', id)
+    .eq('tenant_id', tenantId)
+    .maybeSingle()
+
+  if (error) throw new Error(error.message)
+  return data as unknown as ProductRow | null
+}
+
+// ── List (standalone, usado por outros módulos) ───────────────────────────────
 
 export async function listProducts(): Promise<ProductRow[]> {
   const { supabase, user } = await requireAuth()
@@ -47,7 +183,7 @@ export async function listProducts(): Promise<ProductRow[]> {
 
   const { data, error } = await supabase
     .from('products')
-    .select('id, code, name, brand, purchase_price_cents, cost_cents, price_cents, unit, stock_qty, supplier, image_urls, description, active, created_at, updated_at')
+    .select(LIST_COLS)
     .eq('tenant_id', tenantId)
     .order('name')
     .range(0, 999)
@@ -63,13 +199,55 @@ export async function listBrands(): Promise<string[]> {
   const tenantId = getTenantId(user)
 
   const { data } = await supabase
-    .from('products')
-    .select('brand')
-    .eq('tenant_id', tenantId)
-    .not('brand', 'is', null)
+    .from('products').select('brand').eq('tenant_id', tenantId).not('brand', 'is', null)
 
-  const brands = [...new Set((data ?? []).map(r => r.brand as string))].sort()
-  return brands
+  return [...new Set((data ?? []).map(r => r.brand as string))].sort()
+}
+
+// ── Categories autocomplete ───────────────────────────────────────────────────
+
+export async function listCategories(): Promise<string[]> {
+  const { supabase, user } = await requireAuth()
+  const tenantId = getTenantId(user)
+
+  const { data } = await supabase
+    .from('products').select('category').eq('tenant_id', tenantId).not('category', 'is', null)
+
+  return [...new Set((data ?? []).map(r => r.category as string))].sort()
+}
+
+// ── helpers ───────────────────────────────────────────────────────────────────
+
+function toPayload(input: ProductInput, tenantId?: string) {
+  const base = {
+    code:                 input.code.trim() || null,
+    name:                 input.name.trim(),
+    brand:                input.brand.trim() || null,
+    category:             input.category.trim() || null,
+    format:               input.format,
+    condition:            input.condition,
+    gtin:                 input.gtin.trim() || null,
+    weight_g:             input.weightG ?? null,
+    gross_weight_g:       input.grossWeightG ?? null,
+    height_cm:            input.heightCm ?? null,
+    width_cm:             input.widthCm ?? null,
+    depth_cm:             input.depthCm ?? null,
+    purchase_price_cents: input.purchasePriceCents,
+    cost_cents:           input.costCents,
+    price_cents:          input.priceCents,
+    unit:                 input.unit || 'Un',
+    stock_qty:            input.stockQty,
+    stock_min:            input.stockMin,
+    stock_max:            input.stockMax,
+    location:             input.location.trim() || null,
+    supplier:             input.supplier.trim() || null,
+    image_urls:           input.imageUrls,
+    description:          input.description.trim() || null,
+    active:               input.active,
+    updated_at:           new Date().toISOString(),
+  }
+  if (tenantId) return { ...base, tenant_id: tenantId }
+  return base
 }
 
 // ── Create ────────────────────────────────────────────────────────────────────
@@ -82,22 +260,8 @@ export async function createProduct(input: ProductInput): Promise<ProductRow> {
 
   const { data, error } = await supabase
     .from('products')
-    .insert({
-      tenant_id:            tenantId,
-      code:                 input.code.trim() || null,
-      name:                 input.name.trim(),
-      brand:                input.brand.trim() || null,
-      purchase_price_cents: input.purchasePriceCents,
-      cost_cents:           input.costCents,
-      price_cents:          input.priceCents,
-      unit:                 input.unit || 'Un',
-      stock_qty:            input.stockQty,
-      supplier:             input.supplier.trim() || null,
-      image_urls:           input.imageUrls,
-      description:          input.description.trim() || null,
-      active:               input.active,
-    })
-    .select('id, code, name, brand, purchase_price_cents, cost_cents, price_cents, unit, stock_qty, supplier, image_urls, description, active, created_at, updated_at')
+    .insert(toPayload(input, tenantId))
+    .select(SELECT_COLS)
     .single()
 
   if (error) throw new Error(error.message)
@@ -115,24 +279,80 @@ export async function updateProduct(id: string, input: ProductInput): Promise<Pr
 
   const { data, error } = await supabase
     .from('products')
-    .update({
-      code:                 input.code.trim() || null,
-      name:                 input.name.trim(),
-      brand:                input.brand.trim() || null,
-      purchase_price_cents: input.purchasePriceCents,
-      cost_cents:           input.costCents,
-      price_cents:          input.priceCents,
-      unit:                 input.unit || 'Un',
-      stock_qty:            input.stockQty,
-      supplier:             input.supplier.trim() || null,
-      image_urls:           input.imageUrls,
-      description:          input.description.trim() || null,
-      active:               input.active,
-      updated_at:           new Date().toISOString(),
-    })
+    .update(toPayload(input))
     .eq('id', id)
     .eq('tenant_id', tenantId)
-    .select('id, code, name, brand, purchase_price_cents, cost_cents, price_cents, unit, stock_qty, supplier, image_urls, description, active, created_at, updated_at')
+    .select(SELECT_COLS)
+    .single()
+
+  if (error) throw new Error(error.message)
+  revalidatePath('/estoque')
+  return data as unknown as ProductRow
+}
+
+// ── Update price only (inline edit) ──────────────────────────────────────────
+
+export async function updateProductPrice(id: string, priceCents: number): Promise<void> {
+  const { supabase, user } = await requireAuth()
+  const tenantId = getTenantId(user)
+
+  const { error } = await supabase
+    .from('products')
+    .update({ price_cents: priceCents, updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .eq('tenant_id', tenantId)
+
+  if (error) throw new Error(error.message)
+  revalidatePath('/estoque')
+}
+
+// ── Clone product ─────────────────────────────────────────────────────────────
+
+export async function cloneProduct(id: string): Promise<ProductRow> {
+  const { supabase, user } = await requireAuth()
+  const tenantId = getTenantId(user)
+
+  const { data: original, error: fetchErr } = await supabase
+    .from('products')
+    .select(SELECT_COLS)
+    .eq('id', id)
+    .eq('tenant_id', tenantId)
+    .single()
+
+  if (fetchErr || !original) throw new Error('Produto não encontrado.')
+
+  const p = original as unknown as ProductRow
+
+  const { data, error } = await supabase
+    .from('products')
+    .insert({
+      tenant_id:            tenantId,
+      code:                 p.code ? `${p.code}-COPIA` : null,
+      name:                 `${p.name} (Cópia)`,
+      brand:                p.brand,
+      category:             p.category,
+      format:               p.format,
+      condition:            p.condition,
+      gtin:                 null,
+      weight_g:             p.weight_g,
+      gross_weight_g:       p.gross_weight_g,
+      height_cm:            p.height_cm,
+      width_cm:             p.width_cm,
+      depth_cm:             p.depth_cm,
+      purchase_price_cents: p.purchase_price_cents,
+      cost_cents:           p.cost_cents,
+      price_cents:          p.price_cents,
+      unit:                 p.unit,
+      stock_qty:            0,
+      stock_min:            p.stock_min,
+      stock_max:            p.stock_max,
+      location:             p.location,
+      supplier:             p.supplier,
+      image_urls:           p.image_urls,
+      description:          p.description,
+      active:               false,
+    })
+    .select(SELECT_COLS)
     .single()
 
   if (error) throw new Error(error.message)
@@ -156,7 +376,7 @@ export async function deleteProduct(id: string): Promise<void> {
   revalidatePath('/estoque')
 }
 
-// ── Adjust stock (balanço) ────────────────────────────────────────────────────
+// ── Adjust stock ──────────────────────────────────────────────────────────────
 
 export async function adjustStock(id: string, newQty: number): Promise<void> {
   const { supabase, user } = await requireAuth()
@@ -180,65 +400,38 @@ export async function importProducts(
   const { supabase, user } = await requireAuth()
   const tenantId = getTenantId(user)
 
-  // Carrega todos os produtos existentes do tenant para comparação em memória
   const { data: existing } = await supabase
     .from('products')
     .select('id, code, name')
     .eq('tenant_id', tenantId)
 
-  const byCode = new Map<string, string>() // code → id
-  const byName = new Map<string, string>() // name_lower → id
+  const byCode = new Map<string, string>()
+  const byName = new Map<string, string>()
   for (const p of existing ?? []) {
     if (p.code) byCode.set(p.code.trim().toLowerCase(), p.id)
     byName.set(p.name.trim().toLowerCase(), p.id)
   }
 
-  let created = 0
-  let updated = 0
-  let errors  = 0
+  let created = 0, updated = 0, errors = 0
 
   for (const row of rows) {
     const name = row.name.trim()
     const code = row.code.trim()
     if (!name) { errors++; continue }
 
-    const payload = {
-      tenant_id:            tenantId,
-      code:                 code || null,
-      name,
-      brand:                row.brand.trim() || null,
-      purchase_price_cents: row.purchasePriceCents,
-      cost_cents:           row.costCents,
-      price_cents:          row.priceCents,
-      unit:                 row.unit || 'Un',
-      stock_qty:            row.stockQty,
-      supplier:             row.supplier.trim() || null,
-      image_urls:           [],
-      description:          row.description.trim() || null,
-      active:               row.active,
-      updated_at:           new Date().toISOString(),
-    }
-
-    // Decide se atualiza ou cria: prioridade código > nome
+    const payload = toPayload(row, tenantId)
     const existingId =
       (code && byCode.get(code.toLowerCase())) ||
       byName.get(name.toLowerCase())
 
     if (existingId) {
-      const { error } = await supabase
-        .from('products')
-        .update(payload)
-        .eq('id', existingId)
-        .eq('tenant_id', tenantId)
+      const { error } = await supabase.from('products').update(payload).eq('id', existingId).eq('tenant_id', tenantId)
       if (error) errors++; else updated++
     } else {
-      const { error } = await supabase
-        .from('products')
-        .insert(payload)
+      const { error } = await supabase.from('products').insert({ ...payload, image_urls: [] })
       if (error) errors++
       else {
         created++
-        // Registra no mapa para evitar duplicata dentro do mesmo arquivo
         if (code) byCode.set(code.toLowerCase(), 'new')
         byName.set(name.toLowerCase(), 'new')
       }
@@ -249,7 +442,7 @@ export async function importProducts(
   return { created, updated, errors }
 }
 
-// ── Remover duplicatas (mantém o registro mais antigo por código/nome) ────────
+// ── Remove duplicates ─────────────────────────────────────────────────────────
 
 export async function removeDuplicateProducts(): Promise<{ removed: number }> {
   const { supabase, user } = await requireAuth()
@@ -263,30 +456,20 @@ export async function removeDuplicateProducts(): Promise<{ removed: number }> {
 
   if (!data || data.length === 0) return { removed: 0 }
 
-  const seen = new Map<string, string>() // chave → id do primeiro (mais antigo)
+  const seen = new Map<string, string>()
   const toDelete: string[] = []
 
   for (const p of data) {
-    // Chave = código (se existir) OU nome normalizado
     const key = p.code
       ? `code:${p.code.trim().toLowerCase()}`
       : `name:${p.name.trim().toLowerCase()}`
-
-    if (seen.has(key)) {
-      toDelete.push(p.id) // duplicata: marca para deletar
-    } else {
-      seen.set(key, p.id)
-    }
+    if (seen.has(key)) toDelete.push(p.id)
+    else seen.set(key, p.id)
   }
 
   if (toDelete.length === 0) return { removed: 0 }
 
-  const { error } = await supabase
-    .from('products')
-    .delete()
-    .in('id', toDelete)
-    .eq('tenant_id', tenantId)
-
+  const { error } = await supabase.from('products').delete().in('id', toDelete).eq('tenant_id', tenantId)
   if (error) throw new Error(error.message)
   revalidatePath('/estoque')
   return { removed: toDelete.length }

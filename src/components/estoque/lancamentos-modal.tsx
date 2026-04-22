@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useTransition } from 'react'
 import {
-  X, Plus, Loader2, ArrowDownCircle, ArrowUpCircle,
+  X, Plus, Loader2,
   Trash2, AlertTriangle, TrendingUp, TrendingDown, Package,
 } from 'lucide-react'
 import {
@@ -253,7 +253,9 @@ export function LancamentosModal({ product, onClose, onStockChanged }: Props) {
           </div>
 
           {/* Painel lateral de resumo */}
-          <div className="w-52 shrink-0 border-l p-5 space-y-4" style={{ borderColor: '#1E2D45' }}>
+          <div className="w-56 shrink-0 border-l p-5 space-y-4" style={{ borderColor: '#1E2D45' }}>
+
+            {/* Entradas */}
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <TrendingUp className="h-4 w-4" style={{ color: '#00FF94' }} />
@@ -262,11 +264,14 @@ export function LancamentosModal({ product, onClose, onStockChanged }: Props) {
               <p className="text-xl font-bold text-white">
                 {summary ? summary.total_entrada.toString().replace('.', ',') : '—'}
               </p>
-              {summary && summary.avg_purchase_price_cents > 0 && (
-                <p className="text-xs text-[#64748B] mt-0.5">Pm. compra: {BRL(summary.avg_purchase_price_cents)}</p>
-              )}
+              <p className="text-xs mt-0.5" style={{ color: '#00FF94' }}>
+                {summary && summary.avg_purchase_price_cents > 0
+                  ? BRL(Math.round(summary.total_entrada * summary.avg_purchase_price_cents))
+                  : 'R$ 0,00'}
+              </p>
             </div>
 
+            {/* Saídas */}
             <div className="border-t pt-4" style={{ borderColor: '#1E2D45' }}>
               <div className="flex items-center gap-2 mb-2">
                 <TrendingDown className="h-4 w-4 text-red-400" />
@@ -275,13 +280,16 @@ export function LancamentosModal({ product, onClose, onStockChanged }: Props) {
               <p className="text-xl font-bold text-white">
                 {summary ? summary.total_saida.toString().replace('.', ',') : '—'}
               </p>
-              {summary && summary.avg_sale_price_cents > 0 && (
-                <p className="text-xs text-[#64748B] mt-0.5">Pm. venda: {BRL(summary.avg_sale_price_cents)}</p>
-              )}
+              <p className="text-xs text-red-400 mt-0.5">
+                {summary && summary.avg_sale_price_cents > 0
+                  ? BRL(Math.round(summary.total_saida * summary.avg_sale_price_cents))
+                  : 'R$ 0,00'}
+              </p>
             </div>
 
+            {/* Saldo atual */}
             <div className="border-t pt-4" style={{ borderColor: '#1E2D45' }}>
-              <p className="text-xs font-semibold uppercase tracking-wider text-[#64748B] mb-2">Saldo atual</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-[#64748B] mb-1">Saldo atual</p>
               <p
                 className="text-2xl font-bold"
                 style={{ color: product.stock_qty <= 0 ? '#FF5C5C' : '#00FF94' }}
@@ -291,22 +299,30 @@ export function LancamentosModal({ product, onClose, onStockChanged }: Props) {
               <p className="text-xs text-[#64748B]">{product.unit}</p>
             </div>
 
-            <div className="border-t pt-4 space-y-2" style={{ borderColor: '#1E2D45' }}>
-              <p className="text-xs font-semibold uppercase tracking-wider text-[#64748B]">Preços atuais</p>
-              <div className="space-y-1">
-                <div className="flex justify-between text-xs">
-                  <span className="text-[#64748B]">Compra</span>
-                  <span className="text-white">{BRL(product.purchase_price_cents)}</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-[#64748B]">Custo</span>
-                  <span className="text-white">{BRL(product.cost_cents)}</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-[#64748B]">Venda</span>
-                  <span className="font-semibold" style={{ color: '#00FF94' }}>{BRL(product.price_cents)}</span>
-                </div>
-              </div>
+            {/* Saldos por depósito */}
+            <div className="border-t pt-4" style={{ borderColor: '#1E2D45' }}>
+              <p className="text-xs font-semibold uppercase tracking-wider text-[#64748B] mb-2">Saldos por depósito</p>
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="text-[#475569]">
+                    <th className="text-left font-medium pb-1">Depósito</th>
+                    <th className="text-right font-medium pb-1">Saldo</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td className="text-[#94A3B8] py-0.5">
+                      {product.location ? product.location : 'Padrão'}
+                    </td>
+                    <td
+                      className="text-right font-semibold py-0.5"
+                      style={{ color: product.stock_qty <= 0 ? '#FF5C5C' : '#00FF94' }}
+                    >
+                      {product.stock_qty}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
@@ -331,27 +347,21 @@ export function LancamentosModal({ product, onClose, onStockChanged }: Props) {
 
               {/* Tipo */}
               <div>
-                <label className="mb-1.5 block text-xs font-medium text-[#64748B]">Tipo *</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {(['entrada', 'saida'] as MovementType[]).map(t => (
-                    <button
-                      key={t}
-                      type="button"
-                      onClick={() => setTipo(t)}
-                      className="flex items-center justify-center gap-2 rounded-lg border py-2.5 text-sm font-medium transition-colors"
-                      style={{
-                        borderColor: tipo === t ? (t === 'entrada' ? '#00FF94' : '#FF5C5C') : '#1E2D45',
-                        background: tipo === t ? (t === 'entrada' ? '#00FF9415' : '#FF5C5C15') : 'transparent',
-                        color: tipo === t ? (t === 'entrada' ? '#00FF94' : '#FF5C5C') : '#64748B',
-                      }}
-                    >
-                      {t === 'entrada'
-                        ? <ArrowDownCircle className="h-4 w-4" />
-                        : <ArrowUpCircle className="h-4 w-4" />
-                      }
-                      {t === 'entrada' ? 'Entrada' : 'Saída'}
-                    </button>
-                  ))}
+                <label className="mb-1 block text-xs font-medium text-[#64748B]">Tipo *</label>
+                <div className="relative">
+                  <select
+                    value={tipo}
+                    onChange={e => setTipo(e.target.value as MovementType)}
+                    className="w-full appearance-none rounded-lg border bg-[#0D1521] px-3 py-2.5 text-sm font-medium focus:outline-none focus:ring-1"
+                    style={{
+                      borderColor: tipo === 'entrada' ? '#00FF94' : '#FF5C5C',
+                      color: tipo === 'entrada' ? '#00FF94' : '#FF5C5C',
+                    }}
+                  >
+                    <option value="entrada" style={{ color: '#00FF94', background: '#0D1521' }}>↓ Entrada</option>
+                    <option value="saida"   style={{ color: '#FF5C5C', background: '#0D1521' }}>↑ Saída</option>
+                  </select>
+                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#64748B]">▾</span>
                 </div>
               </div>
 

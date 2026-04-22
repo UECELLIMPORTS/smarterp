@@ -23,23 +23,23 @@ export type Customer = {
 }
 
 export type CreateCustomerInput = {
-  name: string
-  cpf: string
-  whatsapp: string
-  email: string
-  birthDate: string
-  cep: string
-  addressStreet: string
-  addressNumber: string
-  addressComplement: string
-  addressCity: string
-  addressState: string
+  name: string; tradeName: string; personType: string
+  cpf: string; ieRg: string; isActive: boolean
+  whatsapp: string; phone: string; email: string; nfeEmail: string; website: string
+  birthDate: string; gender: string; maritalStatus: string; profession: string
+  fatherName: string; fatherCpf: string; motherName: string; motherCpf: string
+  salesperson: string; contactType: string; creditLimitStr: string
+  notes: string
+  cep: string; addressStreet: string; addressDistrict: string
+  addressNumber: string; addressComplement: string
+  addressCity: string; addressState: string
 }
 
 export type UpdateCustomerInput = CreateCustomerInput & { id: string }
 
 export type SaleItem = {
   productId: string | null
+  source?: 'products' | 'parts_catalog'
   name: string
   quantity: number
   unitPriceCents: number
@@ -181,21 +181,42 @@ export async function createCustomer(input: CreateCustomerInput): Promise<Custom
     if (dups && dups.length > 0) throw new Error(`WhatsApp já cadastrado para: ${dups[0].full_name}`)
   }
 
+  const creditCents = Math.round(parseFloat(input.creditLimitStr.replace(',', '.') || '0') * 100) || 0
+
   const { data, error } = await supabase
     .from('customers')
     .insert({
-      tenant_id:          tenantId,
-      full_name:          input.name.trim(),
-      cpf_cnpj:           cpfDigits || null,
-      whatsapp:           whatsDigits || null,
-      email:              input.email.trim() || null,
-      birth_date:         input.birthDate || null,
-      address_zip:        input.cep.replace(/\D/g, '') || null,
-      address_street:     input.addressStreet.trim() || null,
-      address_number:     input.addressNumber.trim() || null,
-      address_complement: input.addressComplement.trim() || null,
-      address_city:       input.addressCity.trim() || null,
-      address_state:      input.addressState.trim() || null,
+      tenant_id:           tenantId,
+      full_name:           input.name.trim(),
+      trade_name:          input.tradeName.trim() || null,
+      person_type:         input.personType || 'fisica',
+      cpf_cnpj:            cpfDigits || null,
+      ie_rg:               input.ieRg.trim() || null,
+      is_active:           input.isActive,
+      whatsapp:            whatsDigits || null,
+      phone:               input.phone.replace(/\D/g, '') || null,
+      email:               input.email.trim() || null,
+      nfe_email:           input.nfeEmail.trim() || null,
+      website:             input.website.trim() || null,
+      birth_date:          input.birthDate || null,
+      gender:              input.gender || null,
+      marital_status:      input.maritalStatus || null,
+      profession:          input.profession.trim() || null,
+      father_name:         input.fatherName.trim() || null,
+      father_cpf:          input.fatherCpf.replace(/\D/g, '') || null,
+      mother_name:         input.motherName.trim() || null,
+      mother_cpf:          input.motherCpf.replace(/\D/g, '') || null,
+      salesperson:         input.salesperson.trim() || null,
+      contact_type:        input.contactType || null,
+      credit_limit_cents:  creditCents,
+      notes:               input.notes.trim() || null,
+      address_zip:         input.cep.replace(/\D/g, '') || null,
+      address_street:      input.addressStreet.trim() || null,
+      address_district:    input.addressDistrict.trim() || null,
+      address_number:      input.addressNumber.trim() || null,
+      address_complement:  input.addressComplement.trim() || null,
+      address_city:        input.addressCity.trim() || null,
+      address_state:       input.addressState.trim() || null,
     })
     .select('id, full_name, cpf_cnpj, whatsapp, email')
     .single()
@@ -235,20 +256,41 @@ export async function updateCustomer(input: UpdateCustomerInput): Promise<Custom
     if (dups && dups.length > 0) throw new Error(`WhatsApp já cadastrado para: ${dups[0].full_name}`)
   }
 
+  const creditCents = Math.round(parseFloat(input.creditLimitStr.replace(',', '.') || '0') * 100) || 0
+
   const { data, error } = await supabase
     .from('customers')
     .update({
-      full_name:          input.name.trim(),
-      cpf_cnpj:           cpfDigits || null,
-      whatsapp:           whatsDigits || null,
-      email:              input.email.trim() || null,
-      birth_date:         input.birthDate || null,
-      address_zip:        input.cep.replace(/\D/g, '') || null,
-      address_street:     input.addressStreet.trim() || null,
-      address_number:     input.addressNumber.trim() || null,
-      address_complement: input.addressComplement.trim() || null,
-      address_city:       input.addressCity.trim() || null,
-      address_state:      input.addressState.trim() || null,
+      full_name:           input.name.trim(),
+      trade_name:          input.tradeName.trim() || null,
+      person_type:         input.personType || 'fisica',
+      cpf_cnpj:            cpfDigits || null,
+      ie_rg:               input.ieRg.trim() || null,
+      is_active:           input.isActive,
+      whatsapp:            whatsDigits || null,
+      phone:               input.phone.replace(/\D/g, '') || null,
+      email:               input.email.trim() || null,
+      nfe_email:           input.nfeEmail.trim() || null,
+      website:             input.website.trim() || null,
+      birth_date:          input.birthDate || null,
+      gender:              input.gender || null,
+      marital_status:      input.maritalStatus || null,
+      profession:          input.profession.trim() || null,
+      father_name:         input.fatherName.trim() || null,
+      father_cpf:          input.fatherCpf.replace(/\D/g, '') || null,
+      mother_name:         input.motherName.trim() || null,
+      mother_cpf:          input.motherCpf.replace(/\D/g, '') || null,
+      salesperson:         input.salesperson.trim() || null,
+      contact_type:        input.contactType || null,
+      credit_limit_cents:  creditCents,
+      notes:               input.notes.trim() || null,
+      address_zip:         input.cep.replace(/\D/g, '') || null,
+      address_street:      input.addressStreet.trim() || null,
+      address_district:    input.addressDistrict.trim() || null,
+      address_number:      input.addressNumber.trim() || null,
+      address_complement:  input.addressComplement.trim() || null,
+      address_city:        input.addressCity.trim() || null,
+      address_state:       input.addressState.trim() || null,
     })
     .eq('id', input.id)
     .eq('tenant_id', tenantId)
@@ -295,6 +337,16 @@ export async function createSale(input: CreateSaleInput): Promise<{ id: string }
     )
 
   if (itemsError) throw new Error(itemsError.message)
+
+  // Decrement stock for products (not parts_catalog)
+  const stockItems = input.items.filter(i => i.productId && i.source === 'products')
+  for (const item of stockItems) {
+    await supabase.rpc('decrement_product_stock', {
+      p_product_id: item.productId,
+      p_tenant_id:  tenantId,
+      p_qty:        item.quantity,
+    })
+  }
 
   return sale as { id: string }
 }

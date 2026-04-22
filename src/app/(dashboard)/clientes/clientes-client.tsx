@@ -10,19 +10,21 @@ import { AddressCityState } from '@/components/ui/address-fields'
 // ── Types ──────────────────────────────────────────────────────────────────
 
 export type CustomerRow = {
-  id: string
-  full_name: string
-  cpf_cnpj: string | null
-  whatsapp: string | null
-  email: string | null
-  birth_date: string | null
-  address_zip: string | null
-  address_street: string | null
-  address_number: string | null
-  address_complement: string | null
-  address_city: string | null
-  address_state: string | null
-  created_at: string
+  id: string; full_name: string; trade_name: string | null
+  cpf_cnpj: string | null; ie_rg: string | null; person_type: string | null
+  is_active: boolean; whatsapp: string | null; phone: string | null
+  email: string | null; nfe_email: string | null; website: string | null
+  birth_date: string | null; gender: string | null
+  marital_status: string | null; profession: string | null
+  father_name: string | null; father_cpf: string | null
+  mother_name: string | null; mother_cpf: string | null
+  salesperson: string | null; contact_type: string | null
+  credit_limit_cents: number
+  notes: string | null
+  address_zip: string | null; address_street: string | null
+  address_district: string | null; address_number: string | null
+  address_complement: string | null; address_city: string | null
+  address_state: string | null; created_at: string
 }
 
 type Props = {
@@ -36,15 +38,28 @@ type Props = {
 }
 
 type FormState = {
-  name: string; cpf: string; whatsapp: string; email: string; birthDate: string
-  cep: string; addressStreet: string; addressNumber: string
-  addressComplement: string; addressCity: string; addressState: string
+  name: string; tradeName: string; personType: string
+  cpf: string; ieRg: string; isActive: boolean
+  whatsapp: string; phone: string; email: string; nfeEmail: string; website: string
+  birthDate: string; gender: string; maritalStatus: string; profession: string
+  fatherName: string; fatherCpf: string; motherName: string; motherCpf: string
+  salesperson: string; contactType: string; creditLimitStr: string
+  notes: string
+  cep: string; addressStreet: string; addressDistrict: string
+  addressNumber: string; addressComplement: string
+  addressCity: string; addressState: string
 }
 
 const EMPTY_FORM: FormState = {
-  name: '', cpf: '', whatsapp: '', email: '', birthDate: '',
-  cep: '', addressStreet: '', addressNumber: '',
-  addressComplement: '', addressCity: '', addressState: '',
+  name: '', tradeName: '', personType: 'fisica',
+  cpf: '', ieRg: '', isActive: true,
+  whatsapp: '', phone: '', email: '', nfeEmail: '', website: '',
+  birthDate: '', gender: '', maritalStatus: '', profession: '',
+  fatherName: '', fatherCpf: '', motherName: '', motherCpf: '',
+  salesperson: '', contactType: '', creditLimitStr: '',
+  notes: '',
+  cep: '', addressStreet: '', addressDistrict: '',
+  addressNumber: '', addressComplement: '', addressCity: '', addressState: '',
 }
 
 // ── Formatters ─────────────────────────────────────────────────────────────
@@ -138,20 +153,25 @@ function CustomerModal({
         result = await createCustomer(form)
       }
 
+      const creditCents = Math.round(parseFloat(form.creditLimitStr.replace(',', '.') || '0') * 100) || 0
       const row: CustomerRow = {
-        id:                 result.id,
-        full_name:          result.full_name,
-        cpf_cnpj:           result.cpf_cnpj,
-        whatsapp:           result.whatsapp,
-        email:              result.email,
-        birth_date:         form.birthDate || null,
-        address_zip:        form.cep.replace(/\D/g, '') || null,
-        address_street:     form.addressStreet || null,
-        address_number:     form.addressNumber || null,
-        address_complement: form.addressComplement || null,
-        address_city:       form.addressCity || null,
-        address_state:      form.addressState || null,
-        created_at:         mode === 'edit' ? (originalCreatedAt ?? new Date().toISOString()) : new Date().toISOString(),
+        id: result.id, full_name: result.full_name,
+        trade_name: form.tradeName || null, person_type: form.personType,
+        cpf_cnpj: result.cpf_cnpj, ie_rg: form.ieRg || null,
+        is_active: form.isActive,
+        whatsapp: result.whatsapp, phone: form.phone.replace(/\D/g, '') || null,
+        email: result.email, nfe_email: form.nfeEmail || null, website: form.website || null,
+        birth_date: form.birthDate || null, gender: form.gender || null,
+        marital_status: form.maritalStatus || null, profession: form.profession || null,
+        father_name: form.fatherName || null, father_cpf: form.fatherCpf.replace(/\D/g, '') || null,
+        mother_name: form.motherName || null, mother_cpf: form.motherCpf.replace(/\D/g, '') || null,
+        salesperson: form.salesperson || null, contact_type: form.contactType || null,
+        credit_limit_cents: creditCents, notes: form.notes || null,
+        address_zip: form.cep.replace(/\D/g, '') || null,
+        address_street: form.addressStreet || null, address_district: form.addressDistrict || null,
+        address_number: form.addressNumber || null, address_complement: form.addressComplement || null,
+        address_city: form.addressCity || null, address_state: form.addressState || null,
+        created_at: mode === 'edit' ? (originalCreatedAt ?? new Date().toISOString()) : new Date().toISOString(),
       }
 
       onSaved(row, mode === 'edit')
@@ -187,101 +207,57 @@ function CustomerModal({
           </button>
         </div>
 
-        {/* ── Dados pessoais ── */}
-        <div className="space-y-3">
-          <input
-            value={form.name}
-            onChange={e => set({ name: e.target.value })}
-            placeholder="Nome completo *"
-            className={inputCls}
-            style={inputStyle}
-            autoFocus
-          />
-
-          <div className="grid grid-cols-2 gap-3">
-            <input
-              value={form.cpf}
-              onChange={e => set({ cpf: fmtCpfInput(e.target.value) })}
-              placeholder="CPF"
-              className={inputCls}
-              style={inputStyle}
-            />
-            <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted pointer-events-none" />
-              <input
-                type="date"
-                value={form.birthDate}
-                onChange={e => set({ birthDate: e.target.value })}
-                className={inputCls + ' pl-9'}
-                style={inputStyle}
-                title="Data de aniversário"
-              />
+        {/* ── Dados básicos ── */}
+        <section className="space-y-2.5">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted">Dados básicos</p>
+          <input value={form.name} onChange={e => set({ name: e.target.value })} placeholder="Nome completo *" className={inputCls} style={inputStyle} autoFocus />
+          <input value={form.tradeName} onChange={e => set({ tradeName: e.target.value })} placeholder="Nome fantasia" className={inputCls} style={inputStyle} />
+          <div className="grid grid-cols-2 gap-2">
+            <select value={form.personType} onChange={e => set({ personType: e.target.value })} className={inputCls} style={{ ...inputStyle, appearance: 'none' }}>
+              <option value="fisica">Pessoa Física</option>
+              <option value="juridica">Pessoa Jurídica</option>
+            </select>
+            <div className="flex items-center gap-2 rounded-lg border px-3.5" style={inputStyle}>
+              <input type="checkbox" id="isActive" checked={form.isActive} onChange={e => set({ isActive: e.target.checked })} className="h-3.5 w-3.5 accent-accent" />
+              <label htmlFor="isActive" className="text-sm text-muted cursor-pointer">Ativo</label>
             </div>
           </div>
+          <div className="grid grid-cols-2 gap-2">
+            <input value={form.cpf} onChange={e => set({ cpf: fmtCpfInput(e.target.value) })} placeholder="CPF / CNPJ" className={inputCls} style={inputStyle} />
+            <input value={form.ieRg} onChange={e => set({ ieRg: e.target.value })} placeholder="RG / IE" className={inputCls} style={inputStyle} />
+          </div>
+        </section>
 
-          <input
-            value={form.whatsapp}
-            onChange={e => set({ whatsapp: fmtPhoneInput(e.target.value) })}
-            placeholder="WhatsApp"
-            className={inputCls}
-            style={inputStyle}
-          />
-
-          <input
-            type="email"
-            value={form.email}
-            onChange={e => set({ email: e.target.value })}
-            placeholder="E-mail"
-            className={inputCls}
-            style={inputStyle}
-          />
-        </div>
+        {/* ── Contato ── */}
+        <section className="border-t pt-3 space-y-2.5" style={{ borderColor: '#1E2D45' }}>
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted">Contato</p>
+          <div className="grid grid-cols-2 gap-2">
+            <input value={form.whatsapp} onChange={e => set({ whatsapp: fmtPhoneInput(e.target.value) })} placeholder="WhatsApp" className={inputCls} style={inputStyle} />
+            <input value={form.phone} onChange={e => set({ phone: fmtPhoneInput(e.target.value) })} placeholder="Celular / Fone" className={inputCls} style={inputStyle} />
+          </div>
+          <input type="email" value={form.email} onChange={e => set({ email: e.target.value })} placeholder="E-mail" className={inputCls} style={inputStyle} />
+          <input type="email" value={form.nfeEmail} onChange={e => set({ nfeEmail: e.target.value })} placeholder="E-mail para envio de NF-e" className={inputCls} style={inputStyle} />
+          <input value={form.website} onChange={e => set({ website: e.target.value })} placeholder="Web Site" className={inputCls} style={inputStyle} />
+        </section>
 
         {/* ── Endereço ── */}
-        <div className="border-t pt-3 space-y-3" style={{ borderColor: '#1E2D45' }}>
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted">Endereço (opcional)</p>
-
+        <section className="border-t pt-3 space-y-2.5" style={{ borderColor: '#1E2D45' }}>
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted">Endereço</p>
           <div className="relative">
             <input
               value={form.cep}
-              onChange={e => {
-                const v = fmtCep(e.target.value)
-                set({ cep: v })
-                fetchCep(v)
-              }}
-              placeholder="CEP (opcional — auto-preenche)"
-              className={inputCls}
-              style={inputStyle}
+              onChange={e => { const v = fmtCep(e.target.value); set({ cep: v }); fetchCep(v) }}
+              placeholder="CEP (auto-preenche)"
+              className={inputCls} style={inputStyle}
             />
-            {fetchingCep && (
-              <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted" />
-            )}
+            {fetchingCep && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted" />}
           </div>
-
-          <input
-            value={form.addressStreet}
-            onChange={e => set({ addressStreet: e.target.value })}
-            placeholder="Logradouro"
-            className={inputCls}
-            style={inputStyle}
-          />
-
+          <input value={form.addressStreet} onChange={e => set({ addressStreet: e.target.value })} placeholder="Logradouro" className={inputCls} style={inputStyle} />
           <div className="grid grid-cols-2 gap-2">
-            <input
-              value={form.addressNumber}
-              onChange={e => set({ addressNumber: e.target.value })}
-              placeholder="Número"
-              className={inputCls}
-              style={inputStyle}
-            />
-            <input
-              value={form.addressComplement}
-              onChange={e => set({ addressComplement: e.target.value })}
-              placeholder="Complemento"
-              className={inputCls}
-              style={inputStyle}
-            />
+            <input value={form.addressNumber} onChange={e => set({ addressNumber: e.target.value })} placeholder="Número" className={inputCls} style={inputStyle} />
+            <input value={form.addressComplement} onChange={e => set({ addressComplement: e.target.value })} placeholder="Complemento" className={inputCls} style={inputStyle} />
           </div>
+          <input value={form.addressDistrict} onChange={e => set({ addressDistrict: e.target.value })} placeholder="Bairro" className={inputCls} style={inputStyle} />
 
           <AddressCityState
             state={form.addressState}
@@ -291,7 +267,87 @@ function CustomerModal({
             inputCls={inputCls}
             inputStyle={inputStyle}
           />
-        </div>
+        </section>
+
+        {/* ── Dados pessoais ── */}
+        <section className="border-t pt-3 space-y-2.5" style={{ borderColor: '#1E2D45' }}>
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted">Dados pessoais</p>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="relative">
+              <Calendar className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted pointer-events-none" />
+              <input type="date" value={form.birthDate} onChange={e => set({ birthDate: e.target.value })} className={inputCls + ' pl-9'} style={inputStyle} title="Data de nascimento" />
+            </div>
+            <select value={form.gender} onChange={e => set({ gender: e.target.value })} className={inputCls} style={{ ...inputStyle, appearance: 'none' }}>
+              <option value="">Sexo</option>
+              <option value="M">Masculino</option>
+              <option value="F">Feminino</option>
+              <option value="O">Outro</option>
+            </select>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <select value={form.maritalStatus} onChange={e => set({ maritalStatus: e.target.value })} className={inputCls} style={{ ...inputStyle, appearance: 'none' }}>
+              <option value="">Estado civil</option>
+              <option value="solteiro">Solteiro(a)</option>
+              <option value="casado">Casado(a)</option>
+              <option value="divorciado">Divorciado(a)</option>
+              <option value="viuvo">Viúvo(a)</option>
+              <option value="uniao_estavel">União estável</option>
+            </select>
+            <input value={form.profession} onChange={e => set({ profession: e.target.value })} placeholder="Profissão" className={inputCls} style={inputStyle} />
+          </div>
+        </section>
+
+        {/* ── Filiação ── */}
+        <section className="border-t pt-3 space-y-2.5" style={{ borderColor: '#1E2D45' }}>
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted">Filiação</p>
+          <div className="grid grid-cols-2 gap-2">
+            <input value={form.motherName} onChange={e => set({ motherName: e.target.value })} placeholder="Nome da mãe" className={inputCls} style={inputStyle} />
+            <input value={form.motherCpf} onChange={e => set({ motherCpf: fmtCpfInput(e.target.value) })} placeholder="CPF da mãe" className={inputCls} style={inputStyle} />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <input value={form.fatherName} onChange={e => set({ fatherName: e.target.value })} placeholder="Nome do pai" className={inputCls} style={inputStyle} />
+            <input value={form.fatherCpf} onChange={e => set({ fatherCpf: fmtCpfInput(e.target.value) })} placeholder="CPF do pai" className={inputCls} style={inputStyle} />
+          </div>
+        </section>
+
+        {/* ── Comercial ── */}
+        <section className="border-t pt-3 space-y-2.5" style={{ borderColor: '#1E2D45' }}>
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted">Comercial</p>
+          <div className="grid grid-cols-2 gap-2">
+            <input value={form.salesperson} onChange={e => set({ salesperson: e.target.value })} placeholder="Vendedor" className={inputCls} style={inputStyle} />
+            <select value={form.contactType} onChange={e => set({ contactType: e.target.value })} className={inputCls} style={{ ...inputStyle, appearance: 'none' }}>
+              <option value="">Tipo de contato</option>
+              <option value="Cliente">Cliente</option>
+              <option value="Fornecedor">Fornecedor</option>
+              <option value="Transportadora">Transportadora</option>
+              <option value="Outro">Outro</option>
+            </select>
+          </div>
+          <div className="relative">
+            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-muted">R$</span>
+            <input
+              value={form.creditLimitStr}
+              onChange={e => set({ creditLimitStr: e.target.value.replace(/[^0-9,]/g, '') })}
+              placeholder="0,00"
+              className={inputCls + ' pl-10'}
+              style={inputStyle}
+              title="Limite de crédito"
+            />
+          </div>
+        </section>
+
+        {/* ── Observações ── */}
+        <section className="border-t pt-3 space-y-2" style={{ borderColor: '#1E2D45' }}>
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted">Observações</p>
+          <textarea
+            value={form.notes}
+            onChange={e => set({ notes: e.target.value })}
+            placeholder="Anotações sobre o cliente..."
+            rows={3}
+            className={inputCls + ' resize-none'}
+            style={inputStyle}
+          />
+        </section>
 
         {/* Actions */}
         <div className="flex gap-3 pt-1">
@@ -372,18 +428,25 @@ export function ClientesClient({
           ? `${c.cpf_cnpj.slice(0,3)}.${c.cpf_cnpj.slice(3,6)}.${c.cpf_cnpj.slice(6,9)}-${c.cpf_cnpj.slice(9)}`
           : c.cpf_cnpj)
       : ''
+    const creditStr = c.credit_limit_cents
+      ? (c.credit_limit_cents / 100).toFixed(2).replace('.', ',')
+      : ''
     return {
-      name:              c.full_name,
-      cpf,
-      whatsapp:          c.whatsapp ? fmtPhone(c.whatsapp) : '',
-      email:             c.email ?? '',
-      birthDate:         c.birth_date ?? '',
-      cep:               c.address_zip ?? '',
-      addressStreet:     c.address_street ?? '',
-      addressNumber:     c.address_number ?? '',
-      addressComplement: c.address_complement ?? '',
-      addressCity:       c.address_city ?? '',
-      addressState:      c.address_state ?? '',
+      name: c.full_name, tradeName: c.trade_name ?? '', personType: c.person_type ?? 'fisica',
+      cpf, ieRg: c.ie_rg ?? '', isActive: c.is_active ?? true,
+      whatsapp: c.whatsapp ? fmtPhone(c.whatsapp) : '',
+      phone: c.phone ? fmtPhone(c.phone) : '',
+      email: c.email ?? '', nfeEmail: c.nfe_email ?? '', website: c.website ?? '',
+      birthDate: c.birth_date ?? '', gender: c.gender ?? '',
+      maritalStatus: c.marital_status ?? '', profession: c.profession ?? '',
+      fatherName: c.father_name ?? '', fatherCpf: c.father_cpf ?? '',
+      motherName: c.mother_name ?? '', motherCpf: c.mother_cpf ?? '',
+      salesperson: c.salesperson ?? '', contactType: c.contact_type ?? '',
+      creditLimitStr: creditStr, notes: c.notes ?? '',
+      cep: c.address_zip ?? '', addressStreet: c.address_street ?? '',
+      addressDistrict: c.address_district ?? '',
+      addressNumber: c.address_number ?? '', addressComplement: c.address_complement ?? '',
+      addressCity: c.address_city ?? '', addressState: c.address_state ?? '',
     }
   }
 

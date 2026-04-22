@@ -9,33 +9,87 @@ import { revalidatePath } from 'next/cache'
 export type MovementType = 'entrada' | 'saida'
 
 export type StockMovementRow = {
-  id: string
-  product_id: string
-  type: MovementType
-  quantity: number
+  id:                   string
+  product_id:           string
+  type:                 MovementType
+  quantity:             number
   purchase_price_cents: number
-  cost_price_cents: number
-  sale_price_cents: number
-  notes: string | null
-  origin: string | null
-  created_at: string
+  cost_price_cents:     number
+  sale_price_cents:     number
+  notes:                string | null
+  origin:               string | null
+  depot:                string | null
+  moved_at:             string
+  created_at:           string
 }
 
 export type StockMovementInput = {
-  productId: string
-  type: MovementType
-  quantity: number
+  productId:          string
+  type:               MovementType
+  quantity:           number
   purchasePriceCents: number
-  costPriceCents: number
-  salePriceCents: number
-  notes: string
+  costPriceCents:     number
+  salePriceCents:     number
+  notes:              string
+  movedAt?:           string   // ISO — omitir usa now()
+  depot?:             string
+  origin?:            string   // padrão 'manual'; use 'balanco' para ajuste de inventário
+}
+
+export type UpdateMovementInput = {
+  type?:               MovementType
+  quantity?:           number
+  movedAt?:            string
+  notes?:              string
+  origin?:             string
+  purchasePriceCents?: number
+  costPriceCents?:     number
+  salePriceCents?:     number
 }
 
 export type StockSummary = {
-  total_entrada: number
+  total_entrada:            number
   avg_purchase_price_cents: number
-  total_saida: number
-  avg_sale_price_cents: number
+  total_saida:              number
+  avg_sale_price_cents:     number
+}
+
+const MOVEMENT_COLS = `
+  id, product_id, type, quantity,
+  purchase_price_cents, cost_price_cents, sale_price_cents,
+  notes, origin, depot, moved_at, created_at
+`
+
+// ── Helper: recalcula stock_qty do produto a partir de todas as movimentações ─
+
+async function recalcStock(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  productId: string,
+  tenantId: string,
+): Promise<number> {
+  const { data } = await supabase
+    .from('stock_movements')
+    .select('type, quantity')
+    .eq('product_id', productId)
+    .eq('tenant_id', tenantId)
+
+  const newQty = Math.max(
+    0,
+    (data ?? []).reduce(
+      (sum: number, m: { type: string; quantity: number }) =>
+        sum + (m.type === 'entrada' ? Number(m.quantity) : -Number(m.quantity)),
+      0,
+    ),
+  )
+
+  await supabase
+    .from('products')
+    .update({ stock_qty: newQty, updated_at: new Date().toISOString() })
+    .eq('id', productId)
+    .eq('tenant_id', tenantId)
+
+  return newQty
 }
 
 // ── List movements by product ─────────────────────────────────────────────────
@@ -46,10 +100,10 @@ export async function listMovements(productId: string): Promise<StockMovementRow
 
   const { data, error } = await supabase
     .from('stock_movements')
-    .select('id, product_id, type, quantity, purchase_price_cents, cost_price_cents, sale_price_cents, notes, origin, created_at')
+    .select(MOVEMENT_COLS)
     .eq('tenant_id', tenantId)
     .eq('product_id', productId)
-    .order('created_at', { ascending: false })
+    .order('moved_at', { ascending: false })
 
   if (error) throw new Error(error.message)
   return (data ?? []) as StockMovementRow[]
@@ -70,10 +124,10 @@ export async function getStockSummary(productId: string): Promise<StockSummary> 
 
   if (error) throw new Error(error.message)
   return (data ?? {
-    total_entrada: 0,
+    total_entrada:            0,
     avg_purchase_price_cents: 0,
-    total_saida: 0,
-    avg_sale_price_cents: 0,
+    total_saida:              0,
+    avg_sale_price_cents:     0,
   }) as StockSummary
 }
 
@@ -85,10 +139,6 @@ export async function createMovement(input: StockMovementInput): Promise<StockMo
 
   if (input.quantity <= 0) throw new Error('Quantidade deve ser maior que zero.')
 
-  if (input.type === 'entrada' && input.purchasePriceCents <= 0) {
-    throw new Error('Preço de compra é obrigatório na entrada.')
-  }
-
   const { data, error } = await supabase
     .from('stock_movements')
     .insert({
@@ -97,26 +147,93 @@ export async function createMovement(input: StockMovementInput): Promise<StockMo
       type:                 input.type,
       quantity:             input.quantity,
       purchase_price_cents: input.type === 'entrada' ? input.purchasePriceCents : 0,
-      cost_price_cents:     input.type === 'entrada' ? input.costPriceCents : 0,
-      sale_price_cents:     input.type === 'saida'   ? input.salePriceCents  : 0,
+      cost_price_cents:     input.type === 'entrada' ? input.costPriceCents     : 0,
+      sale_price_cents:     input.type === 'saida'   ? input.salePriceCents     : 0,
       notes:                input.notes.trim() || null,
-      origin:               'manual',
+      origin:               input.origin ?? 'manual',
+      depot:                input.depot?.trim() || null,
+      moved_at:             input.movedAt ?? new Date().toISOString(),
     })
-    .select('id, product_id, type, quantity, purchase_price_cents, cost_price_cents, sale_price_cents, notes, origin, created_at')
+    .select(MOVEMENT_COLS)
     .single()
 
   if (error) throw new Error(error.message)
   revalidatePath('/estoque')
-  return data as StockMovementRow
+  return data as unknown as StockMovementRow
+}
+
+// ── Update movement (quantidade e/ou data) ────────────────────────────────────
+
+export async function updateMovement(
+  id: string,
+  input: UpdateMovementInput,
+): Promise<{ movement: StockMovementRow; newStockQty: number }> {
+  const { supabase, user } = await requireAuth()
+  const tenantId = getTenantId(user)
+
+  // Busca lançamento atual para calcular delta de quantidade
+  const { data: current, error: fetchErr } = await supabase
+    .from('stock_movements')
+    .select('product_id, type, quantity')
+    .eq('id', id)
+    .eq('tenant_id', tenantId)
+    .single()
+
+  if (fetchErr || !current) throw new Error('Lançamento não encontrado.')
+
+  const patch: Record<string, unknown> = {}
+  if (input.quantity           !== undefined) patch.quantity             = input.quantity
+  if (input.movedAt            !== undefined) patch.moved_at             = input.movedAt
+  if (input.notes              !== undefined) patch.notes                = input.notes?.trim() || null
+  if (input.type               !== undefined) patch.type                 = input.type
+  if (input.origin             !== undefined) patch.origin               = input.origin
+  if (input.purchasePriceCents !== undefined) patch.purchase_price_cents = input.purchasePriceCents
+  if (input.costPriceCents     !== undefined) patch.cost_price_cents     = input.costPriceCents
+  if (input.salePriceCents     !== undefined) patch.sale_price_cents     = input.salePriceCents
+
+  const { data, error } = await supabase
+    .from('stock_movements')
+    .update(patch)
+    .eq('id', id)
+    .eq('tenant_id', tenantId)
+    .select(MOVEMENT_COLS)
+    .single()
+
+  if (error) throw new Error(error.message)
+
+  // Recalcula stock_qty se quantidade ou tipo mudou
+  const qtyChanged  = input.quantity !== undefined && input.quantity !== Number(current.quantity)
+  const typeChanged = input.type     !== undefined && input.type     !== current.type
+  let newStockQty: number
+  if (qtyChanged || typeChanged) {
+    newStockQty = await recalcStock(supabase, current.product_id, tenantId)
+  } else {
+    const { data: prod } = await supabase
+      .from('products')
+      .select('stock_qty')
+      .eq('id', current.product_id)
+      .single()
+    newStockQty = prod?.stock_qty ?? 0
+  }
+
+  revalidatePath('/estoque')
+  return { movement: data as unknown as StockMovementRow, newStockQty }
 }
 
 // ── Delete movement ───────────────────────────────────────────────────────────
-// Atenção: deletar um lançamento NÃO reverte o estoque automaticamente.
-// Usar apenas para correções administrativas — o estoque deve ser ajustado manualmente.
 
-export async function deleteMovement(id: string): Promise<void> {
+export async function deleteMovement(id: string): Promise<{ newStockQty: number }> {
   const { supabase, user } = await requireAuth()
   const tenantId = getTenantId(user)
+
+  const { data: movement, error: fetchErr } = await supabase
+    .from('stock_movements')
+    .select('product_id')
+    .eq('id', id)
+    .eq('tenant_id', tenantId)
+    .single()
+
+  if (fetchErr || !movement) throw new Error('Lançamento não encontrado.')
 
   const { error } = await supabase
     .from('stock_movements')
@@ -125,5 +242,9 @@ export async function deleteMovement(id: string): Promise<void> {
     .eq('tenant_id', tenantId)
 
   if (error) throw new Error(error.message)
+
+  const newStockQty = await recalcStock(supabase, movement.product_id, tenantId)
+
   revalidatePath('/estoque')
+  return { newStockQty }
 }

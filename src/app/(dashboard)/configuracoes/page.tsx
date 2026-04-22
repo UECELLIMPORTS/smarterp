@@ -1,5 +1,14 @@
-import { ComingSoon } from '@/components/layout/coming-soon'
+import { requireAuth } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
+import { getSettings } from '@/actions/settings'
+import { ConfiguracoesClient } from './configuracoes-client'
 
-export default function Page() {
-  return <ComingSoon title="Configurações" />
+export const metadata = { title: 'Configurações — Smart ERP' }
+
+export default async function ConfiguracoesPage() {
+  try { await requireAuth() } catch { redirect('/login') }
+
+  const settings = await getSettings()
+
+  return <ConfiguracoesClient initialSettings={settings} />
 }

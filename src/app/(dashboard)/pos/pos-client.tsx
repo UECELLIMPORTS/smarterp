@@ -104,9 +104,15 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
   const [showCustomerDrop, setShowCustomerDrop] = useState(false)
   const [showForm, setShowForm]               = useState(false)
   const [nc, setNc] = useState({
-    name: '', cpf: '', whatsapp: '', email: '', birthDate: '',
-    cep: '', addressStreet: '', addressNumber: '',
-    addressComplement: '', addressCity: '', addressState: '',
+    name: '', tradeName: '', personType: 'fisica',
+    cpf: '', ieRg: '', isActive: true,
+    whatsapp: '', phone: '', email: '', nfeEmail: '', website: '',
+    birthDate: '', gender: '', maritalStatus: '', profession: '',
+    fatherName: '', fatherCpf: '', motherName: '', motherCpf: '',
+    salesperson: '', contactType: '', creditLimitStr: '',
+    notes: '',
+    cep: '', addressStreet: '', addressDistrict: '',
+    addressNumber: '', addressComplement: '', addressCity: '', addressState: '',
   })
   const [fetchingCep, setFetchingCep]       = useState(false)
   const [savingCustomer, setSavingCustomer] = useState(false)

@@ -30,13 +30,13 @@ export default async function ClientesPage({
   const [customersRes, countRes, totalCountRes, totalOsRes] = await Promise.all([
     term
       ? sb.from('customers')
-          .select('id, full_name, cpf_cnpj, whatsapp, email, birth_date, address_zip, address_street, address_number, address_complement, address_city, address_state, created_at')
+          .select('id, full_name, trade_name, person_type, cpf_cnpj, ie_rg, is_active, whatsapp, phone, email, nfe_email, website, birth_date, gender, marital_status, profession, father_name, father_cpf, mother_name, mother_cpf, salesperson, contact_type, credit_limit_cents, notes, address_zip, address_street, address_district, address_number, address_complement, address_city, address_state, created_at')
           .eq('tenant_id', tenantId)
           .or(`full_name.ilike.%${term}%,whatsapp.ilike.%${term}%,cpf_cnpj.ilike.%${term}%,email.ilike.%${term}%`)
           .order('created_at', { ascending: false })
           .range(offset, offset + PAGE_SIZE - 1)
       : sb.from('customers')
-          .select('id, full_name, cpf_cnpj, whatsapp, email, birth_date, address_zip, address_street, address_number, address_complement, address_city, address_state, created_at')
+          .select('id, full_name, trade_name, person_type, cpf_cnpj, ie_rg, is_active, whatsapp, phone, email, nfe_email, website, birth_date, gender, marital_status, profession, father_name, father_cpf, mother_name, mother_cpf, salesperson, contact_type, credit_limit_cents, notes, address_zip, address_street, address_district, address_number, address_complement, address_city, address_state, created_at')
           .eq('tenant_id', tenantId)
           .order('created_at', { ascending: false })
           .range(offset, offset + PAGE_SIZE - 1),
