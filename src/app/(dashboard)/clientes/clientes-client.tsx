@@ -2,9 +2,10 @@
 
 import { useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, Plus, X, Loader2, Phone, Mail, FileText, User, Pencil, Calendar, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Search, Plus, X, Loader2, Phone, Mail, FileText, User, Pencil, Calendar, ChevronLeft, ChevronRight, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 import { createCustomer, updateCustomer } from '@/actions/pos'
+import { importCustomersFromBling } from '@/actions/clientes'
 import { AddressCityState } from '@/components/ui/address-fields'
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -390,6 +391,31 @@ export function ClientesClient({
     | null
   >(null)
 
+  const [importing, setImporting] = useState(false)
+  const importInputRef = useRef<HTMLInputElement>(null)
+
+  async function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (importInputRef.current) importInputRef.current.value = ''
+
+    setImporting(true)
+    try {
+      const text = await file.text()
+      const result = await importCustomersFromBling(text)
+      if (result.errors.length > 0) {
+        toast.error(`Importação com erros: ${result.errors[0]}`)
+      } else {
+        toast.success(`Importação concluída! ${result.imported} importados, ${result.skipped} já existiam.`)
+        router.refresh()
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao importar')
+    } finally {
+      setImporting(false)
+    }
+  }
+
   // ── Server-side search with debounce ──────────────────────────────────
 
   const handleSearch = useCallback((val: string) => {
@@ -474,6 +500,23 @@ export function ClientesClient({
             </button>
           )}
         </div>
+        <input
+          ref={importInputRef}
+          type="file"
+          accept=".csv"
+          className="hidden"
+          onChange={handleImportFile}
+        />
+        <button
+          onClick={() => importInputRef.current?.click()}
+          disabled={importing}
+          className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-opacity hover:opacity-90 whitespace-nowrap disabled:opacity-50"
+          style={{ background: '#1E2D45', color: '#00E5FF', border: '1px solid #00E5FF33' }}
+          title="Importar CSV do Bling"
+        >
+          {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+          {importing ? 'Importando...' : 'Importar Bling'}
+        </button>
         <button
           onClick={() => setModal({ mode: 'create' })}
           className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-opacity hover:opacity-90 whitespace-nowrap"
