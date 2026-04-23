@@ -102,6 +102,7 @@ export default async function ClientesPage({
       </div>
 
       <ClientesClient
+        key={`${page}-${q}`}
         customers={customers}
         salesByCustomer={salesByCustomer}
         osByCustomer={osByCustomer}
