@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, Plus, X, Loader2, Phone, Mail, FileText, User, Pencil, Calendar, ChevronLeft, ChevronRight, Upload } from 'lucide-react'
+import { Search, Plus, X, Loader2, Phone, Mail, FileText, User, Pencil, Calendar, ChevronLeft, ChevronRight, Upload, Download } from 'lucide-react'
 import { toast } from 'sonner'
 import { createCustomer, updateCustomer } from '@/actions/pos'
 import { importCustomersFromBling } from '@/actions/clientes'
@@ -500,6 +500,18 @@ export function ClientesClient({
             </button>
           )}
         </div>
+        {/* Exportar CSV */}
+        <a
+          href="/clientes/exportar"
+          download
+          className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-opacity hover:opacity-90 whitespace-nowrap"
+          style={{ background: '#1E2D45', color: '#00FF94', border: '1px solid #00FF9433' }}
+          title="Exportar todos os clientes em CSV"
+        >
+          <Download className="h-4 w-4" />
+          Exportar CSV
+        </a>
+
         <input
           ref={importInputRef}
           type="file"
