@@ -497,7 +497,7 @@ export function EstoqueClient({ initialProducts, initialTotal, brands: initialBr
         ) : (
           <div className="overflow-x-auto">
             <div className="grid gap-3 px-5 py-3 border-b text-xs font-medium uppercase tracking-wider text-muted"
-              style={{ borderColor: '#1E2D45', gridTemplateColumns: '1fr 100px 120px 110px 120px 80px 90px 152px', minWidth: '900px' }}>
+              style={{ borderColor: '#1E2D45', gridTemplateColumns: 'minmax(280px, 2fr) 100px 120px 110px 120px 80px 90px 152px', minWidth: '1100px' }}>
               <span>Nome</span><span>SKU</span><span>Marca</span>
               <span className="text-right">Pr. Custo</span>
               <span className="text-right">Pr. Venda</span>
@@ -509,7 +509,7 @@ export function EstoqueClient({ initialProducts, initialTotal, brands: initialBr
             {products.map(p => (
               <div key={p.id}
                 className="grid gap-3 px-5 py-3.5 border-b items-center last:border-0 hover:bg-white/[0.02] transition-colors"
-                style={{ borderColor: '#1E2D45', gridTemplateColumns: '1fr 100px 120px 110px 120px 80px 90px 152px', minWidth: '900px' }}>
+                style={{ borderColor: '#1E2D45', gridTemplateColumns: 'minmax(280px, 2fr) 100px 120px 110px 120px 80px 90px 152px', minWidth: '1100px' }}>
 
                 {/* Nome + imagem */}
                 <div className="flex items-center gap-3 min-w-0">
@@ -522,8 +522,8 @@ export function EstoqueClient({ initialProducts, initialTotal, brands: initialBr
                     </div>
                   )}
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-text truncate">{p.name}</p>
-                    <p className="text-xs text-muted truncate">
+                    <p className="text-sm font-medium text-text break-words">{p.name}</p>
+                    <p className="text-xs text-muted break-words">
                       {p.category ?? ''}{p.category && p.supplier ? ' · ' : ''}{p.supplier ?? ''}
                     </p>
                   </div>
