@@ -4,156 +4,135 @@
 
 ---
 
-## SmartERP — `/Users/uedson/smarterp/`
+## SmartERP — `/Users/uedson/smarterp/src/`
 
-### Configuração e raiz
-
-| Arquivo | O que faz |
-|---------|-----------|
-| `.env.local` | Variáveis de ambiente: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (sem service role key) |
-| `next.config.ts` | Configuração do Next.js |
-| `package.json` | Dependências: Next.js 16.2.4, Supabase JS 2.103.3, Tailwind, Sonner (toasts), Lucide Icons |
-| `SESSAO_CONTEXTO.md` | Handoff da sessão anterior (na raiz, gerado automaticamente) |
-| `_docs/` | Esta pasta — documentação completa do projeto |
-
-### Lib / Utilitários — `src/lib/`
+### Autenticação e configuração de tenant
 
 | Arquivo | O que faz |
 |---------|-----------|
-| `src/lib/supabase/server.ts` | `requireAuth()` — valida sessão e retorna `{ supabase, user }`. Usar em toda Server Action e Route Handler |
-| `src/lib/supabase/client.ts` | Cliente Supabase para uso no browser (componentes client) |
-| `src/lib/tenant.ts` | `getTenantId(user)` — retorna `user.app_metadata.tenant_id ?? user.id` |
+| `lib/supabase/server.ts` | `requireAuth()` — valida sessão e retorna `{ supabase, user }`. Obrigatório em toda Server Action e Route Handler |
+| `lib/supabase/client.ts` | Cliente Supabase para uso em componentes client-side |
+| `lib/tenant.ts` | `getTenantId(user)` — extrai o `tenant_id` do usuário logado |
 
 ### Server Actions — `src/actions/`
 
 | Arquivo | O que faz |
 |---------|-----------|
-| `src/actions/clientes.ts` | `importCustomersFromBling(csvText)` — parser de CSV + UPSERT paginado. Tipo `ImportResult` |
-| `src/actions/pos.ts` | `createCustomer()`, `updateCustomer()` — usadas pelo modal de cadastro/edição de clientes |
-| `src/actions/products.ts` | CRUD de produtos do estoque |
-| `src/actions/stock-movements.ts` | Lançamentos de entrada/saída de estoque |
-| `src/actions/financeiro.ts` | Consultas e ações do módulo financeiro |
-| `src/actions/settings.ts` | Configurações da empresa |
+| `actions/clientes.ts` | `importCustomersFromBling(csvText)` — parser de CSV do Bling + UPSERT paginado no banco |
+| `actions/pos.ts` | `createCustomer()`, `updateCustomer()` — criação e edição de clientes usadas no modal |
+| `actions/products.ts` | CRUD de produtos do estoque |
+| `actions/stock-movements.ts` | Lançamentos de entrada e saída de estoque |
+| `actions/financeiro.ts` | Consultas e operações do módulo financeiro |
+| `actions/settings.ts` | Salva configurações da empresa |
 
-### Páginas — `src/app/(dashboard)/`
+### Páginas do dashboard — `src/app/(dashboard)/`
 
 | Arquivo | O que faz |
 |---------|-----------|
-| `src/app/(dashboard)/page.tsx` | Dashboard principal com KPIs |
-| `src/app/(dashboard)/clientes/page.tsx` | Página de listagem de clientes — server-side, paginação, query ordenada por `full_name ASC` |
-| `src/app/(dashboard)/clientes/clientes-client.tsx` | Client component — tabela, modal de cadastro/edição, botões Importar/Exportar, **autocomplete dropdown** |
-| `src/app/(dashboard)/clientes/exportar/route.ts` | `GET /clientes/exportar` — exporta todos os clientes em CSV formato Bling com BOM UTF-8 |
-| `src/app/(dashboard)/clientes/busca/route.ts` | `GET /clientes/busca?q=...` — retorna até 8 clientes em JSON para autocomplete (leve, sem dados completos) |
-| `src/app/(dashboard)/pos/page.tsx` | Frente de Caixa — venda com seleção de cliente e Consumidor Final |
-| `src/app/(dashboard)/estoque/page.tsx` | Listagem de produtos do estoque |
-| `src/app/(dashboard)/estoque/[id]/page.tsx` | Detalhe do produto com histórico de lançamentos |
-| `src/app/(dashboard)/financeiro/page.tsx` | Visão unificada financeira (SmartERP + CheckSmart) |
-| `src/app/(dashboard)/crm/page.tsx` | Placeholder "Em breve" |
-| `src/app/(dashboard)/relatorios/page.tsx` | Placeholder "Em breve" |
-| `src/app/(dashboard)/meta-ads/page.tsx` | Placeholder "Em breve" |
-| `src/app/(dashboard)/configuracoes/page.tsx` | Configurações da conta |
+| `app/(dashboard)/page.tsx` | Dashboard principal com KPIs gerais |
+| `app/(dashboard)/clientes/page.tsx` | Listagem server-side de clientes — paginação, busca, ordenação por nome |
+| `app/(dashboard)/clientes/clientes-client.tsx` | Componente client — tabela, modal de cadastro/edição, botões Importar/Exportar, autocomplete |
+| `app/(dashboard)/clientes/exportar/route.ts` | `GET /clientes/exportar` — baixa todos os clientes em CSV formato Bling |
+| `app/(dashboard)/clientes/busca/route.ts` | `GET /clientes/busca?q=...` — retorna até 8 clientes em JSON para o autocomplete |
+| `app/(dashboard)/pos/page.tsx` | Frente de Caixa — registro de venda com seleção de cliente |
+| `app/(dashboard)/estoque/page.tsx` | Listagem de produtos com filtros |
+| `app/(dashboard)/estoque/[id]/page.tsx` | Detalhe do produto com histórico de lançamentos |
+| `app/(dashboard)/financeiro/page.tsx` | Visão unificada de receitas (SmartERP + CheckSmart) |
+| `app/(dashboard)/configuracoes/page.tsx` | Configurações da conta |
+| `app/(dashboard)/crm/page.tsx` | Placeholder "Em breve" |
+| `app/(dashboard)/relatorios/page.tsx` | Placeholder "Em breve" |
+| `app/(dashboard)/meta-ads/page.tsx` | Placeholder "Em breve" |
 
 ### Componentes — `src/components/`
 
 | Arquivo | O que faz |
 |---------|-----------|
-| `src/components/layout/sidebar.tsx` | Sidebar de navegação com links dos módulos |
-| `src/components/layout/topbar.tsx` | Barra superior com avatar e logout |
-| `src/components/layout/coming-soon.tsx` | Componente de placeholder "Em breve" |
-| `src/components/estoque/produto-modal.tsx` | Modal de cadastro/edição de produto |
-| `src/components/estoque/lancamentos-modal.tsx` | Modal de lançamento de estoque |
-| `src/components/estoque/stock-popover.tsx` | Popover de estoque rápido |
-| `src/components/ui/address-fields.tsx` | `AddressCityState` — campos de cidade/UF com auto-fill pelo CEP via IBGE |
+| `components/layout/sidebar.tsx` | Menu lateral com todos os links de navegação |
+| `components/layout/topbar.tsx` | Barra superior com avatar do usuário e botão de logout |
+| `components/layout/coming-soon.tsx` | Tela de "Em breve" usada pelos módulos não iniciados |
+| `components/estoque/produto-modal.tsx` | Modal de cadastro e edição de produto |
+| `components/estoque/lancamentos-modal.tsx` | Modal de lançamento de entrada/saída de estoque |
+| `components/estoque/stock-popover.tsx` | Popover de estoque rápido (mini-visualização) |
+| `components/ui/address-fields.tsx` | Campos de cidade/UF com auto-preenchimento pelo CEP via API do IBGE |
 
 ---
 
-## CheckSmart — `/Users/uedson/checksmart/`
-
-### Configuração
-
-| Arquivo | O que faz |
-|---------|-----------|
-| `.env.local` | `SUPABASE_SERVICE_ROLE_KEY` está aqui — usar quando precisar de acesso admin ao banco |
+## CheckSmart — `/Users/uedson/checksmart/src/`
 
 ### Server Actions — `src/actions/`
 
 | Arquivo | O que faz |
 |---------|-----------|
-| `src/actions/create-order.ts` | Cria nova OS |
-| `src/actions/update-order.ts` | Atualiza dados da OS |
-| `src/actions/update-order-status.ts` | Muda status da OS (com log automático) |
-| `src/actions/update-order-financials.ts` | Atualiza valores financeiros da OS |
-| `src/actions/fetch-orders.ts` | Busca lista de OS com filtros |
-| `src/actions/cancel-order.ts` | Cancela OS individual |
-| `src/actions/bulk-cancel-orders.ts` | Cancela múltiplas OS em lote |
-| `src/actions/bulk-delete-orders.ts` | Deleta múltiplas OS em lote |
-| `src/actions/delete-order.ts` | Deleta OS individual |
-| `src/actions/reactivate-order.ts` | Reativa OS cancelada |
-| `src/actions/search-customers.ts` | Busca clientes ordenados por `full_name ASC` |
-| `src/actions/upsert-customer.ts` | Cria ou atualiza cliente |
-| `src/actions/import-customers.ts` | Importa clientes via CSV |
-| `src/actions/search-devices.ts` | Busca dispositivos para autocomplete na OS |
-| `src/actions/parts-catalog.ts` | Catálogo de peças para OS |
-| `src/actions/add-order-part.ts` | Adiciona peça a uma OS |
-| `src/actions/update-order-part.ts` | Atualiza peça de OS |
-| `src/actions/update-checklist-item.ts` | Marca item do checklist da OS |
-| `src/actions/save-signature.ts` | Salva assinatura digital do cliente |
-| `src/actions/send-whatsapp.ts` | Envia link da OS via WhatsApp |
-| `src/actions/upload-order-photo.ts` | Upload de foto na OS |
-| `src/actions/upload-order-video.ts` | Upload de vídeo na OS |
-| `src/actions/create-tenant-member.ts` | Adiciona membro à equipe |
-| `src/actions/update-tenant-member.ts` | Atualiza membro da equipe |
-| `src/actions/update-tenant-settings.ts` | Atualiza configurações do tenant |
+| `actions/create-order.ts` | Cria nova Ordem de Serviço |
+| `actions/update-order.ts` | Atualiza dados gerais da OS |
+| `actions/update-order-status.ts` | Muda o status da OS com log automático |
+| `actions/update-order-financials.ts` | Atualiza valores financeiros da OS |
+| `actions/fetch-orders.ts` | Busca lista de OS com filtros aplicados |
+| `actions/cancel-order.ts` | Cancela uma OS individual |
+| `actions/bulk-cancel-orders.ts` | Cancela múltiplas OS de uma vez |
+| `actions/bulk-delete-orders.ts` | Deleta múltiplas OS de uma vez |
+| `actions/delete-order.ts` | Deleta uma OS individual |
+| `actions/reactivate-order.ts` | Reativa uma OS que estava cancelada |
+| `actions/search-customers.ts` | Busca clientes ordenados por nome A→Z |
+| `actions/upsert-customer.ts` | Cria ou atualiza um cliente |
+| `actions/import-customers.ts` | Importa clientes via CSV |
+| `actions/search-devices.ts` | Autocomplete de dispositivos na abertura de OS |
+| `actions/parts-catalog.ts` | Catálogo de peças para adicionar a uma OS |
+| `actions/add-order-part.ts` | Adiciona peça a uma OS |
+| `actions/update-order-part.ts` | Atualiza preço ou quantidade de uma peça na OS |
+| `actions/update-checklist-item.ts` | Marca item do checklist de diagnóstico |
+| `actions/save-signature.ts` | Salva assinatura digital do cliente na OS |
+| `actions/send-whatsapp.ts` | Envia link da OS via WhatsApp |
+| `actions/upload-order-photo.ts` | Faz upload de foto na OS |
+| `actions/upload-order-video.ts` | Faz upload de vídeo na OS |
+| `actions/update-tenant-settings.ts` | Salva configurações do negócio |
+| `actions/create-tenant-member.ts` | Adiciona membro da equipe |
+| `actions/update-tenant-member.ts` | Atualiza dados de membro da equipe |
 
-### Páginas — `src/app/(dashboard)/`
+### Páginas — `src/app/`
 
 | Arquivo | O que faz |
 |---------|-----------|
-| `src/app/(dashboard)/page.tsx` | Dashboard com KPIs de OS |
-| `src/app/(dashboard)/orders/page.tsx` | Listagem de OS com filtros |
-| `src/app/(dashboard)/orders/new/page.tsx` | Formulário de nova OS |
-| `src/app/(dashboard)/orders/[id]/page.tsx` | Detalhe da OS |
-| `src/app/(dashboard)/orders/[id]/exit/page.tsx` | Tela de saída/entrega do aparelho |
-| `src/app/(dashboard)/customers/page.tsx` | Listagem de clientes (mesma base do SmartERP) |
-| `src/app/(dashboard)/customers/new/page.tsx` | Formulário de novo cliente |
-| `src/app/(dashboard)/customers/[id]/page.tsx` | Detalhe do cliente |
-| `src/app/(dashboard)/customers/[id]/edit/page.tsx` | Edição do cliente |
-| `src/app/(dashboard)/financial/page.tsx` | Financeiro das OS |
-| `src/app/(dashboard)/reports/page.tsx` | Relatórios |
-| `src/app/(dashboard)/settings/page.tsx` | Configurações da empresa e equipe |
-| `src/app/onboarding/page.tsx` | Setup inicial do tenant |
-| `src/app/orders/[id]/remote-sign/page.tsx` | Página pública para assinatura remota (sem auth) |
+| `app/(dashboard)/page.tsx` | Dashboard com KPIs de OS abertas, receita e técnicos |
+| `app/(dashboard)/orders/page.tsx` | Listagem de OS com filtros por status, técnico e data |
+| `app/(dashboard)/orders/new/page.tsx` | Formulário de abertura de nova OS |
+| `app/(dashboard)/orders/[id]/page.tsx` | Detalhe completo da OS — checklist, peças, fotos, log |
+| `app/(dashboard)/orders/[id]/exit/page.tsx` | Tela de entrega do aparelho com assinatura |
+| `app/(dashboard)/customers/page.tsx` | Listagem de clientes (mesma base do SmartERP) |
+| `app/(dashboard)/customers/new/page.tsx` | Formulário de novo cliente |
+| `app/(dashboard)/customers/[id]/page.tsx` | Perfil do cliente com histórico de OS |
+| `app/(dashboard)/customers/[id]/edit/page.tsx` | Edição do cadastro do cliente |
+| `app/(dashboard)/financial/page.tsx` | Resumo financeiro das OS |
+| `app/(dashboard)/reports/page.tsx` | Relatórios (dados limitados) |
+| `app/(dashboard)/settings/page.tsx` | Configurações da empresa e equipe |
+| `app/onboarding/page.tsx` | Setup inicial do tenant (primeiro acesso) |
+| `app/orders/[id]/remote-sign/page.tsx` | Página pública de assinatura remota — sem login, acesso do cliente pelo celular |
 
 ---
 
 ## Banco de Dados — Supabase
 
 **URL:** `https://yhpogptfhjqwaetysboj.supabase.co`
-**Credenciais:** ver `/Users/uedson/checksmart/.env.local`
+**Credenciais:** `/Users/uedson/checksmart/.env.local` (contém `SUPABASE_SERVICE_ROLE_KEY`)
 
-### Tabelas principais
+| Tabela | O que armazena |
+|--------|---------------|
+| `customers` | Clientes — compartilhada entre SmartERP e CheckSmart. 1.792 registros. |
+| `service_orders` | Ordens de serviço do CheckSmart. FK `customer_id → customers.id` (sem CASCADE) |
+| `sales` | Vendas do POS do SmartERP. FK `customer_id → customers.id` (sem CASCADE) |
+| `products` | Catálogo de produtos e estoque |
+| `stock_movements` | Histórico de entradas e saídas de estoque |
 
-| Tabela | Colunas relevantes |
-|--------|-------------------|
-| `customers` | `id, tenant_id, full_name, trade_name, person_type, cpf_cnpj, whatsapp, phone, email, is_active, created_at` + 18 campos extras do Bling |
-| `service_orders` | `id, tenant_id, customer_id (FK → customers.id NOT NULL)` |
-| `sales` | `id, tenant_id, customer_id (FK → customers.id NOT NULL)` |
-| `products` | `id, tenant_id, name, sku, price_cents, stock_qty` |
-| `stock_movements` | `id, tenant_id, product_id, type (entrada/saida), qty` |
-
-### Índices importantes
-
-| Índice | Status | Observação |
-|--------|--------|------------|
-| `customers_tenant_cpf_unique` | ✅ Presente | Parcial: `WHERE cpf_cnpj IS NOT NULL` |
-| `customers_tenant_whatsapp_unique` | ❌ Removido | Foi dropado em 23/04/2026 durante importação |
+| Índice | Status |
+|--------|--------|
+| `customers_tenant_cpf_unique` | ✅ Ativo — garante CPF único por tenant |
+| `customers_tenant_whatsapp_unique` | ❌ Removido em 23/04/2026 — não garante mais unicidade de WhatsApp |
 
 ---
 
-## Arquivos temporários (fora do projeto)
+## CSVs do Bling (Downloads)
 
-| Arquivo | O que faz |
-|---------|-----------|
-| `/tmp/fix_dates2.py` | Script Python para corrigir `created_at` de clientes — pode não existir mais |
-| `/Users/uedson/Downloads/contatos_2026-04-22-19-26-24.csv` | CSV principal do Bling (1.702 clientes) |
-| `/Users/uedson/Downloads/contatos_2026-04-16-*.csv` | CSVs parciais anteriores do Bling (7 arquivos) |
+| Arquivo | O que é |
+|---------|---------|
+| `/Users/uedson/Downloads/contatos_2026-04-22-19-26-24.csv` | Export principal do Bling com 1.702 clientes — é o arquivo mais completo |
+| `/Users/uedson/Downloads/contatos_2026-04-16-*.csv` | 7 exports parciais anteriores — usados como fonte adicional de datas |
