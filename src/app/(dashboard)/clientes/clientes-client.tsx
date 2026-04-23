@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Search, Plus, X, Loader2, Phone, Mail, FileText, User, Pencil, Calendar, ChevronLeft, ChevronRight, Upload, Download } from 'lucide-react'
 import { toast } from 'sonner'
@@ -376,6 +376,8 @@ function CustomerModal({
 
 // ── Main client component ──────────────────────────────────────────────────
 
+type SuggestItem = { id: string; full_name: string; trade_name: string | null; cpf_cnpj: string | null; whatsapp: string | null; is_active: boolean }
+
 export function ClientesClient({
   customers: initial, salesByCustomer, osByCustomer,
   page, totalPages, total, q,
@@ -385,6 +387,13 @@ export function ClientesClient({
   const [searchVal, setSearchVal]   = useState(q)
   const debounceRef                 = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // Autocomplete
+  const [suggestions, setSuggestions]   = useState<SuggestItem[]>([])
+  const [showSuggest, setShowSuggest]   = useState(false)
+  const [loadingSuggest, setLoadingSuggest] = useState(false)
+  const suggestRef                      = useRef<HTMLDivElement>(null)
+  const acDebounceRef                   = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   const [modal, setModal] = useState<
     | { mode: 'create' }
     | { mode: 'edit'; customer: CustomerRow }
@@ -393,6 +402,17 @@ export function ClientesClient({
 
   const [importing, setImporting] = useState(false)
   const importInputRef = useRef<HTMLInputElement>(null)
+
+  // Fecha dropdown ao clicar fora
+  useEffect(() => {
+    function onClickOutside(e: MouseEvent) {
+      if (suggestRef.current && !suggestRef.current.contains(e.target as Node)) {
+        setShowSuggest(false)
+      }
+    }
+    document.addEventListener('mousedown', onClickOutside)
+    return () => document.removeEventListener('mousedown', onClickOutside)
+  }, [])
 
   async function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -420,14 +440,45 @@ export function ClientesClient({
 
   const handleSearch = useCallback((val: string) => {
     setSearchVal(val)
+
+    // Autocomplete: dispara após 200 ms com 3+ chars
+    if (acDebounceRef.current) clearTimeout(acDebounceRef.current)
+    if (val.trim().length >= 3) {
+      setLoadingSuggest(true)
+      acDebounceRef.current = setTimeout(async () => {
+        try {
+          const res  = await fetch(`/clientes/busca?q=${encodeURIComponent(val.trim())}`)
+          const data = await res.json() as SuggestItem[]
+          setSuggestions(data)
+          setShowSuggest(true)
+        } catch { /* ignore */ } finally {
+          setLoadingSuggest(false)
+        }
+      }, 200)
+    } else {
+      setSuggestions([])
+      setShowSuggest(false)
+    }
+
+    // Busca full-page: dispara após 600 ms (só se não clicar em sugestão)
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => {
       const params = new URLSearchParams()
       if (val.trim()) params.set('q', val.trim())
       params.set('page', '1')
       router.push(`/clientes?${params.toString()}`)
-    }, 400)
+    }, 600)
   }, [router])
+
+  function selectSuggestion(item: SuggestItem) {
+    setShowSuggest(false)
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    setSearchVal(item.full_name)
+    const params = new URLSearchParams()
+    params.set('q', item.full_name)
+    params.set('page', '1')
+    router.push(`/clientes?${params.toString()}`)
+  }
 
   // ── Pagination navigation ─────────────────────────────────────────────
 
@@ -482,22 +533,57 @@ export function ClientesClient({
     <>
       {/* Search + New button */}
       <div className="flex gap-3">
-        <div className="relative flex-1">
+        <div className="relative flex-1" ref={suggestRef}>
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
           <input
             value={searchVal}
             onChange={e => handleSearch(e.target.value)}
-            placeholder="Buscar por nome, CPF, WhatsApp ou e-mail..."
+            onFocus={() => suggestions.length > 0 && setShowSuggest(true)}
+            placeholder="Buscar por nome, CPF ou WhatsApp..."
             className="w-full rounded-xl border py-2.5 pl-9 pr-10 text-sm text-text outline-none transition-colors focus:border-accent/60 placeholder:text-muted"
             style={{ background: '#111827', borderColor: '#1E2D45' }}
           />
-          {searchVal && (
+          {loadingSuggest && (
+            <Loader2 className="absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 animate-spin text-muted" />
+          )}
+          {searchVal && !loadingSuggest && (
             <button
-              onClick={() => handleSearch('')}
+              onClick={() => { handleSearch(''); setSuggestions([]); setShowSuggest(false) }}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-text"
             >
               <X className="h-3.5 w-3.5" />
             </button>
+          )}
+
+          {/* Autocomplete dropdown */}
+          {showSuggest && suggestions.length > 0 && (
+            <div
+              className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-xl border shadow-xl"
+              style={{ background: '#0D1320', borderColor: '#1E2D45' }}
+            >
+              {suggestions.map(item => (
+                <button
+                  key={item.id}
+                  onMouseDown={e => { e.preventDefault(); selectSuggestion(item) }}
+                  className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm transition-colors hover:bg-white/5"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate font-medium text-text">{item.full_name}</p>
+                    {item.trade_name && (
+                      <p className="truncate text-xs text-muted">{item.trade_name}</p>
+                    )}
+                  </div>
+                  <div className="shrink-0 text-right text-xs text-muted space-y-0.5">
+                    {item.cpf_cnpj && <p>{item.cpf_cnpj.length === 11
+                      ? `${item.cpf_cnpj.slice(0,3)}.${item.cpf_cnpj.slice(3,6)}.${item.cpf_cnpj.slice(6,9)}-${item.cpf_cnpj.slice(9)}`
+                      : item.cpf_cnpj}
+                    </p>}
+                    {item.whatsapp && <p>{`(${item.whatsapp.slice(0,2)}) ${item.whatsapp.slice(2,7)}-${item.whatsapp.slice(7)}`}</p>}
+                    {!item.is_active && <p className="text-orange-400">Inativo</p>}
+                  </div>
+                </button>
+              ))}
+            </div>
           )}
         </div>
         {/* Exportar CSV */}
@@ -543,7 +629,7 @@ export function ClientesClient({
       <div className="rounded-xl border overflow-hidden" style={{ background: '#111827', borderColor: '#1E2D45' }}>
         <div className="flex items-center justify-between border-b px-5 py-4" style={{ borderColor: '#1E2D45' }}>
           <h2 className="text-sm font-semibold text-text">
-            {q ? `Resultado para "${q}"` : 'Clientes mais recentes'}
+            {q ? `Resultado para "${q}"` : 'Clientes'}
           </h2>
           <span className="text-xs text-muted">
             {total === 0
