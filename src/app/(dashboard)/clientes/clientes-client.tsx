@@ -49,6 +49,7 @@ type FormState = {
   cep: string; addressStreet: string; addressDistrict: string
   addressNumber: string; addressComplement: string
   addressCity: string; addressState: string
+  clienteSince: string
 }
 
 const EMPTY_FORM: FormState = {
@@ -61,6 +62,7 @@ const EMPTY_FORM: FormState = {
   notes: '',
   cep: '', addressStreet: '', addressDistrict: '',
   addressNumber: '', addressComplement: '', addressCity: '', addressState: '',
+  clienteSince: '',
 }
 
 // ── Formatters ─────────────────────────────────────────────────────────────
@@ -149,12 +151,15 @@ function CustomerModal({
     try {
       let result: Awaited<ReturnType<typeof createCustomer>>
       if (mode === 'edit' && editId) {
-        result = await updateCustomer({ ...form, id: editId })
+        result = await updateCustomer({ ...form, id: editId, clienteSince: form.clienteSince })
       } else {
         result = await createCustomer(form)
       }
 
       const creditCents = Math.round(parseFloat(form.creditLimitStr.replace(',', '.') || '0') * 100) || 0
+      const resolvedCreatedAt = mode === 'edit' && form.clienteSince
+        ? form.clienteSince + 'T00:00:00.000Z'
+        : (originalCreatedAt ?? new Date().toISOString())
       const row: CustomerRow = {
         id: result.id, full_name: result.full_name,
         trade_name: form.tradeName || null, person_type: form.personType,
@@ -172,7 +177,7 @@ function CustomerModal({
         address_street: form.addressStreet || null, address_district: form.addressDistrict || null,
         address_number: form.addressNumber || null, address_complement: form.addressComplement || null,
         address_city: form.addressCity || null, address_state: form.addressState || null,
-        created_at: mode === 'edit' ? (originalCreatedAt ?? new Date().toISOString()) : new Date().toISOString(),
+        created_at: resolvedCreatedAt,
       }
 
       onSaved(row, mode === 'edit')
@@ -211,13 +216,21 @@ function CustomerModal({
         {/* ── Dados básicos ── */}
         <section className="space-y-2.5">
           <p className="text-xs font-semibold uppercase tracking-wider text-muted">Dados básicos</p>
-          {mode === 'edit' && originalCreatedAt && (
-            <div className="flex items-center gap-2 rounded-lg px-3.5 py-2" style={{ background: '#0D1320', border: '1px solid #1E2D45' }}>
-              <Calendar className="h-3.5 w-3.5 shrink-0" style={{ color: '#5A7A9A' }} />
-              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#5A7A9A' }}>Cliente desde</span>
-              <span className="ml-auto text-xs font-medium" style={{ color: '#8AA8C8' }}>
-                {new Date(originalCreatedAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
-              </span>
+          {mode === 'edit' && (
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-medium uppercase tracking-wider" style={{ color: '#5A7A9A' }}>
+                Cliente desde
+              </label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 pointer-events-none" style={{ color: '#5A7A9A' }} />
+                <input
+                  type="date"
+                  value={form.clienteSince}
+                  onChange={e => set({ clienteSince: e.target.value })}
+                  className={inputCls + ' pl-9'}
+                  style={inputStyle}
+                />
+              </div>
             </div>
           )}
           <input value={form.name} onChange={e => set({ name: e.target.value })} placeholder="Nome completo *" className={inputCls} style={inputStyle} autoFocus />
@@ -539,6 +552,7 @@ export function ClientesClient({
       addressDistrict: c.address_district ?? '',
       addressNumber: c.address_number ?? '', addressComplement: c.address_complement ?? '',
       addressCity: c.address_city ?? '', addressState: c.address_state ?? '',
+      clienteSince: c.created_at ? c.created_at.split('T')[0] : '',
     }
   }
 

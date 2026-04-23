@@ -35,7 +35,7 @@ export type CreateCustomerInput = {
   addressCity: string; addressState: string
 }
 
-export type UpdateCustomerInput = CreateCustomerInput & { id: string }
+export type UpdateCustomerInput = CreateCustomerInput & { id: string; clienteSince?: string }
 
 export type SaleItem = {
   productId: string | null
@@ -291,6 +291,7 @@ export async function updateCustomer(input: UpdateCustomerInput): Promise<Custom
       address_complement:  input.addressComplement.trim() || null,
       address_city:        input.addressCity.trim() || null,
       address_state:       input.addressState.trim() || null,
+      ...(input.clienteSince ? { created_at: input.clienteSince + 'T00:00:00.000Z' } : {}),
     })
     .eq('id', input.id)
     .eq('tenant_id', tenantId)
