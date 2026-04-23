@@ -20,6 +20,7 @@ export type Customer = {
   cpf_cnpj: string | null
   whatsapp: string | null
   email: string | null
+  origin: string | null
 }
 
 export type CreateCustomerInput = {
@@ -33,6 +34,7 @@ export type CreateCustomerInput = {
   cep: string; addressStreet: string; addressDistrict: string
   addressNumber: string; addressComplement: string
   addressCity: string; addressState: string
+  origin?: string
 }
 
 export type UpdateCustomerInput = CreateCustomerInput & { id: string; clienteSince?: string }
@@ -120,7 +122,7 @@ export async function searchCustomers(query: string): Promise<Customer[]> {
 
   const { data } = await supabase
     .from('customers')
-    .select('id, full_name, cpf_cnpj, whatsapp, email')
+    .select('id, full_name, cpf_cnpj, whatsapp, email, origin')
     .eq('tenant_id', tenantId)
     .or(filters.join(','))
     .order('full_name')
@@ -135,7 +137,7 @@ export async function getOrCreateConsumidorFinal(): Promise<Customer> {
 
   const { data: existing } = await supabase
     .from('customers')
-    .select('id, full_name, cpf_cnpj, whatsapp, email')
+    .select('id, full_name, cpf_cnpj, whatsapp, email, origin')
     .eq('tenant_id', tenantId)
     .eq('full_name', 'Consumidor Final')
     .is('cpf_cnpj', null)
@@ -146,7 +148,7 @@ export async function getOrCreateConsumidorFinal(): Promise<Customer> {
   const { data, error } = await supabase
     .from('customers')
     .insert({ tenant_id: tenantId, full_name: 'Consumidor Final' })
-    .select('id, full_name, cpf_cnpj, whatsapp, email')
+    .select('id, full_name, cpf_cnpj, whatsapp, email, origin')
     .single()
 
   if (error) throw new Error(error.message)
@@ -217,8 +219,9 @@ export async function createCustomer(input: CreateCustomerInput): Promise<Custom
       address_complement:  input.addressComplement.trim() || null,
       address_city:        input.addressCity.trim() || null,
       address_state:       input.addressState.trim() || null,
+      origin:              input.origin || null,
     })
-    .select('id, full_name, cpf_cnpj, whatsapp, email')
+    .select('id, full_name, cpf_cnpj, whatsapp, email, origin')
     .single()
 
   if (error) throw new Error(error.message)
@@ -291,11 +294,28 @@ export async function updateCustomer(input: UpdateCustomerInput): Promise<Custom
       address_complement:  input.addressComplement.trim() || null,
       address_city:        input.addressCity.trim() || null,
       address_state:       input.addressState.trim() || null,
+      origin:              input.origin || null,
       ...(input.clienteSince ? { created_at: input.clienteSince + 'T00:00:00.000Z' } : {}),
     })
     .eq('id', input.id)
     .eq('tenant_id', tenantId)
-    .select('id, full_name, cpf_cnpj, whatsapp, email')
+    .select('id, full_name, cpf_cnpj, whatsapp, email, origin')
+    .single()
+
+  if (error) throw new Error(error.message)
+  return data as Customer
+}
+
+export async function updateCustomerOrigin(id: string, origin: string): Promise<Customer> {
+  const { supabase, user } = await requireAuth()
+  const tenantId = getTenantId(user)
+
+  const { data, error } = await supabase
+    .from('customers')
+    .update({ origin: origin || null })
+    .eq('id', id)
+    .eq('tenant_id', tenantId)
+    .select('id, full_name, cpf_cnpj, whatsapp, email, origin')
     .single()
 
   if (error) throw new Error(error.message)

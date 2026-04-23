@@ -1,6 +1,7 @@
 import { requireAuth } from '@/lib/supabase/server'
 import { getTenantId } from '@/lib/tenant'
 import { redirect } from 'next/navigation'
+import { originLabel } from '@/lib/customer-origin'
 import { ErpClientesClient } from './erp-clientes-client'
 
 export const metadata = { title: 'ERP Clientes — Smart ERP' }
@@ -48,6 +49,16 @@ export type ChurnClient = {
 
 export type WeekdayPoint = { label: string; totalCents: number; transactions: number }
 
+export type OriginBreakdown = {
+  value: string | null
+  label: string
+  totalCents: number
+  transactions: number
+  uniqueCustomers: number
+  ticketMedioCents: number
+  sharePercent: number
+}
+
 export type DashboardData = {
   period: Period
   recorrentes: { totalCents: number; transactions: number; ticketMedioCents: number; avgProducts: string; sharePercent: number }
@@ -63,6 +74,7 @@ export type DashboardData = {
   churnRisk: ChurnClient[]
   rfmSegments: { campeoes: number; emRisco: number; novosPromissores: number; dormentes: number }
   weekdayHeatmap: WeekdayPoint[]
+  originBreakdown: OriginBreakdown[]
 }
 
 export default async function ErpClientesPage({
@@ -89,7 +101,7 @@ export default async function ErpClientesPage({
 
   const [salesPeriodRes, osPeriodRes, salesMonthRes, osMonthRes] = await Promise.all([
     sb.from('sales')
-      .select('customer_id, total_cents, created_at, sale_items(quantity), customers(full_name, created_at)')
+      .select('customer_id, total_cents, created_at, sale_items(quantity), customers(full_name, created_at, origin)')
       .eq('tenant_id', tenantId)
       .gte('created_at', start.toISOString())
       .lte('created_at', end.toISOString())
@@ -97,7 +109,7 @@ export default async function ErpClientesPage({
       .limit(1000),
 
     sb.from('service_orders')
-      .select('customer_id, total_price_cents, service_price_cents, parts_sale_cents, discount_cents, received_at, customers(full_name, created_at)')
+      .select('customer_id, total_price_cents, service_price_cents, parts_sale_cents, discount_cents, received_at, customers(full_name, created_at, origin)')
       .eq('tenant_id', tenantId)
       .gte('received_at', start.toISOString())
       .lte('received_at', end.toISOString())
@@ -105,14 +117,14 @@ export default async function ErpClientesPage({
       .limit(1000),
 
     sb.from('sales')
-      .select('customer_id, total_cents, created_at, customers(full_name, created_at)')
+      .select('customer_id, total_cents, created_at, customers(full_name, created_at, origin)')
       .eq('tenant_id', tenantId)
       .gte('created_at', sixAgo.toISOString())
       .neq('status', 'cancelled')
       .limit(2000),
 
     sb.from('service_orders')
-      .select('customer_id, total_price_cents, service_price_cents, parts_sale_cents, discount_cents, received_at, customers(full_name, created_at)')
+      .select('customer_id, total_price_cents, service_price_cents, parts_sale_cents, discount_cents, received_at, customers(full_name, created_at, origin)')
       .eq('tenant_id', tenantId)
       .gte('received_at', sixAgo.toISOString())
       .neq('status', 'Cancelado')
@@ -120,19 +132,20 @@ export default async function ErpClientesPage({
   ])
 
   // ── Process period data ─────────────────────────────────────────────────
-  type SalePeriod = { customer_id: string|null; total_cents: number; created_at: string; sale_items: {quantity:number}[]|null; customers: {full_name:string; created_at:string}|null }
-  type OsPeriod   = { customer_id: string|null; total_price_cents: number|null; service_price_cents: number|null; parts_sale_cents: number|null; discount_cents: number|null; received_at: string; customers: {full_name:string; created_at:string}|null }
+  type SalePeriod = { customer_id: string|null; total_cents: number; created_at: string; sale_items: {quantity:number}[]|null; customers: {full_name:string; created_at:string; origin:string|null}|null }
+  type OsPeriod   = { customer_id: string|null; total_price_cents: number|null; service_price_cents: number|null; parts_sale_cents: number|null; discount_cents: number|null; received_at: string; customers: {full_name:string; created_at:string; origin:string|null}|null }
 
   const salesPeriodData = (salesPeriodRes.data ?? []) as SalePeriod[]
   const osPeriodData    = (osPeriodRes.data   ?? []) as OsPeriod[]
 
-  type Tx = { customerId: string | null; name: string; createdAt: string | null; totalCents: number; products: number; date: Date }
+  type Tx = { customerId: string | null; name: string; createdAt: string | null; origin: string | null; totalCents: number; products: number; date: Date }
 
   const periodTxs: Tx[] = [
     ...salesPeriodData.map(s => ({
       customerId: s.customer_id,
       name: s.customers?.full_name ?? 'Sem cliente',
       createdAt: s.customers?.created_at ?? null,
+      origin: s.customers?.origin ?? null,
       totalCents: s.total_cents ?? 0,
       products: (s.sale_items ?? []).reduce((sum, i) => sum + (i.quantity ?? 1), 0) || 1,
       date: new Date(s.created_at),
@@ -141,6 +154,7 @@ export default async function ErpClientesPage({
       customerId: o.customer_id,
       name: o.customers?.full_name ?? 'Sem cliente',
       createdAt: o.customers?.created_at ?? null,
+      origin: o.customers?.origin ?? null,
       totalCents: osTotal(o),
       products: 1,
       date: new Date(o.received_at),
@@ -214,6 +228,40 @@ export default async function ErpClientesPage({
     dowMap[dow].transactions++
   }
   const weekdayHeatmap: WeekdayPoint[] = dowMap
+
+  // ── Origem dos clientes (período selecionado) ────────────────────────────
+  const originMap = new Map<string, { totalCents: number; transactions: number; customerIds: Set<string> }>()
+  const NO_ORIGIN = '__sem_origem__'
+
+  for (const t of periodTxs) {
+    const key = t.origin ?? NO_ORIGIN
+    const ex  = originMap.get(key)
+    if (ex) {
+      ex.totalCents += t.totalCents
+      ex.transactions++
+      if (t.customerId) ex.customerIds.add(t.customerId)
+    } else {
+      originMap.set(key, {
+        totalCents: t.totalCents,
+        transactions: 1,
+        customerIds: t.customerId ? new Set([t.customerId]) : new Set(),
+      })
+    }
+  }
+
+  const periodTotalCents = [...originMap.values()].reduce((sum, o) => sum + o.totalCents, 0)
+
+  const originBreakdown: OriginBreakdown[] = [...originMap.entries()]
+    .map(([key, v]) => ({
+      value: key === NO_ORIGIN ? null : key,
+      label: key === NO_ORIGIN ? 'Não informado' : originLabel(key),
+      totalCents: v.totalCents,
+      transactions: v.transactions,
+      uniqueCustomers: v.customerIds.size,
+      ticketMedioCents: v.transactions > 0 ? Math.round(v.totalCents / v.transactions) : 0,
+      sharePercent: periodTotalCents > 0 ? Math.round((v.totalCents / periodTotalCents) * 100) : 0,
+    }))
+    .sort((a, b) => b.totalCents - a.totalCents)
 
   // ── Monthly evolution ────────────────────────────────────────────────────
   const months: { label: string; start: Date; end: Date }[] = Array.from({ length: 6 }, (_, i) => {
@@ -316,6 +364,7 @@ export default async function ErpClientesPage({
     churnRisk,
     rfmSegments,
     weekdayHeatmap,
+    originBreakdown,
   }
 
   return <ErpClientesClient data={data} />

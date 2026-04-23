@@ -3,9 +3,9 @@
 import { useRouter } from 'next/navigation'
 import {
   TrendingUp, Users, UserPlus, Lightbulb,
-  ShoppingCart, Wrench, Link2, AlertTriangle, Star, Calendar,
+  ShoppingCart, Wrench, Link2, AlertTriangle, Star, Calendar, Megaphone,
 } from 'lucide-react'
-import type { DashboardData, TopClient, MonthPoint, ChurnClient, WeekdayPoint } from './page'
+import type { DashboardData, TopClient, MonthPoint, ChurnClient, WeekdayPoint, OriginBreakdown } from './page'
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -504,6 +504,134 @@ function ClientsTable({ clients }: { clients: TopClient[] }) {
   )
 }
 
+// ── Origem dos clientes ──────────────────────────────────────────────────
+
+const ORIGIN_COLORS: Record<string, string> = {
+  instagram_pago:     '#E4405F',
+  instagram_organico: '#C13584',
+  indicacao:          '#00FF94',
+  passou_na_porta:    '#FFAA00',
+  google:             '#4285F4',
+  facebook:           '#1877F2',
+  outros:             '#9B6DFF',
+}
+
+function OriginSection({ breakdown }: { breakdown: OriginBreakdown[] }) {
+  if (breakdown.length === 0) {
+    return (
+      <div className="py-10 text-center text-sm" style={{ color: '#5A7A9A' }}>
+        Nenhuma venda no período selecionado
+      </div>
+    )
+  }
+
+  const maxCents = Math.max(...breakdown.map(b => b.totalCents), 1)
+  const totalCustomers = breakdown.reduce((sum, b) => sum + b.uniqueCustomers, 0)
+  const topOrigin = breakdown[0]
+
+  return (
+    <div className="space-y-6">
+      {/* Insight destaque */}
+      {topOrigin.value && (
+        <div
+          className="flex items-start gap-3 rounded-xl border px-4 py-3"
+          style={{
+            background: `${ORIGIN_COLORS[topOrigin.value] ?? '#00E5FF'}0D`,
+            borderColor: `${ORIGIN_COLORS[topOrigin.value] ?? '#00E5FF'}40`,
+            borderLeftWidth: 3,
+            borderLeftColor: ORIGIN_COLORS[topOrigin.value] ?? '#00E5FF',
+          }}
+        >
+          <Megaphone className="mt-0.5 h-4 w-4 flex-shrink-0" style={{ color: ORIGIN_COLORS[topOrigin.value] ?? '#00E5FF' }} />
+          <p className="text-sm" style={{ color: '#8AA8C8' }}>
+            <span className="font-semibold" style={{ color: '#E8F0FE' }}>{topOrigin.label}</span>{' '}
+            é seu principal canal no período — {topOrigin.sharePercent}% do faturamento
+            ({BRL(topOrigin.totalCents)}) vindo de {topOrigin.uniqueCustomers} cliente(s).
+          </p>
+        </div>
+      )}
+
+      {/* Ranking por origem */}
+      <div className="space-y-3">
+        {breakdown.map(b => {
+          const color = b.value ? (ORIGIN_COLORS[b.value] ?? '#5A7A9A') : '#5A7A9A'
+          const barPct = Math.round((b.totalCents / maxCents) * 100)
+          return (
+            <div
+              key={b.value ?? 'sem-origem'}
+              className="rounded-xl border p-4"
+              style={{ background: '#0D1320', borderColor: '#1E2D45' }}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span
+                    className="h-2.5 w-2.5 rounded-full shrink-0"
+                    style={{ background: color }}
+                  />
+                  <span className="text-sm font-semibold truncate" style={{ color: '#E8F0FE' }}>
+                    {b.label}
+                  </span>
+                  <span
+                    className="rounded-full px-2 py-0.5 text-[10px] font-bold shrink-0"
+                    style={{ background: `${color}20`, color }}
+                  >
+                    {b.sharePercent}%
+                  </span>
+                </div>
+                <span className="font-bold text-sm shrink-0" style={{ color, fontFamily: 'ui-monospace,monospace' }}>
+                  {BRL(b.totalCents)}
+                </span>
+              </div>
+
+              {/* Barra de progresso */}
+              <div className="h-1.5 rounded-full mb-3" style={{ background: '#1E2D45' }}>
+                <div
+                  className="h-1.5 rounded-full transition-all duration-500"
+                  style={{ width: `${barPct}%`, background: color }}
+                />
+              </div>
+
+              {/* Sub-métricas */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="text-center">
+                  <p className="text-sm font-bold" style={{ color: '#E8F0FE', fontFamily: 'ui-monospace,monospace' }}>
+                    {b.uniqueCustomers}
+                  </p>
+                  <p className="text-[9px] font-semibold uppercase tracking-wider" style={{ color: '#5A7A9A' }}>
+                    Clientes
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-bold" style={{ color: '#E8F0FE', fontFamily: 'ui-monospace,monospace' }}>
+                    {b.transactions}
+                  </p>
+                  <p className="text-[9px] font-semibold uppercase tracking-wider" style={{ color: '#5A7A9A' }}>
+                    Transações
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-bold" style={{ color: '#E8F0FE', fontFamily: 'ui-monospace,monospace' }}>
+                    {BRL(b.ticketMedioCents)}
+                  </p>
+                  <p className="text-[9px] font-semibold uppercase tracking-wider" style={{ color: '#5A7A9A' }}>
+                    Ticket Médio
+                  </p>
+                </div>
+              </div>
+            </div>
+          )
+        })}
+
+        {totalCustomers > 0 && (
+          <p className="text-center text-[11px] pt-2" style={{ color: '#5A7A9A' }}>
+            Total agregado: {totalCustomers} cliente(s) únicos vinculados a transações no período
+          </p>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ── Section header helper ─────────────────────────────────────────────────
 
 function SectionHeader({
@@ -530,7 +658,7 @@ export function ErpClientesClient({ data }: { data: DashboardData }) {
   const router = useRouter()
   const {
     period, recorrentes, novos, monthlyData, topClients, insightText,
-    sources, churnRisk, rfmSegments, weekdayHeatmap,
+    sources, churnRisk, rfmSegments, weekdayHeatmap, originBreakdown,
   } = data
 
   const periods: Period[] = ['7d', '30d', '90d']
@@ -583,6 +711,30 @@ export function ErpClientesClient({ data }: { data: DashboardData }) {
         </div>
         <div className="p-6">
           <SourcesSection sources={sources} />
+        </div>
+      </div>
+
+      {/* Origem dos clientes */}
+      <div className="rounded-2xl border" style={{ background: '#111827', borderColor: '#1E2D45' }}>
+        <div className="flex items-center gap-2 border-b px-6 py-4" style={{ borderColor: '#1E2D45' }}>
+          <SectionHeader
+            accentColor="#E4405F"
+            title="Origem dos Clientes"
+            subtitle='De onde vêm seus clientes — "Como nos conheceu?"'
+            icon={Megaphone}
+          />
+          {originBreakdown.length > 0 && (
+            <div className="ml-auto flex items-center gap-1.5 rounded-lg px-2.5 py-1"
+              style={{ background: 'rgba(228,64,95,.08)', border: '1px solid rgba(228,64,95,.2)' }}>
+              <Megaphone className="h-3 w-3" style={{ color: '#E4405F' }} />
+              <span className="text-[10px] font-bold" style={{ color: '#E4405F' }}>
+                {originBreakdown.length} {originBreakdown.length === 1 ? 'canal' : 'canais'}
+              </span>
+            </div>
+          )}
+        </div>
+        <div className="p-6">
+          <OriginSection breakdown={originBreakdown} />
         </div>
       </div>
 

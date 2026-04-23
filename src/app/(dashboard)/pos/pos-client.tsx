@@ -7,11 +7,12 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
-  searchProducts, searchCustomers, createCustomer, createSale,
+  searchProducts, searchCustomers, createCustomer, createSale, updateCustomerOrigin,
   type Product, type Customer,
 } from '@/actions/pos'
 import type { StockControlMode } from '@/actions/settings'
 import { AddressCityState } from '@/components/ui/address-fields'
+import { CUSTOMER_ORIGIN_OPTIONS, originLabel } from '@/lib/customer-origin'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -113,9 +114,11 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
     notes: '',
     cep: '', addressStreet: '', addressDistrict: '',
     addressNumber: '', addressComplement: '', addressCity: '', addressState: '',
+    origin: '',
   })
   const [fetchingCep, setFetchingCep]       = useState(false)
   const [savingCustomer, setSavingCustomer] = useState(false)
+  const [savingOrigin, setSavingOrigin]     = useState(false)
 
   // whether the current customer is the default consumidor final
   const isDefault = customer.id === consumidorFinal.id
@@ -253,6 +256,7 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
   // ── Save new customer ──
   async function handleSaveCustomer() {
     if (!nc.name.trim()) { toast.error('Nome é obrigatório'); return }
+    if (!nc.origin)      { toast.error('Informe como o cliente te conheceu'); return }
     setSavingCustomer(true)
     try {
       const c = await createCustomer(nc)
@@ -263,9 +267,26 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
     } finally { setSavingCustomer(false) }
   }
 
+  // ── Set origin for an existing customer selected in POS ──
+  async function handleSetOrigin(origin: string) {
+    if (!origin || isDefault) return
+    setSavingOrigin(true)
+    try {
+      const c = await updateCustomerOrigin(customer.id, origin)
+      setCustomer(c)
+      toast.success('Origem registrada!')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao salvar origem')
+    } finally { setSavingOrigin(false) }
+  }
+
   // ── Finalize sale ──
   async function handleFinalize() {
     if (cart.length === 0) { toast.error('Adicione ao menos um item'); return }
+    if (!isDefault && !customer.origin) {
+      toast.error('Informe como o cliente te conheceu antes de finalizar')
+      return
+    }
     if (method === 'mixed') {
       const sum = parseCents(mxCash) + parseCents(mxPix) + parseCents(mxCard)
       if (Math.abs(sum - total) > 1) {
@@ -516,6 +537,56 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
               </button>
             </div>
 
+            {/* ── Origem (só para cliente real, não para Consumidor Final) ── */}
+            {!isDefault && (
+              customer.origin ? (
+                <div className="flex items-center justify-between rounded-lg border px-3 py-2"
+                  style={{ background: '#0D1320', borderColor: '#1E2D45' }}>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider shrink-0" style={{ color: '#5A7A9A' }}>
+                      Origem
+                    </span>
+                    <span className="rounded-full px-2 py-0.5 text-[10px] font-bold truncate"
+                      style={{ background: 'rgba(0,229,255,.12)', color: '#00E5FF' }}>
+                      {originLabel(customer.origin)}
+                    </span>
+                  </div>
+                  <select
+                    value={customer.origin}
+                    onChange={e => handleSetOrigin(e.target.value)}
+                    disabled={savingOrigin}
+                    className="text-xs bg-transparent text-muted hover:text-accent transition-colors outline-none cursor-pointer"
+                    title="Alterar origem"
+                  >
+                    {CUSTOMER_ORIGIN_OPTIONS.map(opt => (
+                      <option key={opt.value} value={opt.value} style={{ background: '#0D1320' }}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <div className="rounded-lg border px-3 py-2.5 space-y-1.5"
+                  style={{ background: 'rgba(255,170,0,.06)', borderColor: 'rgba(255,170,0,.35)' }}>
+                  <label className="text-[10px] font-semibold uppercase tracking-wider block" style={{ color: '#FFAA00' }}>
+                    Como nos conheceu? * (obrigatório)
+                  </label>
+                  <select
+                    value=""
+                    onChange={e => handleSetOrigin(e.target.value)}
+                    disabled={savingOrigin}
+                    className={inputCls}
+                    style={{ ...inputStyle, appearance: 'none' }}
+                  >
+                    <option value="">Selecione uma opção…</option>
+                    {CUSTOMER_ORIGIN_OPTIONS.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+              )
+            )}
+
             {/* Customer search + cadastrar (only when not showing form and not in dropdown) */}
             {!showForm && !showCustomerDrop && (
               <div className="space-y-2">
@@ -701,6 +772,24 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
                   />
                 </div>
 
+                {/* Origem — obrigatório */}
+                <div className="flex flex-col gap-1 border-t pt-3" style={{ borderColor: '#1E2D45' }}>
+                  <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#FFAA00' }}>
+                    Como nos conheceu? *
+                  </label>
+                  <select
+                    value={nc.origin}
+                    onChange={e => setNc(p => ({ ...p, origin: e.target.value }))}
+                    className={inputCls}
+                    style={{ ...inputStyle, appearance: 'none' }}
+                  >
+                    <option value="">Selecione uma opção…</option>
+                    {CUSTOMER_ORIGIN_OPTIONS.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+
                 {/* Form actions */}
                 <div className="flex gap-2 pt-1">
                   <button
@@ -712,7 +801,7 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
                   </button>
                   <button
                     onClick={handleSaveCustomer}
-                    disabled={savingCustomer || !nc.name.trim()}
+                    disabled={savingCustomer || !nc.name.trim() || !nc.origin}
                     className="flex-1 flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold transition-opacity disabled:opacity-60"
                     style={{ background: 'linear-gradient(135deg, #00E5FF, #00FF94)', color: '#080C14' }}
                   >

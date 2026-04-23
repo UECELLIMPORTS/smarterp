@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { createCustomer, updateCustomer } from '@/actions/pos'
 import { importCustomersFromBling } from '@/actions/clientes'
 import { AddressCityState } from '@/components/ui/address-fields'
+import { CUSTOMER_ORIGIN_OPTIONS } from '@/lib/customer-origin'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -26,6 +27,7 @@ export type CustomerRow = {
   address_district: string | null; address_number: string | null
   address_complement: string | null; address_city: string | null
   address_state: string | null; created_at: string
+  origin: string | null
 }
 
 type Props = {
@@ -50,6 +52,7 @@ type FormState = {
   addressNumber: string; addressComplement: string
   addressCity: string; addressState: string
   clienteSince: string
+  origin: string
 }
 
 const EMPTY_FORM: FormState = {
@@ -63,6 +66,7 @@ const EMPTY_FORM: FormState = {
   cep: '', addressStreet: '', addressDistrict: '',
   addressNumber: '', addressComplement: '', addressCity: '', addressState: '',
   clienteSince: '',
+  origin: '',
 }
 
 // ── Formatters ─────────────────────────────────────────────────────────────
@@ -198,6 +202,7 @@ function CustomerModal({
 
   async function handleSave() {
     if (!form.name.trim()) { toast.error('Nome é obrigatório'); return }
+    if (!form.origin)      { toast.error('Informe como o cliente te conheceu'); return }
 
     setSaving(true)
     try {
@@ -230,6 +235,7 @@ function CustomerModal({
         address_number: form.addressNumber || null, address_complement: form.addressComplement || null,
         address_city: form.addressCity || null, address_state: form.addressState || null,
         created_at: resolvedCreatedAt,
+        origin: form.origin || null,
       }
 
       onSaved(row, mode === 'edit')
@@ -419,6 +425,22 @@ function CustomerModal({
               title="Limite de crédito"
             />
           </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#FFAA00' }}>
+              Como nos conheceu? *
+            </label>
+            <select
+              value={form.origin}
+              onChange={e => set({ origin: e.target.value })}
+              className={inputCls}
+              style={{ ...inputStyle, appearance: 'none' }}
+            >
+              <option value="">Selecione uma opção…</option>
+              {CUSTOMER_ORIGIN_OPTIONS.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </div>
         </section>
 
         {/* ── Observações ── */}
@@ -445,7 +467,7 @@ function CustomerModal({
           </button>
           <button
             onClick={handleSave}
-            disabled={saving || !form.name.trim()}
+            disabled={saving || !form.name.trim() || !form.origin}
             className="flex-1 flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold transition-opacity disabled:opacity-60"
             style={{ background: 'linear-gradient(135deg, #00E5FF, #00FF94)', color: '#080C14' }}
           >
@@ -609,6 +631,7 @@ export function ClientesClient({
       addressNumber: c.address_number ?? '', addressComplement: c.address_complement ?? '',
       addressCity: c.address_city ?? '', addressState: c.address_state ?? '',
       clienteSince: c.created_at ? c.created_at.split('T')[0] : '',
+      origin: c.origin ?? '',
     }
   }
 
