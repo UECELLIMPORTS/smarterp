@@ -31,6 +31,7 @@ export type FinanceiroRow = {
   date: Date; dateStr: string; customerName: string; description: string
   payment: string | null; osStatus: string | null; cancelled: boolean
   discount: number; total: number
+  clienteType: 'novo' | 'recorrente' | null
   // ERP-only (for edit modal)
   customerId?: string | null
   saleItems?: { name: string; quantity: number; unitPriceCents: number }[]
@@ -757,7 +758,20 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                     )}
                   </div>
                   <div className="min-w-0">
-                    <p className={`text-sm font-medium truncate ${row.cancelled ? 'line-through text-muted' : 'text-text'}`}>{row.customerName}</p>
+                    <div className="flex items-center gap-2">
+                      <p className={`text-sm font-medium truncate ${row.cancelled ? 'line-through text-muted' : 'text-text'}`}>{row.customerName}</p>
+                      {!row.cancelled && row.clienteType && (
+                        <span
+                          className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold"
+                          style={row.clienteType === 'recorrente'
+                            ? { background: 'rgba(0,255,148,.12)', color: '#00FF94' }
+                            : { background: 'rgba(155,109,255,.15)', color: '#9B6DFF' }
+                          }
+                        >
+                          {row.clienteType === 'recorrente' ? 'Recorrente' : 'Novo'}
+                        </span>
+                      )}
+                    </div>
                     <p className="mt-0.5 text-xs text-muted truncate">{row.description}</p>
                   </div>
                   <p className="text-xs text-muted">{row.dateStr}</p>

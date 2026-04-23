@@ -18,7 +18,7 @@ export default async function FinanceiroPage() {
       .select(`
         id, customer_id, total_cents, subtotal_cents, discount_cents, shipping_cents,
         payment_method, status, created_at,
-        customers ( full_name, cpf_cnpj ),
+        customers ( full_name, cpf_cnpj, created_at ),
         sale_items ( name, quantity, unit_price_cents )
       `)
       .eq('tenant_id', tenantId)
@@ -30,7 +30,7 @@ export default async function FinanceiroPage() {
       .select(`
         id, total_price_cents, service_price_cents, parts_sale_cents,
         discount_cents, status, payment_method, received_at,
-        customers ( full_name, cpf_cnpj )
+        customers ( full_name, cpf_cnpj, created_at )
       `)
       .eq('tenant_id', tenantId)
       .order('received_at', { ascending: false })
@@ -42,14 +42,14 @@ export default async function FinanceiroPage() {
     total_cents: number; subtotal_cents: number
     discount_cents: number; shipping_cents: number
     payment_method: string; status: string; created_at: string
-    customers: { full_name: string; cpf_cnpj: string | null } | null
+    customers: { full_name: string; cpf_cnpj: string | null; created_at: string } | null
     sale_items: { name: string; quantity: number; unit_price_cents: number }[]
   }
   type OrderRow = {
     id: string; total_price_cents: number; service_price_cents: number
     parts_sale_cents: number; discount_cents: number
     status: string; payment_method: string | null; received_at: string
-    customers: { full_name: string; cpf_cnpj: string | null } | null
+    customers: { full_name: string; cpf_cnpj: string | null; created_at: string } | null
   }
 
   const sales  = (salesRes.data  ?? []) as unknown as SaleRow[]
@@ -58,6 +58,14 @@ export default async function FinanceiroPage() {
   const osTotal = (o: OrderRow) => {
     if (o.total_price_cents) return o.total_price_cents
     return Math.max(0, (o.service_price_cents ?? 0) + (o.parts_sale_cents ?? 0) - (o.discount_cents ?? 0))
+  }
+
+  const thirtyDaysAgo = new Date()
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
+  function clienteType(customerCreatedAt: string | null | undefined): 'novo' | 'recorrente' | null {
+    if (!customerCreatedAt) return null
+    return new Date(customerCreatedAt) >= thirtyDaysAgo ? 'novo' : 'recorrente'
   }
 
   const allRows: FinanceiroRow[] = [
@@ -79,6 +87,7 @@ export default async function FinanceiroPage() {
       total:        s.total_cents,
       customerId:   s.customer_id ?? null,
       saleItems:    s.sale_items.map(i => ({ name: i.name, quantity: i.quantity, unitPriceCents: i.unit_price_cents })),
+      clienteType:  s.customer_id ? clienteType(s.customers?.created_at) : null,
     })),
     ...orders.map(o => ({
       id:           `os-${o.id}`,
@@ -96,6 +105,7 @@ export default async function FinanceiroPage() {
       cancelled:    o.status === 'cancelled',
       discount:     o.discount_cents ?? 0,
       total:        osTotal(o),
+      clienteType:  o.customers ? clienteType(o.customers.created_at) : null,
     })),
   ].sort((a, b) => b.date.getTime() - a.date.getTime())
 
