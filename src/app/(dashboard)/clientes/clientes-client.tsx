@@ -211,6 +211,15 @@ function CustomerModal({
         {/* ── Dados básicos ── */}
         <section className="space-y-2.5">
           <p className="text-xs font-semibold uppercase tracking-wider text-muted">Dados básicos</p>
+          {mode === 'edit' && originalCreatedAt && (
+            <div className="flex items-center gap-2 rounded-lg px-3.5 py-2" style={{ background: '#0D1320', border: '1px solid #1E2D45' }}>
+              <Calendar className="h-3.5 w-3.5 shrink-0" style={{ color: '#5A7A9A' }} />
+              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#5A7A9A' }}>Cliente desde</span>
+              <span className="ml-auto text-xs font-medium" style={{ color: '#8AA8C8' }}>
+                {new Date(originalCreatedAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+              </span>
+            </div>
+          )}
           <input value={form.name} onChange={e => set({ name: e.target.value })} placeholder="Nome completo *" className={inputCls} style={inputStyle} autoFocus />
           <input value={form.tradeName} onChange={e => set({ tradeName: e.target.value })} placeholder="Nome fantasia" className={inputCls} style={inputStyle} />
           <div className="grid grid-cols-2 gap-2">
@@ -274,16 +283,22 @@ function CustomerModal({
         <section className="border-t pt-3 space-y-2.5" style={{ borderColor: '#1E2D45' }}>
           <p className="text-xs font-semibold uppercase tracking-wider text-muted">Dados pessoais</p>
           <div className="grid grid-cols-2 gap-2">
-            <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted pointer-events-none" />
-              <input type="date" value={form.birthDate} onChange={e => set({ birthDate: e.target.value })} className={inputCls + ' pl-9'} style={inputStyle} title="Data de nascimento" />
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-medium uppercase tracking-wider" style={{ color: '#5A7A9A' }}>Data de nascimento</label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted pointer-events-none" />
+                <input type="date" value={form.birthDate} onChange={e => set({ birthDate: e.target.value })} className={inputCls + ' pl-9'} style={inputStyle} />
+              </div>
             </div>
-            <select value={form.gender} onChange={e => set({ gender: e.target.value })} className={inputCls} style={{ ...inputStyle, appearance: 'none' }}>
-              <option value="">Sexo</option>
-              <option value="M">Masculino</option>
-              <option value="F">Feminino</option>
-              <option value="O">Outro</option>
-            </select>
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-medium uppercase tracking-wider" style={{ color: '#5A7A9A' }}>Sexo</label>
+              <select value={form.gender} onChange={e => set({ gender: e.target.value })} className={inputCls} style={{ ...inputStyle, appearance: 'none' }}>
+                <option value="">Selecionar</option>
+                <option value="M">Masculino</option>
+                <option value="F">Feminino</option>
+                <option value="O">Outro</option>
+              </select>
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-2">
             <select value={form.maritalStatus} onChange={e => set({ maritalStatus: e.target.value })} className={inputCls} style={{ ...inputStyle, appearance: 'none' }}>
