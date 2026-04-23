@@ -4,19 +4,20 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, ShoppingCart, Package, DollarSign,
-  Users, BarChart2, Target, TrendingUp, Settings, Zap,
+  Users, BarChart2, Target, TrendingUp, Settings, Zap, PieChart,
 } from 'lucide-react'
 
 const NAV = [
-  { href: '/',             icon: LayoutDashboard, label: 'Dashboard' },
-  { href: '/pos',          icon: ShoppingCart,    label: 'Frente de Caixa' },
-  { href: '/estoque',      icon: Package,         label: 'Estoque' },
-  { href: '/financeiro',   icon: DollarSign,      label: 'Financeiro' },
-  { href: '/clientes',     icon: Users,           label: 'Clientes' },
-  { href: '/relatorios',   icon: BarChart2,       label: 'Relatórios' },
-  { href: '/crm',          icon: Target,          label: 'CRM' },
-  { href: '/meta-ads',     icon: TrendingUp,      label: 'Meta Ads' },
-  { href: '/configuracoes',icon: Settings,        label: 'Configurações' },
+  { href: '/',              icon: LayoutDashboard, label: 'Dashboard' },
+  { href: '/pos',           icon: ShoppingCart,    label: 'Frente de Caixa' },
+  { href: '/estoque',       icon: Package,         label: 'Estoque' },
+  { href: '/financeiro',    icon: DollarSign,      label: 'Financeiro' },
+  { href: '/clientes',      icon: Users,           label: 'Clientes' },
+  { href: '/erp-clientes',  icon: PieChart,        label: 'ERP Clientes' },
+  { href: '/relatorios',    icon: BarChart2,       label: 'Relatórios' },
+  { href: '/crm',           icon: Target,          label: 'CRM' },
+  { href: '/meta-ads',      icon: TrendingUp,      label: 'Meta Ads' },
+  { href: '/configuracoes', icon: Settings,        label: 'Configurações' },
 ]
 
 export function Sidebar() {
