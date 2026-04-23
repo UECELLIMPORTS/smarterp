@@ -404,9 +404,9 @@ export function ClientesClient({
       const text = await file.text()
       const result = await importCustomersFromBling(text)
       if (result.errors.length > 0) {
-        toast.error(`Importação com erros: ${result.errors[0]}`)
+        toast.error(`Erro na importação: ${result.errors[0]}`)
       } else {
-        toast.success(`Importação concluída! ${result.imported} importados, ${result.skipped} já existiam.`)
+        toast.success(`Concluído! ${result.updated} atualizados, ${result.inserted} novos.`)
         router.refresh()
       }
     } catch (err) {

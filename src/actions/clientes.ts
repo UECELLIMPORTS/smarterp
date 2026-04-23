@@ -4,9 +4,9 @@ import { requireAuth } from '@/lib/supabase/server'
 import { getTenantId } from '@/lib/tenant'
 
 export type ImportResult = {
-  imported: number
-  skipped: number
-  errors: string[]
+  updated:  number
+  inserted: number
+  errors:   string[]
 }
 
 function cleanDigits(s: string) { return s.replace(/\D/g, '') }
@@ -30,12 +30,14 @@ function toGender(s: string): string | null {
   if (l === 'feminino')  return 'F'
   return null
 }
+function nv(s: string | undefined): string | null {
+  return s?.trim() || null
+}
 
 function parseBlingCsv(csv: string): Record<string, string>[] {
   const lines = csv.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n')
   if (lines.length < 2) return []
 
-  // Parse header — values wrapped in quotes, semicolon-delimited
   function parseLine(line: string): string[] {
     const result: string[] = []
     let cur = ''
@@ -52,7 +54,6 @@ function parseBlingCsv(csv: string): Record<string, string>[] {
 
   const headers = parseLine(lines[0])
   const rows: Record<string, string>[] = []
-
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i].trim()
     if (!line) continue
@@ -61,8 +62,48 @@ function parseBlingCsv(csv: string): Record<string, string>[] {
     headers.forEach((h, idx) => { row[h] = vals[idx] ?? '' })
     rows.push(row)
   }
-
   return rows
+}
+
+function buildRecord(r: Record<string, string>, tenantId: string): Record<string, unknown> {
+  const cpf   = cleanDigits(r['CNPJ / CPF'] ?? '')
+  const since = toDate(r['Cliente desde'] ?? '')
+  const bd    = toDate(r['Data nascimento'] ?? '')
+  const gnd   = toGender(r['Sexo'] ?? '')
+  const cep   = cleanDigits(r['CEP'] ?? '')
+
+  return {
+    tenant_id:           tenantId,
+    full_name:           r['Nome'].trim(),
+    trade_name:          nv(r['Fantasia']),
+    person_type:         toPersonType(r['Tipo pessoa'] ?? ''),
+    cpf_cnpj:            cpf || null,
+    ie_rg:               nv(r['IE / RG']),
+    is_active:           (r['Situação'] ?? '').trim().toLowerCase() === 'ativo',
+    email:               nv(r['E-mail']),
+    nfe_email:           nv(r['E-mail para envio NFe']),
+    website:             nv(r['Web Site']),
+    birth_date:          bd,
+    gender:              gnd,
+    marital_status:      nv(r['Estado civil']),
+    profession:          nv(r['Profissão']),
+    father_name:         nv(r['Nome pai']),
+    father_cpf:          cleanDigits(r['CPF pai'] ?? '') || null,
+    mother_name:         nv(r['Nome mãe']),
+    mother_cpf:          cleanDigits(r['CPF mãe'] ?? '') || null,
+    salesperson:         nv(r['Vendedor']),
+    contact_type:        nv(r['Tipo contato']),
+    credit_limit_cents:  toCents(r['Limite de crédito'] ?? '0'),
+    notes:               nv(r['Observações']),
+    address_street:      nv(r['Endereço']),
+    address_number:      nv(r['Número']),
+    address_complement:  nv(r['Complemento']),
+    address_district:    nv(r['Bairro']),
+    address_zip:         cep || null,
+    address_city:        nv(r['Cidade']),
+    address_state:       nv(r['UF']),
+    created_at:          since ? `${since}T12:00:00+00:00` : null,
+  }
 }
 
 export async function importCustomersFromBling(csvText: string): Promise<ImportResult> {
@@ -70,101 +111,72 @@ export async function importCustomersFromBling(csvText: string): Promise<ImportR
   const tenantId = getTenantId(user)
 
   const rows = parseBlingCsv(csvText)
-  if (!rows.length) return { imported: 0, skipped: 0, errors: ['Arquivo vazio ou formato inválido'] }
+  if (!rows.length) return { updated: 0, inserted: 0, errors: ['Arquivo vazio ou formato inválido'] }
 
-  // Load existing CPFs, whatsapps and names for dedup
-  const { data: existing } = await supabase
-    .from('customers')
-    .select('cpf_cnpj, full_name, whatsapp')
-    .eq('tenant_id', tenantId)
+  // Carrega todos os clientes existentes (paginado)
+  const existing: { id: string; cpf_cnpj: string | null; whatsapp: string | null; full_name: string }[] = []
+  let page = 0
+  while (true) {
+    const { data } = await supabase
+      .from('customers')
+      .select('id, cpf_cnpj, whatsapp, full_name')
+      .eq('tenant_id', tenantId)
+      .range(page * 1000, page * 1000 + 999)
+    if (!data || data.length === 0) break
+    existing.push(...(data as typeof existing))
+    if (data.length < 1000) break
+    page++
+  }
 
-  const existingCpfs     = new Set((existing ?? []).map(r => r.cpf_cnpj).filter(Boolean))
-  const existingWhatsapps = new Set((existing ?? []).map(r => r.whatsapp).filter(Boolean))
-  const existingKeys     = new Set(
-    (existing ?? [])
-      .filter(r => !r.cpf_cnpj)
-      .map(r => `${(r.full_name ?? '').toLowerCase()}|${r.whatsapp ?? ''}`)
-  )
+  const byCpf   = new Map(existing.filter(r => r.cpf_cnpj).map(r => [r.cpf_cnpj!, r.id]))
+  const byWhats = new Map(existing.filter(r => r.whatsapp).map(r => [r.whatsapp!, r.id]))
+  const byName  = new Map(existing.map(r => [r.full_name.toLowerCase(), r.id]))
+  const usedWhats = new Set(existing.map(r => r.whatsapp).filter(Boolean))
 
-  let imported = 0
-  let skipped  = 0
+  let updated  = 0
+  let inserted = 0
   const errors: string[] = []
 
-  const BATCH = 50
-  const toInsert: object[] = []
-
   for (const r of rows) {
-    const nome      = (r['Nome'] ?? '').trim()
-    if (!nome) { skipped++; continue }
+    const nome = r['Nome']?.trim()
+    if (!nome) continue
 
-    const cpfDigits = cleanDigits(r['CNPJ / CPF'] ?? '')
-    const whats     = cleanDigits(r['Celular'] ?? '')
+    const cpf   = cleanDigits(r['CNPJ / CPF'] ?? '')
+    const whats = cleanDigits(r['Celular'] ?? '')
+    const rec   = buildRecord(r, tenantId)
 
-    // Dedup check
-    if (cpfDigits && existingCpfs.has(cpfDigits)) { skipped++; continue }
-    if (!cpfDigits) {
-      const key = `${nome.toLowerCase()}|${whats}`
-      if (existingKeys.has(key)) { skipped++; continue }
-    }
+    // Remove nulls para não sobrescrever campos com null desnecessariamente
+    const payload = Object.fromEntries(Object.entries(rec).filter(([, v]) => v !== null))
 
-    const since = toDate(r['Cliente desde'] ?? '')
-    const bd    = toDate(r['Data nascimento'] ?? '')
+    // Encontra cliente existente
+    const existingId = (cpf ? byCpf.get(cpf) : undefined)
+      ?? byWhats.get(whats)
+      ?? byName.get(nome.toLowerCase())
 
-    const record: Record<string, unknown> = {
-      tenant_id:          tenantId,
-      full_name:          nome,
-      person_type:        toPersonType(r['Tipo pessoa'] ?? ''),
-      is_active:          (r['Situação'] ?? '').trim().toLowerCase() === 'ativo',
-      credit_limit_cents: toCents(r['Limite de crédito'] ?? '0'),
-    }
-
-    if (r['Fantasia']?.trim())             record.trade_name        = r['Fantasia'].trim()
-    if (cpfDigits)                         record.cpf_cnpj          = cpfDigits
-    if (r['IE / RG']?.trim())             record.ie_rg             = r['IE / RG'].trim()
-    if (whats && !existingWhatsapps.has(whats)) record.whatsapp     = whats
-    if (r['E-mail']?.trim())              record.email             = r['E-mail'].trim()
-    if (r['E-mail para envio NFe']?.trim()) record.nfe_email        = r['E-mail para envio NFe'].trim()
-    if (r['Web Site']?.trim())            record.website           = r['Web Site'].trim()
-    if (bd)                               record.birth_date        = bd
-    const gnd = toGender(r['Sexo'] ?? '')
-    if (gnd)                              record.gender            = gnd
-    if (r['Estado civil']?.trim())        record.marital_status    = r['Estado civil'].trim()
-    if (r['Profissão']?.trim())           record.profession        = r['Profissão'].trim()
-    if (r['Nome pai']?.trim())            record.father_name       = r['Nome pai'].trim()
-    if (cleanDigits(r['CPF pai'] ?? ''))  record.father_cpf        = cleanDigits(r['CPF pai'])
-    if (r['Nome mãe']?.trim())            record.mother_name       = r['Nome mãe'].trim()
-    if (cleanDigits(r['CPF mãe'] ?? '')) record.mother_cpf        = cleanDigits(r['CPF mãe'])
-    if (r['Vendedor']?.trim())            record.salesperson       = r['Vendedor'].trim()
-    if (r['Tipo contato']?.trim())        record.contact_type      = r['Tipo contato'].trim()
-    if (r['Observações']?.trim())         record.notes             = r['Observações'].trim()
-    if (r['Endereço']?.trim())            record.address_street    = r['Endereço'].trim()
-    if (r['Número']?.trim())              record.address_number    = r['Número'].trim()
-    if (r['Complemento']?.trim())         record.address_complement = r['Complemento'].trim()
-    if (r['Bairro']?.trim())              record.address_district  = r['Bairro'].trim()
-    const cep = cleanDigits(r['CEP'] ?? '')
-    if (cep)                              record.address_zip       = cep
-    if (r['Cidade']?.trim())              record.address_city      = r['Cidade'].trim()
-    if (r['UF']?.trim())                  record.address_state     = r['UF'].trim()
-    if (since)                            record.created_at        = `${since}T12:00:00+00:00`
-
-    toInsert.push(record)
-
-    // Mark as seen so duplicates within the CSV itself are skipped
-    if (cpfDigits) existingCpfs.add(cpfDigits)
-    else existingKeys.add(`${nome.toLowerCase()}|${whats}`)
-    if (whats) existingWhatsapps.add(whats)
-  }
-
-  // Insert in batches
-  for (let i = 0; i < toInsert.length; i += BATCH) {
-    const batch = toInsert.slice(i, i + BATCH)
-    const { error } = await supabase.from('customers').insert(batch)
-    if (error) {
-      errors.push(`Lote ${Math.floor(i / BATCH) + 1}: ${error.message}`)
+    if (existingId) {
+      // UPDATE
+      const { error } = await supabase
+        .from('customers')
+        .update(payload)
+        .eq('id', existingId)
+        .eq('tenant_id', tenantId)
+      if (error) errors.push(`Atualizar [${nome}]: ${error.message}`)
+      else updated++
     } else {
-      imported += batch.length
+      // INSERT — só adiciona whatsapp se não estiver em uso
+      if (whats && !usedWhats.has(whats)) {
+        payload.whatsapp = whats
+        usedWhats.add(whats)
+      }
+      const { error } = await supabase.from('customers').insert(payload)
+      if (error) errors.push(`Inserir [${nome}]: ${error.message}`)
+      else {
+        inserted++
+        if (cpf) byCpf.set(cpf, 'new')
+        byName.set(nome.toLowerCase(), 'new')
+      }
     }
   }
 
-  return { imported, skipped, errors }
+  return { updated, inserted, errors }
 }
