@@ -110,6 +110,58 @@ function fmtBirthDate(iso: string) {
 const inputCls   = 'w-full rounded-lg border px-3.5 py-2.5 text-sm text-text outline-none transition-colors focus:border-accent/60 placeholder:text-muted'
 const inputStyle = { background: '#111827', borderColor: '#1E2D45' }
 
+// ── Date text input — DD/MM/AAAA mask, no native calendar picker ───────────
+
+function DateTextInput({
+  value, onChange, className, style,
+}: {
+  value: string
+  onChange: (ymd: string) => void
+  className?: string
+  style?: React.CSSProperties
+}) {
+  function ymdToDisplay(ymd: string) {
+    if (!ymd) return ''
+    const [y, m, d] = ymd.split('-')
+    if (!y || !m || !d) return ''
+    return `${d}/${m}/${y}`
+  }
+
+  const [display, setDisplay] = useState(() => ymdToDisplay(value))
+
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const digits = e.target.value.replace(/\D/g, '').slice(0, 8)
+    let fmt = digits
+    if (digits.length > 2) fmt = `${digits.slice(0, 2)}/${digits.slice(2)}`
+    if (digits.length > 4) fmt = `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`
+    setDisplay(fmt)
+
+    if (digits.length === 8) {
+      const day = parseInt(digits.slice(0, 2), 10)
+      const mon = parseInt(digits.slice(2, 4), 10)
+      const yr  = parseInt(digits.slice(4), 10)
+      if (day >= 1 && day <= 31 && mon >= 1 && mon <= 12 && yr >= 1900 && yr <= 2100) {
+        onChange(`${digits.slice(4)}-${digits.slice(2, 4)}-${digits.slice(0, 2)}`)
+      }
+    } else {
+      onChange('')
+    }
+  }
+
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      value={display}
+      onChange={handleChange}
+      placeholder="DD/MM/AAAA"
+      maxLength={10}
+      className={className}
+      style={style}
+    />
+  )
+}
+
 // ── Customer Form Modal ────────────────────────────────────────────────────
 
 function CustomerModal({
@@ -223,10 +275,9 @@ function CustomerModal({
               </label>
               <div className="relative">
                 <Calendar className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 pointer-events-none" style={{ color: '#5A7A9A' }} />
-                <input
-                  type="date"
+                <DateTextInput
                   value={form.clienteSince}
-                  onChange={e => set({ clienteSince: e.target.value })}
+                  onChange={v => set({ clienteSince: v })}
                   className={inputCls + ' pl-9'}
                   style={inputStyle}
                 />
@@ -300,7 +351,12 @@ function CustomerModal({
               <label className="text-[10px] font-medium uppercase tracking-wider" style={{ color: '#5A7A9A' }}>Data de nascimento</label>
               <div className="relative">
                 <Calendar className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted pointer-events-none" />
-                <input type="date" value={form.birthDate} onChange={e => set({ birthDate: e.target.value })} className={inputCls + ' pl-9'} style={inputStyle} />
+                <DateTextInput
+                  value={form.birthDate}
+                  onChange={v => set({ birthDate: v })}
+                  className={inputCls + ' pl-9'}
+                  style={inputStyle}
+                />
               </div>
             </div>
             <div className="flex flex-col gap-1">
