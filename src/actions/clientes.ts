@@ -72,14 +72,15 @@ export async function importCustomersFromBling(csvText: string): Promise<ImportR
   const rows = parseBlingCsv(csvText)
   if (!rows.length) return { imported: 0, skipped: 0, errors: ['Arquivo vazio ou formato inválido'] }
 
-  // Load existing CPFs and names+whatsapps for dedup
+  // Load existing CPFs, whatsapps and names for dedup
   const { data: existing } = await supabase
     .from('customers')
     .select('cpf_cnpj, full_name, whatsapp')
     .eq('tenant_id', tenantId)
 
-  const existingCpfs   = new Set((existing ?? []).map(r => r.cpf_cnpj).filter(Boolean))
-  const existingKeys   = new Set(
+  const existingCpfs     = new Set((existing ?? []).map(r => r.cpf_cnpj).filter(Boolean))
+  const existingWhatsapps = new Set((existing ?? []).map(r => r.whatsapp).filter(Boolean))
+  const existingKeys     = new Set(
     (existing ?? [])
       .filter(r => !r.cpf_cnpj)
       .map(r => `${(r.full_name ?? '').toLowerCase()}|${r.whatsapp ?? ''}`)
@@ -120,7 +121,7 @@ export async function importCustomersFromBling(csvText: string): Promise<ImportR
     if (r['Fantasia']?.trim())             record.trade_name        = r['Fantasia'].trim()
     if (cpfDigits)                         record.cpf_cnpj          = cpfDigits
     if (r['IE / RG']?.trim())             record.ie_rg             = r['IE / RG'].trim()
-    if (whats)                             record.whatsapp          = whats
+    if (whats && !existingWhatsapps.has(whats)) record.whatsapp     = whats
     if (r['E-mail']?.trim())              record.email             = r['E-mail'].trim()
     if (r['E-mail para envio NFe']?.trim()) record.nfe_email        = r['E-mail para envio NFe'].trim()
     if (r['Web Site']?.trim())            record.website           = r['Web Site'].trim()
@@ -151,6 +152,7 @@ export async function importCustomersFromBling(csvText: string): Promise<ImportR
     // Mark as seen so duplicates within the CSV itself are skipped
     if (cpfDigits) existingCpfs.add(cpfDigits)
     else existingKeys.add(`${nome.toLowerCase()}|${whats}`)
+    if (whats) existingWhatsapps.add(whats)
   }
 
   // Insert in batches
