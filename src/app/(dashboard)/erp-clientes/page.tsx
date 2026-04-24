@@ -126,7 +126,7 @@ export default async function ErpClientesPage({
 
   const [salesPeriodRes, osPeriodRes, salesMonthRes, osMonthRes] = await Promise.all([
     sb.from('sales')
-      .select('customer_id, total_cents, created_at, sale_items(quantity, unit_price_cents, products(cost_cents)), customers(full_name, created_at, origin)')
+      .select('customer_id, total_cents, created_at, sale_items(quantity, unit_price_cents, product_id), customers(full_name, created_at, origin)')
       .eq('tenant_id', tenantId)
       .gte('created_at', start.toISOString())
       .lte('created_at', end.toISOString())
@@ -157,12 +157,35 @@ export default async function ErpClientesPage({
   ])
 
   // ── Process period data ─────────────────────────────────────────────────
-  type SaleItemPeriod = { quantity: number; unit_price_cents: number; products: { cost_cents: number | null } | null }
+  type SaleItemPeriod = { quantity: number; unit_price_cents: number; product_id: string | null }
   type SalePeriod = { customer_id: string|null; total_cents: number; created_at: string; sale_items: SaleItemPeriod[]|null; customers: {full_name:string; created_at:string; origin:string|null}|null }
   type OsPeriod   = { customer_id: string|null; total_price_cents: number|null; service_price_cents: number|null; parts_sale_cents: number|null; parts_cost_cents: number|null; discount_cents: number|null; received_at: string; customers: {full_name:string; created_at:string; origin:string|null}|null }
 
   const salesPeriodData = (salesPeriodRes.data ?? []) as SalePeriod[]
   const osPeriodData    = (osPeriodRes.data   ?? []) as OsPeriod[]
+
+  // Query separada de custos — sale_items.product_id pode apontar pra
+  // products OU parts_catalog, então busco nas duas tabelas em paralelo.
+  const productIds = new Set<string>()
+  for (const s of salesPeriodData) {
+    for (const i of s.sale_items ?? []) {
+      if (i.product_id) productIds.add(i.product_id)
+    }
+  }
+  const costMap = new Map<string, number>()
+  if (productIds.size > 0) {
+    const ids = [...productIds]
+    const [prodRes, partRes] = await Promise.all([
+      sb.from('products').select('id, cost_cents').eq('tenant_id', tenantId).in('id', ids),
+      sb.from('parts_catalog').select('id, cost_cents').eq('tenant_id', tenantId).in('id', ids),
+    ])
+    for (const p of (prodRes.data ?? []) as { id: string; cost_cents: number }[]) {
+      costMap.set(p.id, p.cost_cents ?? 0)
+    }
+    for (const p of (partRes.data ?? []) as { id: string; cost_cents: number }[]) {
+      costMap.set(p.id, p.cost_cents ?? 0)
+    }
+  }
 
   type Tx = {
     customerId: string | null; name: string; createdAt: string | null; origin: string | null
@@ -175,7 +198,10 @@ export default async function ErpClientesPage({
     ...salesPeriodData.map(s => {
       const items = s.sale_items ?? []
       const totalCents = s.total_cents ?? 0
-      const costCents = items.reduce((sum, i) => sum + (i.quantity ?? 0) * (i.products?.cost_cents ?? 0), 0)
+      const costCents = items.reduce((sum, i) => {
+        const cost = i.product_id ? (costMap.get(i.product_id) ?? 0) : 0
+        return sum + (i.quantity ?? 0) * cost
+      }, 0)
       return {
         customerId: s.customer_id,
         name: s.customers?.full_name ?? 'Sem cliente',

@@ -417,8 +417,9 @@ function WeekdayHeatmap({ days }: { days: WeekdayPoint[] }) {
       ) : (
         <div className="grid grid-cols-7 gap-2">
           {days.map((day, i) => {
+            const bucket = bucketOf(day)
             const v = valueOf(day)
-            const tx = bucketOf(day).transactions
+            const tx = bucket.transactions
             const intensity = v / maxVal
             const isBest = i === bestIdx && v > 0
             const rgba = activeColor === '#00FF94'
@@ -429,28 +430,62 @@ function WeekdayHeatmap({ days }: { days: WeekdayPoint[] }) {
             return (
               <div
                 key={day.label}
-                className="flex flex-col items-center gap-2 rounded-xl p-3 transition-all"
+                className="flex flex-col items-center gap-1.5 rounded-xl p-2.5 transition-all"
                 style={{
                   background: rgba,
                   border: isBest ? `1px solid ${activeColor}80` : '1px solid #1E2D45',
                 }}
               >
-                <span className="text-[11px] font-bold" style={{ color: isBest ? activeColor : '#8AA8C8' }}>
-                  {day.label}
-                </span>
-                {isBest && (
-                  <span className="rounded-full px-1.5 py-0.5 text-[8px] font-bold"
-                    style={{ background: `${activeColor}33`, color: activeColor }}>
-                    TOP
+                <div className="flex items-center gap-1">
+                  <span className="text-[11px] font-bold" style={{ color: isBest ? activeColor : '#8AA8C8' }}>
+                    {day.label}
                   </span>
+                  {isBest && (
+                    <span className="rounded-full px-1 py-0.5 text-[7px] font-bold"
+                      style={{ background: `${activeColor}33`, color: activeColor }}>
+                      TOP
+                    </span>
+                  )}
+                </div>
+
+                {tx === 0 ? (
+                  <span className="text-xs" style={{ color: '#5A7A9A', marginTop: 4, marginBottom: 4 }}>—</span>
+                ) : (
+                  <>
+                    {/* Faturamento */}
+                    <div className="flex flex-col items-center w-full">
+                      <span className="text-[8px] font-semibold uppercase tracking-wider" style={{ color: '#5A7A9A' }}>
+                        Fatur.
+                      </span>
+                      <span className="text-[11px] font-bold leading-tight"
+                        style={{ color: metric === 'totalCents' && intensity > 0.5 ? activeColor : '#E8F0FE', fontFamily: 'ui-monospace,monospace' }}>
+                        {BRL(bucket.totalCents)}
+                      </span>
+                    </div>
+
+                    {/* Lucro */}
+                    <div className="flex flex-col items-center w-full">
+                      <span className="text-[8px] font-semibold uppercase tracking-wider" style={{ color: '#5A7A9A' }}>
+                        Lucro
+                      </span>
+                      <span className="text-[11px] font-bold leading-tight"
+                        style={{ color: metric === 'profitCents' && intensity > 0.5 ? activeColor : '#00FF94', fontFamily: 'ui-monospace,monospace' }}>
+                        {BRL(bucket.profitCents)}
+                      </span>
+                    </div>
+
+                    {/* Vendas */}
+                    <div className="flex flex-col items-center w-full">
+                      <span className="text-[8px] font-semibold uppercase tracking-wider" style={{ color: '#5A7A9A' }}>
+                        Vendas
+                      </span>
+                      <span className="text-[11px] font-bold leading-tight" style={{ color: '#E8F0FE', fontFamily: 'ui-monospace,monospace' }}>
+                        {tx}
+                      </span>
+                    </div>
+                  </>
                 )}
-                <span className="text-xs font-bold text-center leading-tight"
-                  style={{ color: intensity > 0.5 ? activeColor : '#E8F0FE', fontFamily: 'ui-monospace,monospace' }}>
-                  {v > 0 ? BRL(v) : '—'}
-                </span>
-                <span className="text-[10px]" style={{ color: '#5A7A9A' }}>
-                  {tx > 0 ? `${tx} tx` : ''}
-                </span>
+
                 <div className="w-full h-1 rounded-full mt-1" style={{ background: '#1E2D45' }}>
                   <div
                     className="h-1 rounded-full"
