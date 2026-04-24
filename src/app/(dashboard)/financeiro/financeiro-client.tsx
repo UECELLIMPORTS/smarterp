@@ -800,16 +800,19 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                   </p>
                   <p className={`text-sm font-bold text-right ${row.cancelled ? 'line-through text-muted' : 'text-green'}`}>{BRL(row.total)}</p>
                   <div className="relative flex items-center justify-center" ref={openMenu === row.id ? menuRef : undefined}>
-                    <button onClick={() => setOpenMenu(openMenu === row.id ? null : row.id)}
+                    <button
+                      type="button"
+                      onMouseDown={e => { e.preventDefault(); e.stopPropagation(); setOpenMenu(openMenu === row.id ? null : row.id) }}
                       className="rounded p-1.5 text-muted hover:text-text transition-colors hover:bg-white/5">
                       <MoreVertical className="h-4 w-4" />
                     </button>
                     {openMenu === row.id && (
-                      <div className="absolute right-0 top-7 z-20 w-44 rounded-xl border shadow-xl overflow-hidden"
+                      <div className="absolute right-0 top-7 z-40 w-44 rounded-xl border shadow-xl overflow-hidden"
                         style={{ background: '#0D1521', borderColor: '#1E2D45' }}>
                         {/* Alterar data — só ERP ativo */}
                         {row.source === 'erp' && !row.cancelled && (
-                          <button onClick={() => { setOpenMenu(null); openEditDate(row) }}
+                          <button type="button"
+                            onMouseDown={e => { e.preventDefault(); e.stopPropagation(); setOpenMenu(null); openEditDate(row) }}
                             className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-text hover:bg-white/5 transition-colors border-b"
                             style={{ borderColor: '#1E2D45' }}>
                             <CalendarDays className="h-3.5 w-3.5 shrink-0" style={{ color: '#00E5FF' }} />
@@ -818,7 +821,8 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                         )}
                         {/* Editar pagamento — OS CheckSmart */}
                         {row.source === 'checksmart' && !row.cancelled && (
-                          <button onClick={() => { setOpenMenu(null); setEditPayVal(row.payment ?? ''); setEditPayRow(row) }}
+                          <button type="button"
+                            onMouseDown={e => { e.preventDefault(); e.stopPropagation(); setOpenMenu(null); setEditPayVal(row.payment ?? ''); setEditPayRow(row) }}
                             className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-text hover:bg-white/5 transition-colors border-b"
                             style={{ borderColor: '#1E2D45' }}>
                             <CreditCard className="h-3.5 w-3.5 shrink-0" style={{ color: '#FFB800' }} />
@@ -827,14 +831,16 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                         )}
                         {/* Cancelar / Reativar */}
                         {row.cancelled ? (
-                          <button onClick={() => { setOpenMenu(null); setConfirmReactivate(row) }}
+                          <button type="button"
+                            onMouseDown={e => { e.preventDefault(); e.stopPropagation(); setOpenMenu(null); setConfirmReactivate(row) }}
                             className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-text hover:bg-white/5 transition-colors border-b"
                             style={{ borderColor: '#1E2D45' }}>
                             <RefreshCw className="h-3.5 w-3.5 shrink-0" style={{ color: '#00FF94' }} />
                             Reativar
                           </button>
                         ) : (
-                          <button onClick={() => { setOpenMenu(null); setConfirmCancel(row) }}
+                          <button type="button"
+                            onMouseDown={e => { e.preventDefault(); e.stopPropagation(); setOpenMenu(null); setConfirmCancel(row) }}
                             className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-text hover:bg-white/5 transition-colors border-b"
                             style={{ borderColor: '#1E2D45' }}>
                             <XCircle className="h-3.5 w-3.5 shrink-0" style={{ color: '#FF5C5C' }} />
@@ -843,7 +849,8 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                         )}
                         {/* Editar venda — só ERP cancelado */}
                         {row.source === 'erp' && row.cancelled && (
-                          <button onClick={() => { setOpenMenu(null); openEditSale(row) }}
+                          <button type="button"
+                            onMouseDown={e => { e.preventDefault(); e.stopPropagation(); setOpenMenu(null); openEditSale(row) }}
                             className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-text hover:bg-white/5 transition-colors border-b"
                             style={{ borderColor: '#1E2D45' }}>
                             <Pencil className="h-3.5 w-3.5 shrink-0" style={{ color: '#00E5FF' }} />
@@ -852,7 +859,8 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                         )}
                         {/* Excluir — só ERP cancelado */}
                         {row.source === 'erp' && row.cancelled && (
-                          <button onClick={() => { setOpenMenu(null); setConfirmDelete(row) }}
+                          <button type="button"
+                            onMouseDown={e => { e.preventDefault(); e.stopPropagation(); setOpenMenu(null); setConfirmDelete(row) }}
                             className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm hover:bg-red-500/10 transition-colors"
                             style={{ color: '#FF5C5C' }}>
                             <Trash2 className="h-3.5 w-3.5 shrink-0" />
