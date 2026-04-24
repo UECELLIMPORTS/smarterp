@@ -429,6 +429,25 @@ export function MovimentosClient({
   const computedTotal = rows.length > 0 ? rows[0].running_balance : 0
   const diverges      = movements.length > 0 && computedTotal !== product.stock_qty
 
+  // Totais Entradas / Saídas (quantidades e valores R$)
+  const totals = useMemo(() => {
+    let entradasQty = 0, entradasCents = 0
+    let saidasQty   = 0, saidasCents   = 0
+    for (const m of movements) {
+      if (m.origin === 'balanco') continue
+      if (m.type === 'entrada') {
+        entradasQty += m.quantity
+        const unit = m.purchase_price_cents || m.cost_price_cents || 0
+        entradasCents += unit * m.quantity
+      } else {
+        saidasQty += m.quantity
+        const unit = m.sale_price_cents || product.price_cents || 0
+        saidasCents += unit * m.quantity
+      }
+    }
+    return { entradasQty, entradasCents, saidasQty, saidasCents }
+  }, [movements, product.price_cents])
+
   // ── Modal helpers ───────────────────────────────────────────────────────
 
   function openAdd() {
@@ -648,6 +667,54 @@ export function MovimentosClient({
         </div>
       )}
 
+      {/* ── Totalizadores (estilo Bling) ────────────────────────────────────── */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="rounded-xl border p-4" style={{ background: '#111827', borderColor: '#1E2D45' }}>
+          <div className="flex items-center gap-2 mb-2">
+            <ArrowDownCircle className="h-3.5 w-3.5" style={{ color: '#00FF94' }} />
+            <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: '#5A7A9A' }}>
+              Entradas
+            </span>
+          </div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl font-bold tabular-nums" style={{ color: '#00FF94' }}>
+              {totals.entradasQty.toFixed(2).replace('.', ',')}
+            </span>
+            <span className="text-xs text-muted">({BRL(totals.entradasCents)})</span>
+          </div>
+        </div>
+
+        <div className="rounded-xl border p-4" style={{ background: '#111827', borderColor: '#1E2D45' }}>
+          <div className="flex items-center gap-2 mb-2">
+            <ArrowUpCircle className="h-3.5 w-3.5" style={{ color: '#FF5C5C' }} />
+            <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: '#5A7A9A' }}>
+              Saídas
+            </span>
+          </div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl font-bold tabular-nums" style={{ color: '#FF5C5C' }}>
+              {totals.saidasQty.toFixed(2).replace('.', ',')}
+            </span>
+            <span className="text-xs text-muted">({BRL(totals.saidasCents)})</span>
+          </div>
+        </div>
+
+        <div className="rounded-xl border p-4" style={{ background: '#111827', borderColor: '#1E2D45' }}>
+          <div className="flex items-center gap-2 mb-2">
+            <Package className="h-3.5 w-3.5" style={{ color: stockColor }} />
+            <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: '#5A7A9A' }}>
+              Saldo Atual
+            </span>
+          </div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl font-bold tabular-nums" style={{ color: stockColor }}>
+              {product.stock_qty}
+            </span>
+            <span className="text-xs text-muted">{product.unit}</span>
+          </div>
+        </div>
+      </div>
+
       {/* ── Tabela ──────────────────────────────────────────────────────────── */}
       <div
         className="rounded-2xl border overflow-hidden"
@@ -681,17 +748,19 @@ export function MovimentosClient({
               className="grid items-center gap-3 border-b px-5 py-3 text-xs font-medium uppercase tracking-wider text-muted"
               style={{
                 borderColor: '#1E2D45',
-                gridTemplateColumns: '155px 120px 100px 110px 110px 80px 1fr 72px',
-                minWidth: '900px',
+                gridTemplateColumns: '150px 85px 85px 110px 110px 110px 90px 1fr 110px 72px',
+                minWidth: '1200px',
               }}
             >
               <span>Data / Hora</span>
-              <span>Depósito</span>
-              <span>Origem</span>
-              <span className="text-center">Tipo</span>
-              <span className="text-right">Quantidade</span>
+              <span className="text-right">Entrada</span>
+              <span className="text-right">Saída</span>
+              <span className="text-right">Pr. Venda</span>
+              <span className="text-right">Pr. Compra</span>
+              <span className="text-right">Pr. Custo</span>
               <span className="text-right">Saldo</span>
               <span>Observação</span>
+              <span>Origem</span>
               <span />
             </div>
 
@@ -700,6 +769,17 @@ export function MovimentosClient({
               const isBalanco = m.origin === 'balanco'
               const isEntrada = m.type === 'entrada'
               const typeColor = isBalanco ? '#FFB800' : isEntrada ? '#00FF94' : '#FF5C5C'
+              const originLabel = (() => {
+                const o = m.origin
+                if (!o || o === 'manual') return 'Manual'
+                if (o === 'balanco')                     return 'Balanço'
+                if (o.startsWith('sale:'))               return 'Venda PDV'
+                if (o.startsWith('sale-cancel:'))        return 'Venda cancelada'
+                if (o.startsWith('sale-reactivate:'))    return 'Venda reativada'
+                if (o.startsWith('sale-date-revert:'))   return 'Ajuste de data'
+                if (o.startsWith('sale-date-redo:'))     return 'Ajuste de data'
+                return o
+              })()
 
               return (
                 <div
@@ -707,75 +787,65 @@ export function MovimentosClient({
                   className="grid items-center gap-3 border-b px-5 py-3.5 transition-colors hover:bg-white/[0.025] last:border-0"
                   style={{
                     borderColor: '#1E2D45',
-                    gridTemplateColumns: '155px 120px 100px 110px 110px 80px 1fr 72px',
-                    minWidth: '900px',
+                    gridTemplateColumns: '150px 85px 85px 110px 110px 110px 90px 1fr 110px 72px',
+                    minWidth: '1200px',
                     borderLeft: `3px solid ${typeColor}20`,
                   }}
                 >
                   {/* Data/Hora */}
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-sm text-text font-mono tabular-nums">
-                      {fmtDatetime(m.moved_at)}
-                    </span>
-                  </div>
-
-                  {/* Depósito */}
-                  <span className="text-xs text-muted truncate">
-                    {m.depot || defaultDepot(initialProduct)}
+                  <span className="text-sm text-text font-mono tabular-nums">
+                    {fmtDatetime(m.moved_at)}
                   </span>
 
-                  {/* Origem */}
-                  <span className="text-xs text-muted capitalize">
-                    {(() => {
-                      const o = m.origin
-                      if (!o || o === 'manual') return 'Manual'
-                      if (o === 'balanco')            return 'Balanço'
-                      if (o.startsWith('sale:'))               return 'Venda PDV'
-                      if (o.startsWith('sale-cancel:'))        return 'Venda cancelada'
-                      if (o.startsWith('sale-reactivate:'))    return 'Venda reativada'
-                      if (o.startsWith('sale-date-revert:'))   return 'Ajuste de data (venda)'
-                      if (o.startsWith('sale-date-redo:'))     return 'Ajuste de data (venda)'
-                      return o
-                    })()}
+                  {/* Entrada (qty se for entrada) */}
+                  <span className="text-sm font-bold text-right tabular-nums"
+                    style={{ color: isEntrada && !isBalanco ? '#00FF94' : '#5A7A9A' }}>
+                    {isEntrada && !isBalanco ? m.quantity : '—'}
                   </span>
 
-                  {/* Tipo */}
-                  <div className="flex items-center justify-center">
-                    <span
-                      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold"
-                      style={{
-                        background: `${typeColor}15`,
-                        color:      typeColor,
-                        border:     `1px solid ${typeColor}30`,
-                      }}
-                    >
-                      {isBalanco
-                        ? <Scale            className="h-3 w-3" />
-                        : isEntrada
-                          ? <ArrowDownCircle className="h-3 w-3" />
-                          : <ArrowUpCircle   className="h-3 w-3" />}
-                      {isBalanco ? 'Balanço' : isEntrada ? 'Entrada' : 'Saída'}
-                    </span>
-                  </div>
+                  {/* Saída (qty se for saída) */}
+                  <span className="text-sm font-bold text-right tabular-nums"
+                    style={{ color: !isEntrada && !isBalanco ? '#FF5C5C' : isBalanco ? '#FFB800' : '#5A7A9A' }}>
+                    {isBalanco ? `${m.quantity} (bal.)` : !isEntrada ? m.quantity : '—'}
+                  </span>
 
-                  {/* Quantidade */}
-                  <p
-                    className="text-sm font-bold text-right tabular-nums"
-                    style={{ color: typeColor }}
-                  >
-                    {fmtQty(m.quantity, m.type, product.unit)}
-                  </p>
+                  {/* Pr. Venda (só em saída) */}
+                  <span className="text-xs text-right tabular-nums"
+                    style={{ color: !isEntrada && m.sale_price_cents ? '#E8F0FE' : '#5A7A9A' }}>
+                    {!isEntrada && m.sale_price_cents ? BRL(m.sale_price_cents) : '—'}
+                  </span>
+
+                  {/* Pr. Compra (só em entrada) */}
+                  <span className="text-xs text-right tabular-nums"
+                    style={{ color: isEntrada && m.purchase_price_cents ? '#E8F0FE' : '#5A7A9A' }}>
+                    {isEntrada && m.purchase_price_cents ? BRL(m.purchase_price_cents) : '—'}
+                  </span>
+
+                  {/* Pr. Custo (só em entrada) */}
+                  <span className="text-xs text-right tabular-nums"
+                    style={{ color: isEntrada && m.cost_price_cents ? '#E8F0FE' : '#5A7A9A' }}>
+                    {isEntrada && m.cost_price_cents ? BRL(m.cost_price_cents) : '—'}
+                  </span>
 
                   {/* Saldo acumulado */}
-                  <p className="text-sm font-semibold text-right tabular-nums text-text">
+                  <span className="text-sm font-semibold text-right tabular-nums text-text">
                     {recalcing
                       ? <span className="inline-block h-4 w-10 animate-pulse rounded" style={{ background: '#1E2D45' }} />
                       : `${m.running_balance} ${product.unit}`}
-                  </p>
+                  </span>
 
                   {/* Observação */}
                   <span className="text-xs text-muted truncate" title={m.notes ?? ''}>
                     {m.notes || <span className="text-muted/40">—</span>}
+                  </span>
+
+                  {/* Origem */}
+                  <span
+                    className="rounded-full px-2 py-0.5 text-[10px] font-bold text-center truncate"
+                    style={{ background: `${typeColor}15`, color: typeColor, border: `1px solid ${typeColor}30` }}
+                    title={m.origin ?? 'manual'}
+                  >
+                    {originLabel}
                   </span>
 
                   {/* Ações */}
