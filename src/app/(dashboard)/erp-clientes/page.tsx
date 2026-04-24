@@ -67,14 +67,21 @@ export type WeekdayPoint = {
   checksmart: WeekdayMetrics
 }
 
-export type OriginBreakdown = {
-  value: string | null
-  label: string
-  totalCents: number
-  transactions: number
+export type OriginMetrics = {
+  totalCents:      number
+  profitCents:     number
+  transactions:    number
   uniqueCustomers: number
+}
+
+export type OriginBreakdown = {
+  value:           string | null
+  label:           string
+  total:           OriginMetrics
+  smarterp:        OriginMetrics
+  checksmart:      OriginMetrics
   ticketMedioCents: number
-  sharePercent: number
+  sharePercent:    number
 }
 
 export type DashboardData = {
@@ -85,8 +92,8 @@ export type DashboardData = {
   topClients:  TopClient[]
   insightText: string
   sources: {
-    smarterp:   { totalCents: number; transactions: number; uniqueCustomers: number }
-    checksmart: { totalCents: number; transactions: number; uniqueCustomers: number }
+    smarterp:   { totalCents: number; profitCents: number; transactions: number; uniqueCustomers: number }
+    checksmart: { totalCents: number; profitCents: number; transactions: number; uniqueCustomers: number }
     overlap: number
   }
   churnRisk: ChurnClient[]
@@ -242,14 +249,23 @@ export default async function ErpClientesPage({
   const osCustomerIds   = new Set(osPeriodData.filter(o => o.customer_id).map(o => o.customer_id as string))
   const overlap = [...saleCustomerIds].filter(id => osCustomerIds.has(id)).length
 
+  const salesProfit = periodTxs
+    .filter(t => t.source === 'erp')
+    .reduce((sum, t) => sum + t.profitCents, 0)
+  const osProfit = periodTxs
+    .filter(t => t.source === 'checksmart')
+    .reduce((sum, t) => sum + t.profitCents, 0)
+
   const sources = {
     smarterp: {
       totalCents: salesPeriodData.reduce((sum, s) => sum + (s.total_cents ?? 0), 0),
+      profitCents: salesProfit,
       transactions: salesPeriodData.length,
       uniqueCustomers: saleCustomerIds.size,
     },
     checksmart: {
       totalCents: osPeriodData.reduce((sum, o) => sum + osTotal(o), 0),
+      profitCents: osProfit,
       transactions: osPeriodData.length,
       uniqueCustomers: osCustomerIds.size,
     },
@@ -279,38 +295,54 @@ export default async function ErpClientesPage({
   }
 
   // ── Origem dos clientes (período selecionado) ────────────────────────────
-  const originMap = new Map<string, { totalCents: number; transactions: number; customerIds: Set<string> }>()
+  type OriginAgg = {
+    total:      { totalCents: number; profitCents: number; transactions: number; customerIds: Set<string> }
+    smarterp:   { totalCents: number; profitCents: number; transactions: number; customerIds: Set<string> }
+    checksmart: { totalCents: number; profitCents: number; transactions: number; customerIds: Set<string> }
+  }
+  const emptyOriginBucket = () => ({ totalCents: 0, profitCents: 0, transactions: 0, customerIds: new Set<string>() })
+  const originMap = new Map<string, OriginAgg>()
   const NO_ORIGIN = '__sem_origem__'
 
   for (const t of periodTxs) {
     const key = t.origin ?? NO_ORIGIN
-    const ex  = originMap.get(key)
-    if (ex) {
-      ex.totalCents += t.totalCents
-      ex.transactions++
-      if (t.customerId) ex.customerIds.add(t.customerId)
-    } else {
-      originMap.set(key, {
-        totalCents: t.totalCents,
-        transactions: 1,
-        customerIds: t.customerId ? new Set([t.customerId]) : new Set(),
-      })
+    let agg = originMap.get(key)
+    if (!agg) {
+      agg = { total: emptyOriginBucket(), smarterp: emptyOriginBucket(), checksmart: emptyOriginBucket() }
+      originMap.set(key, agg)
     }
+    agg.total.totalCents    += t.totalCents
+    agg.total.profitCents   += t.profitCents
+    agg.total.transactions  += 1
+    if (t.customerId) agg.total.customerIds.add(t.customerId)
+
+    const bucket = t.source === 'erp' ? agg.smarterp : agg.checksmart
+    bucket.totalCents    += t.totalCents
+    bucket.profitCents   += t.profitCents
+    bucket.transactions  += 1
+    if (t.customerId) bucket.customerIds.add(t.customerId)
   }
 
-  const periodTotalCents = [...originMap.values()].reduce((sum, o) => sum + o.totalCents, 0)
+  const periodTotalCents = [...originMap.values()].reduce((sum, o) => sum + o.total.totalCents, 0)
+
+  const toMetrics = (b: OriginAgg['total']): OriginMetrics => ({
+    totalCents:      b.totalCents,
+    profitCents:     b.profitCents,
+    transactions:    b.transactions,
+    uniqueCustomers: b.customerIds.size,
+  })
 
   const originBreakdown: OriginBreakdown[] = [...originMap.entries()]
     .map(([key, v]) => ({
-      value: key === NO_ORIGIN ? null : key,
-      label: key === NO_ORIGIN ? 'Não informado' : originLabel(key),
-      totalCents: v.totalCents,
-      transactions: v.transactions,
-      uniqueCustomers: v.customerIds.size,
-      ticketMedioCents: v.transactions > 0 ? Math.round(v.totalCents / v.transactions) : 0,
-      sharePercent: periodTotalCents > 0 ? Math.round((v.totalCents / periodTotalCents) * 100) : 0,
+      value:       key === NO_ORIGIN ? null : key,
+      label:       key === NO_ORIGIN ? 'Não informado' : originLabel(key),
+      total:       toMetrics(v.total),
+      smarterp:    toMetrics(v.smarterp),
+      checksmart:  toMetrics(v.checksmart),
+      ticketMedioCents: v.total.transactions > 0 ? Math.round(v.total.totalCents / v.total.transactions) : 0,
+      sharePercent: periodTotalCents > 0 ? Math.round((v.total.totalCents / periodTotalCents) * 100) : 0,
     }))
-    .sort((a, b) => b.totalCents - a.totalCents)
+    .sort((a, b) => b.total.totalCents - a.total.totalCents)
 
   // ── Monthly evolution ────────────────────────────────────────────────────
   const months: { label: string; start: Date; end: Date }[] = Array.from({ length: 6 }, (_, i) => {

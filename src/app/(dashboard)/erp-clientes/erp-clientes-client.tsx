@@ -149,6 +149,7 @@ function SourcesSection({ sources }: { sources: DashboardData['sources'] }) {
       color: '#00E5FF',
       glow: 'rgba(0,229,255,.4)',
       totalCents: sources.smarterp.totalCents,
+      profitCents: sources.smarterp.profitCents,
       transactions: sources.smarterp.transactions,
       customers: sources.smarterp.uniqueCustomers,
       sub: 'vendas no caixa',
@@ -159,6 +160,7 @@ function SourcesSection({ sources }: { sources: DashboardData['sources'] }) {
       color: '#9B6DFF',
       glow: 'rgba(155,109,255,.4)',
       totalCents: sources.checksmart.totalCents,
+      profitCents: sources.checksmart.profitCents,
       transactions: sources.checksmart.transactions,
       customers: sources.checksmart.uniqueCustomers,
       sub: 'ordens de serviço',
@@ -167,43 +169,62 @@ function SourcesSection({ sources }: { sources: DashboardData['sources'] }) {
 
   return (
     <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
-      {items.map(({ label, icon: Icon, color, glow, totalCents, transactions, customers, sub }) => (
-        <div
-          key={label}
-          className="rounded-2xl border p-6 relative overflow-hidden"
-          style={{ background: '#111827', borderColor: '#1E2D45' }}
-        >
-          <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full opacity-20"
-            style={{ background: `radial-gradient(circle, ${glow}, transparent)` }}
-          />
-          <div className="mb-4 flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg"
-              style={{ background: `${color}20` }}>
-              <Icon className="h-4 w-4" style={{ color }} />
+      {items.map(({ label, icon: Icon, color, glow, totalCents, profitCents, transactions, customers, sub }) => {
+        const marginPct = totalCents > 0 ? Math.round((profitCents / totalCents) * 100) : 0
+        return (
+          <div
+            key={label}
+            className="rounded-2xl border p-6 relative overflow-hidden"
+            style={{ background: '#111827', borderColor: '#1E2D45' }}
+          >
+            <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full opacity-20"
+              style={{ background: `radial-gradient(circle, ${glow}, transparent)` }}
+            />
+            <div className="mb-4 flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg"
+                style={{ background: `${color}20` }}>
+                <Icon className="h-4 w-4" style={{ color }} />
+              </div>
+              <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#5A7A9A' }}>
+                {label}
+              </span>
             </div>
-            <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#5A7A9A' }}>
-              {label}
-            </span>
-          </div>
-          <div className="mb-4">
-            <span className="text-3xl font-bold tracking-tight" style={{ color, fontFamily: 'ui-monospace,monospace' }}>
-              {BRL(totalCents)}
-            </span>
-          </div>
-          <div className="flex gap-3">
-            <div className="flex flex-col items-center flex-1 rounded-lg py-2.5"
-              style={{ background: '#0D1320', border: '1px solid #1E2D45' }}>
-              <span className="text-sm font-bold" style={{ color, fontFamily: 'ui-monospace,monospace' }}>{transactions}</span>
-              <span className="mt-1 text-[9px] font-semibold uppercase tracking-wider" style={{ color: '#5A7A9A' }}>{sub}</span>
+
+            {/* Faturamento */}
+            <div className="mb-1">
+              <span className="text-3xl font-bold tracking-tight" style={{ color, fontFamily: 'ui-monospace,monospace' }}>
+                {BRL(totalCents)}
+              </span>
+              <p className="text-[10px] font-semibold uppercase tracking-wider mt-0.5" style={{ color: '#5A7A9A' }}>
+                Faturamento
+              </p>
             </div>
-            <div className="flex flex-col items-center flex-1 rounded-lg py-2.5"
-              style={{ background: '#0D1320', border: '1px solid #1E2D45' }}>
-              <span className="text-sm font-bold" style={{ color, fontFamily: 'ui-monospace,monospace' }}>{customers}</span>
-              <span className="mt-1 text-[9px] font-semibold uppercase tracking-wider" style={{ color: '#5A7A9A' }}>clientes únicos</span>
+
+            {/* Lucro */}
+            <div className="mb-4 flex items-baseline gap-2">
+              <span className="text-lg font-bold" style={{ color: '#00FF94', fontFamily: 'ui-monospace,monospace' }}>
+                {BRL(profitCents)}
+              </span>
+              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#5A7A9A' }}>
+                Lucro · margem {marginPct}%
+              </span>
+            </div>
+
+            <div className="flex gap-3">
+              <div className="flex flex-col items-center flex-1 rounded-lg py-2.5"
+                style={{ background: '#0D1320', border: '1px solid #1E2D45' }}>
+                <span className="text-sm font-bold" style={{ color, fontFamily: 'ui-monospace,monospace' }}>{transactions}</span>
+                <span className="mt-1 text-[9px] font-semibold uppercase tracking-wider" style={{ color: '#5A7A9A' }}>{sub}</span>
+              </div>
+              <div className="flex flex-col items-center flex-1 rounded-lg py-2.5"
+                style={{ background: '#0D1320', border: '1px solid #1E2D45' }}>
+                <span className="text-sm font-bold" style={{ color, fontFamily: 'ui-monospace,monospace' }}>{customers}</span>
+                <span className="mt-1 text-[9px] font-semibold uppercase tracking-wider" style={{ color: '#5A7A9A' }}>clientes únicos</span>
+              </div>
             </div>
           </div>
-        </div>
-      ))}
+        )
+      })}
 
       {/* Overlap card */}
       <div
@@ -374,6 +395,20 @@ function WeekdayHeatmap({ days }: { days: WeekdayPoint[] }) {
           </button>
         </div>
       </div>
+
+      {metric === 'profitCents' && (
+        <div
+          className="flex items-start gap-2 rounded-lg border px-3 py-2 text-[11px]"
+          style={{ background: 'rgba(255,170,0,.06)', borderColor: 'rgba(255,170,0,.3)', color: '#8AA8C8' }}
+        >
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: '#FFAA00' }} />
+          <span>
+            <strong style={{ color: '#FFAA00' }}>Lucro pode estar inflado</strong> se produtos estiverem sem custo
+            cadastrado no Estoque ou OS sem peças lançadas. Cadastre o custo real em cada produto e
+            lance peças nas OS para ter o lucro correto.
+          </span>
+        </div>
+      )}
 
       {!hasAny ? (
         <p className="py-10 text-center text-sm" style={{ color: '#5A7A9A' }}>
@@ -589,20 +624,51 @@ const ORIGIN_COLORS: Record<string, string> = {
 }
 
 function OriginSection({ breakdown }: { breakdown: OriginBreakdown[] }) {
-  if (breakdown.length === 0) {
+  const [source, setSource] = useState<SourceFilter>('total')
+  const [metric, setMetric] = useState<'totalCents' | 'profitCents'>('totalCents')
+
+  const bucketOf = (b: OriginBreakdown) => b[source]
+  const valueOf  = (b: OriginBreakdown) => bucketOf(b)[metric]
+
+  const filtered = breakdown
+    .map(b => ({ ...b, _val: valueOf(b), _bucket: bucketOf(b) }))
+    .filter(b => b._val > 0 || b._bucket.transactions > 0)
+    .sort((a, b) => b._val - a._val)
+
+  if (filtered.length === 0) {
     return (
-      <div className="py-10 text-center text-sm" style={{ color: '#5A7A9A' }}>
-        Nenhuma venda no período selecionado
+      <div className="space-y-4">
+        <OriginFilters source={source} metric={metric} setSource={setSource} setMetric={setMetric} />
+        <p className="py-10 text-center text-sm" style={{ color: '#5A7A9A' }}>
+          Sem dados para os filtros selecionados no período
+        </p>
       </div>
     )
   }
 
-  const maxCents = Math.max(...breakdown.map(b => b.totalCents), 1)
-  const totalCustomers = breakdown.reduce((sum, b) => sum + b.uniqueCustomers, 0)
-  const topOrigin = breakdown[0]
+  const maxVal = Math.max(...filtered.map(b => b._val), 1)
+  const filteredTotal = filtered.reduce((sum, b) => sum + b._val, 0)
+  const totalCustomers = filtered.reduce((sum, b) => sum + b._bucket.uniqueCustomers, 0)
+  const topOrigin = filtered[0]
+  const metricLabel = metric === 'profitCents' ? 'lucro' : 'faturamento'
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
+      <OriginFilters source={source} metric={metric} setSource={setSource} setMetric={setMetric} />
+
+      {metric === 'profitCents' && (
+        <div
+          className="flex items-start gap-2 rounded-lg border px-3 py-2 text-[11px]"
+          style={{ background: 'rgba(255,170,0,.06)', borderColor: 'rgba(255,170,0,.3)', color: '#8AA8C8' }}
+        >
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: '#FFAA00' }} />
+          <span>
+            <strong style={{ color: '#FFAA00' }}>Lucro depende de custo cadastrado</strong> — produtos sem custo
+            e OS sem peças lançadas fazem o lucro parecer maior do que é.
+          </span>
+        </div>
+      )}
+
       {/* Insight destaque */}
       {topOrigin.value && (
         <div
@@ -617,17 +683,19 @@ function OriginSection({ breakdown }: { breakdown: OriginBreakdown[] }) {
           <Megaphone className="mt-0.5 h-4 w-4 flex-shrink-0" style={{ color: ORIGIN_COLORS[topOrigin.value] ?? '#00E5FF' }} />
           <p className="text-sm" style={{ color: '#8AA8C8' }}>
             <span className="font-semibold" style={{ color: '#E8F0FE' }}>{topOrigin.label}</span>{' '}
-            é seu principal canal no período — {topOrigin.sharePercent}% do faturamento
-            ({BRL(topOrigin.totalCents)}) vindo de {topOrigin.uniqueCustomers} cliente(s).
+            é seu principal canal no período — {filteredTotal > 0 ? Math.round((topOrigin._val / filteredTotal) * 100) : 0}% do {metricLabel}
+            ({BRL(topOrigin._val)}) vindo de {topOrigin._bucket.uniqueCustomers} cliente(s).
           </p>
         </div>
       )}
 
       {/* Ranking por origem */}
       <div className="space-y-3">
-        {breakdown.map(b => {
+        {filtered.map(b => {
           const color = b.value ? (ORIGIN_COLORS[b.value] ?? '#5A7A9A') : '#5A7A9A'
-          const barPct = Math.round((b.totalCents / maxCents) * 100)
+          const barPct = Math.round((b._val / maxVal) * 100)
+          const pct    = filteredTotal > 0 ? Math.round((b._val / filteredTotal) * 100) : 0
+          const ticket = b._bucket.transactions > 0 ? Math.round(b._bucket.totalCents / b._bucket.transactions) : 0
           return (
             <div
               key={b.value ?? 'sem-origem'}
@@ -636,10 +704,7 @@ function OriginSection({ breakdown }: { breakdown: OriginBreakdown[] }) {
             >
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2 min-w-0">
-                  <span
-                    className="h-2.5 w-2.5 rounded-full shrink-0"
-                    style={{ background: color }}
-                  />
+                  <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: color }} />
                   <span className="text-sm font-semibold truncate" style={{ color: '#E8F0FE' }}>
                     {b.label}
                   </span>
@@ -647,48 +712,23 @@ function OriginSection({ breakdown }: { breakdown: OriginBreakdown[] }) {
                     className="rounded-full px-2 py-0.5 text-[10px] font-bold shrink-0"
                     style={{ background: `${color}20`, color }}
                   >
-                    {b.sharePercent}%
+                    {pct}%
                   </span>
                 </div>
                 <span className="font-bold text-sm shrink-0" style={{ color, fontFamily: 'ui-monospace,monospace' }}>
-                  {BRL(b.totalCents)}
+                  {BRL(b._val)}
                 </span>
               </div>
-
-              {/* Barra de progresso */}
               <div className="h-1.5 rounded-full mb-3" style={{ background: '#1E2D45' }}>
                 <div
                   className="h-1.5 rounded-full transition-all duration-500"
                   style={{ width: `${barPct}%`, background: color }}
                 />
               </div>
-
-              {/* Sub-métricas */}
               <div className="grid grid-cols-3 gap-3">
-                <div className="text-center">
-                  <p className="text-sm font-bold" style={{ color: '#E8F0FE', fontFamily: 'ui-monospace,monospace' }}>
-                    {b.uniqueCustomers}
-                  </p>
-                  <p className="text-[9px] font-semibold uppercase tracking-wider" style={{ color: '#5A7A9A' }}>
-                    Clientes
-                  </p>
-                </div>
-                <div className="text-center">
-                  <p className="text-sm font-bold" style={{ color: '#E8F0FE', fontFamily: 'ui-monospace,monospace' }}>
-                    {b.transactions}
-                  </p>
-                  <p className="text-[9px] font-semibold uppercase tracking-wider" style={{ color: '#5A7A9A' }}>
-                    Transações
-                  </p>
-                </div>
-                <div className="text-center">
-                  <p className="text-sm font-bold" style={{ color: '#E8F0FE', fontFamily: 'ui-monospace,monospace' }}>
-                    {BRL(b.ticketMedioCents)}
-                  </p>
-                  <p className="text-[9px] font-semibold uppercase tracking-wider" style={{ color: '#5A7A9A' }}>
-                    Ticket Médio
-                  </p>
-                </div>
+                <Stat label="Clientes"     value={String(b._bucket.uniqueCustomers)} />
+                <Stat label="Transações"   value={String(b._bucket.transactions)} />
+                <Stat label="Ticket Médio" value={BRL(ticket)} />
               </div>
             </div>
           )
@@ -696,9 +736,68 @@ function OriginSection({ breakdown }: { breakdown: OriginBreakdown[] }) {
 
         {totalCustomers > 0 && (
           <p className="text-center text-[11px] pt-2" style={{ color: '#5A7A9A' }}>
-            Total agregado: {totalCustomers} cliente(s) únicos vinculados a transações no período
+            Total agregado: {totalCustomers} cliente(s) únicos no filtro selecionado
           </p>
         )}
+      </div>
+    </div>
+  )
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="text-center">
+      <p className="text-sm font-bold" style={{ color: '#E8F0FE', fontFamily: 'ui-monospace,monospace' }}>{value}</p>
+      <p className="text-[9px] font-semibold uppercase tracking-wider" style={{ color: '#5A7A9A' }}>{label}</p>
+    </div>
+  )
+}
+
+function OriginFilters({
+  source, metric, setSource, setMetric,
+}: {
+  source: SourceFilter
+  metric: 'totalCents' | 'profitCents'
+  setSource: (s: SourceFilter) => void
+  setMetric: (m: 'totalCents' | 'profitCents') => void
+}) {
+  const SOURCE_OPTS: { value: SourceFilter; label: string; color: string }[] = [
+    { value: 'total',      label: 'Ambos',      color: '#00E5FF' },
+    { value: 'smarterp',   label: 'SmartERP',   color: '#00FF94' },
+    { value: 'checksmart', label: 'CheckSmart', color: '#9B6DFF' },
+  ]
+  return (
+    <div className="flex flex-wrap items-center gap-3">
+      <div className="flex gap-1 rounded-lg p-1" style={{ background: '#0D1320', border: '1px solid #1E2D45' }}>
+        {SOURCE_OPTS.map(opt => (
+          <button
+            key={opt.value}
+            onClick={() => setSource(opt.value)}
+            className="rounded px-3 py-1 text-[11px] font-bold transition-all"
+            style={source === opt.value
+              ? { background: opt.color, color: '#000' }
+              : { color: '#5A7A9A' }
+            }
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+      <div className="flex gap-1 rounded-lg p-1" style={{ background: '#0D1320', border: '1px solid #1E2D45' }}>
+        <button
+          onClick={() => setMetric('totalCents')}
+          className="rounded px-3 py-1 text-[11px] font-bold transition-all"
+          style={metric === 'totalCents' ? { background: '#1E2D45', color: '#E8F0FE' } : { color: '#5A7A9A' }}
+        >
+          Faturamento
+        </button>
+        <button
+          onClick={() => setMetric('profitCents')}
+          className="rounded px-3 py-1 text-[11px] font-bold transition-all"
+          style={metric === 'profitCents' ? { background: '#1E2D45', color: '#00FF94' } : { color: '#5A7A9A' }}
+        >
+          Lucro
+        </button>
       </div>
     </div>
   )
