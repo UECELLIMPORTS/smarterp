@@ -287,6 +287,8 @@ export async function updateProduct(id: string, input: ProductInput): Promise<Pr
 
   if (error) throw new Error(error.message)
   revalidatePath('/estoque')
+  revalidatePath('/erp-clientes')
+  revalidatePath('/financeiro')
   return data as unknown as ProductRow
 }
 
@@ -304,6 +306,7 @@ export async function updateProductPrice(id: string, priceCents: number): Promis
 
   if (error) throw new Error(error.message)
   revalidatePath('/estoque')
+  revalidatePath('/erp-clientes')
 }
 
 // ── Clone product ─────────────────────────────────────────────────────────────

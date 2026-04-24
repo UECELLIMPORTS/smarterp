@@ -201,6 +201,29 @@ export async function updateMovement(
 
   if (error) throw new Error(error.message)
 
+  // Sincroniza products.cost_cents / purchase_price_cents quando o
+  // usuário corrige os preços de uma ENTRADA. Sem isso, o ERP Clientes
+  // continuaria usando o custo antigo pra calcular lucro das vendas
+  // (a trigger do banco só roda em INSERT, não em UPDATE).
+  const finalType = (input.type ?? current.type) as 'entrada' | 'saida'
+  if (finalType === 'entrada') {
+    const prodPatch: Record<string, unknown> = {}
+    if (input.purchasePriceCents !== undefined && input.purchasePriceCents > 0) {
+      prodPatch.purchase_price_cents = input.purchasePriceCents
+    }
+    if (input.costPriceCents !== undefined && input.costPriceCents > 0) {
+      prodPatch.cost_cents = input.costPriceCents
+    }
+    if (Object.keys(prodPatch).length > 0) {
+      prodPatch.updated_at = new Date().toISOString()
+      await supabase
+        .from('products')
+        .update(prodPatch)
+        .eq('id', current.product_id)
+        .eq('tenant_id', tenantId)
+    }
+  }
+
   // Recalcula stock_qty se quantidade ou tipo mudou
   const qtyChanged  = input.quantity !== undefined && input.quantity !== Number(current.quantity)
   const typeChanged = input.type     !== undefined && input.type     !== current.type
@@ -217,6 +240,8 @@ export async function updateMovement(
   }
 
   revalidatePath('/estoque')
+  revalidatePath('/erp-clientes')
+  revalidatePath('/financeiro')
   return { movement: data as unknown as StockMovementRow, newStockQty }
 }
 
