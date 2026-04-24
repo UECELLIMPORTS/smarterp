@@ -1,75 +1,125 @@
 # Registro de Bugs — SmartERP / CheckSmart
 
-> Atualizado em: 23/04/2026
+> Atualizado em: **24/04/2026**
 
 ---
 
-**BUG-001**
-- 📍 Onde: Banco de dados → tabela `customers`
-- 🔴 Descrição: 987 clientes importados do Bling ficaram com `created_at = 16/04/2026` (data da importação) em vez da data real do campo "Cliente desde" do Bling
-- 🔍 Causa identificada: Na importação inicial via SQL, o campo `created_at` não foi mapeado corretamente — todos receberam o valor padrão `NOW()` do Postgres
-- 🛠️ Status: Resolvido parcialmente
-- ✅ Solução aplicada: 986 clientes sem OS/vendas foram deletados e reimportados via botão "Importar Bling" com a data correta. 1 cliente com venda vinculada foi mantido (ainda com data errada — ver BUG-003)
+**BUG-001** *(resolvido)*
+- 📍 Onde: Banco `customers`
+- 🔴 Descrição: 987 clientes importados ficaram com `created_at = 16/04/2026`
+- 🛠️ Status: Resolvido parcialmente — 986 deletados e reimportados. 1 mantido (ver BUG-003)
+- 📅 Data: 23/04/2026
+
+**BUG-002** *(contornado)*
+- 📍 Onde: Banco `customers` (516 registros)
+- 🔴 Descrição: 516 clientes com `created_at = 23/04/2026`; Bling não tem a data real
+- 🛠️ Status: Contornado com ordenação alfabética + campo "Cliente desde" editável no modal
+- 📅 Data: 23/04/2026
+
+**BUG-003** *(aberto)*
+- 📍 Onde: 1 cliente com `created_at = 16/04/2026`
+- 🔴 Descrição: Tem venda vinculada, FK `sales.customer_id` sem CASCADE impede deleção
+- 📋 Próximo passo: `UPDATE customers SET created_at = 'YYYY-MM-DDT12:00:00+00:00' WHERE id = '<uuid>'`
+- 📅 Data: 23/04/2026
+
+**BUG-004** *(contornado)*
+- 📍 Índice `customers_tenant_whatsapp_unique`
+- 🔴 Descrição: Clientes Bling com mesmo WhatsApp batiam no unique
+- 🛠️ Status: Índice removido pelo usuário. Banco não garante mais unicidade de WhatsApp
+- 📅 Data: 23/04/2026
+
+**BUG-005** *(resolvido)*
+- 📍 `src/actions/clientes.ts`
+- 🔴 Descrição: Insert em lote falhava com "All object keys must match"
+- ✅ Solução: insert individual por registro
+- 📅 Data: 23/04/2026
+
+**BUG-006** *(resolvido)*
+- 📍 `src/actions/clientes.ts`
+- 🔴 Descrição: Clientes existentes parecendo novos (limite 1.000 do REST)
+- ✅ Solução: Carregamento paginado em loop
+- 📅 Data: 23/04/2026
+
+**BUG-007** *(resolvido)*
+- 📍 SmartERP → busca de Clientes
+- 🔴 Descrição: Busca lenta (debounce de 400ms + reload de página)
+- ✅ Solução: Autocomplete leve via `/clientes/busca` (200ms)
 - 📅 Data: 23/04/2026
 
 ---
 
-**BUG-002**
-- 📍 Onde: Banco de dados → tabela `customers` / `src/actions/clientes.ts`
-- 🔴 Descrição: 516 clientes importados do Bling ficaram com `created_at = 23/04/2026` (data de hoje) em vez da data real
-- 🔍 Causa identificada: Esses clientes existem no Bling com o campo "Cliente desde" **em branco** — o dado simplesmente não existe na fonte. Quando `created_at` é `null` no payload, o Postgres usa `DEFAULT NOW()`
-- 🛠️ Status: Contornado (sem solução possível com dados disponíveis)
-- ✅ Solução aplicada: Mudança de ordenação da lista para `full_name ASC` — os clientes com data errada ficam espalhados na lista em vez de aparecerem todos no topo. Não há como recuperar a data real pois o Bling não a registrou.
+## Bugs descobertos/corrigidos em 23-24/04/2026
+
+**BUG-008** *(resolvido)*
+- 📍 SmartERP → lista de Clientes
+- 🔴 Descrição: Ao paginar ou buscar, a lista não atualizava — contador mudava mas as linhas permaneciam as mesmas
+- 🔍 Causa: `useState(initial)` só usa o valor inicial no primeiro mount. Server mandava nova página mas o componente stale state no client
+- ✅ Solução: `key={`${page}-${q}`}` no `ClientesClient` força remount quando page/query muda
 - 📅 Data: 23/04/2026
 
----
-
-**BUG-003**
-- 📍 Onde: Banco de dados → tabela `customers` (1 registro)
-- 🔴 Descrição: 1 cliente com `created_at = 16/04/2026` (data errada) não pôde ser corrigido via deleção + reimportação
-- 🔍 Causa identificada: Esse cliente tem uma venda vinculada na tabela `sales`. A FK `sales.customer_id` não tem `ON DELETE CASCADE`, então a deleção falha com violação de constraint
-- 🛠️ Status: Aberto
-- ✅ Solução aplicada: Nenhuma ainda
-- 📋 Próximo passo: Identificar o cliente no Supabase com `SELECT * FROM customers WHERE created_at::date = '2026-04-16'`, buscar a data correta no CSV do Bling e fazer `UPDATE customers SET created_at = 'YYYY-MM-DDT12:00:00+00:00' WHERE id = '<uuid>'`
+**BUG-009** *(resolvido)*
+- 📍 SmartERP → modal "Editar Cliente"
+- 🔴 Descrição: Campo de data (Data de nascimento) usava `<input type="date">` com calendário nativo difícil de navegar
+- ✅ Solução: Novo componente `DateTextInput` com máscara DD/MM/AAAA (só dígitos)
 - 📅 Data: 23/04/2026
 
----
+**BUG-010** *(resolvido)*
+- 📍 ERP Clientes → filtro "SmartERP" do Heatmap
+- 🔴 Descrição: Ao filtrar por SmartERP no Heatmap, nenhum dado aparecia — só "Ambos" e "CheckSmart" funcionavam
+- 🔍 Causa: Join aninhado `sale_items → products(cost_cents)` no Supabase REST retornava vazio — `sale_items.product_id` aponta pra `products` OU `parts_catalog`, Supabase não resolve ambiguidade
+- ✅ Solução: Query separada paralela das duas tabelas + `Map<id, cost_cents>` em memória
+- 📅 Data: 24/04/2026
 
-**BUG-004**
-- 📍 Onde: Banco de dados → índice `customers_tenant_whatsapp_unique`
-- 🔴 Descrição: Durante a importação do Bling, ocorria erro `duplicate key value violates unique constraint customers_tenant_whatsapp_unique` pois vários clientes no CSV tinham o mesmo WhatsApp
-- 🔍 Causa identificada: O índice único foi criado com boa intenção, mas o Bling permite múltiplos cadastros com o mesmo número de celular
-- 🛠️ Status: Contornado
-- ✅ Solução aplicada: O índice foi removido pelo usuário no Supabase (`DROP INDEX IF EXISTS public.customers_tenant_whatsapp_unique`). O código de importação também foi atualizado para ignorar WhatsApp duplicado no insert (adiciona ao `usedWhats` set para não repetir)
-- ⚠️ Efeito colateral: O banco não garante mais unicidade de WhatsApp. Recriar se quiser: `CREATE UNIQUE INDEX customers_tenant_whatsapp_unique ON customers(tenant_id, whatsapp) WHERE whatsapp IS NOT NULL;`
+**BUG-011** *(resolvido)*
+- 📍 Estoque → histórico de movimentações do produto
+- 🔴 Descrição: Ao vender um produto, a saída não aparecia no histórico. Saldo atual mudava mas stock_movements não registrava
+- 🔍 Causa: `createSale` chamava RPC `decrement_product_stock` que só atualizava `stock_qty` sem criar movement
+- ✅ Solução: Substituído RPC por insert em `stock_movements` type='saida' nas 7 operações que mexem em estoque (venda, cancelar, reativar, editar data, venda manual, bulkCancel). A trigger do banco cuida do decremento automático
+- 📅 Data: 24/04/2026
+
+**BUG-012** *(resolvido)*
+- 📍 ERP Clientes → cálculo de lucro
+- 🔴 Descrição: Ao editar o "Preço de Custo" de uma entrada no histórico, o lucro no ERP Clientes continuava usando o valor antigo
+- 🔍 Causa: A trigger `trg_sync_product_after_movement` do Postgres só roda em INSERT, não em UPDATE. Edição de custo atualizava `stock_movements` mas `products.cost_cents` ficava defasado
+- ✅ Solução: `updateMovement` agora sincroniza manualmente `products.purchase_price_cents` e `products.cost_cents` quando a entrada é editada. Também adicionado `revalidatePath('/erp-clientes')` em `updateProduct` e `updateMovement`
+- 📅 Data: 24/04/2026
+
+**BUG-013** *(resolvido)*
+- 📍 ERP Clientes → todas as seções
+- 🔴 Descrição: OS aparecia no ranking/faturamento/lucro assim que era aberta, mesmo antes de o aparelho ser entregue ao cliente
+- 🔍 Causa: Query filtrava `.neq('status', 'Cancelado')` — qualquer status diferente de cancelado entrava
+- ✅ Solução: Trocado por `.in('status', ['delivered', 'Entregue'])` nas duas queries de service_orders
+- 📅 Data: 24/04/2026
+
+**BUG-014** *(resolvido)*
+- 📍 Financeiro → Registrar Venda → busca de produto
+- 🔴 Descrição: Após adicionar o primeiro produto, o segundo produto "não funcionava" — dropdown não aparecia
+- 🔍 Causa dupla: (1) Input perdia foco após adicionar; (2) Dropdown só aparecia com resultados — se vazio ou carregando, nada aparecia
+- ✅ Solução: (1) Re-foca automaticamente via `useRef`+`.focus()`; (2) Dropdown visível com estados "Buscando…", "Nenhum produto encontrado" (+atalho manual) ou lista
+- 📅 Data: 24/04/2026
+
+**BUG-015** *(resolvido)*
+- 📍 Financeiro → botão "Editar venda" em venda cancelada
+- 🔴 Descrição: Clique em "Editar venda" não fazia nada. Reativar funcionava normalmente
+- 🔍 Causa: `FinanceiroRow.date` tipado como `Date`, mas Next.js serializa Date como string ao passar de Server Component → Client Component. `row.date.toISOString()` na primeira linha de `openEditSale` lançava TypeError silencioso, interrompendo a função antes de `setEsRow(row)`
+- ✅ Solução: Normalização em `openEditSale` e `openEditDate`: `const dateObj = row.date instanceof Date ? row.date : new Date(row.date as unknown as string)` com fallback para data atual se inválida
+- 📅 Data: 24/04/2026
+
+**BUG-016** *(resolvido)*
+- 📍 Estoque → nome do produto na listagem
+- 🔴 Descrição: Nome longo era cortado com "..."
+- ✅ Solução: `truncate` → `break-words`, coluna 1fr → `minmax(280px, 2fr)`, minWidth 900→1100px
 - 📅 Data: 23/04/2026
 
----
+**BUG-017** *(resolvido)*
+- 📍 Financeiro → menu de ações (3 pontinhos)
+- 🔴 Descrição: Menu com fundo transparente deixava texto da tabela atrás aparecer; textos sem contraste; sem separador para ação destrutiva
+- ✅ Solução: Fundo sólido `#0F1A2B`, z-index 20→40, hover com a cor da ação, separador visual + `font-semibold` antes do "Excluir venda"
+- 📅 Data: 24/04/2026
 
-**BUG-005**
-- 📍 Onde: `src/actions/clientes.ts` — função `importCustomersFromBling`
-- 🔴 Descrição: A importação falhava com erro `"All object keys must match"` ao tentar inserir múltiplos clientes em lote
-- 🔍 Causa identificada: PostgREST (API REST do Supabase) exige que todos os objetos de um array de insert tenham exatamente as mesmas chaves. Como os registros filtram campos `null` (`Object.fromEntries(...filter(v !== null))`), cada objeto tinha chaves diferentes
-- 🛠️ Status: Resolvido
-- ✅ Solução aplicada: Mudou de insert em lote para insert individual (`supabase.from('customers').insert(payload)` por registro)
-- 📅 Data: 23/04/2026
-
----
-
-**BUG-006**
-- 📍 Onde: `src/actions/clientes.ts` — carregamento de clientes existentes
-- 🔴 Descrição: A importação falhava com erro de CPF duplicado (`customers_tenant_cpf_unique`) mesmo para clientes que já existiam no banco
-- 🔍 Causa identificada: A API REST do Supabase retorna no máximo 1.000 registros por request sem paginação. O banco tinha 2.129 clientes — os CPFs da segunda "página" não eram carregados, então esses clientes pareciam novos e tentavam ser inseridos
-- 🛠️ Status: Resolvido
-- ✅ Solução aplicada: Carregamento paginado dos clientes existentes em loop `while(true)` com `range(page * 1000, page * 1000 + 999)` antes de processar a importação
-- 📅 Data: 23/04/2026
-
----
-
-**BUG-007**
-- 📍 Onde: SmartERP → módulo Clientes → busca
-- 🔴 Descrição: A busca de clientes demorava muito para mostrar resultados — o usuário percebia um atraso notável ao digitar
-- 🔍 Causa identificada: A busca disparava `router.push()` (reload completo da página com request ao servidor) a cada alteração no input, com apenas 400ms de debounce
-- 🛠️ Status: Resolvido
-- ✅ Solução aplicada: Adicionado autocomplete com dropdown: busca leve via `GET /clientes/busca` (200ms debounce, retorna JSON com 8 resultados). A busca full-page continua existindo mas com 600ms de debounce
-- 📅 Data: 23/04/2026
+**BUG-018** *(resolvido)*
+- 📍 Financeiro → menu de ações
+- 🔴 Descrição: Botões do menu às vezes não respondiam ao clique
+- 🔍 Causa: Outside-click handler escutava `mousedown` mas botões usavam `onClick` — race condition podia fechar o menu antes do click ser processado
+- ✅ Solução: Todos os botões agora usam `onMouseDown` com `preventDefault` + `stopPropagation`, `type="button"`
+- 📅 Data: 24/04/2026
