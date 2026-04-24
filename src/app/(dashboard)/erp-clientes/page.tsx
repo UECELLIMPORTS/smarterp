@@ -152,7 +152,7 @@ export default async function ErpClientesPage({
 
   const [salesPeriodRes, osPeriodRes, salesMonthRes, osMonthRes] = await Promise.all([
     sb.from('sales')
-      .select('customer_id, total_cents, created_at, sale_items(quantity, unit_price_cents, product_id), customers(full_name, created_at, origin, whatsapp, phone)')
+      .select('customer_id, total_cents, created_at, sale_items(quantity, unit_price_cents, product_id, cost_snapshot_cents), customers(full_name, created_at, origin, whatsapp, phone)')
       .eq('tenant_id', tenantId)
       .gte('created_at', start.toISOString())
       .lte('created_at', end.toISOString())
@@ -170,7 +170,7 @@ export default async function ErpClientesPage({
       .limit(1000),
 
     sb.from('sales')
-      .select('customer_id, total_cents, created_at, sale_items(quantity, product_id), customers(full_name, created_at, origin, whatsapp, phone)')
+      .select('customer_id, total_cents, created_at, sale_items(quantity, product_id, cost_snapshot_cents), customers(full_name, created_at, origin, whatsapp, phone)')
       .eq('tenant_id', tenantId)
       .gte('created_at', sixAgo.toISOString())
       .neq('status', 'cancelled')
@@ -185,7 +185,7 @@ export default async function ErpClientesPage({
   ])
 
   // ── Process period data ─────────────────────────────────────────────────
-  type SaleItemPeriod = { quantity: number; unit_price_cents: number; product_id: string | null }
+  type SaleItemPeriod = { quantity: number; unit_price_cents: number; product_id: string | null; cost_snapshot_cents: number | null }
   type CustomerJoinPeriod = { full_name: string; created_at: string; origin: string|null; whatsapp: string|null; phone: string|null }
   type SalePeriod = { customer_id: string|null; total_cents: number; created_at: string; sale_items: SaleItemPeriod[]|null; customers: CustomerJoinPeriod|null }
   type OsPeriod   = { customer_id: string|null; total_price_cents: number|null; service_price_cents: number|null; parts_sale_cents: number|null; parts_cost_cents: number|null; discount_cents: number|null; received_at: string; customers: CustomerJoinPeriod|null }
@@ -195,7 +195,7 @@ export default async function ErpClientesPage({
 
   // Query separada de custos — sale_items.product_id pode apontar pra
   // products OU parts_catalog, então busco nas duas tabelas em paralelo.
-  type MonthSaleItem = { quantity: number; product_id: string | null }
+  type MonthSaleItem = { quantity: number; product_id: string | null; cost_snapshot_cents: number | null }
   type CustomerJoin = { full_name: string; created_at: string; origin: string|null; whatsapp: string|null; phone: string|null }
   type MonthSaleRow = { customer_id: string|null; total_cents: number; created_at: string; sale_items: MonthSaleItem[]|null; customers: CustomerJoin|null }
   type MonthOsRow   = { customer_id: string|null; total_price_cents: number|null; service_price_cents: number|null; parts_sale_cents: number|null; parts_cost_cents: number|null; discount_cents: number|null; received_at: string; customers: CustomerJoin|null }
@@ -242,7 +242,8 @@ export default async function ErpClientesPage({
       const items = s.sale_items ?? []
       const totalCents = s.total_cents ?? 0
       const costCents = items.reduce((sum, i) => {
-        const cost = i.product_id ? (costMap.get(i.product_id) ?? 0) : 0
+        // Prioriza snapshot (custo no momento da venda); fallback pro atual
+        const cost = i.cost_snapshot_cents ?? (i.product_id ? (costMap.get(i.product_id) ?? 0) : 0)
         return sum + (i.quantity ?? 0) * cost
       }, 0)
       return {
@@ -476,7 +477,8 @@ export default async function ErpClientesPage({
       const items = s.sale_items ?? []
       const total = s.total_cents ?? 0
       const cost = items.reduce((sum, i) => {
-        const c = i.product_id ? (costMap.get(i.product_id) ?? 0) : 0
+        // Prioriza snapshot (custo no momento da venda); fallback pro atual
+        const c = i.cost_snapshot_cents ?? (i.product_id ? (costMap.get(i.product_id) ?? 0) : 0)
         return sum + (i.quantity ?? 0) * c
       }, 0)
       return {

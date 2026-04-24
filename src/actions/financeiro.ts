@@ -4,6 +4,22 @@ import { requireAuth } from '@/lib/supabase/server'
 import { getTenantId } from '@/lib/tenant'
 import { revalidatePath } from 'next/cache'
 
+// ── Helper: busca cost_cents atual dos produtos/peças pra snapshot em sale_items
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function fetchCostMap(supabase: any, productIds: (string | null)[]): Promise<Map<string, number>> {
+  const ids = productIds.filter((id): id is string => !!id)
+  const costMap = new Map<string, number>()
+  if (ids.length === 0) return costMap
+
+  const [prodRes, partRes] = await Promise.all([
+    supabase.from('products').select('id, cost_cents').in('id', ids),
+    supabase.from('parts_catalog').select('id, cost_cents').in('id', ids),
+  ])
+  for (const p of (prodRes.data ?? []) as { id: string; cost_cents: number }[]) costMap.set(p.id, p.cost_cents ?? 0)
+  for (const p of (partRes.data ?? []) as { id: string; cost_cents: number }[]) costMap.set(p.id, p.cost_cents ?? 0)
+  return costMap
+}
+
 // ── Cancel ERP sale + restore stock ──────────────────────────────────────────
 
 export async function cancelSale(saleId: string): Promise<void> {
@@ -167,14 +183,16 @@ export async function updateCancelledSale(saleId: string, input: EditSaleInput):
   if (error) throw new Error(error.message)
 
   await supabase.from('sale_items').delete().eq('sale_id', saleId)
+  const costMapEdit = await fetchCostMap(supabase, input.items.map(i => i.productId))
   await supabase.from('sale_items').insert(
     input.items.map(i => ({
-      sale_id:          saleId,
-      product_id:       i.productId,
-      name:             i.name,
-      quantity:         i.quantity,
-      unit_price_cents: i.unitPriceCents,
-      subtotal_cents:   i.unitPriceCents * i.quantity,
+      sale_id:             saleId,
+      product_id:          i.productId,
+      name:                i.name,
+      quantity:            i.quantity,
+      unit_price_cents:    i.unitPriceCents,
+      subtotal_cents:      i.unitPriceCents * i.quantity,
+      cost_snapshot_cents: i.productId ? (costMapEdit.get(i.productId) ?? null) : null,
     })),
   )
 
@@ -326,14 +344,16 @@ export async function createManualSale(input: ManualSaleInput): Promise<void> {
 
   if (saleErr) throw new Error(saleErr.message)
 
+  const costMapManual = await fetchCostMap(supabase, input.items.map(i => i.productId))
   await supabase.from('sale_items').insert(
     input.items.map(i => ({
-      sale_id:          sale.id,
-      product_id:       i.productId,
-      name:             i.name,
-      quantity:         i.quantity,
-      unit_price_cents: i.unitPriceCents,
-      subtotal_cents:   i.unitPriceCents * i.quantity,
+      sale_id:             sale.id,
+      product_id:          i.productId,
+      name:                i.name,
+      quantity:            i.quantity,
+      unit_price_cents:    i.unitPriceCents,
+      subtotal_cents:      i.unitPriceCents * i.quantity,
+      cost_snapshot_cents: i.productId ? (costMapManual.get(i.productId) ?? null) : null,
     })),
   )
 

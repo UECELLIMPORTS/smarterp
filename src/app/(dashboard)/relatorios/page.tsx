@@ -93,7 +93,7 @@ export default async function RelatoriosPage({
   const origin = params.origin ?? 'all'
   const { start, end } = getPeriodRange(period, params.from, params.to)
 
-  const cols = 'customer_id, total_cents, created_at, sale_items(quantity, unit_price_cents, product_id), customers(id, full_name, origin, whatsapp, phone)'
+  const cols = 'customer_id, total_cents, created_at, sale_items(quantity, unit_price_cents, product_id, cost_snapshot_cents), customers(id, full_name, origin, whatsapp, phone)'
   const osCols = 'customer_id, total_price_cents, service_price_cents, parts_sale_cents, parts_cost_cents, discount_cents, received_at, customers(id, full_name, origin, whatsapp, phone)'
 
   const [salesRes, osRes] = await Promise.all([
@@ -120,7 +120,7 @@ export default async function RelatoriosPage({
   type SalesRow = {
     customer_id: string | null
     total_cents: number
-    sale_items: { quantity: number; unit_price_cents: number; product_id: string | null }[] | null
+    sale_items: { quantity: number; unit_price_cents: number; product_id: string | null; cost_snapshot_cents: number | null }[] | null
     customers: { id: string; full_name: string; origin: string | null; whatsapp: string | null; phone: string | null } | null
   }
   type OsRow = {
@@ -163,7 +163,11 @@ export default async function RelatoriosPage({
     ...salesData.map(s => {
       const items = s.sale_items ?? []
       const total = s.total_cents ?? 0
-      const cost = items.reduce((sum, i) => sum + (i.quantity ?? 0) * (i.product_id ? (costMap.get(i.product_id) ?? 0) : 0), 0)
+      const cost = items.reduce((sum, i) => {
+        // Prioriza snapshot (custo no momento da venda); fallback pro atual
+        const c = i.cost_snapshot_cents ?? (i.product_id ? (costMap.get(i.product_id) ?? 0) : 0)
+        return sum + (i.quantity ?? 0) * c
+      }, 0)
       return {
         customerId: s.customer_id,
         name:      s.customers?.full_name ?? 'Sem cliente',

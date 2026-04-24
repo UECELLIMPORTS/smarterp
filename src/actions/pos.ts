@@ -344,16 +344,30 @@ export async function createSale(input: CreateSaleInput): Promise<{ id: string }
 
   if (saleError) throw new Error(saleError.message)
 
+  // Busca o custo atual de cada produto pra gravar snapshot no sale_item.
+  // Preserva o lucro dessa venda mesmo se o cost_cents do produto mudar depois.
+  const productIds = input.items.filter(i => i.productId).map(i => i.productId as string)
+  const costMap = new Map<string, number>()
+  if (productIds.length > 0) {
+    const [prodRes, partRes] = await Promise.all([
+      supabase.from('products').select('id, cost_cents').in('id', productIds),
+      supabase.from('parts_catalog').select('id, cost_cents').in('id', productIds),
+    ])
+    for (const p of (prodRes.data ?? []) as { id: string; cost_cents: number }[]) costMap.set(p.id, p.cost_cents ?? 0)
+    for (const p of (partRes.data ?? []) as { id: string; cost_cents: number }[]) costMap.set(p.id, p.cost_cents ?? 0)
+  }
+
   const { error: itemsError } = await supabase
     .from('sale_items')
     .insert(
       input.items.map(item => ({
-        sale_id:          sale.id,
-        product_id:       item.productId,
-        name:             item.name,
-        quantity:         item.quantity,
-        unit_price_cents: item.unitPriceCents,
-        subtotal_cents:   item.subtotalCents,
+        sale_id:             sale.id,
+        product_id:          item.productId,
+        name:                item.name,
+        quantity:            item.quantity,
+        unit_price_cents:    item.unitPriceCents,
+        subtotal_cents:      item.subtotalCents,
+        cost_snapshot_cents: item.productId ? (costMap.get(item.productId) ?? null) : null,
       })),
     )
 
