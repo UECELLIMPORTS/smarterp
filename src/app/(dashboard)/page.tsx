@@ -6,6 +6,7 @@ import {
   TrendingUp, Wrench, ArrowUpRight, ArrowDownRight,
 } from 'lucide-react'
 import { DashboardFilters } from './dashboard-filters'
+import { OriginDonut } from './origin-donut'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -140,6 +141,8 @@ export default async function DashboardPage(props: { searchParams: Promise<Searc
     recentOrdersRes,
     osAbertasRes,
     clientesRes,
+    salesOriginRes,
+    osOriginRes,
   ] = await Promise.all([
     // 1. Sales no período (ERP)
     showERP
@@ -216,6 +219,30 @@ export default async function DashboardPage(props: { searchParams: Promise<Searc
       .select('id', { count: 'exact', head: true })
       .eq('tenant_id', tenantId)
       .gte('updated_at', new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString()),
+
+    // 9. Sales do período com origem do cliente (pra gráfico de rosca)
+    showERP
+      ? supabase
+          .from('sales')
+          .select('customer_id, total_cents, customers(origin)')
+          .eq('tenant_id', tenantId)
+          .gte('created_at', start.toISOString())
+          .lte('created_at', end.toISOString())
+          .neq('status', 'cancelled')
+          .limit(2000)
+      : EMPTY,
+
+    // 10. OS entregues do período com origem do cliente
+    showCS
+      ? supabase
+          .from('service_orders')
+          .select('customer_id, total_price_cents, service_price_cents, parts_sale_cents, discount_cents, customers(origin)')
+          .eq('tenant_id', tenantId)
+          .gte('received_at', start.toISOString())
+          .lte('received_at', end.toISOString())
+          .in('status', ['delivered', 'Entregue'])
+          .limit(2000)
+      : EMPTY,
   ])
 
   // ── KPI calculations ──────────────────────────────────────────────────────
@@ -238,6 +265,55 @@ export default async function DashboardPage(props: { searchParams: Promise<Searc
 
   const osAbertas      = osAbertasRes.count ?? 0
   const clientesAtivos = clientesRes.count  ?? 0
+
+  // ── Breakdown por origem do cliente (pra gráfico de rosca) ────────────────
+  type OriginTx = { customer_id: string | null; total: number; origin: string | null }
+  const originTxs: OriginTx[] = [
+    ...((salesOriginRes.data ?? []) as unknown as {
+      customer_id: string | null; total_cents: number; customers: { origin: string | null } | null
+    }[]).map(s => ({
+      customer_id: s.customer_id,
+      total: s.total_cents ?? 0,
+      origin: s.customers?.origin ?? null,
+    })),
+    ...((osOriginRes.data ?? []) as unknown as {
+      customer_id: string | null
+      total_price_cents: number | null; service_price_cents: number | null
+      parts_sale_cents: number | null; discount_cents: number | null
+      customers: { origin: string | null } | null
+    }[]).map(o => {
+      const total = o.total_price_cents
+        ?? Math.max(0, (o.service_price_cents ?? 0) + (o.parts_sale_cents ?? 0) - (o.discount_cents ?? 0))
+      return {
+        customer_id: o.customer_id,
+        total,
+        origin: o.customers?.origin ?? null,
+      }
+    }),
+  ]
+  const originMap = new Map<string, { total: number; tx: number; customers: Set<string> }>()
+  const NO_ORIG = '__no__'
+  for (const t of originTxs) {
+    const key = t.origin ?? NO_ORIG
+    const ex = originMap.get(key)
+    if (ex) {
+      ex.total += t.total
+      ex.tx++
+      if (t.customer_id) ex.customers.add(t.customer_id)
+    } else {
+      originMap.set(key, { total: t.total, tx: 1, customers: t.customer_id ? new Set([t.customer_id]) : new Set() })
+    }
+  }
+  const originTotal = [...originMap.values()].reduce((s, v) => s + v.total, 0)
+  const originBreakdown = [...originMap.entries()]
+    .map(([key, v]) => ({
+      value: key === NO_ORIG ? null : key,
+      totalCents: v.total,
+      transactions: v.tx,
+      uniqueCustomers: v.customers.size,
+      sharePercent: originTotal > 0 ? Math.round((v.total / originTotal) * 100) : 0,
+    }))
+    .sort((a, b) => b.totalCents - a.totalCents)
 
   // ── Activity merge ────────────────────────────────────────────────────────
 
@@ -346,6 +422,9 @@ export default async function DashboardPage(props: { searchParams: Promise<Searc
           color="#FF5C5C"
         />
       </div>
+
+      {/* Origem dos Clientes (gráfico de rosca) */}
+      <OriginDonut breakdown={originBreakdown} />
 
       {/* Atividade recente */}
       <div className="rounded-xl border" style={{ background: '#111827', borderColor: '#1E2D45' }}>

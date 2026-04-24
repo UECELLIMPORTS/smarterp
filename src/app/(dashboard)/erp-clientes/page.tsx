@@ -44,6 +44,8 @@ export type TopClientBreakdown = {
 
 export type TopClient = {
   name: string
+  whatsapp: string | null
+  phone: string | null
   type: 'novo' | 'recorrente'
   totalCents: number
   profitCents: number
@@ -229,6 +231,7 @@ export default async function ErpClientesPage({
 
   type Tx = {
     customerId: string | null; name: string; createdAt: string | null; origin: string | null
+    whatsapp: string | null; phone: string | null
     totalCents: number; profitCents: number
     products: number; date: Date
     source: 'erp' | 'checksmart'
@@ -247,6 +250,8 @@ export default async function ErpClientesPage({
         name: s.customers?.full_name ?? 'Sem cliente',
         createdAt: s.customers?.created_at ?? null,
         origin: s.customers?.origin ?? null,
+        whatsapp: s.customers?.whatsapp ?? null,
+        phone: s.customers?.phone ?? null,
         totalCents,
         profitCents: totalCents - costCents,
         products: items.reduce((sum, i) => sum + (i.quantity ?? 1), 0) || 1,
@@ -262,6 +267,8 @@ export default async function ErpClientesPage({
         name: o.customers?.full_name ?? 'Sem cliente',
         createdAt: o.customers?.created_at ?? null,
         origin: o.customers?.origin ?? null,
+        whatsapp: o.customers?.whatsapp ?? null,
+        phone: o.customers?.phone ?? null,
         totalCents: total,
         profitCents: total - partsCost,
         products: 1,
@@ -275,7 +282,7 @@ export default async function ErpClientesPage({
   let novTot = 0, novProf = 0, novTx = 0, novProd = 0
 
   type CustomerAgg = {
-    name: string; type: 'novo'|'recorrente'
+    name: string; whatsapp: string | null; phone: string | null; type: 'novo'|'recorrente'
     totalCents: number; profitCents: number; tx: number; lastDate: Date
     smarterp:   { totalCents: number; profitCents: number; tx: number }
     checksmart: { totalCents: number; profitCents: number; tx: number }
@@ -294,6 +301,8 @@ export default async function ErpClientesPage({
         ex.profitCents += t.profitCents
         ex.tx++
         if (t.date > ex.lastDate) ex.lastDate = t.date
+        if (!ex.whatsapp && t.whatsapp) ex.whatsapp = t.whatsapp
+        if (!ex.phone    && t.phone)    ex.phone    = t.phone
         const b = t.source === 'erp' ? ex.smarterp : ex.checksmart
         b.totalCents  += t.totalCents
         b.profitCents += t.profitCents
@@ -301,7 +310,7 @@ export default async function ErpClientesPage({
       } else {
         const emptyB = { totalCents: 0, profitCents: 0, tx: 0 }
         const agg: CustomerAgg = {
-          name: t.name, type,
+          name: t.name, whatsapp: t.whatsapp, phone: t.phone, type,
           totalCents: t.totalCents, profitCents: t.profitCents, tx: 1, lastDate: t.date,
           smarterp:   { ...emptyB },
           checksmart: { ...emptyB },
@@ -330,6 +339,8 @@ export default async function ErpClientesPage({
     .slice(0, 30)
     .map(c => ({
       name: c.name,
+      whatsapp: c.whatsapp,
+      phone: c.phone,
       type: c.type,
       totalCents: c.totalCents,
       profitCents: c.profitCents,

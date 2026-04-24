@@ -842,7 +842,7 @@ function ClientsTable({ clients }: { clients: TopClient[] }) {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b text-left" style={{ borderColor: '#1E2D45' }}>
-              {['Cliente', 'Pedidos', 'Faturamento', 'Lucro', 'Ticket Médio', 'Tipo', 'Último contato'].map(h => (
+              {['Cliente', 'Contato', 'Pedidos', 'Faturamento', 'Lucro', 'Ticket Médio', 'Tipo', 'Último contato'].map(h => (
                 <th key={h} className="pb-3 pr-4 text-[10px] font-bold uppercase tracking-wider"
                   style={{ color: '#5A7A9A' }}>
                   {h}
@@ -854,6 +854,12 @@ function ClientsTable({ clients }: { clients: TopClient[] }) {
             {filtered.map(({ c, m }, i) => {
               const b = badge(c)
               const ticket = m.tx > 0 ? Math.round(m.total / m.tx) : 0
+              const waNum = stripDigits(c.whatsapp)
+              const phoneNum = stripDigits(c.whatsapp || c.phone)
+              const phoneDisplay = fmtPhone(c.whatsapp || c.phone)
+              const wa = waNum
+                ? `https://wa.me/${waNum.startsWith('55') ? '' : '55'}${waNum}?text=${encodeURIComponent(`Olá ${c.name.split(' ')[0]}! Tudo bem?`)}`
+                : ''
               return (
                 <tr
                   key={i}
@@ -868,6 +874,29 @@ function ClientsTable({ clients }: { clients: TopClient[] }) {
                       </div>
                       <span className="font-medium text-sm" style={{ color: '#E8F0FE' }}>{c.name}</span>
                     </div>
+                  </td>
+                  <td className="py-3 pr-4">
+                    {phoneDisplay ? (
+                      <div className="flex items-center gap-1.5">
+                        {wa && (
+                          <a href={wa} target="_blank" rel="noopener noreferrer"
+                            className="flex h-7 w-7 items-center justify-center rounded-lg transition-all hover:opacity-80"
+                            style={{ background: 'rgba(37,211,102,.15)', color: '#25D366' }}
+                            title={`WhatsApp ${phoneDisplay}`}>
+                            <MessageCircle className="h-3.5 w-3.5" />
+                          </a>
+                        )}
+                        <a href={`tel:${phoneNum}`}
+                          className="flex h-7 w-7 items-center justify-center rounded-lg transition-all hover:opacity-80"
+                          style={{ background: 'rgba(0,229,255,.12)', color: '#00E5FF' }}
+                          title={`Ligar ${phoneDisplay}`}>
+                          <Phone className="h-3.5 w-3.5" />
+                        </a>
+                        <span className="text-xs font-mono" style={{ color: '#8AA8C8' }}>{phoneDisplay}</span>
+                      </div>
+                    ) : (
+                      <span className="text-xs" style={{ color: '#5A7A9A' }}>—</span>
+                    )}
                   </td>
                   <td className="py-3 pr-4 font-mono font-semibold" style={{ color: '#E8F0FE' }}>
                     {m.tx}
@@ -895,7 +924,7 @@ function ClientsTable({ clients }: { clients: TopClient[] }) {
             })}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={7} className="py-10 text-center text-sm" style={{ color: '#5A7A9A' }}>
+                <td colSpan={8} className="py-10 text-center text-sm" style={{ color: '#5A7A9A' }}>
                   Nenhum cliente encontrado no sistema selecionado
                 </td>
               </tr>
@@ -905,6 +934,17 @@ function ClientsTable({ clients }: { clients: TopClient[] }) {
       </div>
     </div>
   )
+}
+
+function stripDigits(s: string | null): string {
+  return (s ?? '').replace(/\D/g, '')
+}
+function fmtPhone(s: string | null): string {
+  const d = stripDigits(s)
+  if (!d) return ''
+  if (d.length === 11) return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`
+  if (d.length === 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`
+  return s ?? ''
 }
 
 // ── Origem dos clientes ──────────────────────────────────────────────────

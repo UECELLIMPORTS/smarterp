@@ -1,5 +1,285 @@
-import { ComingSoon } from '@/components/layout/coming-soon'
+import { requireAuth } from '@/lib/supabase/server'
+import { getTenantId } from '@/lib/tenant'
+import { redirect }    from 'next/navigation'
+import { originLabel } from '@/lib/customer-origin'
+import { RelatoriosClient } from './relatorios-client'
 
-export default function Page() {
-  return <ComingSoon title="Relatórios" />
+export const metadata = { title: 'Relatórios — Smart ERP' }
+
+type Period = '7d' | '30d' | '90d' | '6m' | 'custom'
+
+function getPeriodRange(period: Period, from?: string, to?: string): { start: Date; end: Date } {
+  const end = new Date()
+  end.setHours(23, 59, 59, 999)
+  const start = new Date()
+  start.setHours(0, 0, 0, 0)
+  if (period === 'custom' && from && to) {
+    const f = new Date(from + 'T00:00:00')
+    const t = new Date(to + 'T23:59:59.999')
+    if (!isNaN(f.getTime()) && !isNaN(t.getTime())) return { start: f, end: t }
+  }
+  if (period === '7d')        start.setDate(start.getDate() - 6)
+  else if (period === '30d')  start.setDate(start.getDate() - 29)
+  else if (period === '90d')  start.setDate(start.getDate() - 89)
+  else if (period === '6m') { start.setMonth(start.getMonth() - 6) }
+  else                        start.setDate(start.getDate() - 29)
+  return { start, end }
+}
+
+function osTotal(o: { total_price_cents: number | null; service_price_cents: number | null; parts_sale_cents: number | null; discount_cents: number | null }): number {
+  if (o.total_price_cents) return o.total_price_cents
+  return Math.max(0, (o.service_price_cents ?? 0) + (o.parts_sale_cents ?? 0) - (o.discount_cents ?? 0))
+}
+
+export type OriginReportRow = {
+  value: string | null
+  label: string
+  uniqueCustomers: number
+  transactions:    number
+  totalCents:      number
+  profitCents:     number
+  ticketMedioCents: number
+  marginPercent:   number
+}
+
+export type TopClientRow = {
+  id: string
+  name: string
+  origin: string | null
+  whatsapp: string | null
+  phone: string | null
+  totalCents: number
+  profitCents: number
+  transactions: number
+}
+
+export type RelatoriosData = {
+  period: Period
+  from: string | null
+  to:   string | null
+  source: 'total' | 'smarterp' | 'checksmart'
+  origin: string
+  resumo: {
+    totalCents:      number
+    profitCents:     number
+    marginPercent:   number
+    transactions:    number
+    uniqueCustomers: number
+  }
+  origins:    OriginReportRow[]
+  topClients: TopClientRow[]
+}
+
+export default async function RelatoriosPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ period?: string; from?: string; to?: string; source?: string; origin?: string }>
+}) {
+  let auth: Awaited<ReturnType<typeof requireAuth>>
+  try { auth = await requireAuth() } catch { redirect('/login') }
+
+  const { supabase, user } = auth
+  const tenantId = getTenantId(user)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any
+
+  const params = await searchParams
+  const period = (['7d', '30d', '90d', '6m', 'custom'].includes(params.period ?? '')
+    ? params.period
+    : '30d') as Period
+  const source = (['total', 'smarterp', 'checksmart'].includes(params.source ?? '')
+    ? params.source
+    : 'total') as 'total' | 'smarterp' | 'checksmart'
+  const origin = params.origin ?? 'all'
+  const { start, end } = getPeriodRange(period, params.from, params.to)
+
+  const cols = 'customer_id, total_cents, created_at, sale_items(quantity, unit_price_cents, product_id), customers(id, full_name, origin, whatsapp, phone)'
+  const osCols = 'customer_id, total_price_cents, service_price_cents, parts_sale_cents, parts_cost_cents, discount_cents, received_at, customers(id, full_name, origin, whatsapp, phone)'
+
+  const [salesRes, osRes] = await Promise.all([
+    source === 'checksmart'
+      ? Promise.resolve({ data: [] as unknown[] })
+      : sb.from('sales')
+          .select(cols)
+          .eq('tenant_id', tenantId)
+          .gte('created_at', start.toISOString())
+          .lte('created_at', end.toISOString())
+          .neq('status', 'cancelled')
+          .limit(2000),
+    source === 'smarterp'
+      ? Promise.resolve({ data: [] as unknown[] })
+      : sb.from('service_orders')
+          .select(osCols)
+          .eq('tenant_id', tenantId)
+          .gte('received_at', start.toISOString())
+          .lte('received_at', end.toISOString())
+          .in('status', ['delivered', 'Entregue'])
+          .limit(2000),
+  ])
+
+  type SalesRow = {
+    customer_id: string | null
+    total_cents: number
+    sale_items: { quantity: number; unit_price_cents: number; product_id: string | null }[] | null
+    customers: { id: string; full_name: string; origin: string | null; whatsapp: string | null; phone: string | null } | null
+  }
+  type OsRow = {
+    customer_id: string | null
+    total_price_cents: number | null
+    service_price_cents: number | null
+    parts_sale_cents: number | null
+    parts_cost_cents: number | null
+    discount_cents: number | null
+    customers: { id: string; full_name: string; origin: string | null; whatsapp: string | null; phone: string | null } | null
+  }
+  const salesData = (salesRes.data ?? []) as SalesRow[]
+  const osData    = (osRes.data   ?? []) as OsRow[]
+
+  // Custos em paralelo
+  const productIds = new Set<string>()
+  for (const s of salesData) for (const i of s.sale_items ?? []) if (i.product_id) productIds.add(i.product_id)
+  const costMap = new Map<string, number>()
+  if (productIds.size > 0) {
+    const ids = [...productIds]
+    const [prodRes, partRes] = await Promise.all([
+      sb.from('products').select('id, cost_cents').eq('tenant_id', tenantId).in('id', ids),
+      sb.from('parts_catalog').select('id, cost_cents').eq('tenant_id', tenantId).in('id', ids),
+    ])
+    for (const p of (prodRes.data ?? []) as { id: string; cost_cents: number }[]) costMap.set(p.id, p.cost_cents ?? 0)
+    for (const p of (partRes.data ?? []) as { id: string; cost_cents: number }[]) costMap.set(p.id, p.cost_cents ?? 0)
+  }
+
+  // Unifica transações
+  type Tx = {
+    customerId: string | null
+    name: string
+    origin: string | null
+    whatsapp: string | null
+    phone: string | null
+    totalCents: number
+    profitCents: number
+  }
+  const txs: Tx[] = [
+    ...salesData.map(s => {
+      const items = s.sale_items ?? []
+      const total = s.total_cents ?? 0
+      const cost = items.reduce((sum, i) => sum + (i.quantity ?? 0) * (i.product_id ? (costMap.get(i.product_id) ?? 0) : 0), 0)
+      return {
+        customerId: s.customer_id,
+        name:      s.customers?.full_name ?? 'Sem cliente',
+        origin:    s.customers?.origin ?? null,
+        whatsapp:  s.customers?.whatsapp ?? null,
+        phone:     s.customers?.phone ?? null,
+        totalCents: total,
+        profitCents: total - cost,
+      }
+    }),
+    ...osData.map(o => {
+      const total = osTotal(o)
+      const partsCost = o.parts_cost_cents ?? 0
+      return {
+        customerId: o.customer_id,
+        name:      o.customers?.full_name ?? 'Sem cliente',
+        origin:    o.customers?.origin ?? null,
+        whatsapp:  o.customers?.whatsapp ?? null,
+        phone:     o.customers?.phone ?? null,
+        totalCents: total,
+        profitCents: total - partsCost,
+      }
+    }),
+  ]
+
+  // Aplica filtro de origem
+  const filtered = txs.filter(t => {
+    if (origin === 'all') return true
+    if (origin === '__no_origin__') return !t.origin
+    return t.origin === origin
+  })
+
+  // Resumo
+  const resumoTotalCents  = filtered.reduce((s, t) => s + t.totalCents, 0)
+  const resumoProfitCents = filtered.reduce((s, t) => s + t.profitCents, 0)
+  const resumoCustomers   = new Set(filtered.filter(t => t.customerId).map(t => t.customerId as string))
+
+  // Relatório por origem (sempre mostra todas, ignorando filtro de origem)
+  const originMap = new Map<string, { totalCents: number; profitCents: number; tx: number; customers: Set<string> }>()
+  const NO_ORIGIN = '__no_origin__'
+  for (const t of txs) {
+    const key = t.origin ?? NO_ORIGIN
+    const ex = originMap.get(key)
+    if (ex) {
+      ex.totalCents  += t.totalCents
+      ex.profitCents += t.profitCents
+      ex.tx++
+      if (t.customerId) ex.customers.add(t.customerId)
+    } else {
+      originMap.set(key, {
+        totalCents: t.totalCents,
+        profitCents: t.profitCents,
+        tx: 1,
+        customers: t.customerId ? new Set([t.customerId]) : new Set(),
+      })
+    }
+  }
+  const origins: OriginReportRow[] = [...originMap.entries()]
+    .map(([key, v]) => ({
+      value: key === NO_ORIGIN ? null : key,
+      label: key === NO_ORIGIN ? 'Não informado' : originLabel(key),
+      uniqueCustomers: v.customers.size,
+      transactions:    v.tx,
+      totalCents:      v.totalCents,
+      profitCents:     v.profitCents,
+      ticketMedioCents: v.tx > 0 ? Math.round(v.totalCents / v.tx) : 0,
+      marginPercent:   v.totalCents > 0 ? Math.round((v.profitCents / v.totalCents) * 100) : 0,
+    }))
+    .sort((a, b) => b.totalCents - a.totalCents)
+
+  // Top 10 clientes (aplica filtro de origem)
+  const custMap = new Map<string, { name: string; origin: string | null; whatsapp: string | null; phone: string | null; total: number; profit: number; tx: number }>()
+  for (const t of filtered) {
+    if (!t.customerId) continue
+    const ex = custMap.get(t.customerId)
+    if (ex) {
+      ex.total  += t.totalCents
+      ex.profit += t.profitCents
+      ex.tx++
+    } else {
+      custMap.set(t.customerId, {
+        name: t.name, origin: t.origin, whatsapp: t.whatsapp, phone: t.phone,
+        total: t.totalCents, profit: t.profitCents, tx: 1,
+      })
+    }
+  }
+  const topClients: TopClientRow[] = [...custMap.entries()]
+    .map(([id, c]) => ({
+      id,
+      name: c.name,
+      origin: c.origin,
+      whatsapp: c.whatsapp,
+      phone: c.phone,
+      totalCents: c.total,
+      profitCents: c.profit,
+      transactions: c.tx,
+    }))
+    .sort((a, b) => b.totalCents - a.totalCents)
+    .slice(0, 10)
+
+  const data: RelatoriosData = {
+    period,
+    from:   params.from ?? null,
+    to:     params.to   ?? null,
+    source,
+    origin,
+    resumo: {
+      totalCents:      resumoTotalCents,
+      profitCents:     resumoProfitCents,
+      marginPercent:   resumoTotalCents > 0 ? Math.round((resumoProfitCents / resumoTotalCents) * 100) : 0,
+      transactions:    filtered.length,
+      uniqueCustomers: resumoCustomers.size,
+    },
+    origins,
+    topClients,
+  }
+
+  return <RelatoriosClient data={data} />
 }
