@@ -813,15 +813,23 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                       <MoreVertical className="h-4 w-4" />
                     </button>
                     {openMenu === row.id && (
-                      <div className="absolute right-0 top-7 z-40 w-44 rounded-xl border shadow-xl overflow-hidden"
-                        style={{ background: '#0D1521', borderColor: '#1E2D45' }}>
+                      <div
+                        className="absolute right-0 top-8 z-40 w-52 rounded-xl border overflow-hidden py-1"
+                        style={{
+                          background: '#0F1A2B',
+                          borderColor: '#2A3D5C',
+                          boxShadow: '0 12px 36px rgba(0,0,0,0.65), 0 0 0 1px rgba(0,229,255,0.08)',
+                          backdropFilter: 'none',
+                        }}>
                         {/* Alterar data — só ERP ativo */}
                         {row.source === 'erp' && !row.cancelled && (
                           <button type="button"
                             onMouseDown={e => { e.preventDefault(); e.stopPropagation(); setOpenMenu(null); openEditDate(row) }}
-                            className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-text hover:bg-white/5 transition-colors border-b"
-                            style={{ borderColor: '#1E2D45' }}>
-                            <CalendarDays className="h-3.5 w-3.5 shrink-0" style={{ color: '#00E5FF' }} />
+                            className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors"
+                            style={{ color: '#E8F0FE' }}
+                            onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,229,255,0.08)'}
+                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                            <CalendarDays className="h-4 w-4 shrink-0" style={{ color: '#00E5FF' }} />
                             Alterar data
                           </button>
                         )}
@@ -829,9 +837,11 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                         {row.source === 'checksmart' && !row.cancelled && (
                           <button type="button"
                             onMouseDown={e => { e.preventDefault(); e.stopPropagation(); setOpenMenu(null); setEditPayVal(row.payment ?? ''); setEditPayRow(row) }}
-                            className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-text hover:bg-white/5 transition-colors border-b"
-                            style={{ borderColor: '#1E2D45' }}>
-                            <CreditCard className="h-3.5 w-3.5 shrink-0" style={{ color: '#FFB800' }} />
+                            className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors"
+                            style={{ color: '#E8F0FE' }}
+                            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,184,0,0.1)'}
+                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                            <CreditCard className="h-4 w-4 shrink-0" style={{ color: '#FFB800' }} />
                             Editar pagamento
                           </button>
                         )}
@@ -839,17 +849,21 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                         {row.cancelled ? (
                           <button type="button"
                             onMouseDown={e => { e.preventDefault(); e.stopPropagation(); setOpenMenu(null); setConfirmReactivate(row) }}
-                            className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-text hover:bg-white/5 transition-colors border-b"
-                            style={{ borderColor: '#1E2D45' }}>
-                            <RefreshCw className="h-3.5 w-3.5 shrink-0" style={{ color: '#00FF94' }} />
+                            className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors"
+                            style={{ color: '#E8F0FE' }}
+                            onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,255,148,0.1)'}
+                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                            <RefreshCw className="h-4 w-4 shrink-0" style={{ color: '#00FF94' }} />
                             Reativar
                           </button>
                         ) : (
                           <button type="button"
                             onMouseDown={e => { e.preventDefault(); e.stopPropagation(); setOpenMenu(null); setConfirmCancel(row) }}
-                            className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-text hover:bg-white/5 transition-colors border-b"
-                            style={{ borderColor: '#1E2D45' }}>
-                            <XCircle className="h-3.5 w-3.5 shrink-0" style={{ color: '#FF5C5C' }} />
+                            className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors"
+                            style={{ color: '#E8F0FE' }}
+                            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,92,92,0.1)'}
+                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                            <XCircle className="h-4 w-4 shrink-0" style={{ color: '#FF5C5C' }} />
                             Cancelar
                           </button>
                         )}
@@ -857,21 +871,28 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                         {row.source === 'erp' && row.cancelled && (
                           <button type="button"
                             onMouseDown={e => { e.preventDefault(); e.stopPropagation(); setOpenMenu(null); openEditSale(row) }}
-                            className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-text hover:bg-white/5 transition-colors border-b"
-                            style={{ borderColor: '#1E2D45' }}>
-                            <Pencil className="h-3.5 w-3.5 shrink-0" style={{ color: '#00E5FF' }} />
+                            className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors"
+                            style={{ color: '#E8F0FE' }}
+                            onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,229,255,0.1)'}
+                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                            <Pencil className="h-4 w-4 shrink-0" style={{ color: '#00E5FF' }} />
                             Editar venda
                           </button>
                         )}
                         {/* Excluir — só ERP cancelado */}
                         {row.source === 'erp' && row.cancelled && (
-                          <button type="button"
-                            onMouseDown={e => { e.preventDefault(); e.stopPropagation(); setOpenMenu(null); setConfirmDelete(row) }}
-                            className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm hover:bg-red-500/10 transition-colors"
-                            style={{ color: '#FF5C5C' }}>
-                            <Trash2 className="h-3.5 w-3.5 shrink-0" />
-                            Excluir venda
-                          </button>
+                          <>
+                            <div className="mx-3 my-1 h-px" style={{ background: '#2A3D5C' }} />
+                            <button type="button"
+                              onMouseDown={e => { e.preventDefault(); e.stopPropagation(); setOpenMenu(null); setConfirmDelete(row) }}
+                              className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-semibold transition-colors"
+                              style={{ color: '#FF5C5C' }}
+                              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,92,92,0.12)'}
+                              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                              <Trash2 className="h-4 w-4 shrink-0" />
+                              Excluir venda
+                            </button>
+                          </>
                         )}
                       </div>
                     )}
