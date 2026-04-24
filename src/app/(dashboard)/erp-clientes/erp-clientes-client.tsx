@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   TrendingUp, Users, UserPlus, Lightbulb,
@@ -311,50 +312,121 @@ function RfmSection({ rfmSegments }: { rfmSegments: DashboardData['rfmSegments']
 
 // ── Weekday Heatmap ───────────────────────────────────────────────────────
 
+type SourceFilter = 'total' | 'smarterp' | 'checksmart'
+
 function WeekdayHeatmap({ days }: { days: WeekdayPoint[] }) {
-  const maxCents = Math.max(...days.map(d => d.totalCents), 1)
-  const bestIdx = days.reduce((best, d, i) => d.totalCents > days[best].totalCents ? i : best, 0)
+  const [source, setSource] = useState<SourceFilter>('total')
+  const [metric, setMetric] = useState<'totalCents' | 'profitCents'>('totalCents')
+
+  const bucketOf = (d: WeekdayPoint) => d[source]
+  const valueOf  = (d: WeekdayPoint) => bucketOf(d)[metric]
+
+  const maxVal = Math.max(...days.map(valueOf), 1)
+  const bestIdx = days.reduce((best, d, i) => valueOf(d) > valueOf(days[best]) ? i : best, 0)
+  const hasAny = days.some(d => valueOf(d) > 0)
+
+  const SOURCE_OPTS: { value: SourceFilter; label: string; color: string }[] = [
+    { value: 'total',      label: 'Ambos',      color: '#00E5FF' },
+    { value: 'smarterp',   label: 'SmartERP',   color: '#00FF94' },
+    { value: 'checksmart', label: 'CheckSmart', color: '#9B6DFF' },
+  ]
+  const activeColor = SOURCE_OPTS.find(o => o.value === source)?.color ?? '#00E5FF'
 
   return (
-    <div className="grid grid-cols-7 gap-2">
-      {days.map((day, i) => {
-        const intensity = day.totalCents / maxCents
-        const isBest = i === bestIdx && day.totalCents > 0
-        return (
-          <div
-            key={day.label}
-            className="flex flex-col items-center gap-2 rounded-xl p-3 transition-all"
-            style={{
-              background: `rgba(0,229,255,${0.04 + intensity * 0.22})`,
-              border: isBest ? '1px solid rgba(0,229,255,.5)' : '1px solid #1E2D45',
-            }}
+    <div className="space-y-4">
+      {/* Filtros */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex gap-1 rounded-lg p-1" style={{ background: '#0D1320', border: '1px solid #1E2D45' }}>
+          {SOURCE_OPTS.map(opt => (
+            <button
+              key={opt.value}
+              onClick={() => setSource(opt.value)}
+              className="rounded px-3 py-1 text-[11px] font-bold transition-all"
+              style={source === opt.value
+                ? { background: opt.color, color: '#000' }
+                : { color: '#5A7A9A' }
+              }
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-1 rounded-lg p-1" style={{ background: '#0D1320', border: '1px solid #1E2D45' }}>
+          <button
+            onClick={() => setMetric('totalCents')}
+            className="rounded px-3 py-1 text-[11px] font-bold transition-all"
+            style={metric === 'totalCents'
+              ? { background: '#1E2D45', color: '#E8F0FE' }
+              : { color: '#5A7A9A' }
+            }
           >
-            <span className="text-[11px] font-bold" style={{ color: isBest ? '#00E5FF' : '#8AA8C8' }}>
-              {day.label}
-            </span>
-            {isBest && (
-              <span className="rounded-full px-1.5 py-0.5 text-[8px] font-bold"
-                style={{ background: 'rgba(0,229,255,.2)', color: '#00E5FF' }}>
-                TOP
-              </span>
-            )}
-            <span className="text-xs font-bold text-center leading-tight"
-              style={{ color: intensity > 0.5 ? '#00E5FF' : '#E8F0FE', fontFamily: 'ui-monospace,monospace' }}>
-              {day.totalCents > 0 ? BRL(day.totalCents) : '—'}
-            </span>
-            <span className="text-[10px]" style={{ color: '#5A7A9A' }}>
-              {day.transactions > 0 ? `${day.transactions} tx` : ''}
-            </span>
-            {/* Intensity bar */}
-            <div className="w-full h-1 rounded-full mt-1" style={{ background: '#1E2D45' }}>
+            Faturamento
+          </button>
+          <button
+            onClick={() => setMetric('profitCents')}
+            className="rounded px-3 py-1 text-[11px] font-bold transition-all"
+            style={metric === 'profitCents'
+              ? { background: '#1E2D45', color: '#00FF94' }
+              : { color: '#5A7A9A' }
+            }
+          >
+            Lucro
+          </button>
+        </div>
+      </div>
+
+      {!hasAny ? (
+        <p className="py-10 text-center text-sm" style={{ color: '#5A7A9A' }}>
+          Sem dados para os filtros selecionados no período
+        </p>
+      ) : (
+        <div className="grid grid-cols-7 gap-2">
+          {days.map((day, i) => {
+            const v = valueOf(day)
+            const tx = bucketOf(day).transactions
+            const intensity = v / maxVal
+            const isBest = i === bestIdx && v > 0
+            const rgba = activeColor === '#00FF94'
+              ? `rgba(0,255,148,${0.04 + intensity * 0.22})`
+              : activeColor === '#9B6DFF'
+              ? `rgba(155,109,255,${0.04 + intensity * 0.22})`
+              : `rgba(0,229,255,${0.04 + intensity * 0.22})`
+            return (
               <div
-                className="h-1 rounded-full"
-                style={{ width: `${Math.round(intensity * 100)}%`, background: '#00E5FF' }}
-              />
-            </div>
-          </div>
-        )
-      })}
+                key={day.label}
+                className="flex flex-col items-center gap-2 rounded-xl p-3 transition-all"
+                style={{
+                  background: rgba,
+                  border: isBest ? `1px solid ${activeColor}80` : '1px solid #1E2D45',
+                }}
+              >
+                <span className="text-[11px] font-bold" style={{ color: isBest ? activeColor : '#8AA8C8' }}>
+                  {day.label}
+                </span>
+                {isBest && (
+                  <span className="rounded-full px-1.5 py-0.5 text-[8px] font-bold"
+                    style={{ background: `${activeColor}33`, color: activeColor }}>
+                    TOP
+                  </span>
+                )}
+                <span className="text-xs font-bold text-center leading-tight"
+                  style={{ color: intensity > 0.5 ? activeColor : '#E8F0FE', fontFamily: 'ui-monospace,monospace' }}>
+                  {v > 0 ? BRL(v) : '—'}
+                </span>
+                <span className="text-[10px]" style={{ color: '#5A7A9A' }}>
+                  {tx > 0 ? `${tx} tx` : ''}
+                </span>
+                <div className="w-full h-1 rounded-full mt-1" style={{ background: '#1E2D45' }}>
+                  <div
+                    className="h-1 rounded-full"
+                    style={{ width: `${Math.round(intensity * 100)}%`, background: activeColor }}
+                  />
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
@@ -662,32 +734,80 @@ export function ErpClientesClient({ data }: { data: DashboardData }) {
   } = data
 
   const periods: Period[] = ['7d', '30d', '90d']
-  type Period = '7d' | '30d' | '90d'
+  type Period = '7d' | '30d' | '90d' | 'custom'
+
+  const [customOpen, setCustomOpen] = useState(period === 'custom')
+  const [fromDate, setFromDate]     = useState('')
+  const [toDate, setToDate]         = useState('')
+
+  function applyCustom() {
+    if (!fromDate || !toDate) return
+    router.push(`/erp-clientes?period=custom&from=${fromDate}&to=${toDate}`)
+  }
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold" style={{ color: '#E8F0FE' }}>ERP — Clientes</h1>
           <p className="mt-1 text-sm" style={{ color: '#5A7A9A' }}>
             Análise de clientes novos vs recorrentes
           </p>
         </div>
-        <div className="flex gap-1 rounded-xl p-1" style={{ background: '#111827', border: '1px solid #1E2D45' }}>
-          {periods.map(p => (
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex gap-1 rounded-xl p-1" style={{ background: '#111827', border: '1px solid #1E2D45' }}>
+            {periods.map(p => (
+              <button
+                key={p}
+                onClick={() => { setCustomOpen(false); router.push(`/erp-clientes?period=${p}`) }}
+                className="rounded-lg px-4 py-1.5 text-xs font-bold transition-all"
+                style={period === p
+                  ? { background: '#00E5FF', color: '#000' }
+                  : { color: '#5A7A9A' }
+                }
+              >
+                {p}
+              </button>
+            ))}
             <button
-              key={p}
-              onClick={() => router.push(`/erp-clientes?period=${p}`)}
+              onClick={() => setCustomOpen(v => !v)}
               className="rounded-lg px-4 py-1.5 text-xs font-bold transition-all"
-              style={period === p
+              style={period === 'custom' || customOpen
                 ? { background: '#00E5FF', color: '#000' }
                 : { color: '#5A7A9A' }
               }
             >
-              {p}
+              Datas
             </button>
-          ))}
+          </div>
+          {customOpen && (
+            <div className="flex items-center gap-2 rounded-xl p-2" style={{ background: '#111827', border: '1px solid #1E2D45' }}>
+              <input
+                type="date"
+                value={fromDate}
+                onChange={e => setFromDate(e.target.value)}
+                className="rounded-lg border px-2 py-1 text-xs text-text outline-none"
+                style={{ background: '#0D1320', borderColor: '#1E2D45' }}
+              />
+              <span className="text-xs" style={{ color: '#5A7A9A' }}>até</span>
+              <input
+                type="date"
+                value={toDate}
+                onChange={e => setToDate(e.target.value)}
+                className="rounded-lg border px-2 py-1 text-xs text-text outline-none"
+                style={{ background: '#0D1320', borderColor: '#1E2D45' }}
+              />
+              <button
+                onClick={applyCustom}
+                disabled={!fromDate || !toDate}
+                className="rounded-lg px-3 py-1 text-xs font-bold transition-opacity disabled:opacity-50"
+                style={{ background: '#00FF94', color: '#000' }}
+              >
+                Aplicar
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

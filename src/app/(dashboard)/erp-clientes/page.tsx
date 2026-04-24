@@ -6,16 +6,23 @@ import { ErpClientesClient } from './erp-clientes-client'
 
 export const metadata = { title: 'ERP Clientes — Smart ERP' }
 
-type Period = '7d' | '30d' | '90d'
+type Period = '7d' | '30d' | '90d' | 'custom'
 
-function getPeriodRange(period: Period): { start: Date; end: Date } {
+function getPeriodRange(period: Period, from?: string, to?: string): { start: Date; end: Date } {
   const end = new Date()
   end.setHours(23, 59, 59, 999)
   const start = new Date()
   start.setHours(0, 0, 0, 0)
-  if (period === '7d')  start.setDate(start.getDate() - 6)
+
+  if (period === 'custom' && from && to) {
+    const f = new Date(from + 'T00:00:00')
+    const t = new Date(to + 'T23:59:59.999')
+    if (!isNaN(f.getTime()) && !isNaN(t.getTime())) return { start: f, end: t }
+  }
+  if (period === '7d')       start.setDate(start.getDate() - 6)
   else if (period === '30d') start.setDate(start.getDate() - 29)
-  else start.setDate(start.getDate() - 89)
+  else if (period === '90d') start.setDate(start.getDate() - 89)
+  else                       start.setDate(start.getDate() - 29) // default 30d
   return { start, end }
 }
 
@@ -47,7 +54,18 @@ export type ChurnClient = {
   transactions: number
 }
 
-export type WeekdayPoint = { label: string; totalCents: number; transactions: number }
+export type WeekdayMetrics = {
+  totalCents:   number
+  profitCents:  number
+  transactions: number
+}
+
+export type WeekdayPoint = {
+  label:      string
+  total:      WeekdayMetrics
+  smarterp:   WeekdayMetrics
+  checksmart: WeekdayMetrics
+}
 
 export type OriginBreakdown = {
   value: string | null
@@ -80,7 +98,7 @@ export type DashboardData = {
 export default async function ErpClientesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ period?: string }>
+  searchParams: Promise<{ period?: string; from?: string; to?: string }>
 }) {
   let auth: Awaited<ReturnType<typeof requireAuth>>
   try { auth = await requireAuth() } catch { redirect('/login') }
@@ -90,9 +108,9 @@ export default async function ErpClientesPage({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any
 
-  const { period: rawPeriod = '30d' } = await searchParams
-  const period = (['7d', '30d', '90d'].includes(rawPeriod) ? rawPeriod : '30d') as Period
-  const { start, end } = getPeriodRange(period)
+  const { period: rawPeriod = '30d', from, to } = await searchParams
+  const period = (['7d', '30d', '90d', 'custom'].includes(rawPeriod) ? rawPeriod : '30d') as Period
+  const { start, end } = getPeriodRange(period, from, to)
 
   const sixAgo = new Date()
   sixAgo.setMonth(sixAgo.getMonth() - 5)
@@ -101,7 +119,7 @@ export default async function ErpClientesPage({
 
   const [salesPeriodRes, osPeriodRes, salesMonthRes, osMonthRes] = await Promise.all([
     sb.from('sales')
-      .select('customer_id, total_cents, created_at, sale_items(quantity), customers(full_name, created_at, origin)')
+      .select('customer_id, total_cents, created_at, sale_items(quantity, unit_price_cents, products(cost_cents)), customers(full_name, created_at, origin)')
       .eq('tenant_id', tenantId)
       .gte('created_at', start.toISOString())
       .lte('created_at', end.toISOString())
@@ -109,7 +127,7 @@ export default async function ErpClientesPage({
       .limit(1000),
 
     sb.from('service_orders')
-      .select('customer_id, total_price_cents, service_price_cents, parts_sale_cents, discount_cents, received_at, customers(full_name, created_at, origin)')
+      .select('customer_id, total_price_cents, service_price_cents, parts_sale_cents, parts_cost_cents, discount_cents, received_at, customers(full_name, created_at, origin)')
       .eq('tenant_id', tenantId)
       .gte('received_at', start.toISOString())
       .lte('received_at', end.toISOString())
@@ -132,33 +150,52 @@ export default async function ErpClientesPage({
   ])
 
   // ── Process period data ─────────────────────────────────────────────────
-  type SalePeriod = { customer_id: string|null; total_cents: number; created_at: string; sale_items: {quantity:number}[]|null; customers: {full_name:string; created_at:string; origin:string|null}|null }
-  type OsPeriod   = { customer_id: string|null; total_price_cents: number|null; service_price_cents: number|null; parts_sale_cents: number|null; discount_cents: number|null; received_at: string; customers: {full_name:string; created_at:string; origin:string|null}|null }
+  type SaleItemPeriod = { quantity: number; unit_price_cents: number; products: { cost_cents: number | null } | null }
+  type SalePeriod = { customer_id: string|null; total_cents: number; created_at: string; sale_items: SaleItemPeriod[]|null; customers: {full_name:string; created_at:string; origin:string|null}|null }
+  type OsPeriod   = { customer_id: string|null; total_price_cents: number|null; service_price_cents: number|null; parts_sale_cents: number|null; parts_cost_cents: number|null; discount_cents: number|null; received_at: string; customers: {full_name:string; created_at:string; origin:string|null}|null }
 
   const salesPeriodData = (salesPeriodRes.data ?? []) as SalePeriod[]
   const osPeriodData    = (osPeriodRes.data   ?? []) as OsPeriod[]
 
-  type Tx = { customerId: string | null; name: string; createdAt: string | null; origin: string | null; totalCents: number; products: number; date: Date }
+  type Tx = {
+    customerId: string | null; name: string; createdAt: string | null; origin: string | null
+    totalCents: number; profitCents: number
+    products: number; date: Date
+    source: 'erp' | 'checksmart'
+  }
 
   const periodTxs: Tx[] = [
-    ...salesPeriodData.map(s => ({
-      customerId: s.customer_id,
-      name: s.customers?.full_name ?? 'Sem cliente',
-      createdAt: s.customers?.created_at ?? null,
-      origin: s.customers?.origin ?? null,
-      totalCents: s.total_cents ?? 0,
-      products: (s.sale_items ?? []).reduce((sum, i) => sum + (i.quantity ?? 1), 0) || 1,
-      date: new Date(s.created_at),
-    })),
-    ...osPeriodData.map(o => ({
-      customerId: o.customer_id,
-      name: o.customers?.full_name ?? 'Sem cliente',
-      createdAt: o.customers?.created_at ?? null,
-      origin: o.customers?.origin ?? null,
-      totalCents: osTotal(o),
-      products: 1,
-      date: new Date(o.received_at),
-    })),
+    ...salesPeriodData.map(s => {
+      const items = s.sale_items ?? []
+      const totalCents = s.total_cents ?? 0
+      const costCents = items.reduce((sum, i) => sum + (i.quantity ?? 0) * (i.products?.cost_cents ?? 0), 0)
+      return {
+        customerId: s.customer_id,
+        name: s.customers?.full_name ?? 'Sem cliente',
+        createdAt: s.customers?.created_at ?? null,
+        origin: s.customers?.origin ?? null,
+        totalCents,
+        profitCents: totalCents - costCents,
+        products: items.reduce((sum, i) => sum + (i.quantity ?? 1), 0) || 1,
+        date: new Date(s.created_at),
+        source: 'erp' as const,
+      }
+    }),
+    ...osPeriodData.map(o => {
+      const total = osTotal(o)
+      const partsCost = o.parts_cost_cents ?? 0
+      return {
+        customerId: o.customer_id,
+        name: o.customers?.full_name ?? 'Sem cliente',
+        createdAt: o.customers?.created_at ?? null,
+        origin: o.customers?.origin ?? null,
+        totalCents: total,
+        profitCents: total - partsCost,
+        products: 1,
+        date: new Date(o.received_at),
+        source: 'checksmart' as const,
+      }
+    }),
   ]
 
   let recTot = 0, recTx = 0, recProd = 0
@@ -221,13 +258,25 @@ export default async function ErpClientesPage({
 
   // ── Weekday heatmap ──────────────────────────────────────────────────────
   const DAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
-  const dowMap = DAYS.map(label => ({ label, totalCents: 0, transactions: 0 }))
+  const emptyMetrics = (): WeekdayMetrics => ({ totalCents: 0, profitCents: 0, transactions: 0 })
+  const weekdayHeatmap: WeekdayPoint[] = DAYS.map(label => ({
+    label,
+    total:      emptyMetrics(),
+    smarterp:   emptyMetrics(),
+    checksmart: emptyMetrics(),
+  }))
+
   for (const t of periodTxs) {
-    const dow = t.date.getDay()
-    dowMap[dow].totalCents += t.totalCents
-    dowMap[dow].transactions++
+    const day = weekdayHeatmap[t.date.getDay()]
+    day.total.totalCents    += t.totalCents
+    day.total.profitCents   += t.profitCents
+    day.total.transactions  += 1
+
+    const bucket = t.source === 'erp' ? day.smarterp : day.checksmart
+    bucket.totalCents    += t.totalCents
+    bucket.profitCents   += t.profitCents
+    bucket.transactions  += 1
   }
-  const weekdayHeatmap: WeekdayPoint[] = dowMap
 
   // ── Origem dos clientes (período selecionado) ────────────────────────────
   const originMap = new Map<string, { totalCents: number; transactions: number; customerIds: Set<string> }>()
