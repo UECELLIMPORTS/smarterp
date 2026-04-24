@@ -248,3 +248,70 @@ export async function deleteMovement(id: string): Promise<{ newStockQty: number 
   revalidatePath('/estoque')
   return { newStockQty }
 }
+
+// ── Reconciliar vendas antigas (sem stock_movement correspondente) ───────────
+// Busca sale_items com este product_id em vendas completed e cria
+// stock_movements retroativos apenas para vendas que ainda não têm.
+
+export async function reconcileProductSales(productId: string): Promise<{ created: number }> {
+  const { supabase, user } = await requireAuth()
+  const tenantId = getTenantId(user)
+
+  // 1) Todos os sale_items deste produto em vendas completed
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any
+  const { data: items, error: itemsErr } = await sb
+    .from('sale_items')
+    .select('id, sale_id, quantity, unit_price_cents, sales!inner(id, status, created_at, tenant_id)')
+    .eq('product_id', productId)
+    .eq('sales.tenant_id', tenantId)
+    .eq('sales.status', 'completed')
+
+  if (itemsErr) throw new Error(itemsErr.message)
+  type SaleItemJoin = {
+    id: string
+    sale_id: string
+    quantity: number
+    unit_price_cents: number
+    sales: { id: string; status: string; created_at: string; tenant_id: string }
+  }
+  const rows = (items ?? []) as SaleItemJoin[]
+  if (rows.length === 0) return { created: 0 }
+
+  // 2) Ver quais sales já têm stock_movement criado
+  const saleIds = [...new Set(rows.map(r => r.sale_id))]
+  const origins = saleIds.map(id => `sale:${id}`)
+  const { data: existing } = await sb
+    .from('stock_movements')
+    .select('origin')
+    .eq('tenant_id', tenantId)
+    .eq('product_id', productId)
+    .in('origin', origins)
+
+  const alreadyCovered = new Set(
+    ((existing ?? []) as { origin: string }[])
+      .map(m => m.origin.replace('sale:', '')),
+  )
+
+  // 3) Criar movements faltando
+  const toInsert = rows
+    .filter(r => !alreadyCovered.has(r.sale_id))
+    .map(r => ({
+      tenant_id:        tenantId,
+      product_id:       productId,
+      type:             'saida',
+      quantity:         r.quantity,
+      sale_price_cents: r.unit_price_cents,
+      origin:           `sale:${r.sale_id}`,
+      notes:            `Reconciliação: venda antiga #${r.sale_id.slice(0, 8)} de ${new Date(r.sales.created_at).toLocaleDateString('pt-BR')}`,
+      created_at:       r.sales.created_at,
+    }))
+
+  if (toInsert.length === 0) return { created: 0 }
+
+  const { error: insertErr } = await sb.from('stock_movements').insert(toInsert)
+  if (insertErr) throw new Error(insertErr.message)
+
+  revalidatePath('/estoque')
+  return { created: toInsert.length }
+}

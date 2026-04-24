@@ -8,7 +8,7 @@ import {
   CalendarClock, Scale,
 } from 'lucide-react'
 import {
-  createMovement, updateMovement, deleteMovement,
+  createMovement, updateMovement, deleteMovement, reconcileProductSales,
   type StockMovementRow, type MovementType,
 } from '@/actions/stock-movements'
 import type { ProductRow } from '@/actions/products'
@@ -417,6 +417,7 @@ export function MovimentosClient({
   const [form, setForm]               = useState<ModalForm>(() => emptyForm(product))
   const [saving, startSave]           = useTransition()
   const [deleting, startDel]          = useTransition()
+  const [reconciling, setReconciling] = useState(false)
   const [modalError, setModalError]   = useState('')
 
   // Calcula saldo acumulado — recalculado apenas quando movements muda
@@ -587,6 +588,26 @@ export function MovimentosClient({
     })
   }
 
+  // ── Reconciliar vendas antigas ──────────────────────────────────────────
+
+  async function handleReconcile() {
+    setReconciling(true)
+    try {
+      const { created } = await reconcileProductSales(product.id)
+      if (created > 0) {
+        // Refresh via server
+        router.refresh()
+      }
+      alert(created > 0
+        ? `${created} venda(s) antiga(s) foram sincronizadas no histórico.`
+        : 'Nenhuma venda pendente encontrada. A divergência pode ter outra causa — use "Incluir Lançamento" para ajustar manualmente.')
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Erro ao reconciliar')
+    } finally {
+      setReconciling(false)
+    }
+  }
+
   // ── Render ───────────────────────────────────────────────────────────────
 
   const stockColor = product.stock_qty <= 0
@@ -655,15 +676,26 @@ export function MovimentosClient({
       {/* ── Aviso de divergência ────────────────────────────────────────────── */}
       {diverges && (
         <div
-          className="flex items-start gap-2 rounded-xl border px-4 py-3 text-sm"
+          className="flex flex-col gap-2 rounded-xl border px-4 py-3 text-sm sm:flex-row sm:items-start"
           style={{ background: '#FFB80012', borderColor: '#FFB80040', color: '#FFB800' }}
         >
-          <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
-          <span>
-            Saldo calculado pelas movimentações ({computedTotal} {product.unit}) difere do saldo atual
-            do produto ({product.stock_qty} {product.unit}). Isso ocorre quando o estoque foi ajustado
-            manualmente. Edite ou crie lançamentos para sincronizar.
-          </span>
+          <div className="flex items-start gap-2 flex-1">
+            <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+            <span>
+              Saldo calculado pelas movimentações ({computedTotal} {product.unit}) difere do saldo atual
+              do produto ({product.stock_qty} {product.unit}). Pode ser venda antiga que não gerou
+              registro de saída — clique em <strong>Reconciliar vendas antigas</strong> para criar
+              automaticamente os registros faltantes.
+            </span>
+          </div>
+          <button
+            onClick={handleReconcile}
+            disabled={reconciling}
+            className="shrink-0 rounded-lg px-3 py-1.5 text-xs font-bold transition-all hover:opacity-90 disabled:opacity-50"
+            style={{ background: '#FFB800', color: '#000' }}
+          >
+            {reconciling ? 'Reconciliando…' : 'Reconciliar vendas antigas'}
+          </button>
         </div>
       )}
 
