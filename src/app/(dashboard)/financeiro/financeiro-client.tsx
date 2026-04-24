@@ -276,6 +276,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
   const [pSearching, setPSearching] = useState(false)
   const [pDrop, setPDrop]         = useState(false)
   const pRef = useRef<HTMLDivElement>(null)
+  const pInputRef = useRef<HTMLInputElement>(null)
 
   // Manual item
   const [showManual, setShowManual] = useState(false)
@@ -297,9 +298,15 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
   // Product search debounce
   useEffect(() => {
     if (pQuery.trim().length < 2) { setPResults([]); setPDrop(false); return }
+    // Abre o dropdown já com o loader enquanto espera o debounce
+    setPDrop(true)
     const t = setTimeout(async () => {
       setPSearching(true)
-      try { const r = await searchProducts(pQuery); setPResults(r); setPDrop(r.length > 0) }
+      try {
+        const r = await searchProducts(pQuery)
+        setPResults(r)
+        setPDrop(true) // mantém aberto mesmo com 0 resultados (mostra "nenhum")
+      }
       finally { setPSearching(false) }
     }, 300)
     return () => clearTimeout(t)
@@ -530,7 +537,9 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
       }
       return [...prev, { key: randKey(), productId: p.id, source: p.source, name: p.name, quantity: 1, unitPriceCents: p.price_cents }]
     })
-    setPQuery(''); setPDrop(false)
+    setPQuery(''); setPResults([]); setPDrop(false)
+    // Re-foca o campo pra facilitar buscar o próximo produto
+    setTimeout(() => pInputRef.current?.focus(), 50)
   }
 
   function addManualItem() {
@@ -1426,9 +1435,14 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                   <div className="flex gap-2">
                     <div className="relative flex-1">
                       <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-                      <input value={pQuery} onChange={e => setPQuery(e.target.value)}
+                      <input
+                        ref={pInputRef}
+                        value={pQuery}
+                        onChange={e => setPQuery(e.target.value)}
+                        onFocus={() => { if (pQuery.trim().length >= 2) setPDrop(true) }}
                         placeholder="Buscar produto por nome ou código…"
-                        className={INP} style={{ ...INP_S, paddingLeft: '2.25rem' }} />
+                        className={INP} style={{ ...INP_S, paddingLeft: '2.25rem' }}
+                      />
                       {pSearching && <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted" />}
                     </div>
                     <button onClick={() => setShowManual(true)}
@@ -1437,8 +1451,27 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                     </button>
                   </div>
 
-                  {pDrop && pResults.length > 0 && (
-                    <div className="absolute z-10 mt-1 w-full rounded-xl border shadow-xl overflow-hidden" style={{ background: '#111827', borderColor: '#1E2D45' }}>
+                  {pDrop && pQuery.trim().length >= 2 && (
+                    <div className="absolute z-30 mt-1 w-full rounded-xl border shadow-xl overflow-hidden" style={{ background: '#111827', borderColor: '#1E2D45' }}>
+                      {pSearching && pResults.length === 0 && (
+                        <div className="flex items-center gap-2 px-4 py-3 text-sm text-muted">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Buscando…
+                        </div>
+                      )}
+
+                      {!pSearching && pResults.length === 0 && (
+                        <div className="px-4 py-3 text-sm">
+                          <p className="text-muted">Nenhum produto encontrado para <strong>&quot;{pQuery}&quot;</strong>.</p>
+                          <button
+                            onClick={() => { setShowManual(true); setPDrop(false) }}
+                            className="mt-2 text-xs font-semibold text-accent hover:underline"
+                          >
+                            + Adicionar como item manual
+                          </button>
+                        </div>
+                      )}
+
                       {pResults.map(p => (
                         <button key={`${p.source}-${p.id}`} onMouseDown={() => addProduct(p)}
                           className="flex w-full items-center justify-between px-4 py-3 text-sm hover:bg-white/5 transition-colors border-b last:border-0" style={{ borderColor: '#1E2D45' }}>
