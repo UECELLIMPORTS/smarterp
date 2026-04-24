@@ -157,12 +157,14 @@ export default async function ErpClientesPage({
       .neq('status', 'cancelled')
       .limit(1000),
 
+    // OS: só entra no ERP Clientes quando entregue ao cliente.
+    // Usa in() pra cobrir o case EN ('delivered') e caso legado PT ('Entregue').
     sb.from('service_orders')
       .select('customer_id, total_price_cents, service_price_cents, parts_sale_cents, parts_cost_cents, discount_cents, received_at, customers(full_name, created_at, origin, whatsapp, phone)')
       .eq('tenant_id', tenantId)
       .gte('received_at', start.toISOString())
       .lte('received_at', end.toISOString())
-      .neq('status', 'Cancelado')
+      .in('status', ['delivered', 'Entregue'])
       .limit(1000),
 
     sb.from('sales')
@@ -176,7 +178,7 @@ export default async function ErpClientesPage({
       .select('customer_id, total_price_cents, service_price_cents, parts_sale_cents, parts_cost_cents, discount_cents, received_at, customers(full_name, created_at, origin, whatsapp, phone)')
       .eq('tenant_id', tenantId)
       .gte('received_at', sixAgo.toISOString())
-      .neq('status', 'Cancelado')
+      .in('status', ['delivered', 'Entregue'])
       .limit(2000),
   ])
 
