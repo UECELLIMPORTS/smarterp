@@ -5,7 +5,9 @@ import { useRouter } from 'next/navigation'
 import {
   TrendingUp, Users, UserPlus, Lightbulb,
   ShoppingCart, Wrench, Link2, AlertTriangle, Star, Calendar, Megaphone,
+  Phone, MessageCircle, Download,
 } from 'lucide-react'
+import { CUSTOMER_ORIGIN_OPTIONS, originLabel } from '@/lib/customer-origin'
 import type { DashboardData, TopClient, MonthPoint, ChurnClient, WeekdayPoint, OriginBreakdown } from './page'
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -545,7 +547,9 @@ function WeekdayHeatmap({ days }: { days: WeekdayPoint[] }) {
 // ── Churn Risk Table ──────────────────────────────────────────────────────
 
 function ChurnTable({ clients }: { clients: ChurnClient[] }) {
-  const [source, setSource] = useState<SourceFilter>('total')
+  const [source, setSource]         = useState<SourceFilter>('total')
+  const [originVal, setOriginVal]   = useState<string>('all')
+  const [threshold, setThreshold]   = useState<number>(60)
 
   function urgency(days: number) {
     if (days >= 120) return { label: 'Crítico', color: '#FF4D6D', bg: 'rgba(255,77,109,.15)' }
@@ -553,19 +557,22 @@ function ChurnTable({ clients }: { clients: ChurnClient[] }) {
     return              { label: 'Médio',    color: '#9B6DFF', bg: 'rgba(155,109,255,.15)' }
   }
 
-  // Para cada cliente, extrai métricas do sistema filtrado
   const extract = (c: ChurnClient) => {
     if (source === 'smarterp')   return { days: c.sources.smarterp.daysSince,   total: c.sources.smarterp.totalCents,   tx: c.sources.smarterp.transactions }
     if (source === 'checksmart') return { days: c.sources.checksmart.daysSince, total: c.sources.checksmart.totalCents, tx: c.sources.checksmart.transactions }
     return { days: c.daysSince, total: c.totalCents, tx: c.transactions }
   }
 
-  // Filtro: só mostra se teve tx naquele sistema E o sistema está inativo 60+ dias
   const filtered = clients
     .map(c => ({ c, m: extract(c) }))
-    .filter(x => x.m.tx > 0 && x.m.days !== null && x.m.days >= 60)
+    .filter(x => x.m.tx > 0 && x.m.days !== null && x.m.days >= threshold)
+    .filter(x => {
+      if (originVal === 'all')            return true
+      if (originVal === '__no_origin__')  return !x.c.origin
+      return x.c.origin === originVal
+    })
     .sort((a, b) => b.m.total - a.m.total)
-    .slice(0, 10)
+    .slice(0, 50)
 
   const SOURCE_OPTS: { value: SourceFilter; label: string; color: string }[] = [
     { value: 'total',      label: 'Ambos',      color: '#FF4D6D' },
@@ -573,29 +580,124 @@ function ChurnTable({ clients }: { clients: ChurnClient[] }) {
     { value: 'checksmart', label: 'CheckSmart', color: '#9B6DFF' },
   ]
 
+  function stripDigits(s: string | null): string {
+    return (s ?? '').replace(/\D/g, '')
+  }
+  function fmtPhone(s: string | null): string {
+    const d = stripDigits(s)
+    if (!d) return ''
+    if (d.length === 11) return `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`
+    if (d.length === 10) return `(${d.slice(0,2)}) ${d.slice(2,6)}-${d.slice(6)}`
+    return s ?? ''
+  }
+  function waLink(whats: string | null, name: string, days: number): string {
+    const d = stripDigits(whats)
+    if (!d) return ''
+    const msg = encodeURIComponent(
+      `Oi ${name.split(' ')[0]}! Aqui é da UÉ Cell Imports. Vi que faz ${days} dias que você não passa por aqui. Tem alguma novidade que podemos te ajudar?`,
+    )
+    const prefix = d.length <= 11 && !d.startsWith('55') ? '55' : ''
+    return `https://wa.me/${prefix}${d}?text=${msg}`
+  }
+
+  function exportCsv() {
+    const BOM = '﻿'
+    const header = 'Cliente;WhatsApp;Telefone;Origem;Dias sem comprar;Valor total (6m);Pedidos;Risco\n'
+    const lines = filtered.map(({ c, m }) => {
+      const days = m.days ?? 0
+      const risk = urgency(days).label
+      const total = (m.total / 100).toFixed(2).replace('.', ',')
+      const ori = c.origin ? originLabel(c.origin) : 'Não informado'
+      const cell = (v: string) => `"${v.replace(/"/g, '""')}"`
+      return [
+        cell(c.name),
+        cell(fmtPhone(c.whatsapp)),
+        cell(fmtPhone(c.phone)),
+        cell(ori),
+        days,
+        `"R$ ${total}"`,
+        m.tx,
+        cell(risk),
+      ].join(';')
+    }).join('\n')
+
+    const blob = new Blob([BOM + header + lines], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `clientes-em-risco-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   return (
-    <div className="space-y-3">
-      <div className="flex gap-1 rounded-lg p-1 w-fit" style={{ background: '#0D1320', border: '1px solid #1E2D45' }}>
-        {SOURCE_OPTS.map(opt => (
-          <button
-            key={opt.value}
-            onClick={() => setSource(opt.value)}
-            className="rounded px-3 py-1 text-[11px] font-bold transition-all"
-            style={source === opt.value
-              ? { background: opt.color, color: '#000' }
-              : { color: '#5A7A9A' }
-            }
-          >
-            {opt.label}
-          </button>
-        ))}
+    <div className="space-y-4">
+      {/* Filtros */}
+      <div className="flex flex-wrap items-center gap-3">
+        {/* Sistema */}
+        <div className="flex gap-1 rounded-lg p-1" style={{ background: '#0D1320', border: '1px solid #1E2D45' }}>
+          {SOURCE_OPTS.map(opt => (
+            <button
+              key={opt.value}
+              onClick={() => setSource(opt.value)}
+              className="rounded px-3 py-1 text-[11px] font-bold transition-all"
+              style={source === opt.value
+                ? { background: opt.color, color: '#000' }
+                : { color: '#5A7A9A' }
+              }
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Origem */}
+        <select
+          value={originVal}
+          onChange={e => setOriginVal(e.target.value)}
+          className="rounded-lg border px-3 py-1 text-xs outline-none"
+          style={{ background: '#0D1320', borderColor: '#1E2D45', color: '#E8F0FE' }}
+        >
+          <option value="all">Todas as origens</option>
+          {CUSTOMER_ORIGIN_OPTIONS.map(opt => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+          <option value="__no_origin__">Sem origem informada</option>
+        </select>
+
+        {/* Threshold */}
+        <div className="flex items-center gap-2 rounded-lg border px-3 py-1" style={{ background: '#0D1320', borderColor: '#1E2D45' }}>
+          <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#5A7A9A' }}>Sem comprar há</span>
+          <input
+            type="number"
+            min={1}
+            max={180}
+            value={threshold}
+            onChange={e => setThreshold(Math.max(1, Math.min(180, parseInt(e.target.value) || 1)))}
+            className="w-14 bg-transparent text-xs font-bold outline-none text-right tabular-nums"
+            style={{ color: '#E8F0FE' }}
+          />
+          <span className="text-[11px]" style={{ color: '#5A7A9A' }}>dias+</span>
+        </div>
+
+        {/* Export CSV */}
+        <button
+          onClick={exportCsv}
+          disabled={filtered.length === 0}
+          className="ml-auto flex items-center gap-2 rounded-lg border px-3 py-1 text-xs font-bold transition-all hover:bg-white/5 disabled:opacity-50"
+          style={{ borderColor: '#1E2D45', color: '#00FF94' }}
+        >
+          <Download className="h-3.5 w-3.5" />
+          Exportar CSV
+        </button>
       </div>
 
+      {/* Tabela */}
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b text-left" style={{ borderColor: '#1E2D45' }}>
-              {['Cliente', 'Sem comprar há', 'Valor total (6m)', 'Pedidos', 'Risco'].map(h => (
+              {['Cliente', 'Contato', 'Origem', 'Sem comprar há', 'Valor (6m)', 'Pedidos', 'Risco'].map(h => (
                 <th key={h} className="pb-3 pr-4 text-[10px] font-bold uppercase tracking-wider"
                   style={{ color: '#5A7A9A' }}>
                   {h}
@@ -605,8 +707,10 @@ function ChurnTable({ clients }: { clients: ChurnClient[] }) {
           </thead>
           <tbody>
             {filtered.map(({ c, m }, i) => {
-              const days = m.days ?? 0
-              const u = urgency(days)
+              const days  = m.days ?? 0
+              const u     = urgency(days)
+              const wa    = waLink(c.whatsapp, c.name, days)
+              const phone = fmtPhone(c.whatsapp || c.phone)
               return (
                 <tr
                   key={i}
@@ -621,6 +725,38 @@ function ChurnTable({ clients }: { clients: ChurnClient[] }) {
                       </div>
                       <span className="font-medium" style={{ color: '#E8F0FE' }}>{c.name}</span>
                     </div>
+                  </td>
+                  <td className="py-3 pr-4">
+                    {phone ? (
+                      <div className="flex items-center gap-1.5">
+                        {wa && (
+                          <a
+                            href={wa}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex h-7 w-7 items-center justify-center rounded-lg transition-all hover:opacity-80"
+                            style={{ background: 'rgba(37,211,102,.15)', color: '#25D366' }}
+                            title={`WhatsApp ${phone}`}
+                          >
+                            <MessageCircle className="h-3.5 w-3.5" />
+                          </a>
+                        )}
+                        <a
+                          href={`tel:${stripDigits(c.whatsapp || c.phone)}`}
+                          className="flex h-7 w-7 items-center justify-center rounded-lg transition-all hover:opacity-80"
+                          style={{ background: 'rgba(0,229,255,.12)', color: '#00E5FF' }}
+                          title={`Ligar ${phone}`}
+                        >
+                          <Phone className="h-3.5 w-3.5" />
+                        </a>
+                        <span className="text-xs font-mono" style={{ color: '#8AA8C8' }}>{phone}</span>
+                      </div>
+                    ) : (
+                      <span className="text-xs" style={{ color: '#5A7A9A' }}>—</span>
+                    )}
+                  </td>
+                  <td className="py-3 pr-4 text-xs" style={{ color: '#8AA8C8' }}>
+                    {c.origin ? originLabel(c.origin) : <span style={{ color: '#5A7A9A' }}>—</span>}
                   </td>
                   <td className="py-3 pr-4 font-mono font-semibold" style={{ color: '#FF4D6D' }}>
                     {days} dias
@@ -642,8 +778,8 @@ function ChurnTable({ clients }: { clients: ChurnClient[] }) {
             })}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={5} className="py-10 text-center text-sm" style={{ color: '#5A7A9A' }}>
-                  Nenhum cliente em risco no sistema selecionado — ótimo sinal!
+                <td colSpan={7} className="py-10 text-center text-sm" style={{ color: '#5A7A9A' }}>
+                  Nenhum cliente em risco com os filtros atuais — ótimo sinal!
                 </td>
               </tr>
             )}

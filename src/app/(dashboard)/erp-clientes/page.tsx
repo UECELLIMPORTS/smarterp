@@ -66,6 +66,9 @@ export type MonthPoint = {
 
 export type ChurnClient = {
   name: string
+  whatsapp: string | null
+  phone: string | null
+  origin: string | null
   daysSince: number
   totalCents: number
   transactions: number
@@ -147,7 +150,7 @@ export default async function ErpClientesPage({
 
   const [salesPeriodRes, osPeriodRes, salesMonthRes, osMonthRes] = await Promise.all([
     sb.from('sales')
-      .select('customer_id, total_cents, created_at, sale_items(quantity, unit_price_cents, product_id), customers(full_name, created_at, origin)')
+      .select('customer_id, total_cents, created_at, sale_items(quantity, unit_price_cents, product_id), customers(full_name, created_at, origin, whatsapp, phone)')
       .eq('tenant_id', tenantId)
       .gte('created_at', start.toISOString())
       .lte('created_at', end.toISOString())
@@ -155,7 +158,7 @@ export default async function ErpClientesPage({
       .limit(1000),
 
     sb.from('service_orders')
-      .select('customer_id, total_price_cents, service_price_cents, parts_sale_cents, parts_cost_cents, discount_cents, received_at, customers(full_name, created_at, origin)')
+      .select('customer_id, total_price_cents, service_price_cents, parts_sale_cents, parts_cost_cents, discount_cents, received_at, customers(full_name, created_at, origin, whatsapp, phone)')
       .eq('tenant_id', tenantId)
       .gte('received_at', start.toISOString())
       .lte('received_at', end.toISOString())
@@ -163,14 +166,14 @@ export default async function ErpClientesPage({
       .limit(1000),
 
     sb.from('sales')
-      .select('customer_id, total_cents, created_at, sale_items(quantity, product_id), customers(full_name, created_at, origin)')
+      .select('customer_id, total_cents, created_at, sale_items(quantity, product_id), customers(full_name, created_at, origin, whatsapp, phone)')
       .eq('tenant_id', tenantId)
       .gte('created_at', sixAgo.toISOString())
       .neq('status', 'cancelled')
       .limit(2000),
 
     sb.from('service_orders')
-      .select('customer_id, total_price_cents, service_price_cents, parts_sale_cents, parts_cost_cents, discount_cents, received_at, customers(full_name, created_at, origin)')
+      .select('customer_id, total_price_cents, service_price_cents, parts_sale_cents, parts_cost_cents, discount_cents, received_at, customers(full_name, created_at, origin, whatsapp, phone)')
       .eq('tenant_id', tenantId)
       .gte('received_at', sixAgo.toISOString())
       .neq('status', 'Cancelado')
@@ -179,8 +182,9 @@ export default async function ErpClientesPage({
 
   // ── Process period data ─────────────────────────────────────────────────
   type SaleItemPeriod = { quantity: number; unit_price_cents: number; product_id: string | null }
-  type SalePeriod = { customer_id: string|null; total_cents: number; created_at: string; sale_items: SaleItemPeriod[]|null; customers: {full_name:string; created_at:string; origin:string|null}|null }
-  type OsPeriod   = { customer_id: string|null; total_price_cents: number|null; service_price_cents: number|null; parts_sale_cents: number|null; parts_cost_cents: number|null; discount_cents: number|null; received_at: string; customers: {full_name:string; created_at:string; origin:string|null}|null }
+  type CustomerJoinPeriod = { full_name: string; created_at: string; origin: string|null; whatsapp: string|null; phone: string|null }
+  type SalePeriod = { customer_id: string|null; total_cents: number; created_at: string; sale_items: SaleItemPeriod[]|null; customers: CustomerJoinPeriod|null }
+  type OsPeriod   = { customer_id: string|null; total_price_cents: number|null; service_price_cents: number|null; parts_sale_cents: number|null; parts_cost_cents: number|null; discount_cents: number|null; received_at: string; customers: CustomerJoinPeriod|null }
 
   const salesPeriodData = (salesPeriodRes.data ?? []) as SalePeriod[]
   const osPeriodData    = (osPeriodRes.data   ?? []) as OsPeriod[]
@@ -188,8 +192,9 @@ export default async function ErpClientesPage({
   // Query separada de custos — sale_items.product_id pode apontar pra
   // products OU parts_catalog, então busco nas duas tabelas em paralelo.
   type MonthSaleItem = { quantity: number; product_id: string | null }
-  type MonthSaleRow = { customer_id: string|null; total_cents: number; created_at: string; sale_items: MonthSaleItem[]|null; customers: {full_name:string; created_at:string; origin:string|null}|null }
-  type MonthOsRow   = { customer_id: string|null; total_price_cents: number|null; service_price_cents: number|null; parts_sale_cents: number|null; parts_cost_cents: number|null; discount_cents: number|null; received_at: string; customers: {full_name:string; created_at:string; origin:string|null}|null }
+  type CustomerJoin = { full_name: string; created_at: string; origin: string|null; whatsapp: string|null; phone: string|null }
+  type MonthSaleRow = { customer_id: string|null; total_cents: number; created_at: string; sale_items: MonthSaleItem[]|null; customers: CustomerJoin|null }
+  type MonthOsRow   = { customer_id: string|null; total_price_cents: number|null; service_price_cents: number|null; parts_sale_cents: number|null; parts_cost_cents: number|null; discount_cents: number|null; received_at: string; customers: CustomerJoin|null }
 
   const salesMonthData = (salesMonthRes.data ?? []) as MonthSaleRow[]
   const osMonthData    = (osMonthRes.data   ?? []) as MonthOsRow[]
@@ -447,7 +452,12 @@ export default async function ErpClientesPage({
     }
   })
 
-  type MonthTx = { customerId: string|null; name: string; createdAt: string|null; totalCents: number; profitCents: number; date: Date; source: 'erp' | 'checksmart' }
+  type MonthTx = {
+    customerId: string|null; name: string; createdAt: string|null
+    whatsapp: string|null; phone: string|null; origin: string|null
+    totalCents: number; profitCents: number; date: Date
+    source: 'erp' | 'checksmart'
+  }
   const monthTxs: MonthTx[] = [
     ...salesMonthData.map(s => {
       const items = s.sale_items ?? []
@@ -460,6 +470,9 @@ export default async function ErpClientesPage({
         customerId: s.customer_id,
         name: s.customers?.full_name ?? 'Sem cliente',
         createdAt: s.customers?.created_at ?? null,
+        whatsapp: s.customers?.whatsapp ?? null,
+        phone: s.customers?.phone ?? null,
+        origin: s.customers?.origin ?? null,
         totalCents: total,
         profitCents: total - cost,
         date: new Date(s.created_at),
@@ -473,6 +486,9 @@ export default async function ErpClientesPage({
         customerId: o.customer_id,
         name: o.customers?.full_name ?? 'Sem cliente',
         createdAt: o.customers?.created_at ?? null,
+        whatsapp: o.customers?.whatsapp ?? null,
+        phone: o.customers?.phone ?? null,
+        origin: o.customers?.origin ?? null,
         totalCents: total,
         profitCents: total - partsCost,
         date: new Date(o.received_at),
@@ -499,6 +515,9 @@ export default async function ErpClientesPage({
   // ── Activity map (6 months) → Churn + RFM ───────────────────────────────
   type ActivityEntry = {
     name: string
+    whatsapp: string | null
+    phone: string | null
+    origin: string | null
     lastDate: Date
     totalCents: number; tx: number
     smarterp:   { lastDate: Date | null; totalCents: number; tx: number }
@@ -512,13 +531,19 @@ export default async function ErpClientesPage({
       ex.totalCents += t.totalCents
       ex.tx++
       if (t.date > ex.lastDate) ex.lastDate = t.date
+      // Preserva whatsapp/phone/origin quando o primeiro registro não tinha
+      if (!ex.whatsapp && t.whatsapp) ex.whatsapp = t.whatsapp
+      if (!ex.phone    && t.phone)    ex.phone    = t.phone
+      if (!ex.origin   && t.origin)   ex.origin   = t.origin
       const b = t.source === 'erp' ? ex.smarterp : ex.checksmart
       b.totalCents += t.totalCents
       b.tx++
       if (!b.lastDate || t.date > b.lastDate) b.lastDate = t.date
     } else {
       const agg: ActivityEntry = {
-        name: t.name, lastDate: t.date,
+        name: t.name,
+        whatsapp: t.whatsapp, phone: t.phone, origin: t.origin,
+        lastDate: t.date,
         totalCents: t.totalCents, tx: 1,
         smarterp:   { lastDate: null, totalCents: 0, tx: 0 },
         checksmart: { lastDate: null, totalCents: 0, tx: 0 },
@@ -535,16 +560,21 @@ export default async function ErpClientesPage({
   const MS_DAY = 86400000
   const daysSinceFn = (d: Date | null) => d ? Math.floor((now - d.getTime()) / MS_DAY) : null
 
+  // Passa todos os clientes com atividade dos últimos 6 meses (sem filtro de
+  // threshold — o client decide via slider). Limita a 100 pra não explodir
+  // o payload quando a base é muito grande.
   const churnRisk: ChurnClient[] = [...activityMap.values()]
     .map(c => ({
       c,
       totalDays: Math.floor((now - c.lastDate.getTime()) / MS_DAY),
     }))
-    .filter(x => x.totalDays >= 60)
     .sort((a, b) => b.c.totalCents - a.c.totalCents)
-    .slice(0, 30)
+    .slice(0, 100)
     .map(({ c, totalDays }) => ({
       name: c.name,
+      whatsapp: c.whatsapp,
+      phone: c.phone,
+      origin: c.origin,
       daysSince: totalDays,
       totalCents: c.totalCents,
       transactions: c.tx,
