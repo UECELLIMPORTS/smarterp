@@ -14,11 +14,7 @@
 
 ## 🟡 IMPORTANTE
 
-- [ ] **Snapshot de custo em `sale_items`** para lucro histórico fidedigno
-  - Migration: `ALTER TABLE sale_items ADD COLUMN cost_snapshot_cents integer`
-  - Preencher em `createSale` com `products.cost_cents` corrente
-  - Usar no ERP Clientes com fallback pro custo atual
-- [ ] **Decidir data padrão para os 516 clientes sem "cliente desde"** ou deixar editar individualmente via modal
+Nada prioritário no momento — as pendências desse nível foram todas resolvidas em 24/04/2026 (tarde/noite).
 
 ---
 
@@ -99,3 +95,20 @@
 - [x] Histórico completo importado (19-24/04) com notas diárias + notas de sessão por projeto
 - [x] Dashboard `_Inicio.md`, `Bugs-Ativos.md`, `Decisoes-Tecnicas.md`, templates
 - [x] Memória persistente para atualização automática em futuras sessões
+
+## ✅ CONCLUÍDO em 24/04/2026 (noite)
+
+### Snapshot de custo em sale_items (lucro histórico fidedigno)
+- [x] Migration 012 criada e aplicada no Supabase (`ALTER TABLE sale_items ADD COLUMN cost_snapshot_cents`)
+- [x] `pos.ts.createSale` grava snapshot com o custo atual no momento da venda
+- [x] `financeiro.ts.createManualSale` e `updateCancelledSale` (via helper `fetchCostMap`) idem
+- [x] ERP Clientes e Relatórios usam `cost_snapshot_cents ?? products.cost_cents` (fallback)
+- [x] Resultado: custo das vendas antigas fica "congelado" quando a venda é nova; mudanças futuras no custo só afetam vendas NOVAS
+
+### Correção dos 516 clientes sem "cliente desde"
+- [x] Migration 013 criada — opção (a): data padrão `2023-01-01` para clientes importados do Bling sem data
+- [x] Aplicado em 2 etapas:
+  - Etapa 1: 96 clientes sem CPF atualizados (salvaguarda inicial)
+  - Etapa 2: diagnóstico confirmou 418 clientes sem vendas/OS (importados puros); atualização segura
+- [x] Total: 514 clientes com `created_at = 2023-01-01`; 0 com `2026-04-23`
+- [x] Clientes que cadastraram no dia 23/04 com transação real (0 casos) foram preservados
