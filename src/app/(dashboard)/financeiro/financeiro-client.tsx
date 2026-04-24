@@ -419,7 +419,10 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
 
   // ── Edit date ─────────────────────────────────────────────────────────────
   function openEditDate(row: FinanceiroRow) {
-    const iso = row.date.toISOString().slice(0, 10)
+    const dateObj = row.date instanceof Date ? row.date : new Date(row.date as unknown as string)
+    const iso = !isNaN(dateObj.getTime())
+      ? dateObj.toISOString().slice(0, 10)
+      : new Date().toISOString().slice(0, 10)
     setEditDateVal(iso)
     setEditDateRow(row)
   }
@@ -444,7 +447,10 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
 
   // ── Edit cancelled ERP sale ───────────────────────────────────────────────
   function openEditSale(row: FinanceiroRow) {
-    setEsDate(row.date.toISOString().slice(0, 10))
+    // row.date pode chegar como Date (estado local) ou string (vindo do server
+    // via JSON). Normaliza pra Date antes de qualquer .toISOString() etc.
+    const dateObj = row.date instanceof Date ? row.date : new Date(row.date as unknown as string)
+    setEsDate(!isNaN(dateObj.getTime()) ? dateObj.toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10))
     setEsDiscountStr(row.discount > 0 ? fmtBRL(row.discount) : '')
     setEsPayMethod(row.payment ?? 'pix')
     setEsCustomerId(row.customerId ?? null)
