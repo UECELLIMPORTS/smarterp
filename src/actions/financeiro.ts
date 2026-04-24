@@ -24,14 +24,17 @@ export async function cancelSale(saleId: string): Promise<void> {
 
   if (error) throw new Error(error.message)
 
-  // Restore stock for each product via RPC
-  for (const item of items ?? []) {
-    if (!item.product_id) continue
-    await supabase.rpc('restore_product_stock', {
-      p_product_id: item.product_id,
-      p_tenant_id:  tenantId,
-      p_qty:        item.quantity,
-    })
+  // Restaura estoque via stock_movement 'entrada' (a trigger incrementa stock_qty)
+  const entries = (items ?? []).filter(i => i.product_id).map(item => ({
+    tenant_id:  tenantId,
+    product_id: item.product_id as string,
+    type:       'entrada',
+    quantity:   item.quantity,
+    origin:     `sale-cancel:${saleId}`,
+    notes:      `Cancelamento da venda #${saleId.slice(0, 8)}`,
+  }))
+  if (entries.length > 0) {
+    await supabase.from('stock_movements').insert(entries)
   }
 
   revalidatePath('/financeiro')
@@ -57,13 +60,17 @@ export async function reactivateSale(saleId: string): Promise<void> {
 
   if (error) throw new Error(error.message)
 
-  for (const item of items ?? []) {
-    if (!item.product_id) continue
-    await supabase.rpc('decrement_product_stock', {
-      p_product_id: item.product_id,
-      p_tenant_id:  tenantId,
-      p_qty:        item.quantity,
-    })
+  // Reativação → saída de estoque via stock_movement
+  const exits = (items ?? []).filter(i => i.product_id).map(item => ({
+    tenant_id:  tenantId,
+    product_id: item.product_id as string,
+    type:       'saida',
+    quantity:   item.quantity,
+    origin:     `sale-reactivate:${saleId}`,
+    notes:      `Reativação da venda #${saleId.slice(0, 8)}`,
+  }))
+  if (exits.length > 0) {
+    await supabase.from('stock_movements').insert(exits)
   }
 
   revalidatePath('/financeiro')
@@ -185,13 +192,17 @@ export async function updateSaleDate(saleId: string, newDate: string): Promise<v
     .select('product_id, quantity')
     .eq('sale_id', saleId)
 
-  for (const item of items ?? []) {
-    if (!item.product_id) continue
-    await supabase.rpc('restore_product_stock', {
-      p_product_id: item.product_id,
-      p_tenant_id:  tenantId,
-      p_qty:        item.quantity,
-    })
+  // Restaura estoque (entrada) para depois decrementar com a nova data
+  const restores = (items ?? []).filter(i => i.product_id).map(item => ({
+    tenant_id:  tenantId,
+    product_id: item.product_id as string,
+    type:       'entrada',
+    quantity:   item.quantity,
+    origin:     `sale-date-revert:${saleId}`,
+    notes:      `Revertendo venda #${saleId.slice(0, 8)} para alterar data`,
+  }))
+  if (restores.length > 0) {
+    await supabase.from('stock_movements').insert(restores)
   }
 
   const newCreatedAt = new Date(newDate + 'T12:00:00').toISOString()
@@ -203,13 +214,16 @@ export async function updateSaleDate(saleId: string, newDate: string): Promise<v
 
   if (error) throw new Error(error.message)
 
-  for (const item of items ?? []) {
-    if (!item.product_id) continue
-    await supabase.rpc('decrement_product_stock', {
-      p_product_id: item.product_id,
-      p_tenant_id:  tenantId,
-      p_qty:        item.quantity,
-    })
+  const exits = (items ?? []).filter(i => i.product_id).map(item => ({
+    tenant_id:  tenantId,
+    product_id: item.product_id as string,
+    type:       'saida',
+    quantity:   item.quantity,
+    origin:     `sale-date-redo:${saleId}`,
+    notes:      `Venda #${saleId.slice(0, 8)} com nova data`,
+  }))
+  if (exits.length > 0) {
+    await supabase.from('stock_movements').insert(exits)
   }
 
   revalidatePath('/financeiro')
@@ -323,14 +337,20 @@ export async function createManualSale(input: ManualSaleInput): Promise<void> {
     })),
   )
 
-  // Decrement stock for products
-  for (const item of input.items) {
-    if (!item.productId || item.source !== 'products') continue
-    await supabase.rpc('decrement_product_stock', {
-      p_product_id: item.productId,
-      p_tenant_id:  tenantId,
-      p_qty:        item.quantity,
-    })
+  // Saída de estoque via stock_movement
+  const manualExits = input.items
+    .filter(i => i.productId && i.source === 'products')
+    .map(item => ({
+      tenant_id:        tenantId,
+      product_id:       item.productId as string,
+      type:             'saida',
+      quantity:         item.quantity,
+      sale_price_cents: item.unitPriceCents,
+      origin:           `sale:${sale.id}`,
+      notes:            `Venda manual #${sale.id.slice(0, 8)}`,
+    }))
+  if (manualExits.length > 0) {
+    await supabase.from('stock_movements').insert(manualExits)
   }
 
   revalidatePath('/financeiro')
@@ -358,13 +378,16 @@ export async function bulkCancel(
       .eq('id', saleId)
       .eq('tenant_id', tenantId)
 
-    for (const item of items ?? []) {
-      if (!item.product_id) continue
-      await supabase.rpc('restore_product_stock', {
-        p_product_id: item.product_id,
-        p_tenant_id:  tenantId,
-        p_qty:        item.quantity,
-      })
+    const bulkEntries = (items ?? []).filter(i => i.product_id).map(item => ({
+      tenant_id:  tenantId,
+      product_id: item.product_id as string,
+      type:       'entrada',
+      quantity:   item.quantity,
+      origin:     `sale-cancel:${saleId}`,
+      notes:      `Cancelamento em massa da venda #${saleId.slice(0, 8)}`,
+    }))
+    if (bulkEntries.length > 0) {
+      await supabase.from('stock_movements').insert(bulkEntries)
     }
   }
 

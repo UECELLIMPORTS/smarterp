@@ -726,7 +726,17 @@ export function MovimentosClient({
 
                   {/* Origem */}
                   <span className="text-xs text-muted capitalize">
-                    {m.origin === 'manual' || !m.origin ? 'Manual' : m.origin}
+                    {(() => {
+                      const o = m.origin
+                      if (!o || o === 'manual') return 'Manual'
+                      if (o === 'balanco')            return 'Balanço'
+                      if (o.startsWith('sale:'))               return 'Venda PDV'
+                      if (o.startsWith('sale-cancel:'))        return 'Venda cancelada'
+                      if (o.startsWith('sale-reactivate:'))    return 'Venda reativada'
+                      if (o.startsWith('sale-date-revert:'))   return 'Ajuste de data (venda)'
+                      if (o.startsWith('sale-date-redo:'))     return 'Ajuste de data (venda)'
+                      return o
+                    })()}
                   </span>
 
                   {/* Tipo */}

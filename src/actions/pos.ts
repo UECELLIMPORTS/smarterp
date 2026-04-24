@@ -359,14 +359,24 @@ export async function createSale(input: CreateSaleInput): Promise<{ id: string }
 
   if (itemsError) throw new Error(itemsError.message)
 
-  // Decrement stock for products (not parts_catalog)
+  // Registrar saída de estoque como stock_movement (a trigger
+  // trg_sync_product_after_movement decrementa products.stock_qty
+  // automaticamente). Isso mantém o histórico de movimentações
+  // coerente com o saldo do produto.
   const stockItems = input.items.filter(i => i.productId && i.source === 'products')
-  for (const item of stockItems) {
-    await supabase.rpc('decrement_product_stock', {
-      p_product_id: item.productId,
-      p_tenant_id:  tenantId,
-      p_qty:        item.quantity,
-    })
+  if (stockItems.length > 0) {
+    const { error: movError } = await supabase.from('stock_movements').insert(
+      stockItems.map(item => ({
+        tenant_id:        tenantId,
+        product_id:       item.productId as string,
+        type:             'saida',
+        quantity:         item.quantity,
+        sale_price_cents: item.unitPriceCents,
+        origin:           `sale:${sale.id}`,
+        notes:            `Venda PDV #${sale.id.slice(0, 8)}`,
+      })),
+    )
+    if (movError) throw new Error(`Erro ao registrar saída de estoque: ${movError.message}`)
   }
 
   return sale as { id: string }
