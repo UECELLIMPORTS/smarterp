@@ -55,31 +55,56 @@ function DonutChart({ recShare, novShare }: { recShare: number; novShare: number
 // ── Bar Chart (CSS flexbox) ────────────────────────────────────────────────
 
 function BarChart({ months }: { months: MonthPoint[] }) {
-  const maxVal = Math.max(...months.flatMap(m => [m.recorrentes, m.novos]), 1)
+  const [metric, setMetric] = useState<'fatur' | 'lucro'>('fatur')
+  const recKey  = metric === 'fatur' ? 'recorrentes' : 'recorrentesProfit'
+  const novKey  = metric === 'fatur' ? 'novos'       : 'novosProfit'
+  const maxVal = Math.max(...months.flatMap(m => [m[recKey], m[novKey]]), 1)
 
   return (
-    <div className="flex w-full items-end gap-2" style={{ height: 200 }}>
-      {months.map(m => {
-        const recH = Math.max((m.recorrentes / maxVal) * 160, m.recorrentes > 0 ? 6 : 0)
-        const novH = Math.max((m.novos / maxVal) * 160, m.novos > 0 ? 6 : 0)
-        return (
-          <div key={m.label} className="flex flex-1 flex-col items-center gap-1.5">
-            <div className="flex w-full items-end gap-0.5" style={{ height: 160 }}>
-              <div
-                className="flex-1 rounded-t-sm transition-all duration-500"
-                style={{ height: recH, background: 'rgba(0,255,148,0.65)' }}
-                title={`Recorrentes: ${BRL(m.recorrentes)}`}
-              />
-              <div
-                className="flex-1 rounded-t-sm transition-all duration-500"
-                style={{ height: novH, background: 'rgba(155,109,255,0.65)' }}
-                title={`Novos: ${BRL(m.novos)}`}
-              />
+    <div className="space-y-3">
+      <div className="flex justify-end">
+        <div className="flex gap-1 rounded-lg p-1" style={{ background: '#0D1320', border: '1px solid #1E2D45' }}>
+          <button
+            onClick={() => setMetric('fatur')}
+            className="rounded px-3 py-1 text-[11px] font-bold transition-all"
+            style={metric === 'fatur' ? { background: '#1E2D45', color: '#E8F0FE' } : { color: '#5A7A9A' }}
+          >
+            Faturamento
+          </button>
+          <button
+            onClick={() => setMetric('lucro')}
+            className="rounded px-3 py-1 text-[11px] font-bold transition-all"
+            style={metric === 'lucro' ? { background: '#1E2D45', color: '#00FF94' } : { color: '#5A7A9A' }}
+          >
+            Lucro
+          </button>
+        </div>
+      </div>
+      <div className="flex w-full items-end gap-2" style={{ height: 180 }}>
+        {months.map(m => {
+          const recVal = m[recKey]
+          const novVal = m[novKey]
+          const recH = Math.max((recVal / maxVal) * 140, recVal > 0 ? 6 : 0)
+          const novH = Math.max((novVal / maxVal) * 140, novVal > 0 ? 6 : 0)
+          return (
+            <div key={m.label} className="flex flex-1 flex-col items-center gap-1.5">
+              <div className="flex w-full items-end gap-0.5" style={{ height: 140 }}>
+                <div
+                  className="flex-1 rounded-t-sm transition-all duration-500"
+                  style={{ height: recH, background: 'rgba(0,255,148,0.65)' }}
+                  title={`Recorrentes (${metric}): ${BRL(recVal)}`}
+                />
+                <div
+                  className="flex-1 rounded-t-sm transition-all duration-500"
+                  style={{ height: novH, background: 'rgba(155,109,255,0.65)' }}
+                  title={`Novos (${metric}): ${BRL(novVal)}`}
+                />
+              </div>
+              <span className="text-[10px] capitalize" style={{ color: '#5A7A9A' }}>{m.label}</span>
             </div>
-            <span className="text-[10px] capitalize" style={{ color: '#5A7A9A' }}>{m.label}</span>
-          </div>
-        )
-      })}
+          )
+        })}
+      </div>
     </div>
   )
 }
@@ -87,10 +112,13 @@ function BarChart({ months }: { months: MonthPoint[] }) {
 // ── KPI Card ──────────────────────────────────────────────────────────────
 
 function ClientCard({
-  label, icon: Icon, color, glowColor, totalCents, ticketMedioCents, avgProducts, sharePercent, transactions,
+  label, icon: Icon, color, glowColor,
+  totalCents, profitCents, ticketMedioCents, avgProducts, sharePercent, marginPercent, transactions,
 }: {
   label: string; icon: React.ElementType; color: string; glowColor: string
-  totalCents: number; ticketMedioCents: number; avgProducts: string; sharePercent: number; transactions: number
+  totalCents: number; profitCents: number
+  ticketMedioCents: number; avgProducts: string
+  sharePercent: number; marginPercent: number; transactions: number
 }) {
   return (
     <div
@@ -109,12 +137,25 @@ function ClientCard({
           {label}
         </span>
       </div>
-      <div className="mb-5">
+
+      {/* Faturamento */}
+      <div>
         <span className="text-3xl font-bold tracking-tight" style={{ color, fontFamily: 'ui-monospace,monospace' }}>
           {BRL(totalCents)}
         </span>
         <span className="ml-2 text-xs" style={{ color: '#5A7A9A' }}>{transactions} pedidos</span>
       </div>
+
+      {/* Lucro + margem */}
+      <div className="mb-4 mt-1 flex items-baseline gap-2">
+        <span className="text-lg font-bold" style={{ color: '#00FF94', fontFamily: 'ui-monospace,monospace' }}>
+          {BRL(profitCents)}
+        </span>
+        <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#5A7A9A' }}>
+          Lucro · margem {marginPercent}%
+        </span>
+      </div>
+
       <div className="grid grid-cols-3 gap-3">
         {[
           { label: 'Ticket Médio', value: BRL(ticketMedioCents) },
@@ -504,70 +545,111 @@ function WeekdayHeatmap({ days }: { days: WeekdayPoint[] }) {
 // ── Churn Risk Table ──────────────────────────────────────────────────────
 
 function ChurnTable({ clients }: { clients: ChurnClient[] }) {
+  const [source, setSource] = useState<SourceFilter>('total')
+
   function urgency(days: number) {
     if (days >= 120) return { label: 'Crítico', color: '#FF4D6D', bg: 'rgba(255,77,109,.15)' }
     if (days >= 90)  return { label: 'Alto',    color: '#FFAA00', bg: 'rgba(255,170,0,.15)' }
     return              { label: 'Médio',    color: '#9B6DFF', bg: 'rgba(155,109,255,.15)' }
   }
 
+  // Para cada cliente, extrai métricas do sistema filtrado
+  const extract = (c: ChurnClient) => {
+    if (source === 'smarterp')   return { days: c.sources.smarterp.daysSince,   total: c.sources.smarterp.totalCents,   tx: c.sources.smarterp.transactions }
+    if (source === 'checksmart') return { days: c.sources.checksmart.daysSince, total: c.sources.checksmart.totalCents, tx: c.sources.checksmart.transactions }
+    return { days: c.daysSince, total: c.totalCents, tx: c.transactions }
+  }
+
+  // Filtro: só mostra se teve tx naquele sistema E o sistema está inativo 60+ dias
+  const filtered = clients
+    .map(c => ({ c, m: extract(c) }))
+    .filter(x => x.m.tx > 0 && x.m.days !== null && x.m.days >= 60)
+    .sort((a, b) => b.m.total - a.m.total)
+    .slice(0, 10)
+
+  const SOURCE_OPTS: { value: SourceFilter; label: string; color: string }[] = [
+    { value: 'total',      label: 'Ambos',      color: '#FF4D6D' },
+    { value: 'smarterp',   label: 'SmartERP',   color: '#00FF94' },
+    { value: 'checksmart', label: 'CheckSmart', color: '#9B6DFF' },
+  ]
+
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b text-left" style={{ borderColor: '#1E2D45' }}>
-            {['Cliente', 'Sem comprar há', 'Valor total (6m)', 'Pedidos', 'Risco'].map(h => (
-              <th key={h} className="pb-3 pr-4 text-[10px] font-bold uppercase tracking-wider"
-                style={{ color: '#5A7A9A' }}>
-                {h}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {clients.map((c, i) => {
-            const u = urgency(c.daysSince)
-            return (
-              <tr
-                key={i}
-                className="border-b transition-colors hover:bg-white/[0.02]"
-                style={{ borderColor: 'rgba(30,45,69,.5)' }}
-              >
-                <td className="py-3 pr-4">
-                  <div className="flex items-center gap-2.5">
-                    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold"
-                      style={{ background: 'rgba(255,77,109,.12)', color: '#FF4D6D' }}>
-                      {c.name.trim().charAt(0).toUpperCase()}
+    <div className="space-y-3">
+      <div className="flex gap-1 rounded-lg p-1 w-fit" style={{ background: '#0D1320', border: '1px solid #1E2D45' }}>
+        {SOURCE_OPTS.map(opt => (
+          <button
+            key={opt.value}
+            onClick={() => setSource(opt.value)}
+            className="rounded px-3 py-1 text-[11px] font-bold transition-all"
+            style={source === opt.value
+              ? { background: opt.color, color: '#000' }
+              : { color: '#5A7A9A' }
+            }
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b text-left" style={{ borderColor: '#1E2D45' }}>
+              {['Cliente', 'Sem comprar há', 'Valor total (6m)', 'Pedidos', 'Risco'].map(h => (
+                <th key={h} className="pb-3 pr-4 text-[10px] font-bold uppercase tracking-wider"
+                  style={{ color: '#5A7A9A' }}>
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map(({ c, m }, i) => {
+              const days = m.days ?? 0
+              const u = urgency(days)
+              return (
+                <tr
+                  key={i}
+                  className="border-b transition-colors hover:bg-white/[0.02]"
+                  style={{ borderColor: 'rgba(30,45,69,.5)' }}
+                >
+                  <td className="py-3 pr-4">
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold"
+                        style={{ background: 'rgba(255,77,109,.12)', color: '#FF4D6D' }}>
+                        {c.name.trim().charAt(0).toUpperCase()}
+                      </div>
+                      <span className="font-medium" style={{ color: '#E8F0FE' }}>{c.name}</span>
                     </div>
-                    <span className="font-medium" style={{ color: '#E8F0FE' }}>{c.name}</span>
-                  </div>
-                </td>
-                <td className="py-3 pr-4 font-mono font-semibold" style={{ color: '#FF4D6D' }}>
-                  {c.daysSince} dias
-                </td>
-                <td className="py-3 pr-4 font-mono font-semibold" style={{ color: '#8AA8C8' }}>
-                  {BRL(c.totalCents)}
-                </td>
-                <td className="py-3 pr-4 font-mono" style={{ color: '#8AA8C8' }}>
-                  {c.transactions}
-                </td>
-                <td className="py-3">
-                  <span className="rounded-full px-2.5 py-1 text-[10px] font-bold"
-                    style={{ background: u.bg, color: u.color }}>
-                    {u.label}
-                  </span>
+                  </td>
+                  <td className="py-3 pr-4 font-mono font-semibold" style={{ color: '#FF4D6D' }}>
+                    {days} dias
+                  </td>
+                  <td className="py-3 pr-4 font-mono font-semibold" style={{ color: '#8AA8C8' }}>
+                    {BRL(m.total)}
+                  </td>
+                  <td className="py-3 pr-4 font-mono" style={{ color: '#8AA8C8' }}>
+                    {m.tx}
+                  </td>
+                  <td className="py-3">
+                    <span className="rounded-full px-2.5 py-1 text-[10px] font-bold"
+                      style={{ background: u.bg, color: u.color }}>
+                      {u.label}
+                    </span>
+                  </td>
+                </tr>
+              )
+            })}
+            {filtered.length === 0 && (
+              <tr>
+                <td colSpan={5} className="py-10 text-center text-sm" style={{ color: '#5A7A9A' }}>
+                  Nenhum cliente em risco no sistema selecionado — ótimo sinal!
                 </td>
               </tr>
-            )
-          })}
-          {clients.length === 0 && (
-            <tr>
-              <td colSpan={5} className="py-10 text-center text-sm" style={{ color: '#5A7A9A' }}>
-                Nenhum cliente em risco no período — ótimo sinal!
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }
@@ -575,73 +657,116 @@ function ChurnTable({ clients }: { clients: ChurnClient[] }) {
 // ── Top Clients Table ─────────────────────────────────────────────────────
 
 function ClientsTable({ clients }: { clients: TopClient[] }) {
+  const [source, setSource] = useState<SourceFilter>('total')
+
   function badge(c: TopClient) {
     if (c.transactions >= 5 || c.totalCents >= 500000) return { label: 'VIP', color: '#FFAA00', bg: 'rgba(255,170,0,.15)' }
     if (c.type === 'recorrente') return { label: 'Recorrente', color: '#00FF94', bg: 'rgba(0,255,148,.12)' }
     return { label: 'Novo', color: '#9B6DFF', bg: 'rgba(155,109,255,.15)' }
   }
 
+  // Extrai totalCents/profitCents/tx conforme filtro
+  const metricsOf = (c: TopClient) => {
+    if (source === 'smarterp')   return { total: c.sources.smarterp.totalCents,   profit: c.sources.smarterp.profitCents,   tx: c.sources.smarterp.transactions }
+    if (source === 'checksmart') return { total: c.sources.checksmart.totalCents, profit: c.sources.checksmart.profitCents, tx: c.sources.checksmart.transactions }
+    return { total: c.totalCents, profit: c.profitCents, tx: c.transactions }
+  }
+
+  const filtered = clients
+    .map(c => ({ c, m: metricsOf(c) }))
+    .filter(x => x.m.tx > 0)
+    .sort((a, b) => b.m.total - a.m.total)
+    .slice(0, 10)
+
+  const SOURCE_OPTS: { value: SourceFilter; label: string; color: string }[] = [
+    { value: 'total',      label: 'Ambos',      color: '#00E5FF' },
+    { value: 'smarterp',   label: 'SmartERP',   color: '#00FF94' },
+    { value: 'checksmart', label: 'CheckSmart', color: '#9B6DFF' },
+  ]
+
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b text-left" style={{ borderColor: '#1E2D45' }}>
-            {['Cliente', 'Pedidos', 'Valor Total', 'Ticket Médio', 'Tipo', 'Último contato'].map(h => (
-              <th key={h} className="pb-3 pr-4 text-[10px] font-bold uppercase tracking-wider"
-                style={{ color: '#5A7A9A' }}>
-                {h}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {clients.map((c, i) => {
-            const b = badge(c)
-            return (
-              <tr
-                key={i}
-                className="border-b transition-colors hover:bg-white/[0.02]"
-                style={{ borderColor: 'rgba(30,45,69,.5)' }}
-              >
-                <td className="py-3 pr-4">
-                  <div className="flex items-center gap-2.5">
-                    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold"
-                      style={{ background: 'rgba(0,229,255,.12)', color: '#00E5FF' }}>
-                      {c.name.trim().charAt(0).toUpperCase()}
+    <div className="space-y-3">
+      <div className="flex gap-1 rounded-lg p-1 w-fit" style={{ background: '#0D1320', border: '1px solid #1E2D45' }}>
+        {SOURCE_OPTS.map(opt => (
+          <button
+            key={opt.value}
+            onClick={() => setSource(opt.value)}
+            className="rounded px-3 py-1 text-[11px] font-bold transition-all"
+            style={source === opt.value
+              ? { background: opt.color, color: '#000' }
+              : { color: '#5A7A9A' }
+            }
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b text-left" style={{ borderColor: '#1E2D45' }}>
+              {['Cliente', 'Pedidos', 'Faturamento', 'Lucro', 'Ticket Médio', 'Tipo', 'Último contato'].map(h => (
+                <th key={h} className="pb-3 pr-4 text-[10px] font-bold uppercase tracking-wider"
+                  style={{ color: '#5A7A9A' }}>
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map(({ c, m }, i) => {
+              const b = badge(c)
+              const ticket = m.tx > 0 ? Math.round(m.total / m.tx) : 0
+              return (
+                <tr
+                  key={i}
+                  className="border-b transition-colors hover:bg-white/[0.02]"
+                  style={{ borderColor: 'rgba(30,45,69,.5)' }}
+                >
+                  <td className="py-3 pr-4">
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold"
+                        style={{ background: 'rgba(0,229,255,.12)', color: '#00E5FF' }}>
+                        {c.name.trim().charAt(0).toUpperCase()}
+                      </div>
+                      <span className="font-medium text-sm" style={{ color: '#E8F0FE' }}>{c.name}</span>
                     </div>
-                    <span className="font-medium text-sm" style={{ color: '#E8F0FE' }}>{c.name}</span>
-                  </div>
-                </td>
-                <td className="py-3 pr-4 font-mono font-semibold" style={{ color: '#E8F0FE' }}>
-                  {c.transactions}
-                </td>
-                <td className="py-3 pr-4 font-mono font-semibold" style={{ color: '#00FF94' }}>
-                  {BRL(c.totalCents)}
-                </td>
-                <td className="py-3 pr-4 font-mono" style={{ color: '#8AA8C8' }}>
-                  {BRL(c.ticketMedioCents)}
-                </td>
-                <td className="py-3 pr-4">
-                  <span className="rounded-full px-2.5 py-1 text-[10px] font-bold"
-                    style={{ background: b.bg, color: b.color }}>
-                    {b.label}
-                  </span>
-                </td>
-                <td className="py-3 font-mono text-xs" style={{ color: '#5A7A9A' }}>
-                  {c.lastDate}
+                  </td>
+                  <td className="py-3 pr-4 font-mono font-semibold" style={{ color: '#E8F0FE' }}>
+                    {m.tx}
+                  </td>
+                  <td className="py-3 pr-4 font-mono font-semibold" style={{ color: '#E8F0FE' }}>
+                    {BRL(m.total)}
+                  </td>
+                  <td className="py-3 pr-4 font-mono font-semibold" style={{ color: '#00FF94' }}>
+                    {BRL(m.profit)}
+                  </td>
+                  <td className="py-3 pr-4 font-mono" style={{ color: '#8AA8C8' }}>
+                    {BRL(ticket)}
+                  </td>
+                  <td className="py-3 pr-4">
+                    <span className="rounded-full px-2.5 py-1 text-[10px] font-bold"
+                      style={{ background: b.bg, color: b.color }}>
+                      {b.label}
+                    </span>
+                  </td>
+                  <td className="py-3 font-mono text-xs" style={{ color: '#5A7A9A' }}>
+                    {c.lastDate}
+                  </td>
+                </tr>
+              )
+            })}
+            {filtered.length === 0 && (
+              <tr>
+                <td colSpan={7} className="py-10 text-center text-sm" style={{ color: '#5A7A9A' }}>
+                  Nenhum cliente encontrado no sistema selecionado
                 </td>
               </tr>
-            )
-          })}
-          {clients.length === 0 && (
-            <tr>
-              <td colSpan={6} className="py-10 text-center text-sm" style={{ color: '#5A7A9A' }}>
-                Nenhuma venda encontrada no período
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }
@@ -1000,9 +1125,11 @@ export function ErpClientesClient({ data }: { data: DashboardData }) {
           color="#00FF94"
           glowColor="rgba(0,255,148,.4)"
           totalCents={recorrentes.totalCents}
+          profitCents={recorrentes.profitCents}
           ticketMedioCents={recorrentes.ticketMedioCents}
           avgProducts={recorrentes.avgProducts}
           sharePercent={recorrentes.sharePercent}
+          marginPercent={recorrentes.marginPercent}
           transactions={recorrentes.transactions}
         />
         <ClientCard
@@ -1011,9 +1138,11 @@ export function ErpClientesClient({ data }: { data: DashboardData }) {
           color="#9B6DFF"
           glowColor="rgba(155,109,255,.4)"
           totalCents={novos.totalCents}
+          profitCents={novos.profitCents}
           ticketMedioCents={novos.ticketMedioCents}
           avgProducts={novos.avgProducts}
           sharePercent={novos.sharePercent}
+          marginPercent={novos.marginPercent}
           transactions={novos.transactions}
         />
       </div>

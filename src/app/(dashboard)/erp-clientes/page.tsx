@@ -36,22 +36,43 @@ function osTotal(o: { total_price_cents: number | null; service_price_cents: num
   return Math.max(0, (o.service_price_cents ?? 0) + (o.parts_sale_cents ?? 0) - (o.discount_cents ?? 0))
 }
 
+export type TopClientBreakdown = {
+  totalCents:   number
+  profitCents:  number
+  transactions: number
+}
+
 export type TopClient = {
   name: string
   type: 'novo' | 'recorrente'
   totalCents: number
+  profitCents: number
   transactions: number
   ticketMedioCents: number
   lastDate: string
+  sources: {
+    smarterp:   TopClientBreakdown
+    checksmart: TopClientBreakdown
+  }
 }
 
-export type MonthPoint = { label: string; recorrentes: number; novos: number }
+export type MonthPoint = {
+  label: string
+  recorrentes: number
+  novos: number
+  recorrentesProfit: number
+  novosProfit: number
+}
 
 export type ChurnClient = {
   name: string
   daysSince: number
   totalCents: number
   transactions: number
+  sources: {
+    smarterp:   { daysSince: number | null; totalCents: number; transactions: number }
+    checksmart: { daysSince: number | null; totalCents: number; transactions: number }
+  }
 }
 
 export type WeekdayMetrics = {
@@ -86,8 +107,8 @@ export type OriginBreakdown = {
 
 export type DashboardData = {
   period: Period
-  recorrentes: { totalCents: number; transactions: number; ticketMedioCents: number; avgProducts: string; sharePercent: number }
-  novos:       { totalCents: number; transactions: number; ticketMedioCents: number; avgProducts: string; sharePercent: number }
+  recorrentes: { totalCents: number; profitCents: number; transactions: number; ticketMedioCents: number; avgProducts: string; sharePercent: number; marginPercent: number }
+  novos:       { totalCents: number; profitCents: number; transactions: number; ticketMedioCents: number; avgProducts: string; sharePercent: number; marginPercent: number }
   monthlyData: MonthPoint[]
   topClients:  TopClient[]
   insightText: string
@@ -142,14 +163,14 @@ export default async function ErpClientesPage({
       .limit(1000),
 
     sb.from('sales')
-      .select('customer_id, total_cents, created_at, customers(full_name, created_at, origin)')
+      .select('customer_id, total_cents, created_at, sale_items(quantity, product_id), customers(full_name, created_at, origin)')
       .eq('tenant_id', tenantId)
       .gte('created_at', sixAgo.toISOString())
       .neq('status', 'cancelled')
       .limit(2000),
 
     sb.from('service_orders')
-      .select('customer_id, total_price_cents, service_price_cents, parts_sale_cents, discount_cents, received_at, customers(full_name, created_at, origin)')
+      .select('customer_id, total_price_cents, service_price_cents, parts_sale_cents, parts_cost_cents, discount_cents, received_at, customers(full_name, created_at, origin)')
       .eq('tenant_id', tenantId)
       .gte('received_at', sixAgo.toISOString())
       .neq('status', 'Cancelado')
@@ -166,8 +187,20 @@ export default async function ErpClientesPage({
 
   // Query separada de custos — sale_items.product_id pode apontar pra
   // products OU parts_catalog, então busco nas duas tabelas em paralelo.
+  type MonthSaleItem = { quantity: number; product_id: string | null }
+  type MonthSaleRow = { customer_id: string|null; total_cents: number; created_at: string; sale_items: MonthSaleItem[]|null; customers: {full_name:string; created_at:string; origin:string|null}|null }
+  type MonthOsRow   = { customer_id: string|null; total_price_cents: number|null; service_price_cents: number|null; parts_sale_cents: number|null; parts_cost_cents: number|null; discount_cents: number|null; received_at: string; customers: {full_name:string; created_at:string; origin:string|null}|null }
+
+  const salesMonthData = (salesMonthRes.data ?? []) as MonthSaleRow[]
+  const osMonthData    = (osMonthRes.data   ?? []) as MonthOsRow[]
+
   const productIds = new Set<string>()
   for (const s of salesPeriodData) {
+    for (const i of s.sale_items ?? []) {
+      if (i.product_id) productIds.add(i.product_id)
+    }
+  }
+  for (const s of salesMonthData) {
     for (const i of s.sale_items ?? []) {
       if (i.product_id) productIds.add(i.product_id)
     }
@@ -231,20 +264,47 @@ export default async function ErpClientesPage({
     }),
   ]
 
-  let recTot = 0, recTx = 0, recProd = 0
-  let novTot = 0, novTx = 0, novProd = 0
+  let recTot = 0, recProf = 0, recTx = 0, recProd = 0
+  let novTot = 0, novProf = 0, novTx = 0, novProd = 0
 
-  const customerMap = new Map<string, { name: string; type: 'novo'|'recorrente'; totalCents: number; tx: number; lastDate: Date }>()
+  type CustomerAgg = {
+    name: string; type: 'novo'|'recorrente'
+    totalCents: number; profitCents: number; tx: number; lastDate: Date
+    smarterp:   { totalCents: number; profitCents: number; tx: number }
+    checksmart: { totalCents: number; profitCents: number; tx: number }
+  }
+  const customerMap = new Map<string, CustomerAgg>()
 
   for (const t of periodTxs) {
     const type = classify(t.createdAt, start)
-    if (type === 'recorrente') { recTot += t.totalCents; recTx++; recProd += t.products }
-    else                       { novTot += t.totalCents; novTx++; novProd += t.products }
+    if (type === 'recorrente') { recTot += t.totalCents; recProf += t.profitCents; recTx++; recProd += t.products }
+    else                       { novTot += t.totalCents; novProf += t.profitCents; novTx++; novProd += t.products }
 
     if (t.customerId) {
       const ex = customerMap.get(t.customerId)
-      if (ex) { ex.totalCents += t.totalCents; ex.tx++; if (t.date > ex.lastDate) ex.lastDate = t.date }
-      else customerMap.set(t.customerId, { name: t.name, type, totalCents: t.totalCents, tx: 1, lastDate: t.date })
+      if (ex) {
+        ex.totalCents  += t.totalCents
+        ex.profitCents += t.profitCents
+        ex.tx++
+        if (t.date > ex.lastDate) ex.lastDate = t.date
+        const b = t.source === 'erp' ? ex.smarterp : ex.checksmart
+        b.totalCents  += t.totalCents
+        b.profitCents += t.profitCents
+        b.tx++
+      } else {
+        const emptyB = { totalCents: 0, profitCents: 0, tx: 0 }
+        const agg: CustomerAgg = {
+          name: t.name, type,
+          totalCents: t.totalCents, profitCents: t.profitCents, tx: 1, lastDate: t.date,
+          smarterp:   { ...emptyB },
+          checksmart: { ...emptyB },
+        }
+        const b = t.source === 'erp' ? agg.smarterp : agg.checksmart
+        b.totalCents  = t.totalCents
+        b.profitCents = t.profitCents
+        b.tx          = 1
+        customerMap.set(t.customerId, agg)
+      }
     }
   }
 
@@ -260,14 +320,19 @@ export default async function ErpClientesPage({
 
   const topClients: TopClient[] = [...customerMap.values()]
     .sort((a, b) => b.totalCents - a.totalCents)
-    .slice(0, 10)
+    .slice(0, 30)
     .map(c => ({
       name: c.name,
       type: c.type,
       totalCents: c.totalCents,
+      profitCents: c.profitCents,
       transactions: c.tx,
       ticketMedioCents: Math.round(c.totalCents / c.tx),
       lastDate: fmtLastDate(c.lastDate),
+      sources: {
+        smarterp:   { totalCents: c.smarterp.totalCents,   profitCents: c.smarterp.profitCents,   transactions: c.smarterp.tx },
+        checksmart: { totalCents: c.checksmart.totalCents, profitCents: c.checksmart.profitCents, transactions: c.checksmart.tx },
+      },
     }))
 
   // ── Sources: SmartERP vs CheckSmart ─────────────────────────────────────
@@ -382,26 +447,64 @@ export default async function ErpClientesPage({
     }
   })
 
-  type MonthTx = { customerId: string|null; name: string; createdAt: string|null; totalCents: number; date: Date }
+  type MonthTx = { customerId: string|null; name: string; createdAt: string|null; totalCents: number; profitCents: number; date: Date; source: 'erp' | 'checksmart' }
   const monthTxs: MonthTx[] = [
-    ...((salesMonthRes.data ?? []) as { customer_id: string|null; total_cents: number; created_at: string; customers: {full_name: string; created_at: string}|null }[])
-      .map(s => ({ customerId: s.customer_id, name: s.customers?.full_name ?? 'Sem cliente', createdAt: s.customers?.created_at ?? null, totalCents: s.total_cents ?? 0, date: new Date(s.created_at) })),
-    ...((osMonthRes.data ?? []) as { customer_id: string|null; total_price_cents: number|null; service_price_cents: number|null; parts_sale_cents: number|null; discount_cents: number|null; received_at: string; customers: {full_name: string; created_at: string}|null }[])
-      .map(o => ({ customerId: o.customer_id, name: o.customers?.full_name ?? 'Sem cliente', createdAt: o.customers?.created_at ?? null, totalCents: osTotal(o), date: new Date(o.received_at) })),
+    ...salesMonthData.map(s => {
+      const items = s.sale_items ?? []
+      const total = s.total_cents ?? 0
+      const cost = items.reduce((sum, i) => {
+        const c = i.product_id ? (costMap.get(i.product_id) ?? 0) : 0
+        return sum + (i.quantity ?? 0) * c
+      }, 0)
+      return {
+        customerId: s.customer_id,
+        name: s.customers?.full_name ?? 'Sem cliente',
+        createdAt: s.customers?.created_at ?? null,
+        totalCents: total,
+        profitCents: total - cost,
+        date: new Date(s.created_at),
+        source: 'erp' as const,
+      }
+    }),
+    ...osMonthData.map(o => {
+      const total = osTotal(o)
+      const partsCost = o.parts_cost_cents ?? 0
+      return {
+        customerId: o.customer_id,
+        name: o.customers?.full_name ?? 'Sem cliente',
+        createdAt: o.customers?.created_at ?? null,
+        totalCents: total,
+        profitCents: total - partsCost,
+        date: new Date(o.received_at),
+        source: 'checksmart' as const,
+      }
+    }),
   ]
 
   const monthlyData: MonthPoint[] = months.map(m => {
-    let rec = 0, nov = 0
+    let rec = 0, nov = 0, recP = 0, novP = 0
     for (const t of monthTxs) {
       if (t.date < m.start || t.date > m.end) continue
-      if (classify(t.createdAt, m.start) === 'recorrente') rec += t.totalCents
-      else nov += t.totalCents
+      if (classify(t.createdAt, m.start) === 'recorrente') {
+        rec  += t.totalCents
+        recP += t.profitCents
+      } else {
+        nov  += t.totalCents
+        novP += t.profitCents
+      }
     }
-    return { label: m.label, recorrentes: rec, novos: nov }
+    return { label: m.label, recorrentes: rec, novos: nov, recorrentesProfit: recP, novosProfit: novP }
   })
 
   // ── Activity map (6 months) → Churn + RFM ───────────────────────────────
-  const activityMap = new Map<string, { name: string; lastDate: Date; totalCents: number; tx: number }>()
+  type ActivityEntry = {
+    name: string
+    lastDate: Date
+    totalCents: number; tx: number
+    smarterp:   { lastDate: Date | null; totalCents: number; tx: number }
+    checksmart: { lastDate: Date | null; totalCents: number; tx: number }
+  }
+  const activityMap = new Map<string, ActivityEntry>()
   for (const t of monthTxs) {
     if (!t.customerId) continue
     const ex = activityMap.get(t.customerId)
@@ -409,20 +512,55 @@ export default async function ErpClientesPage({
       ex.totalCents += t.totalCents
       ex.tx++
       if (t.date > ex.lastDate) ex.lastDate = t.date
+      const b = t.source === 'erp' ? ex.smarterp : ex.checksmart
+      b.totalCents += t.totalCents
+      b.tx++
+      if (!b.lastDate || t.date > b.lastDate) b.lastDate = t.date
     } else {
-      activityMap.set(t.customerId, { name: t.name, lastDate: t.date, totalCents: t.totalCents, tx: 1 })
+      const agg: ActivityEntry = {
+        name: t.name, lastDate: t.date,
+        totalCents: t.totalCents, tx: 1,
+        smarterp:   { lastDate: null, totalCents: 0, tx: 0 },
+        checksmart: { lastDate: null, totalCents: 0, tx: 0 },
+      }
+      const b = t.source === 'erp' ? agg.smarterp : agg.checksmart
+      b.lastDate   = t.date
+      b.totalCents = t.totalCents
+      b.tx         = 1
+      activityMap.set(t.customerId, agg)
     }
   }
 
   const now = Date.now()
   const MS_DAY = 86400000
+  const daysSinceFn = (d: Date | null) => d ? Math.floor((now - d.getTime()) / MS_DAY) : null
 
   const churnRisk: ChurnClient[] = [...activityMap.values()]
-    .map(c => ({ ...c, daysSince: Math.floor((now - c.lastDate.getTime()) / MS_DAY) }))
-    .filter(c => c.daysSince >= 60)
-    .sort((a, b) => b.totalCents - a.totalCents)
-    .slice(0, 10)
-    .map(({ name, daysSince, totalCents, tx }) => ({ name, daysSince, totalCents, transactions: tx }))
+    .map(c => ({
+      c,
+      totalDays: Math.floor((now - c.lastDate.getTime()) / MS_DAY),
+    }))
+    .filter(x => x.totalDays >= 60)
+    .sort((a, b) => b.c.totalCents - a.c.totalCents)
+    .slice(0, 30)
+    .map(({ c, totalDays }) => ({
+      name: c.name,
+      daysSince: totalDays,
+      totalCents: c.totalCents,
+      transactions: c.tx,
+      sources: {
+        smarterp: {
+          daysSince: daysSinceFn(c.smarterp.lastDate),
+          totalCents: c.smarterp.totalCents,
+          transactions: c.smarterp.tx,
+        },
+        checksmart: {
+          daysSince: daysSinceFn(c.checksmart.lastDate),
+          totalCents: c.checksmart.totalCents,
+          transactions: c.checksmart.tx,
+        },
+      },
+    }))
 
   let campeoes = 0, emRisco = 0, novosPromissores = 0, dormentes = 0
   for (const [, c] of activityMap) {
@@ -452,17 +590,21 @@ export default async function ErpClientesPage({
     period,
     recorrentes: {
       totalCents:       recTot,
+      profitCents:      recProf,
       transactions:     recTx,
       ticketMedioCents: recTx > 0 ? Math.round(recTot / recTx) : 0,
       avgProducts:      recTx > 0 ? (recProd / recTx).toFixed(1) : '0.0',
       sharePercent:     recShare,
+      marginPercent:    recTot > 0 ? Math.round((recProf / recTot) * 100) : 0,
     },
     novos: {
       totalCents:       novTot,
+      profitCents:      novProf,
       transactions:     novTx,
       ticketMedioCents: novTx > 0 ? Math.round(novTot / novTx) : 0,
       avgProducts:      novTx > 0 ? (novProd / novTx).toFixed(1) : '0.0',
       sharePercent:     100 - recShare,
+      marginPercent:    novTot > 0 ? Math.round((novProf / novTot) * 100) : 0,
     },
     monthlyData,
     topClients,
