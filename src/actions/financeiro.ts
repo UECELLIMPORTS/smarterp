@@ -109,6 +109,99 @@ export async function updateServiceOrderPayment(orderId: string, paymentMethod: 
   revalidatePath('/financeiro')
 }
 
+// ── Editar OS (versão "Opção B") ────────────────────────────────────────────
+// Permite alterar cliente, data, valor de serviço, desconto, pagamento.
+// NÃO mexe em peças (order_parts) — pra isso o usuário deve usar o CheckSmart.
+// Espelha as Server Actions updateOrder + updateOrderFinancials do CheckSmart.
+
+export type EditServiceOrderInput = {
+  customer_id?:         string | null
+  received_at?:         string         // ISO string da data de recebimento
+  service_price_cents?: number
+  discount_cents?:      number
+  payment_method?:      string | null
+  payment_installments?: number | null
+  paid_at?:             string | null  // ISO ou null pra "não pago"
+}
+
+export async function updateServiceOrder(orderId: string, input: EditServiceOrderInput): Promise<void> {
+  const { supabase, user } = await requireAuth()
+  const tenantId = getTenantId(user)
+
+  // Confirma posse + status (não permite editar OS cancelada — igual CheckSmart)
+  const { data: order, error: fetchErr } = await supabase
+    .from('service_orders')
+    .select('id, status')
+    .eq('id', orderId)
+    .eq('tenant_id', tenantId)
+    .single()
+
+  if (fetchErr || !order) throw new Error('Ordem de serviço não encontrada.')
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const patch: Record<string, any> = { updated_at: new Date().toISOString() }
+  if (input.customer_id          !== undefined) patch.customer_id          = input.customer_id
+  if (input.received_at          !== undefined) patch.received_at          = input.received_at
+  if (input.service_price_cents  !== undefined) patch.service_price_cents  = Math.max(0, Math.round(input.service_price_cents))
+  if (input.discount_cents       !== undefined) patch.discount_cents       = Math.max(0, Math.round(input.discount_cents))
+  if (input.payment_method       !== undefined) patch.payment_method       = input.payment_method
+  if (input.payment_installments !== undefined) patch.payment_installments = input.payment_installments
+  if (input.paid_at              !== undefined) patch.paid_at              = input.paid_at
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any
+  const { error } = await sb
+    .from('service_orders')
+    .update(patch)
+    .eq('id', orderId)
+    .eq('tenant_id', tenantId)
+
+  if (error) throw new Error(error.message)
+  revalidatePath('/financeiro')
+  revalidatePath('/analytics/canais')
+  revalidatePath('/erp-clientes')
+}
+
+// ── Listar peças de uma OS (read-only — pra exibir no modal) ─────────────────
+
+export type OrderPartView = {
+  id:                     string
+  name:                   string
+  quantity:               number
+  unitCostCents:          number
+  unitSalePriceCents:     number
+  totalSaleCents:         number   // qty × unitSalePrice
+  supplier:               string | null
+}
+
+export async function getServiceOrderParts(orderId: string): Promise<OrderPartView[]> {
+  const { supabase, user } = await requireAuth()
+  const tenantId = getTenantId(user)
+
+  // Confirma posse via join com service_orders.tenant_id (RLS seguro)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any
+  const { data, error } = await sb
+    .from('order_parts')
+    .select('id, name, quantity, unit_cost_cents, unit_sale_price_cents, supplier, service_orders!inner(tenant_id)')
+    .eq('order_id', orderId)
+    .eq('service_orders.tenant_id', tenantId)
+    .order('created_at', { ascending: true })
+
+  if (error) throw new Error(error.message)
+
+  type Row = { id: string; name: string; quantity: number; unit_cost_cents: number | null; unit_sale_price_cents: number | null; supplier: string | null }
+  return ((data ?? []) as Row[]).map(r => ({
+    id:                 r.id,
+    name:               r.name,
+    quantity:           r.quantity,
+    unitCostCents:      r.unit_cost_cents ?? 0,
+    unitSalePriceCents: r.unit_sale_price_cents ?? 0,
+    totalSaleCents:     (r.unit_sale_price_cents ?? 0) * r.quantity,
+    supplier:           r.supplier,
+  }))
+}
+
 // ── Delete ERP sale (only when already cancelled) ────────────────────────────
 
 export async function deleteSale(saleId: string): Promise<void> {

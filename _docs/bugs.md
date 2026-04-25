@@ -139,3 +139,11 @@
 - 📅 Data: 25/04/2026
 
 **BUG-LIÇÃO**: opacity em CSS é uma das poucas propriedades que NÃO podem ser desfeitas em descendentes — sempre aplique em folhas (filhos visuais), nunca em containers que tenham UI interativa (dropdowns, modais, popovers).
+
+**BUG-021** *(resolvido — REGRESSÃO do BUG-020)*
+- 📍 Financeiro → mesmo sintoma do BUG-020 (Reativar não dispara em vendas canceladas)
+- 🔴 Descrição: Menu de ações em venda cancelada novamente travado, cliques não disparavam Reativar/Editar/Excluir
+- 🔍 Causa: Refatoração do row pra mobile (commit 56f8dcb) trocou o `[&>*:not(:last-child)]:opacity-45` original por `opacity-60` direto no wrapper externo. Bug-020 voltou em forma idêntica — opacity propagou pro popup do menu (que agora é renderizado dentro do mesmo wrapper externo, posicionado absolute). Stacking context isolado, hit-testing falhou.
+- ✅ Solução: Wrapper externo sem opacity. Aplicar `opacity-60` individualmente nos blocos `<div md:hidden>` (mobile card) e `<div hidden md:grid>` (desktop grid). O popup `<div absolute>` é renderizado fora dos dois e fica 100% opaco.
+- 📅 Data: 26/04/2026
+- 💡 Aplicação da BUG-LIÇÃO: SEMPRE que tiver wrapper que contém UI interativa + UI desbotada, aplicar opacity nos elementos desbotados, nunca no wrapper.

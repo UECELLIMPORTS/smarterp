@@ -13,8 +13,10 @@ import {
   createManualSale, updateSaleDate, deleteSale,
   updateServiceOrderPayment, bulkCancel, bulkDeleteSales, bulkDeleteServiceOrders,
   updateCancelledSale,
+  updateServiceOrder, getServiceOrderParts,
   type ManualSaleItem,
   type EditSaleInput,
+  type OrderPartView,
 } from '@/actions/financeiro'
 import {
   searchCustomers, searchProducts, createCustomer, updateCustomerOrigin,
@@ -204,6 +206,101 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
     setRcDelivery((row.deliveryType as DeliveryType | undefined) ?? '')
     setRcRow(row)
   }
+
+  // ── Editar OS (CheckSmart) ─────────────────────────────────────────────────
+  const [eosRow, setEosRow]                       = useState<FinanceiroRow | null>(null)
+  const [eosCustomerId, setEosCustomerId]         = useState<string | null>(null)
+  const [eosCustomerName, setEosCustomerName]     = useState('')
+  const [eosCustQuery, setEosCustQuery]           = useState('')
+  const [eosCustResults, setEosCustResults]       = useState<Customer[]>([])
+  const [eosCustSearching, setEosCustSearching]   = useState(false)
+  const [eosShowCustDrop, setEosShowCustDrop]     = useState(false)
+  const [eosDate, setEosDate]                     = useState('')
+  const [eosServicePrice, setEosServicePrice]     = useState('')
+  const [eosDiscount, setEosDiscount]             = useState('')
+  const [eosPayMethod, setEosPayMethod]           = useState('')
+  const [eosInstallments, setEosInstallments]     = useState('1')
+  const [eosParts, setEosParts]                   = useState<OrderPartView[]>([])
+  const [eosLoadingParts, setEosLoadingParts]     = useState(false)
+  const [eosSaving, startEosSave]                 = useTransition()
+
+  async function openEditOS(row: FinanceiroRow) {
+    setEosRow(row)
+    setEosCustomerId(row.customerId ?? null)
+    setEosCustomerName(row.customerName)
+    setEosCustQuery('')
+    setEosCustResults([])
+    setEosShowCustDrop(false)
+    // Date: row.date pode vir como Date ou string (Server Component → Client)
+    const dateObj = row.date instanceof Date ? row.date : new Date(row.date as unknown as string)
+    const validDate = isNaN(dateObj.getTime()) ? new Date() : dateObj
+    // input type=datetime-local precisa de YYYY-MM-DDTHH:mm
+    const pad = (n: number) => String(n).padStart(2, '0')
+    setEosDate(`${validDate.getFullYear()}-${pad(validDate.getMonth() + 1)}-${pad(validDate.getDate())}T${pad(validDate.getHours())}:${pad(validDate.getMinutes())}`)
+    setEosServicePrice('')
+    setEosDiscount(((row.discount ?? 0) / 100).toFixed(2).replace('.', ','))
+    setEosPayMethod(row.payment ?? '')
+    setEosInstallments('1')
+    // Carrega peças (read-only)
+    setEosParts([])
+    setEosLoadingParts(true)
+    try {
+      const parts = await getServiceOrderParts(row.rawId)
+      setEosParts(parts)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao carregar peças.')
+    } finally {
+      setEosLoadingParts(false)
+    }
+  }
+
+  function doSaveEditOS() {
+    if (!eosRow) return
+    const row = eosRow
+    startEosSave(async () => {
+      try {
+        await updateServiceOrder(row.rawId, {
+          customer_id:         eosCustomerId,
+          received_at:         new Date(eosDate).toISOString(),
+          service_price_cents: eosServicePrice ? parseCents(eosServicePrice) : undefined,
+          discount_cents:      parseCents(eosDiscount),
+          payment_method:      eosPayMethod || null,
+          payment_installments: Math.max(1, parseInt(eosInstallments) || 1),
+        })
+        toast.success('OS atualizada.')
+        setEosRow(null)
+        // Atualiza row local com os novos dados (otimização — refresh teria mesmo efeito)
+        setRows(rs => rs.map(r => r.id === row.id ? {
+          ...r,
+          customerId:   eosCustomerId,
+          customerName: eosCustomerName,
+          date:         new Date(eosDate),
+          discount:     parseCents(eosDiscount),
+          payment:      eosPayMethod || null,
+        } : r))
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : 'Erro ao salvar OS.')
+      }
+    })
+  }
+
+  // Busca de clientes do modal Editar OS
+  useEffect(() => {
+    if (!eosShowCustDrop || eosCustQuery.trim().length < 2) {
+      setEosCustResults([])
+      return
+    }
+    let cancelled = false
+    setEosCustSearching(true)
+    const t = setTimeout(async () => {
+      try {
+        const results = await searchCustomers(eosCustQuery.trim())
+        if (!cancelled) setEosCustResults(results)
+      } catch { /* ignore */ }
+      finally { if (!cancelled) setEosCustSearching(false) }
+    }, 300)
+    return () => { cancelled = true; clearTimeout(t) }
+  }, [eosCustQuery, eosShowCustDrop])
 
   function doReclassify() {
     if (!rcRow) return
@@ -883,11 +980,12 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
               return (
                 <div key={row.id}
                   ref={openMenu === row.id ? menuRef : undefined}
-                  className={`relative border-b last:border-0 transition-opacity ${row.cancelled ? 'opacity-60' : ''}`}
+                  className="relative border-b last:border-0"
                   style={{ borderColor: '#1E2D45' }}>
 
-                  {/* ── Mobile card view ── */}
-                  <div className="md:hidden flex flex-col gap-2 px-4 py-3">
+                  {/* ── Mobile card view ── (opacity aplicada AQUI, não no wrapper externo,
+                       pra não atingir o popup do menu — vide BUG-020 em _docs/bugs.md) */}
+                  <div className={`md:hidden flex flex-col gap-2 px-4 py-3 transition-opacity ${row.cancelled ? 'opacity-60' : ''}`}>
                     <div className="flex items-start gap-2">
                       <input type="checkbox" checked={selected.has(row.id)} onChange={() => toggleSelect(row.id)}
                         className="h-4 w-4 mt-1 rounded accent-accent cursor-pointer shrink-0" />
@@ -947,8 +1045,8 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                     </div>
                   </div>
 
-                  {/* ── Desktop grid view ── */}
-                  <div className="hidden md:grid gap-4 px-5 py-3.5 items-center"
+                  {/* ── Desktop grid view ── (opacity individual pelo mesmo motivo) */}
+                  <div className={`hidden md:grid gap-4 px-5 py-3.5 items-center transition-opacity ${row.cancelled ? 'opacity-60' : ''}`}
                     style={{ gridTemplateColumns: '32px 90px 1fr 150px 110px 100px 110px 40px' }}>
                   <input type="checkbox" checked={selected.has(row.id)} onChange={() => toggleSelect(row.id)}
                     className="h-4 w-4 rounded accent-accent cursor-pointer" />
@@ -1041,6 +1139,15 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                             label="Editar pagamento"
                             accentColor="#FFB800"
                             onClick={() => { setOpenMenu(null); setEditPayVal(row.payment ?? ''); setEditPayRow(row) }}
+                          />
+                        )}
+                        {/* Editar OS — CheckSmart (não-cancelada) */}
+                        {row.source === 'checksmart' && !row.cancelled && (
+                          <MenuItem
+                            icon={<Pencil className="h-5 w-5 shrink-0 pointer-events-none" style={{ color: '#00E5FF' }} />}
+                            label="Editar OS"
+                            accentColor="#00E5FF"
+                            onClick={() => { setOpenMenu(null); openEditOS(row) }}
                           />
                         )}
                         {/* Reclassificar canal — OS CheckSmart */}
@@ -1952,6 +2059,164 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                 style={{ background: '#00FF94' }}>
                 {nvSaving && <Loader2 className="h-4 w-4 animate-spin" />}
                 {nvSaving ? 'Registrando…' : 'Registrar Venda'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal Editar OS (CheckSmart) — Opção B: financeiro + cliente, peças read-only ── */}
+      {eosRow && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4"
+          style={{ background: 'rgba(0,0,0,0.75)' }}
+          onClick={e => { if (e.target === e.currentTarget) setEosRow(null) }}>
+          <div className="relative w-full max-w-2xl rounded-2xl border my-8" style={{ background: '#0D1521', borderColor: '#1E2D45' }}>
+            {/* Header */}
+            <div className="flex items-center justify-between border-b px-6 py-4" style={{ borderColor: '#1E2D45' }}>
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl" style={{ background: '#00E5FF18' }}>
+                  <Pencil className="h-5 w-5" style={{ color: '#00E5FF' }} />
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold text-text">Editar OS</h3>
+                  <p className="text-xs text-muted">Origem: CheckSmart</p>
+                </div>
+              </div>
+              <button onClick={() => setEosRow(null)} className="text-muted hover:text-text">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {/* Cliente */}
+              <div className="relative">
+                <label className="mb-1 block text-xs font-medium text-muted">Cliente</label>
+                <input
+                  type="text"
+                  value={eosCustQuery || eosCustomerName}
+                  onChange={e => { setEosCustQuery(e.target.value); setEosShowCustDrop(true) }}
+                  onFocus={() => { setEosCustQuery(''); setEosShowCustDrop(true) }}
+                  placeholder="Buscar cliente..."
+                  className={INP} style={INP_S}
+                />
+                {eosShowCustDrop && eosCustQuery.trim().length >= 2 && (
+                  <div className="absolute left-0 right-0 top-full mt-1 z-10 rounded-lg border max-h-60 overflow-y-auto"
+                    style={{ background: '#0F1A2B', borderColor: '#2A3D5C' }}>
+                    {eosCustSearching && (
+                      <div className="p-3 text-xs text-muted flex items-center gap-2">
+                        <Loader2 className="h-3 w-3 animate-spin" /> Buscando...
+                      </div>
+                    )}
+                    {!eosCustSearching && eosCustResults.length === 0 && (
+                      <p className="p-3 text-xs text-muted">Nenhum cliente encontrado.</p>
+                    )}
+                    {eosCustResults.map(c => (
+                      <button key={c.id} type="button"
+                        onClick={() => {
+                          setEosCustomerId(c.id)
+                          setEosCustomerName(c.full_name)
+                          setEosCustQuery('')
+                          setEosShowCustDrop(false)
+                        }}
+                        className="w-full text-left px-3 py-2 hover:bg-white/5 text-sm border-b last:border-b-0"
+                        style={{ borderColor: '#1E2D45', color: '#E8F0FE' }}>
+                        {c.full_name}
+                        {c.whatsapp && <span className="ml-2 text-[11px] text-muted">{c.whatsapp}</span>}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Data + Pagamento */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-muted">Data / Hora</label>
+                  <input type="datetime-local" value={eosDate} onChange={e => setEosDate(e.target.value)}
+                    className={INP} style={{ ...INP_S, colorScheme: 'dark' }} />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-muted">Forma de pagamento</label>
+                  <select value={eosPayMethod} onChange={e => setEosPayMethod(e.target.value)}
+                    className={INP} style={INP_S}>
+                    <option value="">— Não informado —</option>
+                    <option value="cash">Dinheiro</option>
+                    <option value="pix">PIX</option>
+                    <option value="credit_card">Cartão de Crédito</option>
+                    <option value="debit_card">Cartão de Débito</option>
+                    <option value="transfer">Transferência</option>
+                    <option value="pending">A receber</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Valor de serviço + Desconto */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-muted">Novo valor do serviço (R$)</label>
+                  <input type="text" inputMode="decimal" value={eosServicePrice}
+                    onChange={e => setEosServicePrice(e.target.value)}
+                    placeholder="Deixe vazio pra manter o atual"
+                    className={INP} style={INP_S} />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-muted">Desconto (R$)</label>
+                  <input type="text" inputMode="decimal" value={eosDiscount}
+                    onChange={e => setEosDiscount(e.target.value)}
+                    placeholder="0,00" className={INP} style={INP_S} />
+                </div>
+              </div>
+
+              {/* Peças (read-only) */}
+              <div className="rounded-xl border p-4" style={{ background: '#0F1A2B', borderColor: '#1E2D45' }}>
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#8AA8C8' }}>
+                    Peças da OS ({eosParts.length})
+                  </p>
+                  <a href="https://checksmart-grok.vercel.app/orders" target="_blank" rel="noopener noreferrer"
+                    className="text-xs font-semibold hover:underline" style={{ color: '#00E5FF' }}>
+                    Editar peças no CheckSmart →
+                  </a>
+                </div>
+                {eosLoadingParts ? (
+                  <p className="text-xs text-muted flex items-center gap-2">
+                    <Loader2 className="h-3 w-3 animate-spin" /> Carregando peças...
+                  </p>
+                ) : eosParts.length === 0 ? (
+                  <p className="text-xs text-muted">Nenhuma peça lançada nesta OS.</p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {eosParts.map(p => (
+                      <div key={p.id} className="flex items-center justify-between text-xs">
+                        <span className="text-text truncate">
+                          {p.quantity}× {p.name}
+                          {p.supplier && <span className="text-muted ml-1">· {p.supplier}</span>}
+                        </span>
+                        <span className="font-mono shrink-0 ml-2" style={{ color: '#00FF94' }}>
+                          {BRL(p.totalSaleCents)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <p className="text-[10px] mt-2" style={{ color: '#5A7A9A' }}>
+                  Pra adicionar, remover ou alterar peças, use o CheckSmart (modelo de dados diferente entre os 2 sistemas).
+                </p>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-end gap-2 border-t px-6 py-4" style={{ borderColor: '#1E2D45' }}>
+              <button onClick={() => setEosRow(null)}
+                className="rounded-lg border px-4 py-2 text-sm text-muted hover:text-text"
+                style={{ borderColor: '#1E2D45' }}>
+                Cancelar
+              </button>
+              <button onClick={doSaveEditOS} disabled={eosSaving || !eosDate}
+                className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold disabled:opacity-50"
+                style={{ background: '#00E5FF', color: '#080C14' }}>
+                {eosSaving && <Loader2 className="h-4 w-4 animate-spin" />}
+                {eosSaving ? 'Salvando...' : 'Salvar Alterações'}
               </button>
             </div>
           </div>
