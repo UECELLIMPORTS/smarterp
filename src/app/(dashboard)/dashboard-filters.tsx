@@ -5,6 +5,7 @@ import { useState } from 'react'
 
 type Period = 'today' | '7d' | '30d' | 'custom'
 type Origin = 'all' | 'erp' | 'checksmart'
+type OsStatus = 'delivered' | 'pending' | 'all'
 
 const PERIODS: { id: Period; label: string }[] = [
   { id: 'today',  label: 'Hoje' },
@@ -19,19 +20,28 @@ const ORIGINS: { id: Origin; label: string }[] = [
   { id: 'checksmart', label: 'CheckSmart' },
 ]
 
+const OS_STATUSES: { id: OsStatus; label: string; hint: string }[] = [
+  { id: 'delivered', label: 'OS entregues',    hint: 'Apenas faturamento já realizado (padrão)' },
+  { id: 'pending',   label: 'OS pendentes',    hint: 'Em diagnóstico, aguardando peças, em reparo, prontas' },
+  { id: 'all',       label: 'Todas as OS',     hint: 'Entregues + pendentes (exclui canceladas)' },
+]
+
 export function DashboardFilters() {
   const router = useRouter()
   const params = useSearchParams()
 
-  const period = (params.get('period') ?? 'today') as Period
-  const origin = (params.get('origin') ?? 'all') as Origin
+  const period   = (params.get('period') ?? 'today') as Period
+  const origin   = (params.get('origin') ?? 'all') as Origin
+  const osStatus = ((['delivered', 'pending', 'all'].includes(params.get('os_status') ?? '')
+    ? params.get('os_status')
+    : 'delivered') ?? 'delivered') as OsStatus
 
   const [showCustom, setShowCustom] = useState(period === 'custom')
   const [fromDate, setFromDate]     = useState(params.get('from') ?? '')
   const [toDate, setToDate]         = useState(params.get('to') ?? '')
 
-  function navigate(p: Period, o: Origin, f?: string, t?: string) {
-    const sp = new URLSearchParams({ period: p, origin: o })
+  function navigate(p: Period, o: Origin, os: OsStatus, f?: string, t?: string) {
+    const sp = new URLSearchParams({ period: p, origin: o, os_status: os })
     if (p === 'custom' && f && t) { sp.set('from', f); sp.set('to', t) }
     router.push(`/?${sp.toString()}`)
   }
@@ -47,7 +57,7 @@ export function DashboardFilters() {
             onClick={() => {
               if (id === 'custom') { setShowCustom(v => !v); return }
               setShowCustom(false)
-              navigate(id, origin)
+              navigate(id, origin, osStatus)
             }}
             className="border-r px-4 py-2 text-xs font-medium transition-colors last:border-0"
             style={{
@@ -84,7 +94,7 @@ export function DashboardFilters() {
             onClick={() => {
               if (!fromDate || !toDate) return
               setShowCustom(false)
-              navigate('custom', origin, fromDate, toDate)
+              navigate('custom', origin, osStatus, fromDate, toDate)
             }}
             disabled={!fromDate || !toDate}
             className="rounded-lg px-3 py-1.5 text-xs font-semibold transition-opacity disabled:opacity-50"
@@ -100,7 +110,7 @@ export function DashboardFilters() {
         {ORIGINS.map(({ id, label }) => (
           <button
             key={id}
-            onClick={() => navigate(period, id, params.get('from') ?? undefined, params.get('to') ?? undefined)}
+            onClick={() => navigate(period, id, osStatus, params.get('from') ?? undefined, params.get('to') ?? undefined)}
             className="border-r px-4 py-2 text-xs font-medium transition-colors last:border-0"
             style={{
               borderColor: '#1E2D45',
@@ -113,6 +123,28 @@ export function DashboardFilters() {
           </button>
         ))}
       </div>
+
+      {/* Status OS — só faz sentido quando origin inclui CheckSmart */}
+      {origin !== 'erp' && (
+        <div className="flex rounded-xl border overflow-hidden" style={{ borderColor: '#1E2D45' }}>
+          {OS_STATUSES.map(({ id, label, hint }) => (
+            <button
+              key={id}
+              onClick={() => navigate(period, origin, id, params.get('from') ?? undefined, params.get('to') ?? undefined)}
+              title={hint}
+              className="border-r px-4 py-2 text-xs font-medium transition-colors last:border-0"
+              style={{
+                borderColor: '#1E2D45',
+                ...(osStatus === id
+                  ? { background: '#FFAA0018', color: '#FFAA00' }
+                  : { color: '#64748B' }),
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
 
     </div>
   )

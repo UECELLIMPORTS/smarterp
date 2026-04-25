@@ -108,7 +108,8 @@ function KPICard({ title, value, subtitle, icon: Icon, color, trend }: KPICardPr
 
 // ── Page ───────────────────────────────────────────────────────────────────
 
-type SearchParams = { period?: string; origin?: string; from?: string; to?: string }
+type OsStatus = 'delivered' | 'pending' | 'all'
+type SearchParams = { period?: string; origin?: string; from?: string; to?: string; os_status?: string }
 
 export default async function DashboardPage(props: { searchParams: Promise<SearchParams> }) {
   let auth: Awaited<ReturnType<typeof requireAuth>>
@@ -122,6 +123,19 @@ export default async function DashboardPage(props: { searchParams: Promise<Searc
   const origin = (sp.origin ?? 'all') as Origin
   const fromDate = sp.from
   const toDate   = sp.to
+  // Default 'delivered' — só conta OSs entregues como faturamento. Pendentes
+  // não contam (ainda não viraram receita) e canceladas nunca contam.
+  const osStatus = (['delivered', 'pending', 'all'].includes(sp.os_status ?? '')
+    ? sp.os_status
+    : 'delivered') as OsStatus
+
+  /** Aplica filtro de status às queries de service_orders. */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const applyOsFilter = (q: any) => {
+    if (osStatus === 'delivered') return q.in('status', ['delivered', 'Entregue'])
+    if (osStatus === 'pending')   return q.not('status', 'in', '("delivered","Entregue","cancelled")')
+    return q.neq('status', 'cancelled')   // 'all' = tudo menos canceladas
+  }
 
   const { start, end }       = getPeriodRange(period, fromDate, toDate)
   const { start: mStart, end: mEnd } = getMonthRange()
@@ -145,7 +159,7 @@ export default async function DashboardPage(props: { searchParams: Promise<Searc
     salesOriginRes,
     osOriginRes,
   ] = await Promise.all([
-    // 1. Sales no período (ERP)
+    // 1. Sales no período (ERP) — exclui canceladas
     showERP
       ? supabase
           .from('sales')
@@ -153,19 +167,20 @@ export default async function DashboardPage(props: { searchParams: Promise<Searc
           .eq('tenant_id', tenantId)
           .gte('created_at', start.toISOString())
           .lte('created_at', end.toISOString())
+          .neq('status', 'cancelled')
       : EMPTY,
 
-    // 2. Service orders no período (CheckSmart)
+    // 2. Service orders no período (CheckSmart) — filtra por osStatus
     showCS
-      ? supabase
+      ? applyOsFilter(supabase
           .from('service_orders')
           .select('total_price_cents', { count: 'exact' })
           .eq('tenant_id', tenantId)
           .gte('received_at', start.toISOString())
-          .lte('received_at', end.toISOString())
+          .lte('received_at', end.toISOString()))
       : EMPTY,
 
-    // 3. Sales no mês (ERP)
+    // 3. Sales no mês (ERP) — exclui canceladas
     showERP
       ? supabase
           .from('sales')
@@ -173,34 +188,36 @@ export default async function DashboardPage(props: { searchParams: Promise<Searc
           .eq('tenant_id', tenantId)
           .gte('created_at', mStart.toISOString())
           .lte('created_at', mEnd.toISOString())
+          .neq('status', 'cancelled')
       : EMPTY,
 
-    // 4. Service orders no mês (CheckSmart)
+    // 4. Service orders no mês (CheckSmart) — filtra por osStatus
     showCS
-      ? supabase
+      ? applyOsFilter(supabase
           .from('service_orders')
           .select('total_price_cents')
           .eq('tenant_id', tenantId)
           .gte('received_at', mStart.toISOString())
-          .lte('received_at', mEnd.toISOString())
+          .lte('received_at', mEnd.toISOString()))
       : EMPTY,
 
-    // 5. Últimas sales (atividade)
+    // 5. Últimas sales (atividade) — exclui canceladas
     showERP
       ? supabase
           .from('sales')
           .select('id, total_cents, payment_method, created_at, customers ( full_name )')
           .eq('tenant_id', tenantId)
+          .neq('status', 'cancelled')
           .order('created_at', { ascending: false })
           .limit(10)
       : EMPTY,
 
-    // 6. Últimas service_orders (atividade)
+    // 6. Últimas service_orders (atividade) — filtra por osStatus
     showCS
-      ? supabase
+      ? applyOsFilter(supabase
           .from('service_orders')
           .select('id, total_price_cents, status, received_at, customers ( full_name )')
-          .eq('tenant_id', tenantId)
+          .eq('tenant_id', tenantId))
           .order('received_at', { ascending: false })
           .limit(10)
       : EMPTY,
