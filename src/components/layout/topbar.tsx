@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { LogOut, Bell } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
+import { MobileNav } from './mobile-nav'
 
 type Props = { userName: string; userEmail: string }
 
@@ -24,10 +25,12 @@ export function Topbar({ userName, userEmail }: Props) {
 
   return (
     <header
-      className="fixed right-0 top-0 z-30 flex h-16 items-center justify-between border-b px-6"
-      style={{ left: '240px', background: '#080C14', borderColor: '#1E2D45' }}
+      // No mobile (left:0) ocupa tela toda; em lg+ recua 240px pra dar espaço pra Sidebar.
+      className="fixed right-0 top-0 z-30 flex h-16 items-center justify-between border-b px-4 sm:px-6 left-0 lg:left-60"
+      style={{ background: '#080C14', borderColor: '#1E2D45' }}
     >
-      <div />
+      {/* Slot esquerdo: hamburger no mobile */}
+      <MobileNav />
 
       <div className="flex items-center gap-3">
         {/* Notificações */}

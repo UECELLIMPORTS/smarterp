@@ -7,7 +7,8 @@ import {
   Users, BarChart2, Target, TrendingUp, Settings, Zap, PieChart, Store,
 } from 'lucide-react'
 
-const NAV = [
+// Exportado pra MobileNav reaproveitar a mesma lista
+export const NAV = [
   { href: '/',                  icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/pos',               icon: ShoppingCart,    label: 'Frente de Caixa' },
   { href: '/estoque',           icon: Package,         label: 'Estoque' },
@@ -26,7 +27,8 @@ export function Sidebar() {
 
   return (
     <aside
-      className="fixed inset-y-0 left-0 z-40 flex w-60 flex-col border-r"
+      // Esconde no mobile (<lg). Mobile usa <MobileNav> dentro do Topbar.
+      className="fixed inset-y-0 left-0 z-40 hidden w-60 flex-col border-r lg:flex"
       style={{ background: '#0D1320', borderColor: '#1E2D45' }}
     >
       {/* Logo */}

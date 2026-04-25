@@ -21,9 +21,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <Sidebar />
       <Topbar userName={userName} userEmail={userEmail} />
 
-      {/* Conteúdo principal */}
-      <main className="pt-16" style={{ marginLeft: '240px' }}>
-        <div className="min-h-[calc(100vh-4rem)] p-6">
+      {/* Conteúdo principal — sem margem em mobile, 240px em lg+ pra dar espaço pra Sidebar */}
+      <main className="pt-16 lg:ml-60">
+        <div className="min-h-[calc(100vh-4rem)] p-4 sm:p-6">
           {children}
         </div>
       </main>
