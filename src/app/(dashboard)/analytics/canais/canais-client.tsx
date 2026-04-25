@@ -9,7 +9,7 @@ import {
 } from 'lucide-react'
 import type {
   ChannelAnalytics, ChannelAnalyticsPeriod, ChannelMetric,
-  OriginMetric, OriginChannelMatrix, CacByChannel,
+  OriginMetric, OriginChannelMatrix, CacByChannel, InferredOriginMetric,
 } from '@/actions/sales-channels'
 
 const BRL = (c: number) =>
@@ -23,6 +23,7 @@ const PCT = (v: number) => `${(v * 100).toFixed(1)}%`
 type Props = {
   data: ChannelAnalytics
   origins: OriginMetric[]
+  inferredOrigins: InferredOriginMetric[]
   originChannelMatrix: OriginChannelMatrix
   cac: CacByChannel
   fixedCostMonthlyCents: number | null
@@ -49,7 +50,7 @@ const PERIOD_OPTIONS: { v: ChannelAnalyticsPeriod; label: string }[] = [
   { v: 'all',  label: 'Tudo' },
 ]
 
-export function CanaisClient({ data, origins, originChannelMatrix, cac, fixedCostMonthlyCents }: Props) {
+export function CanaisClient({ data, origins, inferredOrigins, originChannelMatrix, cac, fixedCostMonthlyCents }: Props) {
   const router = useRouter()
 
   return (
@@ -143,6 +144,9 @@ export function CanaisClient({ data, origins, originChannelMatrix, cac, fixedCos
 
       {/* Origem dos clientes */}
       <OriginSection origins={origins} />
+
+      {/* Origem inferida (vendas sem cadastro) */}
+      <InferredOriginSection inferredOrigins={inferredOrigins} />
 
       {/* Heatmap Origem × Canal */}
       <OriginChannelMatrixSection matrix={originChannelMatrix} />
@@ -895,6 +899,102 @@ function OriginSection({ origins }: { origins: OriginMetric[] }) {
                 </div>
               )
             })}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function InferredOriginSection({ inferredOrigins }: { inferredOrigins: InferredOriginMetric[] }) {
+  const sorted     = [...inferredOrigins].sort((a, b) => b.totalCents - a.totalCents)
+  const totalCents = sorted.reduce((s, o) => s + o.totalCents, 0)
+  const totalTx    = sorted.reduce((s, o) => s + o.transactions, 0)
+  const maxCents   = sorted[0]?.totalCents ?? 0
+
+  return (
+    <div className="rounded-2xl border" style={{ background: '#111827', borderColor: '#1E2D45' }}>
+      <div className="border-b px-6 py-4" style={{ borderColor: '#1E2D45' }}>
+        <div className="flex items-center gap-2">
+          <div className="h-4 w-1 rounded-full" style={{ background: '#9B6DFF' }} />
+          <div>
+            <h2 className="text-xs font-bold uppercase tracking-widest flex items-center gap-1.5" style={{ color: '#8AA8C8' }}>
+              <Megaphone className="h-3.5 w-3.5" />
+              Origem inferida (vendas sem cadastro)
+            </h2>
+            <p className="text-[11px] mt-0.5" style={{ color: '#5A7A9A' }}>
+              Vendas pra Consumidor Final ou clientes sem origem cadastrada — usamos o canal de venda como aproximação. Não é tão preciso quanto a seção acima, mas ajuda a entender de onde vem o tráfego anônimo.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {sorted.length === 0 ? (
+        <p className="p-10 text-center text-sm" style={{ color: '#5A7A9A' }}>
+          Sem vendas anônimas no período (todos os clientes têm origem cadastrada).
+        </p>
+      ) : (
+        <div className="p-6 space-y-5">
+          {/* Resumo */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-xl border p-3" style={{ background: '#0D1320', borderColor: '#1E2D45' }}>
+              <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#5A7A9A' }}>Faturamento anônimo</p>
+              <p className="text-lg font-bold font-mono mt-1" style={{ color: '#E8F0FE' }}>{BRL(totalCents)}</p>
+            </div>
+            <div className="rounded-xl border p-3" style={{ background: '#0D1320', borderColor: '#1E2D45' }}>
+              <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#5A7A9A' }}>Transações anônimas</p>
+              <p className="text-lg font-bold font-mono mt-1" style={{ color: '#9B6DFF' }}>{NUM(totalTx)}</p>
+            </div>
+          </div>
+
+          {/* Barras por origem inferida */}
+          <div className="space-y-3">
+            {sorted.map(o => {
+              const pct  = totalCents > 0 ? o.totalCents / totalCents : 0
+              const barW = maxCents > 0 ? (o.totalCents / maxCents) * 100 : 0
+              return (
+                <div key={o.channel}>
+                  <div className="flex items-center justify-between text-[11px] mb-1.5">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="h-3 w-3 rounded shrink-0" style={{ background: o.color }} />
+                      <span className="font-medium truncate" style={{ color: '#E8F0FE' }}>{o.label}</span>
+                      <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded shrink-0"
+                        style={{ background: 'rgba(155,109,255,.15)', color: '#9B6DFF' }}>
+                        inferido
+                      </span>
+                      <span className="font-mono shrink-0" style={{ color: '#5A7A9A' }}>{PCT(pct)}</span>
+                    </div>
+                    <span className="font-mono font-bold shrink-0 ml-2" style={{ color: o.color }}>
+                      {BRL(o.totalCents)}
+                    </span>
+                  </div>
+                  <div className="h-2.5 rounded-md overflow-hidden" style={{ background: '#0D1320' }}>
+                    <div className="h-full transition-all" style={{
+                      width: `${barW}%`,
+                      background: `linear-gradient(90deg, ${o.color}55, ${o.color})`,
+                    }} />
+                  </div>
+                  <div className="flex items-center justify-between text-[10px] mt-1" style={{ color: '#5A7A9A' }}>
+                    <span>
+                      <span className="font-mono" style={{ color: '#8AA8C8' }}>{NUM(o.transactions)}</span> transação(ões)
+                    </span>
+                    <span>
+                      ticket médio <span className="font-mono" style={{ color: '#8AA8C8' }}>{o.avgTicketCents > 0 ? BRL(o.avgTicketCents) : '—'}</span>
+                    </span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          <div className="rounded-lg border p-3 flex items-start gap-2 text-[11px]"
+            style={{ background: 'rgba(255,170,0,.04)', borderColor: 'rgba(255,170,0,.2)' }}>
+            <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" style={{ color: '#FFAA00' }} />
+            <span style={{ color: '#8AA8C8' }}>
+              <strong style={{ color: '#FFAA00' }}>Atenção:</strong> a origem aqui é <em>inferida</em> pelo canal de fechamento.
+              Um cliente que viu seu Instagram pago e foi até o balcão, por exemplo, vai aparecer aqui como
+              &quot;Passou na porta&quot;. Pra atribuição precisa, cadastre o cliente e marque a origem real.
+            </span>
           </div>
         </div>
       )}

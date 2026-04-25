@@ -479,6 +479,94 @@ export async function getOriginAnalytics(period: ChannelAnalyticsPeriod = '30d')
     .sort((a, b) => b.totalCents - a.totalCents)
 }
 
+// ── Origem INFERIDA (vendas sem cliente cadastrado / sem origem) ──────────
+// Pra Consumidor Final ou clientes sem origem cadastrada, usa o sale_channel
+// como aproximação de origem. NÃO mistura com getOriginAnalytics — fica
+// numa seção separada na UI pra deixar claro que é estimativa.
+
+export type InferredOriginMetric = {
+  channel:        string   // chave do sale_channel (ou 'nao_informado')
+  label:          string   // label legível com sufixo "(sem cadastro)" quando faz sentido
+  color:          string
+  transactions:   number
+  totalCents:     number
+  avgTicketCents: number
+}
+
+const INFERRED_LABEL_OVERRIDE: Record<string, string> = {
+  fisica_balcao:   'Passou na porta (anônimo)',
+  whatsapp:        'WhatsApp (sem cadastro)',
+  instagram_dm:    'Instagram (sem cadastro)',
+  delivery_online: 'Marketplace / Site (sem cadastro)',
+  fisica_retirada: 'Retirada (sem cadastro)',
+  outro:           'Outro (sem cadastro)',
+  nao_informado:   'Sem canal informado',
+}
+
+export async function getInferredOriginAnalytics(period: ChannelAnalyticsPeriod = '30d'): Promise<InferredOriginMetric[]> {
+  const { supabase, user } = await requireAuth()
+  const tenantId = getTenantId(user)
+  const sinceIso = periodToSince(period)
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any
+
+  const [salesRes, osRes] = await Promise.all([
+    sb.from('sales')
+      .select('customer_id, total_cents, sale_channel, customers(origin)')
+      .eq('tenant_id', tenantId)
+      .gte('created_at', sinceIso)
+      .neq('status', 'cancelled')
+      .limit(20000),
+    sb.from('service_orders')
+      .select('customer_id, total_price_cents, service_price_cents, parts_sale_cents, discount_cents, sale_channel, customers(origin)')
+      .eq('tenant_id', tenantId)
+      .gte('received_at', sinceIso)
+      .in('status', ['delivered', 'Entregue'])
+      .limit(20000),
+  ])
+
+  type SaleRow = { customer_id: string | null; total_cents: number; sale_channel: string | null; customers: { origin: string | null } | null }
+  type OsRow   = { customer_id: string | null; total_price_cents: number|null; service_price_cents: number|null; parts_sale_cents: number|null; discount_cents: number|null; sale_channel: string | null; customers: { origin: string | null } | null }
+
+  const byChannel = new Map<string, { transactions: number; totalCents: number }>()
+
+  const bump = (channel: string | null, value: number) => {
+    if (value <= 0) return
+    const key = channel ?? 'nao_informado'
+    const b = byChannel.get(key) ?? { transactions: 0, totalCents: 0 }
+    b.transactions += 1
+    b.totalCents   += value
+    byChannel.set(key, b)
+  }
+
+  for (const s of (salesRes.data ?? []) as SaleRow[]) {
+    // Só conta se NÃO tiver origem real cadastrada
+    if (s.customers?.origin) continue
+    bump(s.sale_channel, s.total_cents ?? 0)
+  }
+  for (const o of (osRes.data ?? []) as OsRow[]) {
+    if (o.customers?.origin) continue
+    const v = o.total_price_cents
+      ?? Math.max(0, (o.service_price_cents ?? 0) + (o.parts_sale_cents ?? 0) - (o.discount_cents ?? 0))
+    bump(o.sale_channel, v)
+  }
+
+  return Array.from(byChannel.entries())
+    .map(([channel, b]) => {
+      const opt = SALE_CHANNEL_OPTIONS.find(o => o.value === channel)
+      return {
+        channel,
+        label:          INFERRED_LABEL_OVERRIDE[channel] ?? opt?.label ?? channel,
+        color:          opt?.color ?? '#5A7A9A',
+        transactions:   b.transactions,
+        totalCents:     b.totalCents,
+        avgTicketCents: b.transactions > 0 ? Math.round(b.totalCents / b.transactions) : 0,
+      }
+    })
+    .sort((a, b) => b.totalCents - a.totalCents)
+}
+
 // ── Matriz Origem × Canal ──────────────────────────────────────────────────
 // Cruza onde o cliente conheceu a loja (origem) com onde fechou a venda (canal).
 // Útil pra responder: "cliente que vem do Instagram fecha mais no WhatsApp ou no balcão?"
