@@ -243,7 +243,7 @@ function MovimentoModal({
             const positivo = lucro >= 0
             return (
               <>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <PriceField label="Preço de Compra" value={form.purchasePriceCents}
                     onChange={v => onChange({ purchasePriceCents: v })} />
                   <PriceField label="Preço de Custo"  value={form.costPriceCents}
@@ -278,7 +278,7 @@ function MovimentoModal({
               <>
                 <PriceField label="Preço de Venda" value={form.salePriceCents}
                   onChange={v => onChange({ salePriceCents: v })} />
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <PriceField label="Preço de Compra" value={form.purchasePriceCents}
                     onChange={v => onChange({ purchasePriceCents: v })} />
                   <PriceField label="Preço de Custo" value={form.costPriceCents}
@@ -304,7 +304,7 @@ function MovimentoModal({
           })()}
 
           {/* Depósito + Data/Hora */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="mb-1 block text-xs font-medium text-muted">Depósito</label>
               <input

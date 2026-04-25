@@ -859,7 +859,8 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
           </div>
         ) : (
           <>
-            <div className="grid gap-4 px-5 py-3 border-b text-xs font-medium uppercase tracking-wider text-muted"
+            {/* Header: só desktop (mobile usa cards) */}
+            <div className="hidden md:grid gap-4 px-5 py-3 border-b text-xs font-medium uppercase tracking-wider text-muted"
               style={{ borderColor: '#1E2D45', gridTemplateColumns: '32px 90px 1fr 150px 110px 100px 110px 40px' }}>
               <input type="checkbox" checked={allSelected} onChange={toggleAll}
                 className="h-4 w-4 rounded accent-accent cursor-pointer" />
@@ -867,15 +868,88 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
               <span>Pagamento</span><span className="text-right">Desconto</span>
               <span className="text-right">Total</span><span />
             </div>
+            {/* Mobile: header simples com seleção em massa */}
+            <div className="md:hidden flex items-center gap-3 px-4 py-3 border-b" style={{ borderColor: '#1E2D45' }}>
+              <input type="checkbox" checked={allSelected} onChange={toggleAll}
+                className="h-4 w-4 rounded accent-accent cursor-pointer" />
+              <span className="text-xs font-medium uppercase tracking-wider text-muted">
+                {filteredRows.length} transaç{filteredRows.length === 1 ? 'ão' : 'ões'}
+              </span>
+            </div>
             {filteredRows.map(row => {
               const isERP    = row.source === 'erp'
               const srcColor = row.cancelled ? '#64748B' : isERP ? '#00FF94' : '#00E5FF'
               const pmColor  = row.payment ? (METHOD_COLOR[row.payment] ?? '#64748B') : '#64748B'
               return (
                 <div key={row.id}
-                  className={`grid gap-4 px-5 py-3.5 border-b items-center last:border-0 transition-opacity
-                    ${row.cancelled ? '[&>*:not(:last-child)]:opacity-45' : ''}`}
-                  style={{ borderColor: '#1E2D45', gridTemplateColumns: '32px 90px 1fr 150px 110px 100px 110px 40px' }}>
+                  ref={openMenu === row.id ? menuRef : undefined}
+                  className={`relative border-b last:border-0 transition-opacity ${row.cancelled ? 'opacity-60' : ''}`}
+                  style={{ borderColor: '#1E2D45' }}>
+
+                  {/* ── Mobile card view ── */}
+                  <div className="md:hidden flex flex-col gap-2 px-4 py-3">
+                    <div className="flex items-start gap-2">
+                      <input type="checkbox" checked={selected.has(row.id)} onChange={() => toggleSelect(row.id)}
+                        className="h-4 w-4 mt-1 rounded accent-accent cursor-pointer shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-semibold"
+                            style={{ background: `${srcColor}18`, color: srcColor }}>
+                            {isERP ? 'ERP' : 'CheckSmart'}
+                          </span>
+                          {row.cancelled && (
+                            <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium"
+                              style={{ background: '#FF5C5C18', color: '#FF5C5C' }}>Cancelada</span>
+                          )}
+                          {!row.cancelled && row.clienteType && (
+                            <span className="rounded-full px-1.5 py-0.5 text-[10px] font-bold"
+                              style={row.clienteType === 'recorrente'
+                                ? { background: 'rgba(0,255,148,.12)', color: '#00FF94' }
+                                : { background: 'rgba(155,109,255,.15)', color: '#9B6DFF' }
+                              }>
+                              {row.clienteType === 'recorrente' ? 'Recorrente' : 'Novo'}
+                            </span>
+                          )}
+                        </div>
+                        <p className={`text-sm font-medium truncate mt-1 ${row.cancelled ? 'line-through text-muted' : 'text-text'}`}>
+                          {row.customerName}
+                        </p>
+                        <p className="text-xs text-muted truncate">{row.description}</p>
+                      </div>
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        <p className={`text-base font-bold ${row.cancelled ? 'line-through text-muted' : 'text-green'}`}>{BRL(row.total)}</p>
+                        {row.discount > 0 && (
+                          <p className="text-[10px] text-[#FF5C5C]">-{BRL(row.discount)}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between gap-2 text-[11px]">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-muted">{row.dateStr}</span>
+                        {row.payment ? (
+                          <span className="inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-semibold"
+                            style={{ background: `${pmColor}18`, color: pmColor }}>
+                            {METHOD_LABEL[row.payment] ?? row.payment}
+                          </span>
+                        ) : row.osStatus ? (
+                          <span className="inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-medium"
+                            style={{ background: '#64748B18', color: '#64748B' }}>
+                            {OS_STATUS_LABEL[row.osStatus] ?? row.osStatus}
+                          </span>
+                        ) : null}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={e => { e.stopPropagation(); setOpenMenu(openMenu === row.id ? null : row.id) }}
+                        className="rounded p-1.5 text-muted hover:text-text transition-colors hover:bg-white/5 cursor-pointer">
+                        <MoreVertical className="h-4 w-4 pointer-events-none" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* ── Desktop grid view ── */}
+                  <div className="hidden md:grid gap-4 px-5 py-3.5 items-center"
+                    style={{ gridTemplateColumns: '32px 90px 1fr 150px 110px 100px 110px 40px' }}>
                   <input type="checkbox" checked={selected.has(row.id)} onChange={() => toggleSelect(row.id)}
                     className="h-4 w-4 rounded accent-accent cursor-pointer" />
                   <div className="flex flex-col gap-1">
@@ -921,23 +995,27 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                     {row.discount > 0 ? `- ${BRL(row.discount)}` : '—'}
                   </p>
                   <p className={`text-sm font-bold text-right ${row.cancelled ? 'line-through text-muted' : 'text-green'}`}>{BRL(row.total)}</p>
-                  <div className="relative flex items-center justify-center" ref={openMenu === row.id ? menuRef : undefined}>
+                  <div className="flex items-center justify-center">
                     <button
                       type="button"
                       onClick={e => { e.stopPropagation(); setOpenMenu(openMenu === row.id ? null : row.id) }}
                       className="rounded p-2 text-muted hover:text-text transition-colors hover:bg-white/5 cursor-pointer">
                       <MoreVertical className="h-4 w-4 pointer-events-none" />
                     </button>
-                    {openMenu === row.id && (
-                      <div
-                        className="absolute right-0 top-8 z-[60] w-60 rounded-xl border overflow-hidden"
-                        style={{
-                          background: '#0F1A2B',
-                          borderColor: '#2A3D5C',
-                          boxShadow: '0 12px 36px rgba(0,0,0,0.65), 0 0 0 1px rgba(0,229,255,0.08)',
-                          backdropFilter: 'none',
-                        }}
-                        onClick={e => e.stopPropagation()}>
+                  </div>
+                  </div>
+
+                  {/* Popup do menu — único, posicionado em relação ao wrapper externo */}
+                  {openMenu === row.id && (
+                    <div
+                      className="absolute right-2 top-12 md:right-5 md:top-14 z-[60] w-60 rounded-xl border overflow-hidden"
+                      style={{
+                        background: '#0F1A2B',
+                        borderColor: '#2A3D5C',
+                        boxShadow: '0 12px 36px rgba(0,0,0,0.65), 0 0 0 1px rgba(0,229,255,0.08)',
+                        backdropFilter: 'none',
+                      }}
+                      onClick={e => e.stopPropagation()}>
                         {/* Editar venda — ERP (qualquer status) */}
                         {row.source === 'erp' && (
                           <MenuItem
@@ -1005,7 +1083,6 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                         )}
                       </div>
                     )}
-                  </div>
                 </div>
               )
             })}
@@ -1625,7 +1702,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                         </div>
                         <input value={nc.name} onChange={e => setNc(p => ({ ...p, name: e.target.value }))}
                           placeholder="Nome completo *" className={INP} style={INP_S} />
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                           <input value={nc.cpf} onChange={e => setNc(p => ({ ...p, cpf: fmtCpf(e.target.value) }))}
                             placeholder="CPF" className={INP} style={INP_S} />
                           <div className="relative">
@@ -1646,7 +1723,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                         </div>
                         <input value={nc.addressStreet} onChange={e => setNc(p => ({ ...p, addressStreet: e.target.value }))}
                           placeholder="Logradouro" className={INP} style={INP_S} />
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                           <input value={nc.addressNumber} onChange={e => setNc(p => ({ ...p, addressNumber: e.target.value }))}
                             placeholder="Número" className={INP} style={INP_S} />
                           <input value={nc.addressComplement} onChange={e => setNc(p => ({ ...p, addressComplement: e.target.value }))}

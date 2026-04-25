@@ -300,9 +300,9 @@ export function LancamentosModal({ product, onClose, onStockChanged }: Props) {
             </div>
 
             {/* Saldos por depósito */}
-            <div className="border-t pt-4" style={{ borderColor: '#1E2D45' }}>
+            <div className="border-t pt-4 overflow-x-auto" style={{ borderColor: '#1E2D45' }}>
               <p className="text-xs font-semibold uppercase tracking-wider text-[#64748B] mb-2">Saldos por depósito</p>
-              <table className="w-full text-xs">
+              <table className="w-full text-xs min-w-[320px]">
                 <thead>
                   <tr className="text-[#475569]">
                     <th className="text-left font-medium pb-1">Depósito</th>

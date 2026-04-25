@@ -343,8 +343,9 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
         </p>
       </div>
 
-      {/* Grid */}
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_400px]">
+      {/* Grid — 2 colunas a partir de lg (≥1024px), empilha em telas menores.
+           Padding-bottom em mobile pra dar espaço pra sticky bar de finalizar. */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_400px] pb-24 lg:pb-0">
 
         {/* ── LEFT: search + cart ── */}
         <div className="space-y-4">
@@ -696,7 +697,7 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
                 />
 
                 {/* CPF + Birthday */}
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <input
                     value={nc.cpf}
                     onChange={e => setNc(p => ({ ...p, cpf: fmtCpf(e.target.value) }))}
@@ -768,7 +769,7 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
                   />
 
                   {/* Number + Complement */}
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <input
                       value={nc.addressNumber}
                       onChange={e => setNc(p => ({ ...p, addressNumber: e.target.value }))}
@@ -1010,7 +1011,7 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
               onKeyDown={e => e.key === 'Enter' && addManual()}
             />
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <p className="mb-1 text-xs text-muted">Preço Unit. (R$)</p>
                 <input
@@ -1057,6 +1058,39 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
                 Adicionar
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Sticky bottom bar (mobile only) — sempre acessível pra finalizar ── */}
+      {cart.length > 0 && (
+        <div
+          className="lg:hidden fixed bottom-0 left-0 right-0 z-40 border-t p-3"
+          style={{
+            background: '#0D1320',
+            borderColor: '#1E2D45',
+            boxShadow: '0 -4px 16px rgba(0,0,0,0.5)',
+            paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))',
+          }}
+        >
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted">
+                {cart.length} item{cart.length !== 1 ? 's' : ''}
+              </p>
+              <p className="text-base font-bold text-text font-mono">{BRL(subtotal - parseCents(discount) + parseCents(shipping))}</p>
+            </div>
+            <button
+              onClick={handleFinalize}
+              disabled={finalizing || cart.length === 0}
+              className="flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-bold transition-opacity disabled:opacity-50 shrink-0"
+              style={{ background: 'linear-gradient(135deg, #00E5FF, #00FF94)', color: '#080C14' }}
+            >
+              {finalizing
+                ? <><Loader2 className="h-4 w-4 animate-spin" /> Finalizando...</>
+                : <><CheckCircle className="h-4 w-4" /> Finalizar</>
+              }
+            </button>
           </div>
         </div>
       )}
