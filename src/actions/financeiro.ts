@@ -145,6 +145,8 @@ export type EditSaleInput = {
   discountCents: number
   paymentMethod: string
   saleDate:      string
+  saleChannel?:  string | null
+  deliveryType?: string | null
 }
 
 export async function updateCancelledSale(saleId: string, input: EditSaleInput): Promise<void> {
@@ -159,8 +161,10 @@ export async function updateCancelledSale(saleId: string, input: EditSaleInput):
     .single()
 
   if (!sale) throw new Error('Venda não encontrada.')
-  if (sale.status !== 'cancelled') throw new Error('Só é possível editar vendas canceladas.')
-  if (!input.items.length) throw new Error('Adicione ao menos um item.')
+  // NOTA: removida a trava de 'só cancelada' — agora dá pra editar qualquer venda (inclusive pra só
+  // reclassificar canal/entrega sem precisar cancelar + reativar).
+  // NOTA: items vazios são permitidos — útil pra reclassificar canal/entrega de vendas legadas
+  // que não têm sale_items no banco. Nesse caso, só os fields da venda são atualizados.
 
   const subtotal     = input.items.reduce((s, i) => s + i.unitPriceCents * i.quantity, 0)
   const total        = Math.max(0, subtotal - input.discountCents)
@@ -176,25 +180,31 @@ export async function updateCancelledSale(saleId: string, input: EditSaleInput):
       payment_method: input.paymentMethod,
       created_at:     newCreatedAt,
       updated_at:     new Date().toISOString(),
+      sale_channel:   input.saleChannel  ?? null,
+      delivery_type:  input.deliveryType ?? null,
     })
     .eq('id', saleId)
     .eq('tenant_id', tenantId)
 
   if (error) throw new Error(error.message)
 
-  await supabase.from('sale_items').delete().eq('sale_id', saleId)
-  const costMapEdit = await fetchCostMap(supabase, input.items.map(i => i.productId))
-  await supabase.from('sale_items').insert(
-    input.items.map(i => ({
-      sale_id:             saleId,
-      product_id:          i.productId,
-      name:                i.name,
-      quantity:            i.quantity,
-      unit_price_cents:    i.unitPriceCents,
-      subtotal_cents:      i.unitPriceCents * i.quantity,
-      cost_snapshot_cents: i.productId ? (costMapEdit.get(i.productId) ?? null) : null,
-    })),
-  )
+  // Só refaz sale_items se foram informados — preserva items existentes em
+  // edições só pra reclassificação (canal/entrega).
+  if (input.items.length > 0) {
+    await supabase.from('sale_items').delete().eq('sale_id', saleId)
+    const costMapEdit = await fetchCostMap(supabase, input.items.map(i => i.productId))
+    await supabase.from('sale_items').insert(
+      input.items.map(i => ({
+        sale_id:             saleId,
+        product_id:          i.productId,
+        name:                i.name,
+        quantity:            i.quantity,
+        unit_price_cents:    i.unitPriceCents,
+        subtotal_cents:      i.unitPriceCents * i.quantity,
+        cost_snapshot_cents: i.productId ? (costMapEdit.get(i.productId) ?? null) : null,
+      })),
+    )
+  }
 
   revalidatePath('/financeiro')
 }
@@ -312,6 +322,8 @@ export type ManualSaleInput = {
   items:         ManualSaleItem[]
   discountCents: number
   paymentMethod: 'cash' | 'pix' | 'card' | 'mixed'
+  saleChannel?:  string | null
+  deliveryType?: string | null
 }
 
 export async function createManualSale(input: ManualSaleInput): Promise<void> {
@@ -338,6 +350,8 @@ export async function createManualSale(input: ManualSaleInput): Promise<void> {
       payment_method: input.paymentMethod,
       status:         'completed',
       created_at:     saleDate.toISOString(),
+      sale_channel:   input.saleChannel  ?? null,
+      delivery_type:  input.deliveryType ?? null,
     })
     .select('id')
     .single()

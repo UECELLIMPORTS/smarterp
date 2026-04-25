@@ -2,10 +2,11 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import {
   TrendingUp, Users, UserPlus, Lightbulb,
   ShoppingCart, Wrench, Link2, AlertTriangle, Star, Calendar, Megaphone,
-  Phone, MessageCircle, Download,
+  Phone, MessageCircle, Download, Stethoscope,
 } from 'lucide-react'
 import { CUSTOMER_ORIGIN_OPTIONS, originLabel } from '@/lib/customer-origin'
 import type { DashboardData, TopClient, MonthPoint, ChurnClient, WeekdayPoint, OriginBreakdown } from './page'
@@ -1191,6 +1192,15 @@ export function ErpClientesClient({ data }: { data: DashboardData }) {
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          <Link
+            href="/erp-clientes/diagnostico-lucro"
+            className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition-colors hover:opacity-90"
+            style={{ background: 'rgba(255,170,0,.1)', color: '#FFAA00', border: '1px solid rgba(255,170,0,.3)' }}
+            title="Identificar vendas/OSs com lucro inflado por falta de custo cadastrado"
+          >
+            <Stethoscope className="h-3.5 w-3.5" />
+            Diagnóstico de Lucro
+          </Link>
           <div className="flex gap-1 rounded-xl p-1" style={{ background: '#111827', border: '1px solid #1E2D45' }}>
             {periods.map(p => (
               <button

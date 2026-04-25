@@ -1,35 +1,60 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 import {
-  Settings, TrendingUp, DollarSign, Eye, MousePointer, Target,
-  AlertTriangle, ExternalLink, CheckCircle2,
+  Settings, DollarSign, Eye, MousePointer, Target,
+  AlertTriangle, ExternalLink, CheckCircle2, ChevronDown, Star, Check, Tag,
+  Pause, Play, Copy, Wallet, X, Loader2, LineChart as LineChartIcon, Bell,
+  BarChart3,
 } from 'lucide-react'
-import type {
-  MetaAdsCredentialsSafe, MetaAdsInsights, MetaAdsCampaign, MetaAdsPeriod,
+import {
+  updateCampaignStatus,
+  updateCampaignDailyBudget,
+  duplicateCampaign,
+  fetchCampaignTimeseries,
+  type MetaAdsInsights, type MetaAdsCampaign, type MetaAdsPeriod, type MetaAdsAdAccount,
+  type MetaAdsTimeseriesPoint, type MetaAdsAccountHealth,
 } from '@/actions/meta-ads'
-import type { OriginTotals } from './page'
+import type { OriginTotals, CampaignCodeTotal } from './page'
+import { formatDateTime } from '@/lib/datetime'
 
 const BRL = (c: number) =>
-  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(c / 100)
+  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
+    .format(c / 100)
+    .replace(/ /g, ' ')
+    .replace(/ /g, ' ')
 
 const NUM = (n: number) =>
   new Intl.NumberFormat('pt-BR').format(n)
 
 type Props = {
   period: MetaAdsPeriod
-  credentials: MetaAdsCredentialsSafe
+  accounts: MetaAdsAdAccount[]
+  selectedAccount: MetaAdsAdAccount | null
+  accountHealth: MetaAdsAccountHealth | null
   insights: MetaAdsInsights | null
   campaigns: MetaAdsCampaign[]
   loadError: string | null
   originRevenue: OriginTotals
+  campaignCodeTotals: CampaignCodeTotal[]
+  unreadAlertsCount: number
 }
 
 export function MetaAdsDashboard({
-  period, credentials, insights, campaigns, loadError, originRevenue,
+  period, accounts, selectedAccount, accountHealth, insights, campaigns, loadError, originRevenue, campaignCodeTotals, unreadAlertsCount,
 }: Props) {
   const router = useRouter()
+
+  function buildUrl(nextPeriod: MetaAdsPeriod, nextAccountId?: string) {
+    const params = new URLSearchParams()
+    params.set('period', nextPeriod)
+    const accId = nextAccountId ?? selectedAccount?.adAccountId
+    if (accId) params.set('account', accId)
+    return `/meta-ads?${params.toString()}`
+  }
 
   const periodOptions: { v: MetaAdsPeriod; label: string }[] = [
     { v: 'today',     label: 'Hoje' },
@@ -45,11 +70,70 @@ export function MetaAdsDashboard({
   const roas             = spendCents > 0 ? metaRevenueCents / spendCents : 0
   const returnPerReal    = spendCents > 0 ? (metaRevenueCents / spendCents).toFixed(2) : '—'
 
-  const statusColor = (s: string) => {
-    if (s === 'ACTIVE')  return { c: '#00FF94', bg: 'rgba(0,255,148,.15)', label: 'Ativa' }
-    if (s === 'PAUSED')  return { c: '#FFAA00', bg: 'rgba(255,170,0,.15)', label: 'Pausada' }
-    if (s === 'DELETED' || s === 'ARCHIVED') return { c: '#5A7A9A', bg: 'rgba(90,122,154,.15)', label: s === 'DELETED' ? 'Excluída' : 'Arquivada' }
-    return { c: '#8AA8C8', bg: 'rgba(138,168,200,.15)', label: s }
+  // Status da campanha — prioridade:
+  //   1. Conta inteira com problema (billing, suspensão) → sobrescreve tudo
+  //   2. issues_info da campanha
+  //   3. effective_status
+  //   4. status (intenção do usuário)
+  const statusInfo = (campaign: MetaAdsCampaign) => {
+    // Conta unhealthy → problema é da conta, todas as campanhas ficam bloqueadas
+    if (accountHealth && !accountHealth.isHealthy) {
+      return {
+        c:  '#FF4D6D',
+        bg: 'rgba(255,77,109,.15)',
+        label: accountHealth.label,
+        detail: accountHealth.detail ?? 'Problema na conta de anúncios',
+      }
+    }
+    // Se tem issues específicas, mostra a primeira (geralmente a mais crítica)
+    if (campaign.issues && campaign.issues.length > 0) {
+      const issue = campaign.issues[0]
+      // Heurística: palavras-chave de billing
+      const lower = (issue.summary + ' ' + issue.message).toLowerCase()
+      const isBilling = /pag|billing|cart|cobr|sald|payment/.test(lower)
+      return {
+        c:  '#FF4D6D',
+        bg: 'rgba(255,77,109,.15)',
+        label: isBilling ? 'Erro no pagamento' : issue.summary.slice(0, 40) || 'Com problema',
+        detail: issue.summary || issue.message,
+      }
+    }
+    switch (campaign.effectiveStatus) {
+      case 'ACTIVE':
+        return { c: '#00FF94', bg: 'rgba(0,255,148,.15)', label: 'Ativa', detail: null }
+      case 'PAUSED':
+        return { c: '#FFAA00', bg: 'rgba(255,170,0,.15)', label: 'Pausada', detail: null }
+      case 'WITH_ISSUES':
+        return { c: '#FF4D6D', bg: 'rgba(255,77,109,.15)', label: 'Com problema', detail: 'Verifique no Ads Manager' }
+      case 'PENDING_BILLING_INFO':
+        return { c: '#FF4D6D', bg: 'rgba(255,77,109,.15)', label: 'Aguarda pagamento', detail: null }
+      case 'DISAPPROVED':
+        return { c: '#FF4D6D', bg: 'rgba(255,77,109,.15)', label: 'Reprovada', detail: null }
+      case 'PENDING_REVIEW':
+      case 'IN_PROCESS':
+        return { c: '#00E5FF', bg: 'rgba(0,229,255,.15)', label: 'Em revisão', detail: null }
+      case 'CAMPAIGN_PAUSED':
+        return { c: '#FFAA00', bg: 'rgba(255,170,0,.15)', label: 'Pausada (campanha)', detail: null }
+      case 'ADSET_PAUSED':
+        return { c: '#FFAA00', bg: 'rgba(255,170,0,.15)', label: 'Pausada (ad set)', detail: null }
+      case 'ARCHIVED':
+        return { c: '#5A7A9A', bg: 'rgba(90,122,154,.15)', label: 'Arquivada', detail: null }
+      case 'DELETED':
+        return { c: '#5A7A9A', bg: 'rgba(90,122,154,.15)', label: 'Excluída', detail: null }
+      default:
+        return { c: '#8AA8C8', bg: 'rgba(138,168,200,.15)', label: campaign.status, detail: null }
+    }
+  }
+
+  // Mutação é bloqueada se: conta unhealthy OU campanha com issue OU status ruim
+  const isMutationBlocked = (campaign: MetaAdsCampaign) => {
+    if (accountHealth && !accountHealth.isHealthy) return true
+    if (campaign.issues && campaign.issues.length > 0) return true
+    return campaign.effectiveStatus === 'WITH_ISSUES' ||
+           campaign.effectiveStatus === 'PENDING_BILLING_INFO' ||
+           campaign.effectiveStatus === 'DISAPPROVED' ||
+           campaign.effectiveStatus === 'DELETED' ||
+           campaign.effectiveStatus === 'ARCHIVED'
   }
 
   return (
@@ -59,16 +143,31 @@ export function MetaAdsDashboard({
         <div>
           <h1 className="text-2xl font-bold" style={{ color: '#E8F0FE' }}>Meta Ads</h1>
           <p className="mt-1 text-sm" style={{ color: '#5A7A9A' }}>
-            Conta: <span className="font-mono">{credentials.adAccountId}</span>
-            {credentials.lastSyncAt && <> · Última sync: {new Date(credentials.lastSyncAt).toLocaleString('pt-BR')}</>}
+            {selectedAccount ? (
+              <>
+                <span style={{ color: '#E8F0FE' }}>{selectedAccount.displayName}</span>
+                {' · '}
+                <span className="font-mono">{selectedAccount.adAccountId}</span>
+                {selectedAccount.lastSyncAt && <> · Última sync: {formatDateTime(selectedAccount.lastSyncAt)}</>}
+              </>
+            ) : (
+              <>Nenhuma conta ativa</>
+            )}
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          {accounts.filter(a => a.isActive).length > 1 && selectedAccount && (
+            <AccountSelector
+              accounts={accounts.filter(a => a.isActive)}
+              selectedId={selectedAccount.adAccountId}
+              onSelect={id => router.push(buildUrl(period, id))}
+            />
+          )}
           <div className="flex gap-1 rounded-xl p-1" style={{ background: '#111827', border: '1px solid #1E2D45' }}>
             {periodOptions.map(p => (
               <button
                 key={p.v}
-                onClick={() => router.push(`/meta-ads?period=${p.v}`)}
+                onClick={() => router.push(buildUrl(p.v))}
                 className="rounded-lg px-3 py-1.5 text-xs font-bold transition-all"
                 style={period === p.v
                   ? { background: '#E4405F', color: '#fff' }
@@ -80,6 +179,34 @@ export function MetaAdsDashboard({
             ))}
           </div>
           <Link
+            href={`/meta-ads/relatorios?period=${period}${selectedAccount ? `&account=${selectedAccount.adAccountId}` : ''}`}
+            className="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-bold transition-colors hover:bg-white/5"
+            style={{ borderColor: '#1E2D45', color: '#00E5FF' }}
+          >
+            <BarChart3 className="h-3.5 w-3.5" />
+            Relatórios
+          </Link>
+          <Link
+            href="/meta-ads/alertas"
+            className="relative flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-bold transition-colors hover:bg-white/5"
+            style={{ borderColor: '#1E2D45', color: '#FFAA00' }}
+          >
+            <Bell className="h-3.5 w-3.5" />
+            Alertas
+            {unreadAlertsCount > 0 && (
+              <span
+                className="absolute -top-1.5 -right-1.5 flex items-center justify-center rounded-full text-[9px] font-bold"
+                style={{
+                  background: '#FF4D6D', color: '#fff',
+                  minWidth: '18px', height: '18px', padding: '0 4px',
+                  boxShadow: '0 0 0 2px #080C14',
+                }}
+              >
+                {unreadAlertsCount > 99 ? '99+' : unreadAlertsCount}
+              </span>
+            )}
+          </Link>
+          <Link
             href="/meta-ads/configuracoes"
             className="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-bold transition-colors hover:bg-white/5"
             style={{ borderColor: '#1E2D45', color: '#00E5FF' }}
@@ -89,6 +216,35 @@ export function MetaAdsDashboard({
           </Link>
         </div>
       </div>
+
+      {/* Alerta de saúde da conta (billing/suspensão) */}
+      {accountHealth && !accountHealth.isHealthy && (
+        <div className="rounded-xl border px-4 py-3 flex items-start gap-3"
+          style={{ background: 'rgba(255,77,109,.08)', borderColor: 'rgba(255,77,109,.4)' }}>
+          <AlertTriangle className="h-5 w-5 mt-0.5 shrink-0" style={{ color: '#FF4D6D' }} />
+          <div className="flex-1">
+            <p className="text-sm font-bold" style={{ color: '#FF4D6D' }}>
+              {accountHealth.label}
+            </p>
+            {accountHealth.detail && (
+              <p className="text-xs mt-1" style={{ color: '#E8F0FE' }}>{accountHealth.detail}</p>
+            )}
+            <p className="text-[11px] mt-2" style={{ color: '#8AA8C8' }}>
+              Enquanto o problema não for resolvido no Meta, as campanhas não veiculam e as ações do dashboard (pausar, ajustar budget, duplicar) vão falhar.
+              {' '}
+              <a
+                href="https://business.facebook.com/billing_hub/accounts_overview"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline font-semibold"
+                style={{ color: '#00E5FF' }}
+              >
+                Abrir Central de Cobrança
+              </a>
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Erro de carregamento */}
       {loadError && (
@@ -209,6 +365,9 @@ export function MetaAdsDashboard({
         </div>
       )}
 
+      {/* ROAS por código de campanha */}
+      <CampaignCodeSection totals={campaignCodeTotals} spendCents={insights?.spendCents ?? 0} />
+
       {/* Campanhas */}
       <div className="rounded-2xl border" style={{ background: '#111827', borderColor: '#1E2D45' }}>
         <div className="flex items-center justify-between border-b px-6 py-4" style={{ borderColor: '#1E2D45' }}>
@@ -235,7 +394,7 @@ export function MetaAdsDashboard({
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b text-left" style={{ borderColor: '#1E2D45' }}>
-                  {['Campanha', 'Status', 'Objetivo', 'Investido', 'Impressões', 'Cliques', 'CTR', 'CPC'].map(h => (
+                  {['Campanha', 'Status', 'Objetivo', 'Investido', 'Budget/dia', 'Impressões', 'Cliques', 'CTR', 'CPC', 'Ações'].map(h => (
                     <th key={h} className="px-5 py-3 text-[10px] font-bold uppercase tracking-wider" style={{ color: '#5A7A9A' }}>
                       {h}
                     </th>
@@ -246,7 +405,8 @@ export function MetaAdsDashboard({
                 {campaigns
                   .sort((a, b) => b.spendCents - a.spendCents)
                   .map(c => {
-                    const s = statusColor(c.status)
+                    const s = statusInfo(c)
+                    const blocked = isMutationBlocked(c)
                     return (
                       <tr key={c.id} className="border-b hover:bg-white/[0.02] transition-colors" style={{ borderColor: 'rgba(30,45,69,.5)' }}>
                         <td className="px-5 py-3">
@@ -254,16 +414,29 @@ export function MetaAdsDashboard({
                           <p className="text-[10px] font-mono mt-0.5" style={{ color: '#5A7A9A' }}>ID: {c.id}</p>
                         </td>
                         <td className="px-5 py-3">
-                          <span className="rounded-full px-2 py-0.5 text-[10px] font-bold"
-                            style={{ background: s.bg, color: s.c }}>
+                          <span className="rounded-full px-2 py-0.5 text-[10px] font-bold whitespace-nowrap"
+                            style={{ background: s.bg, color: s.c }} title={s.detail ?? undefined}>
                             {s.label}
                           </span>
+                          {s.detail && (
+                            <p className="text-[9px] mt-1 max-w-[200px]" style={{ color: '#8AA8C8' }}>
+                              {s.detail}
+                            </p>
+                          )}
+                          {blocked && c.status === 'ACTIVE' && (
+                            <p className="text-[9px] mt-1 italic" style={{ color: '#5A7A9A' }}>
+                              Intenção: ativa
+                            </p>
+                          )}
                         </td>
                         <td className="px-5 py-3 text-xs" style={{ color: '#8AA8C8' }}>
                           {c.objective ?? '—'}
                         </td>
                         <td className="px-5 py-3 font-mono font-semibold" style={{ color: '#E4405F' }}>
                           {BRL(c.spendCents)}
+                        </td>
+                        <td className="px-5 py-3 font-mono" style={{ color: c.dailyBudgetCents != null ? '#00E5FF' : '#5A7A9A' }}>
+                          {c.dailyBudgetCents != null ? BRL(c.dailyBudgetCents) : '—'}
                         </td>
                         <td className="px-5 py-3 font-mono" style={{ color: '#8AA8C8' }}>
                           {NUM(c.impressions)}
@@ -277,6 +450,15 @@ export function MetaAdsDashboard({
                         <td className="px-5 py-3 font-mono" style={{ color: '#8AA8C8' }}>
                           {BRL(c.cpcCents)}
                         </td>
+                        <td className="px-5 py-3">
+                          <CampaignActions
+                            campaign={c}
+                            adAccountId={selectedAccount?.adAccountId ?? null}
+                            period={period}
+                            mutationBlocked={blocked}
+                            blockReason={blocked ? s.label : null}
+                          />
+                        </td>
                       </tr>
                     )
                   })}
@@ -287,17 +469,86 @@ export function MetaAdsDashboard({
       </div>
 
       {/* Rodapé com link útil */}
-      <div className="flex items-center justify-center gap-2 text-[11px]" style={{ color: '#5A7A9A' }}>
-        <a
-          href={`https://business.facebook.com/adsmanager/manage/campaigns?act=${credentials.adAccountId.replace('act_', '')}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 transition-colors hover:text-[#00E5FF]"
+      {selectedAccount && (
+        <div className="flex items-center justify-center gap-2 text-[11px]" style={{ color: '#5A7A9A' }}>
+          <a
+            href={`https://business.facebook.com/adsmanager/manage/campaigns?act=${selectedAccount.adAccountId.replace('act_', '')}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 transition-colors hover:text-[#00E5FF]"
+          >
+            <ExternalLink className="h-3 w-3" />
+            Abrir no Ads Manager
+          </a>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function AccountSelector({
+  accounts, selectedId, onSelect,
+}: {
+  accounts: MetaAdsAdAccount[]
+  selectedId: string
+  onSelect: (adAccountId: string) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const selected = accounts.find(a => a.adAccountId === selectedId)
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen(v => !v)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        className="flex items-center gap-2 rounded-xl border px-3 py-1.5 text-xs font-bold transition-colors hover:bg-white/5"
+        style={{ background: '#111827', borderColor: '#1E2D45', color: '#E8F0FE' }}
+      >
+        <span className="truncate max-w-[160px]">{selected?.displayName ?? 'Selecionar conta'}</span>
+        {selected?.isPrimary && <Star className="h-3 w-3 fill-current shrink-0" style={{ color: '#FFAA00' }} />}
+        <ChevronDown className="h-3.5 w-3.5 shrink-0" style={{ color: '#5A7A9A' }} />
+      </button>
+
+      {open && (
+        <div
+          className="absolute right-0 mt-1 w-72 rounded-xl border shadow-lg z-20 overflow-hidden"
+          style={{ background: '#111827', borderColor: '#1E2D45' }}
         >
-          <ExternalLink className="h-3 w-3" />
-          Abrir no Ads Manager
-        </a>
-      </div>
+          <div className="px-3 py-2 border-b text-[10px] font-bold uppercase tracking-wider"
+            style={{ borderColor: '#1E2D45', color: '#5A7A9A' }}>
+            Contas ativas
+          </div>
+          {accounts.map(acc => {
+            const isSelected = acc.adAccountId === selectedId
+            return (
+              <button
+                key={acc.id}
+                onMouseDown={() => onSelect(acc.adAccountId)}
+                className="w-full flex items-start gap-2 px-3 py-2.5 text-left transition-colors hover:bg-white/5"
+                style={{ borderBottom: '1px solid rgba(30,45,69,.3)' }}
+              >
+                <div className="mt-0.5 shrink-0 w-4">
+                  {isSelected && <Check className="h-3.5 w-3.5" style={{ color: '#00FF94' }} />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm font-semibold truncate" style={{ color: '#E8F0FE' }}>
+                      {acc.displayName}
+                    </span>
+                    {acc.isPrimary && (
+                      <Star className="h-3 w-3 fill-current shrink-0" style={{ color: '#FFAA00' }} />
+                    )}
+                  </div>
+                  <div className="text-[10px] font-mono truncate" style={{ color: '#5A7A9A' }}>
+                    {acc.adAccountId}
+                    {acc.currency && <span className="ml-1">· {acc.currency}</span>}
+                  </div>
+                </div>
+              </button>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
@@ -319,6 +570,574 @@ function KpiCard({
       <div className="text-2xl font-bold tracking-tight" style={{ color, fontFamily: 'ui-monospace,monospace' }}>{value}</div>
       <div className="mt-1 text-[11px]" style={{ color: '#5A7A9A' }}>{sub}</div>
     </div>
+  )
+}
+
+function CampaignCodeSection({ totals, spendCents }: { totals: CampaignCodeTotal[]; spendCents: number }) {
+  const totalRevenue = totals.reduce((s, t) => s + t.revenueCents, 0)
+  const hasData      = totals.length > 0
+
+  return (
+    <div className="rounded-2xl border p-6" style={{ background: '#111827', borderColor: '#1E2D45' }}>
+      <div className="flex items-start justify-between gap-3 flex-wrap mb-4">
+        <div className="flex items-center gap-2">
+          <div className="h-4 w-1 rounded-full" style={{ background: '#FFAA00' }} />
+          <div>
+            <h2 className="text-xs font-bold uppercase tracking-widest flex items-center gap-1.5" style={{ color: '#8AA8C8' }}>
+              <Tag className="h-3.5 w-3.5" />
+              ROAS por Código de Campanha
+            </h2>
+            <p className="text-[11px]" style={{ color: '#5A7A9A' }}>
+              Cruzamento de <strong>códigos preenchidos no cadastro do cliente</strong> com vendas e OS do período
+            </p>
+          </div>
+        </div>
+        {hasData && (
+          <span className="text-[11px] rounded-full px-2.5 py-1 font-bold"
+            style={{ background: 'rgba(255,170,0,.1)', color: '#FFAA00' }}>
+            {totals.length} código(s) · {BRL(totalRevenue)} atribuído
+          </span>
+        )}
+      </div>
+
+      {!hasData ? (
+        <div className="rounded-xl border p-5 text-center" style={{ background: '#0D1320', borderColor: 'rgba(255,170,0,.2)' }}>
+          <Tag className="h-8 w-8 mx-auto mb-2" style={{ color: '#FFAA00', opacity: 0.5 }} />
+          <p className="text-sm font-semibold" style={{ color: '#E8F0FE' }}>Nenhum cliente com código de campanha no período</p>
+          <p className="text-xs mt-2 max-w-lg mx-auto" style={{ color: '#8AA8C8' }}>
+            Pra rastrear qual anúncio trouxe o cliente, edite a mensagem pré-preenchida dos seus anúncios Click-to-WhatsApp no Meta Ads Manager com um código identificador, tipo:
+          </p>
+          <div className="mt-3 inline-block rounded-lg border px-3 py-2 font-mono text-xs"
+            style={{ background: '#0D1320', borderColor: '#1E2D45', color: '#00FF94' }}>
+            &quot;Olá! Vi anúncio <span style={{ color: '#FFAA00' }}>[HJ-VAI-1]</span> — tenho interesse&quot;
+          </div>
+          <p className="text-xs mt-3 max-w-lg mx-auto" style={{ color: '#8AA8C8' }}>
+            Quando o cliente chegar no WhatsApp com a mensagem, copie o código e preencha no campo <strong>&quot;Código da campanha&quot;</strong> do cadastro.
+          </p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b text-left" style={{ borderColor: '#1E2D45' }}>
+                {['Código', 'Clientes', 'Transações', 'Faturamento', '% do Investido'].map(h => (
+                  <th key={h} className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider" style={{ color: '#5A7A9A' }}>
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {totals.map(t => {
+                const pct = spendCents > 0 ? (t.revenueCents / spendCents) : 0
+                return (
+                  <tr key={t.code} className="border-b hover:bg-white/[0.02] transition-colors" style={{ borderColor: 'rgba(30,45,69,.5)' }}>
+                    <td className="px-4 py-3">
+                      <span className="font-mono text-sm font-bold rounded-lg px-2 py-1"
+                        style={{ background: 'rgba(255,170,0,.1)', color: '#FFAA00' }}>
+                        {t.code}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 font-mono text-xs" style={{ color: '#8AA8C8' }}>
+                      {t.customerCount}
+                    </td>
+                    <td className="px-4 py-3 font-mono text-xs" style={{ color: '#8AA8C8' }}>
+                      {t.txCount}
+                    </td>
+                    <td className="px-4 py-3 font-mono font-semibold" style={{ color: '#00FF94' }}>
+                      {BRL(t.revenueCents)}
+                    </td>
+                    <td className="px-4 py-3 font-mono text-xs" style={{ color: spendCents > 0 ? (pct >= 1 ? '#00FF94' : pct >= 0.5 ? '#FFAA00' : '#FF4D6D') : '#5A7A9A' }}>
+                      {spendCents > 0 ? `${(pct * 100).toFixed(0)}%` : '—'}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+
+          <p className="mt-3 text-[11px] rounded-lg px-3 py-2 flex items-start gap-2"
+            style={{ background: 'rgba(0,229,255,.05)', borderLeft: '2px solid #00E5FF', color: '#8AA8C8' }}>
+            <CheckCircle2 className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: '#00E5FF' }} />
+            <span>
+              <strong style={{ color: '#E8F0FE' }}>Como é calculado:</strong> cada código cruza os clientes que o possuem com todas as vendas e OS (entregues) do período.
+              A coluna <strong>% do Investido</strong> mostra quanto esse código representa do gasto total no Meta —
+              útil pra identificar quais anúncios pagam o próprio custo.
+            </span>
+          </p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Campaign actions (pausar/despausar/ajustar budget/duplicar) ────────────
+
+function CampaignActions({
+  campaign, adAccountId, period, mutationBlocked, blockReason,
+}: {
+  campaign: MetaAdsCampaign
+  adAccountId: string | null
+  period: MetaAdsPeriod
+  mutationBlocked: boolean
+  blockReason: string | null
+}) {
+  const router = useRouter()
+  const [busy, setBusy] = useState(false)
+  const [budgetOpen, setBudgetOpen] = useState(false)
+  const [chartOpen, setChartOpen]   = useState(false)
+
+  const isActive   = campaign.status === 'ACTIVE'
+  const isPaused   = campaign.status === 'PAUSED'
+  const canToggle  = (isActive || isPaused) && !mutationBlocked
+  const canMutate  = adAccountId !== null && !mutationBlocked
+  const blockTitle = blockReason ? `Ação bloqueada — ${blockReason}. Resolva no Ads Manager.` : ''
+
+  async function handleToggle() {
+    if (!adAccountId) return
+    setBusy(true)
+    try {
+      await updateCampaignStatus(campaign.id, isActive ? 'PAUSED' : 'ACTIVE', adAccountId)
+      toast.success(isActive ? 'Campanha pausada' : 'Campanha ativada')
+      router.refresh()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleDuplicate() {
+    if (!adAccountId) return
+    if (!confirm(`Duplicar "${campaign.name}"?\nA cópia será criada pausada pra você revisar antes de ativar.`)) return
+    setBusy(true)
+    try {
+      await duplicateCampaign(campaign.id, adAccountId)
+      toast.success('Campanha duplicada (pausada — revise antes de ativar)')
+      router.refresh()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-1">
+      {/* Gráfico temporal — sempre disponível (leitura, não afetado por bloqueio) */}
+      {adAccountId && (
+        <button
+          onClick={() => setChartOpen(true)}
+          disabled={busy}
+          title="Ver gráfico temporal"
+          className="rounded-md border p-1.5 transition-colors hover:bg-white/5 disabled:opacity-40"
+          style={{ borderColor: '#1E2D45', color: '#FFAA00' }}
+        >
+          <LineChartIcon className="h-3.5 w-3.5" />
+        </button>
+      )}
+      {canToggle && (
+        <button
+          onClick={handleToggle}
+          disabled={busy}
+          title={isActive ? 'Pausar campanha' : 'Ativar campanha'}
+          className="rounded-md border p-1.5 transition-colors disabled:opacity-40"
+          style={{
+            borderColor:  isActive ? 'rgba(255,170,0,.3)' : 'rgba(0,255,148,.3)',
+            color:        isActive ? '#FFAA00' : '#00FF94',
+            background:   isActive ? 'rgba(255,170,0,.05)' : 'rgba(0,255,148,.05)',
+          }}
+        >
+          {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : (isActive ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />)}
+        </button>
+      )}
+      {canMutate && (
+        <button
+          onClick={() => setBudgetOpen(true)}
+          disabled={busy}
+          title={campaign.dailyBudgetCents != null ? 'Ajustar orçamento diário' : 'Campanha usa orçamento do ad set (CBO)'}
+          className="rounded-md border p-1.5 transition-colors hover:bg-white/5 disabled:opacity-40"
+          style={{ borderColor: '#1E2D45', color: '#00E5FF' }}
+        >
+          <Wallet className="h-3.5 w-3.5" />
+        </button>
+      )}
+      {canMutate && (
+        <button
+          onClick={handleDuplicate}
+          disabled={busy}
+          title="Duplicar campanha"
+          className="rounded-md border p-1.5 transition-colors hover:bg-white/5 disabled:opacity-40"
+          style={{ borderColor: '#1E2D45', color: '#9B6DFF' }}
+        >
+          {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Copy className="h-3.5 w-3.5" />}
+        </button>
+      )}
+      {mutationBlocked && adAccountId && (
+        <span
+          title={blockTitle}
+          className="rounded-md border p-1.5 text-[10px] font-bold"
+          style={{ borderColor: 'rgba(255,77,109,.3)', color: '#FF4D6D', background: 'rgba(255,77,109,.05)' }}
+        >
+          <AlertTriangle className="h-3.5 w-3.5" />
+        </span>
+      )}
+      {budgetOpen && adAccountId && (
+        <BudgetModal
+          campaign={campaign}
+          adAccountId={adAccountId}
+          onClose={() => setBudgetOpen(false)}
+          onSaved={() => { setBudgetOpen(false); router.refresh() }}
+        />
+      )}
+      {chartOpen && adAccountId && (
+        <TimeseriesModal
+          campaign={campaign}
+          adAccountId={adAccountId}
+          period={period}
+          onClose={() => setChartOpen(false)}
+        />
+      )}
+    </div>
+  )
+}
+
+function BudgetModal({
+  campaign, adAccountId, onClose, onSaved,
+}: {
+  campaign: MetaAdsCampaign
+  adAccountId: string
+  onClose: () => void
+  onSaved: () => void
+}) {
+  const current = campaign.dailyBudgetCents != null ? (campaign.dailyBudgetCents / 100) : 0
+  const [value, setValue] = useState(current > 0 ? current.toFixed(2).replace('.', ',') : '')
+  const [saving, setSaving] = useState(false)
+
+  async function handleSave() {
+    const parsed = parseFloat(value.replace(',', '.'))
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      toast.error('Informe um valor maior que zero')
+      return
+    }
+    setSaving(true)
+    try {
+      await updateCampaignDailyBudget(campaign.id, Math.round(parsed * 100), adAccountId)
+      toast.success(`Orçamento atualizado: R$ ${parsed.toFixed(2).replace('.', ',')}/dia`)
+      onSaved()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao atualizar orçamento')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.75)' }}
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}
+    >
+      <div
+        className="w-full max-w-md rounded-2xl border p-6 space-y-4"
+        style={{ background: '#0D1320', borderColor: '#1E2D45' }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Wallet className="h-4 w-4" style={{ color: '#00E5FF' }} />
+            <h3 className="text-sm font-semibold" style={{ color: '#E8F0FE' }}>Ajustar orçamento diário</h3>
+          </div>
+          <button onClick={onClose} className="text-muted hover:text-coral transition-colors">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div>
+          <p className="text-xs" style={{ color: '#5A7A9A' }}>Campanha</p>
+          <p className="text-sm font-semibold mt-0.5" style={{ color: '#E8F0FE' }}>{campaign.name}</p>
+          {campaign.dailyBudgetCents == null && (
+            <div className="mt-2 flex items-start gap-2 rounded-lg px-3 py-2 text-[11px]"
+              style={{ background: 'rgba(255,170,0,.06)', borderLeft: '2px solid #FFAA00', color: '#8AA8C8' }}>
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: '#FFAA00' }} />
+              <span>
+                Essa campanha não tem orçamento no nível da campanha (provavelmente usa CBO ou orçamento por ad set).
+                Definir um valor aqui vai sobrescrever essa estrutura.
+              </span>
+            </div>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#5A7A9A' }}>
+            Orçamento diário
+          </label>
+          <div className="relative">
+            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm" style={{ color: '#8AA8C8' }}>R$</span>
+            <input
+              value={value}
+              onChange={e => setValue(e.target.value.replace(/[^0-9,]/g, ''))}
+              placeholder="0,00"
+              className="w-full rounded-lg border pl-10 pr-3 py-2.5 text-sm outline-none font-mono"
+              style={{ background: '#0D1320', borderColor: '#1E2D45', color: '#E8F0FE' }}
+              autoFocus
+              onKeyDown={e => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') onClose() }}
+            />
+          </div>
+          <p className="text-[10px]" style={{ color: '#5A7A9A' }}>
+            Valor em reais (ex: <code>25,00</code>). A Meta ajusta a entrega pra gastar até esse valor por dia.
+          </p>
+        </div>
+
+        <div className="flex gap-3 pt-1">
+          <button
+            onClick={onClose}
+            className="flex-1 rounded-lg border py-2.5 text-sm font-medium transition-colors hover:bg-white/5"
+            style={{ borderColor: '#1E2D45', color: '#8AA8C8' }}
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving || !value}
+            className="flex-1 flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold transition-opacity disabled:opacity-50"
+            style={{ background: 'linear-gradient(135deg, #00E5FF, #00FF94)', color: '#080C14' }}
+          >
+            {saving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+            Salvar
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Timeseries (gráfico temporal por campanha) ────────────────────────────
+
+type Metric = 'spend' | 'clicks' | 'impressions' | 'ctr'
+
+const METRIC_CONFIG: Record<Metric, { label: string; color: string; format: (v: number) => string }> = {
+  spend:       { label: 'Gasto',       color: '#E4405F', format: v => BRL(v) },
+  clicks:      { label: 'Cliques',     color: '#FFAA00', format: v => NUM(v) },
+  impressions: { label: 'Impressões',  color: '#00E5FF', format: v => NUM(v) },
+  ctr:         { label: 'CTR',         color: '#9B6DFF', format: v => `${v.toFixed(2)}%` },
+}
+
+function TimeseriesModal({
+  campaign, adAccountId, period, onClose,
+}: {
+  campaign: MetaAdsCampaign
+  adAccountId: string
+  period: MetaAdsPeriod
+  onClose: () => void
+}) {
+  type State = { loading: boolean; data: MetaAdsTimeseriesPoint[]; error: string | null }
+  const [state, setState]   = useState<State>({ loading: true, data: [], error: null })
+  const [metric, setMetric] = useState<Metric>('spend')
+  const { loading, data, error } = state
+
+  useEffect(() => {
+    let cancelled = false
+    fetchCampaignTimeseries(campaign.id, period, adAccountId)
+      .then(d => {
+        if (!cancelled) setState({ loading: false, data: d, error: null })
+      })
+      .catch(err => {
+        if (!cancelled) {
+          setState({
+            loading: false,
+            data:    [],
+            error:   err instanceof Error ? err.message : 'Erro ao carregar gráfico',
+          })
+        }
+      })
+    return () => { cancelled = true }
+  }, [campaign.id, period, adAccountId])
+
+  const totalSpend       = data.reduce((s, p) => s + p.spendCents, 0)
+  const totalClicks      = data.reduce((s, p) => s + p.clicks, 0)
+  const totalImpressions = data.reduce((s, p) => s + p.impressions, 0)
+  const avgCtr           = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0
+
+  const chartPoints = data.map(p => ({
+    date: p.date,
+    value: metric === 'spend'       ? p.spendCents
+         : metric === 'clicks'      ? p.clicks
+         : metric === 'impressions' ? p.impressions
+         : p.ctr,
+  }))
+
+  const cfg = METRIC_CONFIG[metric]
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.75)' }}
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}
+    >
+      <div
+        className="w-full max-w-4xl rounded-2xl border p-6 space-y-4 max-h-[90vh] overflow-y-auto"
+        style={{ background: '#0D1320', borderColor: '#1E2D45' }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <LineChartIcon className="h-4 w-4" style={{ color: '#FFAA00' }} />
+              <h3 className="text-sm font-semibold" style={{ color: '#E8F0FE' }}>Evolução diária</h3>
+            </div>
+            <p className="text-xs mt-1" style={{ color: '#8AA8C8' }}>
+              <span style={{ color: '#E8F0FE' }}>{campaign.name}</span>
+              <span className="ml-2" style={{ color: '#5A7A9A' }}>· {period.toUpperCase()}</span>
+            </p>
+          </div>
+          <button onClick={onClose} className="text-muted hover:text-coral transition-colors">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* KPIs totais do período */}
+        {!loading && !error && data.length > 0 && (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <MiniKpi label="Gasto total"     value={BRL(totalSpend)}            color="#E4405F" />
+            <MiniKpi label="Cliques totais"  value={NUM(totalClicks)}           color="#FFAA00" />
+            <MiniKpi label="Impressões"      value={NUM(totalImpressions)}      color="#00E5FF" />
+            <MiniKpi label="CTR médio"       value={`${avgCtr.toFixed(2)}%`}    color="#9B6DFF" />
+          </div>
+        )}
+
+        {/* Toggle de métrica */}
+        {!loading && !error && data.length > 0 && (
+          <div className="flex gap-1 rounded-xl p-1 w-fit" style={{ background: '#111827', border: '1px solid #1E2D45' }}>
+            {(['spend', 'clicks', 'impressions', 'ctr'] as Metric[]).map(m => (
+              <button
+                key={m}
+                onClick={() => setMetric(m)}
+                className="rounded-lg px-3 py-1.5 text-xs font-bold transition-all"
+                style={metric === m
+                  ? { background: METRIC_CONFIG[m].color, color: '#080C14' }
+                  : { color: '#8AA8C8' }
+                }
+              >
+                {METRIC_CONFIG[m].label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Conteúdo principal */}
+        {loading && (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="h-6 w-6 animate-spin" style={{ color: '#00E5FF' }} />
+          </div>
+        )}
+
+        {error && (
+          <div className="rounded-xl border px-4 py-6 text-center"
+            style={{ background: 'rgba(255,77,109,.08)', borderColor: 'rgba(255,77,109,.3)' }}>
+            <AlertTriangle className="h-6 w-6 mx-auto mb-2" style={{ color: '#FF4D6D' }} />
+            <p className="text-sm font-semibold" style={{ color: '#E8F0FE' }}>Erro ao carregar gráfico</p>
+            <p className="text-xs font-mono mt-1" style={{ color: '#FF4D6D' }}>{error}</p>
+          </div>
+        )}
+
+        {!loading && !error && data.length === 0 && (
+          <p className="py-12 text-center text-sm" style={{ color: '#5A7A9A' }}>
+            Sem dados no período. A campanha pode não ter tido entrega nesse intervalo.
+          </p>
+        )}
+
+        {!loading && !error && data.length > 0 && (
+          <div className="rounded-xl border p-4" style={{ background: '#111827', borderColor: '#1E2D45' }}>
+            <TimeseriesChart points={chartPoints} color={cfg.color} formatY={cfg.format} />
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function MiniKpi({ label, value, color }: { label: string; value: string; color: string }) {
+  return (
+    <div className="rounded-lg border p-3" style={{ background: '#111827', borderColor: '#1E2D45' }}>
+      <div className="text-[9px] font-semibold uppercase tracking-wider" style={{ color: '#5A7A9A' }}>{label}</div>
+      <div className="text-sm font-bold mt-1 font-mono" style={{ color }}>{value}</div>
+    </div>
+  )
+}
+
+function TimeseriesChart({
+  points, color, formatY,
+}: {
+  points: { date: string; value: number }[]
+  color: string
+  formatY: (v: number) => string
+}) {
+  const width  = 800
+  const height = 260
+  const padL   = 60
+  const padR   = 20
+  const padT   = 20
+  const padB   = 40
+  const innerW = width  - padL - padR
+  const innerH = height - padT - padB
+
+  const maxVal = Math.max(1, ...points.map(p => p.value))
+  const minVal = 0
+
+  const xScale = (i: number) => padL + (points.length <= 1 ? innerW / 2 : (i / (points.length - 1)) * innerW)
+  const yScale = (v: number) => padT + innerH - ((v - minVal) / (maxVal - minVal)) * innerH
+
+  const lineD = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${xScale(i).toFixed(1)},${yScale(p.value).toFixed(1)}`).join(' ')
+  const areaD = points.length > 0
+    ? `${lineD} L${xScale(points.length - 1).toFixed(1)},${(padT + innerH).toFixed(1)} L${xScale(0).toFixed(1)},${(padT + innerH).toFixed(1)} Z`
+    : ''
+
+  const yTicks = [0, 0.25, 0.5, 0.75, 1].map(t => ({
+    value: maxVal * t,
+    y:     padT + innerH - t * innerH,
+  }))
+
+  const xStep = Math.max(1, Math.ceil(points.length / 8))
+
+  const fmtShortDate = (iso: string) => iso.slice(5).replace('-', '/')
+
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} className="w-full" preserveAspectRatio="xMidYMid meet">
+      {yTicks.map(t => (
+        <line key={t.y}
+          x1={padL} y1={t.y} x2={width - padR} y2={t.y}
+          stroke="#1E2D45" strokeWidth="1" strokeDasharray="2 3"
+        />
+      ))}
+
+      {areaD && <path d={areaD} fill={color} opacity="0.12" />}
+      {lineD && <path d={lineD}   fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />}
+
+      {points.map((p, i) => (
+        <circle key={i} cx={xScale(i)} cy={yScale(p.value)} r="3" fill={color}>
+          <title>{`${p.date}: ${formatY(p.value)}`}</title>
+        </circle>
+      ))}
+
+      {yTicks.map(t => (
+        <text key={`ylbl-${t.y}`}
+          x={padL - 8} y={t.y + 3}
+          textAnchor="end" fontSize="10" fill="#5A7A9A" fontFamily="ui-monospace,monospace"
+        >
+          {formatY(t.value)}
+        </text>
+      ))}
+
+      {points.map((p, i) => (i % xStep === 0 || i === points.length - 1) && (
+        <text key={`xlbl-${i}`}
+          x={xScale(i)} y={height - 15}
+          textAnchor="middle" fontSize="10" fill="#5A7A9A" fontFamily="ui-monospace,monospace"
+        >
+          {fmtShortDate(p.date)}
+        </text>
+      ))}
+    </svg>
   )
 }
 

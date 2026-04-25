@@ -21,6 +21,7 @@ export type Customer = {
   whatsapp: string | null
   email: string | null
   origin: string | null
+  campaign_code: string | null
 }
 
 export type CreateCustomerInput = {
@@ -35,6 +36,7 @@ export type CreateCustomerInput = {
   addressNumber: string; addressComplement: string
   addressCity: string; addressState: string
   origin?: string
+  campaignCode?: string
 }
 
 export type UpdateCustomerInput = CreateCustomerInput & { id: string; clienteSince?: string }
@@ -57,6 +59,8 @@ export type CreateSaleInput = {
   paymentMethod: 'cash' | 'pix' | 'card' | 'mixed'
   paymentDetails: Record<string, number> | null
   items: SaleItem[]
+  saleChannel?: string | null   // whatsapp | instagram_dm | delivery_online | fisica_balcao | fisica_retirada | outro
+  deliveryType?: string | null  // counter | pickup | shipping
 }
 
 // ── Actions ───────────────────────────────────────────────────────────────────
@@ -122,7 +126,7 @@ export async function searchCustomers(query: string): Promise<Customer[]> {
 
   const { data } = await supabase
     .from('customers')
-    .select('id, full_name, cpf_cnpj, whatsapp, email, origin')
+    .select('id, full_name, cpf_cnpj, whatsapp, email, origin, campaign_code')
     .eq('tenant_id', tenantId)
     .or(filters.join(','))
     .order('full_name')
@@ -137,7 +141,7 @@ export async function getOrCreateConsumidorFinal(): Promise<Customer> {
 
   const { data: existing } = await supabase
     .from('customers')
-    .select('id, full_name, cpf_cnpj, whatsapp, email, origin')
+    .select('id, full_name, cpf_cnpj, whatsapp, email, origin, campaign_code')
     .eq('tenant_id', tenantId)
     .eq('full_name', 'Consumidor Final')
     .is('cpf_cnpj', null)
@@ -148,7 +152,7 @@ export async function getOrCreateConsumidorFinal(): Promise<Customer> {
   const { data, error } = await supabase
     .from('customers')
     .insert({ tenant_id: tenantId, full_name: 'Consumidor Final' })
-    .select('id, full_name, cpf_cnpj, whatsapp, email, origin')
+    .select('id, full_name, cpf_cnpj, whatsapp, email, origin, campaign_code')
     .single()
 
   if (error) throw new Error(error.message)
@@ -220,8 +224,9 @@ export async function createCustomer(input: CreateCustomerInput): Promise<Custom
       address_city:        input.addressCity.trim() || null,
       address_state:       input.addressState.trim() || null,
       origin:              input.origin || null,
+      campaign_code:       input.campaignCode?.trim() || null,
     })
-    .select('id, full_name, cpf_cnpj, whatsapp, email, origin')
+    .select('id, full_name, cpf_cnpj, whatsapp, email, origin, campaign_code')
     .single()
 
   if (error) throw new Error(error.message)
@@ -295,15 +300,54 @@ export async function updateCustomer(input: UpdateCustomerInput): Promise<Custom
       address_city:        input.addressCity.trim() || null,
       address_state:       input.addressState.trim() || null,
       origin:              input.origin || null,
+      campaign_code:       input.campaignCode?.trim() || null,
       ...(input.clienteSince ? { created_at: input.clienteSince + 'T00:00:00.000Z' } : {}),
     })
     .eq('id', input.id)
     .eq('tenant_id', tenantId)
-    .select('id, full_name, cpf_cnpj, whatsapp, email, origin')
+    .select('id, full_name, cpf_cnpj, whatsapp, email, origin, campaign_code')
     .single()
 
   if (error) throw new Error(error.message)
   return data as Customer
+}
+
+export async function updateCustomerCampaignCode(id: string, code: string): Promise<{ ok: true }> {
+  const { supabase, user } = await requireAuth()
+  const tenantId = getTenantId(user)
+
+  const trimmed = code.trim().toUpperCase().slice(0, 40)
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any
+  const { error } = await sb
+    .from('customers')
+    .update({ campaign_code: trimmed || null })
+    .eq('id', id)
+    .eq('tenant_id', tenantId)
+
+  if (error) throw new Error(error.message)
+  return { ok: true }
+}
+
+export async function listUsedCampaignCodes(): Promise<string[]> {
+  const { supabase, user } = await requireAuth()
+  const tenantId = getTenantId(user)
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any
+  const { data } = await sb
+    .from('customers')
+    .select('campaign_code')
+    .eq('tenant_id', tenantId)
+    .not('campaign_code', 'is', null)
+    .limit(500)
+
+  const codes = new Set<string>()
+  for (const row of (data ?? []) as { campaign_code: string }[]) {
+    if (row.campaign_code) codes.add(row.campaign_code)
+  }
+  return [...codes].sort()
 }
 
 export async function updateCustomerOrigin(id: string, origin: string): Promise<Customer> {
@@ -315,7 +359,7 @@ export async function updateCustomerOrigin(id: string, origin: string): Promise<
     .update({ origin: origin || null })
     .eq('id', id)
     .eq('tenant_id', tenantId)
-    .select('id, full_name, cpf_cnpj, whatsapp, email, origin')
+    .select('id, full_name, cpf_cnpj, whatsapp, email, origin, campaign_code')
     .single()
 
   if (error) throw new Error(error.message)
@@ -338,6 +382,8 @@ export async function createSale(input: CreateSaleInput): Promise<{ id: string }
       total_cents:     input.totalCents,
       payment_method:  input.paymentMethod,
       payment_details: input.paymentDetails,
+      sale_channel:    input.saleChannel  ?? null,
+      delivery_type:   input.deliveryType ?? null,
     })
     .select('id')
     .single()

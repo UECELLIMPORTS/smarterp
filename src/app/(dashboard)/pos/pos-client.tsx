@@ -13,6 +13,8 @@ import {
 import type { StockControlMode } from '@/actions/settings'
 import { AddressCityState } from '@/components/ui/address-fields'
 import { CUSTOMER_ORIGIN_OPTIONS, originLabel } from '@/lib/customer-origin'
+import { CampaignCodePicker } from '@/components/meta-ads/campaign-code-picker'
+import { SALE_CHANNEL_OPTIONS_PICKABLE, DELIVERY_TYPE_OPTIONS, type SaleChannel, type DeliveryType } from '@/lib/sale-channels'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -93,6 +95,8 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
 
   // ── Payment ──
   const [method, setMethod] = useState<PaymentMethod>('pix')
+  const [saleChannel, setSaleChannel]   = useState<SaleChannel | ''>('')
+  const [deliveryType, setDeliveryType] = useState<DeliveryType | ''>('')
   const [mxCash, setMxCash] = useState('')
   const [mxPix, setMxPix]   = useState('')
   const [mxCard, setMxCard] = useState('')
@@ -306,6 +310,8 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
         paymentDetails: method === 'mixed'
           ? { cash: parseCents(mxCash), pix: parseCents(mxPix), card: parseCents(mxCard) }
           : null,
+        saleChannel:    saleChannel  || null,
+        deliveryType:   deliveryType || null,
         items: cart.map(i => ({
           productId:      i.productId,
           source:         i.source,
@@ -318,6 +324,7 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
       toast.success('Venda finalizada com sucesso!')
       setCart([]); setShipping(''); setDiscount('')
       setMethod('pix'); setMxCash(''); setMxPix(''); setMxCard('')
+      setSaleChannel(''); setDeliveryType('')
       setCustomer(consumidorFinal)
     } catch { toast.error('Erro ao finalizar venda') }
     finally { setFinalizing(false) }
@@ -585,6 +592,23 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
                   </select>
                 </div>
               )
+            )}
+
+            {/* ── Código da campanha (só pra origens Meta) ── */}
+            {!isDefault && customer.origin && (customer.origin === 'instagram_pago' || customer.origin === 'facebook') && (
+              <div className="rounded-lg border px-3 py-2 flex items-center justify-between gap-2"
+                style={{ background: '#0D1320', borderColor: '#1E2D45' }}>
+                <span className="text-[10px] font-semibold uppercase tracking-wider shrink-0" style={{ color: '#5A7A9A' }}>
+                  Campanha
+                </span>
+                <CampaignCodePicker
+                  customerId={customer.id}
+                  currentCode={customer.campaign_code}
+                  origin={customer.origin}
+                  onUpdated={code => setCustomer({ ...customer, campaign_code: code })}
+                  compact
+                />
+              </div>
             )}
 
             {/* Customer search + cadastrar (only when not showing form and not in dropdown) */}
@@ -915,6 +939,35 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
                 })()}
               </div>
             )}
+          </div>
+
+          {/* ── Canal da venda + Entrega ── */}
+          <div className="rounded-xl border p-3 space-y-2" style={{ borderColor: '#1E2D45', background: '#0D1320' }}>
+            <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#5A7A9A' }}>
+              Canal da venda
+            </p>
+            <select
+              value={saleChannel}
+              onChange={e => setSaleChannel(e.target.value as SaleChannel | '')}
+              className={inputCls + ' text-xs'}
+              style={{ ...inputStyle, appearance: 'none' }}
+            >
+              <option value="">Não informar</option>
+              {SALE_CHANNEL_OPTIONS_PICKABLE.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+            <select
+              value={deliveryType}
+              onChange={e => setDeliveryType(e.target.value as DeliveryType | '')}
+              className={inputCls + ' text-xs'}
+              style={{ ...inputStyle, appearance: 'none' }}
+            >
+              <option value="">Entrega — não informar</option>
+              {DELIVERY_TYPE_OPTIONS.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
           </div>
 
           {/* Finalize */}

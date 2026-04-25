@@ -5,19 +5,28 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
   Key, ExternalLink, CheckCircle2, XCircle, Loader2, Trash2, ArrowLeft,
-  AlertTriangle, BookOpen,
+  AlertTriangle, BookOpen, Star, Plus, Pencil, Play, Pause, Check, X,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   saveMetaAdsCredentials,
   testMetaAdsConnection,
   deleteMetaAdsCredentials,
+  createAdAccount,
+  updateAdAccount,
+  deleteAdAccount,
+  setPrimaryAdAccount,
   type MetaAdsCredentialsSafe,
+  type MetaAdsAdAccount,
 } from '@/actions/meta-ads'
+import { formatDateTime } from '@/lib/datetime'
 
-type Props = { current: MetaAdsCredentialsSafe | null }
+type Props = {
+  current:  MetaAdsCredentialsSafe | null
+  accounts: MetaAdsAdAccount[]
+}
 
-export function ConfiguracoesClient({ current }: Props) {
+export function ConfiguracoesClient({ current, accounts }: Props) {
   const router = useRouter()
   const [form, setForm] = useState({
     appId:       current?.appId ?? '',
@@ -83,7 +92,7 @@ export function ConfiguracoesClient({ current }: Props) {
           </Link>
           <h1 className="text-2xl font-bold" style={{ color: '#E8F0FE' }}>Configurações do Meta Ads</h1>
           <p className="mt-1 text-sm" style={{ color: '#5A7A9A' }}>
-            Cole as credenciais da sua conta Meta Business para ativar o dashboard
+            Credenciais da sua conta Meta Business e contas de anúncios conectadas
           </p>
         </div>
       </div>
@@ -107,8 +116,8 @@ export function ConfiguracoesClient({ current }: Props) {
                 {current.lastError ? 'Erro na última sincronização' : 'Credenciais configuradas'}
               </p>
               <p className="mt-1 text-xs" style={{ color: '#8AA8C8' }}>
-                Conta: <span className="font-mono">{current.adAccountId}</span>
-                {current.lastSyncAt && <> · Última sync: {new Date(current.lastSyncAt).toLocaleString('pt-BR')}</>}
+                {accounts.length} {accounts.length === 1 ? 'conta conectada' : 'contas conectadas'}
+                {current.lastSyncAt && <> · Última sync: {formatDateTime(current.lastSyncAt)}</>}
               </p>
               {current.lastError && (
                 <p className="mt-2 text-xs font-mono" style={{ color: '#FF4D6D' }}>{current.lastError}</p>
@@ -116,6 +125,11 @@ export function ConfiguracoesClient({ current }: Props) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Contas conectadas */}
+      {current && (
+        <AccountsSection accounts={accounts} onChange={() => router.refresh()} />
       )}
 
       {/* Guia */}
@@ -208,7 +222,7 @@ export function ConfiguracoesClient({ current }: Props) {
 
         <Field
           label="Ad Account ID *"
-          hint="Formato act_XXXXXXXXX — ID da conta no Ads Manager"
+          hint="Formato act_XXXXXXXXX — ID da conta no Ads Manager (será a conta principal na primeira configuração)"
           value={form.adAccountId}
           onChange={v => setForm(f => ({ ...f, adAccountId: v }))}
           placeholder="act_1234567890"
@@ -278,6 +292,315 @@ export function ConfiguracoesClient({ current }: Props) {
     </div>
   )
 }
+
+// ── Contas conectadas ──────────────────────────────────────────────────────
+
+function AccountsSection({ accounts, onChange }: { accounts: MetaAdsAdAccount[]; onChange: () => void }) {
+  const [adding, setAdding] = useState(false)
+  const [newAdAccountId, setNewAdAccountId] = useState('')
+  const [newDisplayName, setNewDisplayName] = useState('')
+  const [creating, setCreating] = useState(false)
+
+  async function handleAdd() {
+    if (!newAdAccountId.trim() || !newDisplayName.trim()) {
+      toast.error('Preencha o ID e o nome da conta')
+      return
+    }
+    setCreating(true)
+    try {
+      await createAdAccount({ adAccountId: newAdAccountId, displayName: newDisplayName })
+      toast.success('Conta adicionada')
+      setNewAdAccountId('')
+      setNewDisplayName('')
+      setAdding(false)
+      onChange()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro')
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  return (
+    <div className="rounded-xl border p-6 space-y-4" style={{ background: '#111827', borderColor: '#1E2D45' }}>
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div>
+          <h2 className="text-sm font-semibold flex items-center gap-2" style={{ color: '#E8F0FE' }}>
+            <Star className="h-4 w-4" style={{ color: '#FFAA00' }} />
+            Contas conectadas
+          </h2>
+          <p className="text-xs mt-0.5" style={{ color: '#5A7A9A' }}>
+            Mesmo access_token; cada conta tem métricas e ROAS isolados
+          </p>
+        </div>
+        {!adding && (
+          <button
+            onClick={() => setAdding(true)}
+            className="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-bold transition-colors hover:bg-white/5"
+            style={{ borderColor: '#1E2D45', color: '#00E5FF' }}
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Adicionar conta
+          </button>
+        )}
+      </div>
+
+      {adding && (
+        <div className="rounded-lg border p-4 space-y-3" style={{ background: '#0D1320', borderColor: 'rgba(0,229,255,.3)' }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#5A7A9A' }}>
+                Ad Account ID
+              </label>
+              <input
+                value={newAdAccountId}
+                onChange={e => setNewAdAccountId(e.target.value)}
+                placeholder="act_1234567890"
+                className="w-full rounded-lg border px-3 py-2 text-sm outline-none font-mono"
+                style={{ background: '#0D1320', borderColor: '#1E2D45', color: '#E8F0FE' }}
+                autoComplete="off"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#5A7A9A' }}>
+                Nome para exibição
+              </label>
+              <input
+                value={newDisplayName}
+                onChange={e => setNewDisplayName(e.target.value)}
+                placeholder="Victoria Auto Peças"
+                className="w-full rounded-lg border px-3 py-2 text-sm outline-none"
+                style={{ background: '#0D1320', borderColor: '#1E2D45', color: '#E8F0FE' }}
+                autoComplete="off"
+              />
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleAdd}
+              disabled={creating}
+              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold text-black disabled:opacity-50"
+              style={{ background: 'linear-gradient(135deg, #00E5FF, #00FF94)' }}
+            >
+              {creating && <Loader2 className="h-3 w-3 animate-spin" />}
+              Adicionar
+            </button>
+            <button
+              onClick={() => { setAdding(false); setNewAdAccountId(''); setNewDisplayName('') }}
+              className="rounded-lg border px-3 py-1.5 text-xs font-bold hover:bg-white/5"
+              style={{ borderColor: '#1E2D45', color: '#8AA8C8' }}
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="space-y-2">
+        {accounts.map(acc => <AccountRow key={acc.id} account={acc} onChange={onChange} />)}
+      </div>
+
+      {accounts.length === 0 && !adding && (
+        <p className="text-xs text-center py-4" style={{ color: '#5A7A9A' }}>
+          Nenhuma conta cadastrada. Clique em &quot;Adicionar conta&quot; pra começar.
+        </p>
+      )}
+    </div>
+  )
+}
+
+function AccountRow({ account, onChange }: { account: MetaAdsAdAccount; onChange: () => void }) {
+  const [editingName, setEditingName] = useState(false)
+  const [editValue, setEditValue] = useState(account.displayName)
+  const [busy, setBusy] = useState(false)
+
+  async function handleRename() {
+    if (!editValue.trim() || editValue === account.displayName) {
+      setEditingName(false)
+      setEditValue(account.displayName)
+      return
+    }
+    setBusy(true)
+    try {
+      await updateAdAccount(account.id, { displayName: editValue })
+      toast.success('Nome atualizado')
+      setEditingName(false)
+      onChange()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleSetPrimary() {
+    setBusy(true)
+    try {
+      await setPrimaryAdAccount(account.id)
+      toast.success(`"${account.displayName}" agora é a conta principal`)
+      onChange()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleToggleActive() {
+    setBusy(true)
+    try {
+      await updateAdAccount(account.id, { isActive: !account.isActive })
+      toast.success(account.isActive ? 'Conta desativada' : 'Conta reativada')
+      onChange()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleTest() {
+    setBusy(true)
+    try {
+      const res = await testMetaAdsConnection(account.adAccountId)
+      if (res.ok) toast.success(res.message)
+      else        toast.error(res.message)
+      onChange()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleDelete() {
+    if (!confirm(`Remover a conta "${account.displayName}"? Essa ação não pode ser desfeita.`)) return
+    setBusy(true)
+    try {
+      await deleteAdAccount(account.id)
+      toast.success('Conta removida')
+      onChange()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div
+      className="rounded-lg border p-3"
+      style={{
+        background: account.isPrimary ? 'rgba(255,170,0,.05)' : '#0D1320',
+        borderColor: account.isPrimary ? 'rgba(255,170,0,.3)' : '#1E2D45',
+        opacity: account.isActive ? 1 : 0.5,
+      }}
+    >
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div className="flex-1 min-w-[240px]">
+          <div className="flex items-center gap-2 flex-wrap">
+            {account.isPrimary && <Star className="h-3.5 w-3.5 fill-current shrink-0" style={{ color: '#FFAA00' }} />}
+            {editingName ? (
+              <div className="flex items-center gap-1 flex-1 min-w-0">
+                <input
+                  value={editValue}
+                  onChange={e => setEditValue(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter')  handleRename()
+                    if (e.key === 'Escape') { setEditingName(false); setEditValue(account.displayName) }
+                  }}
+                  autoFocus
+                  className="flex-1 rounded border px-2 py-0.5 text-sm outline-none"
+                  style={{ background: '#0D1320', borderColor: '#1E2D45', color: '#E8F0FE' }}
+                />
+                <button onClick={handleRename} disabled={busy} className="p-1 hover:bg-white/5 rounded shrink-0">
+                  <Check className="h-3.5 w-3.5" style={{ color: '#00FF94' }} />
+                </button>
+                <button onClick={() => { setEditingName(false); setEditValue(account.displayName) }} className="p-1 hover:bg-white/5 rounded shrink-0">
+                  <X className="h-3.5 w-3.5" style={{ color: '#FF4D6D' }} />
+                </button>
+              </div>
+            ) : (
+              <>
+                <span className="text-sm font-semibold" style={{ color: '#E8F0FE' }}>{account.displayName}</span>
+                <button onClick={() => { setEditingName(true); setEditValue(account.displayName) }} className="p-0.5 opacity-40 hover:opacity-100" title="Renomear">
+                  <Pencil className="h-3 w-3" style={{ color: '#8AA8C8' }} />
+                </button>
+                {account.isPrimary && (
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase" style={{ background: 'rgba(255,170,0,.15)', color: '#FFAA00' }}>
+                    Principal
+                  </span>
+                )}
+                {!account.isActive && (
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase" style={{ background: 'rgba(138,168,200,.15)', color: '#8AA8C8' }}>
+                    Inativa
+                  </span>
+                )}
+              </>
+            )}
+          </div>
+          <p className="text-xs mt-1 font-mono break-all" style={{ color: '#8AA8C8' }}>
+            {account.adAccountId}
+            {account.currency && <span className="ml-2" style={{ color: '#5A7A9A' }}>· {account.currency}</span>}
+          </p>
+          <p className="text-[10px] mt-1" style={{ color: account.lastError ? '#FF4D6D' : '#5A7A9A' }}>
+            {account.lastError
+              ? `Erro: ${account.lastError.slice(0, 80)}`
+              : account.lastSyncAt
+                ? `Última sync: ${formatDateTime(account.lastSyncAt)}`
+                : 'Nunca sincronizada'}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-1 flex-wrap justify-end">
+          <button
+            onClick={handleTest}
+            disabled={busy}
+            className="flex items-center gap-1 rounded border px-2 py-1 text-[10px] font-bold transition-colors hover:bg-white/5 disabled:opacity-50"
+            style={{ borderColor: '#1E2D45', color: '#00E5FF' }}
+          >
+            {busy && <Loader2 className="h-3 w-3 animate-spin" />}
+            Testar
+          </button>
+          {!account.isPrimary && account.isActive && (
+            <button
+              onClick={handleSetPrimary}
+              disabled={busy}
+              className="flex items-center gap-1 rounded border px-2 py-1 text-[10px] font-bold transition-colors hover:bg-white/5 disabled:opacity-50"
+              style={{ borderColor: 'rgba(255,170,0,.3)', color: '#FFAA00' }}
+            >
+              <Star className="h-3 w-3" />
+              Tornar principal
+            </button>
+          )}
+          <button
+            onClick={handleToggleActive}
+            disabled={busy}
+            className="flex items-center gap-1 rounded border px-2 py-1 text-[10px] font-bold transition-colors hover:bg-white/5 disabled:opacity-50"
+            style={{ borderColor: '#1E2D45', color: '#8AA8C8' }}
+            title={account.isActive ? 'Desativar (não aparece no seletor)' : 'Reativar'}
+          >
+            {account.isActive ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
+            {account.isActive ? 'Desativar' : 'Ativar'}
+          </button>
+          {!account.isPrimary && (
+            <button
+              onClick={handleDelete}
+              disabled={busy}
+              className="flex items-center gap-1 rounded border px-2 py-1 text-[10px] font-bold transition-colors hover:bg-red-500/10 disabled:opacity-50"
+              style={{ borderColor: 'rgba(255,77,109,.3)', color: '#FF4D6D' }}
+              title="Remover conta"
+            >
+              <Trash2 className="h-3 w-3" />
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Input reutilizável ─────────────────────────────────────────────────────
 
 function Field({
   label, hint, value, onChange, placeholder, type = 'text', mono = false,

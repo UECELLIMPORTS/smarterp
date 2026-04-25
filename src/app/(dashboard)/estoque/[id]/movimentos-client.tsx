@@ -268,14 +268,23 @@ function MovimentoModal({
             )
           })()}
           {form.type === 'saida' && (() => {
-            const lucro  = form.salePriceCents - form.purchasePriceCents
-            const margem = form.salePriceCents > 0 ? (lucro / form.salePriceCents) * 100 : 0
+            // Margem usa o custo (mais correto) — fallback pro preço de compra se não informado.
+            const custoRef = form.costPriceCents > 0 ? form.costPriceCents : form.purchasePriceCents
+            const lucro    = form.salePriceCents - custoRef
+            const margem   = form.salePriceCents > 0 ? (lucro / form.salePriceCents) * 100 : 0
             const positivo = lucro >= 0
+            const custoLabel = form.costPriceCents > 0 ? 'custo' : 'compra'
             return (
               <>
                 <PriceField label="Preço de Venda" value={form.salePriceCents}
                   onChange={v => onChange({ salePriceCents: v })} />
-                {form.salePriceCents > 0 && form.purchasePriceCents > 0 && (
+                <div className="grid grid-cols-2 gap-3">
+                  <PriceField label="Preço de Compra" value={form.purchasePriceCents}
+                    onChange={v => onChange({ purchasePriceCents: v })} />
+                  <PriceField label="Preço de Custo" value={form.costPriceCents}
+                    onChange={v => onChange({ costPriceCents: v })} />
+                </div>
+                {form.salePriceCents > 0 && custoRef > 0 && (
                   <div
                     className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs"
                     style={{
@@ -287,6 +296,7 @@ function MovimentoModal({
                     <span className="font-semibold">Margem: {margem.toFixed(1)}%</span>
                     <span className="text-muted">·</span>
                     <span>Lucro: {BRL(lucro)}</span>
+                    <span className="ml-auto text-muted">ref. {custoLabel}</span>
                   </div>
                 )}
               </>

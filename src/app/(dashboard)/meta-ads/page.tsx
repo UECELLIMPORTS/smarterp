@@ -7,10 +7,15 @@ import {
   getMetaAdsCredentials,
   fetchMetaAdsInsights,
   fetchMetaAdsCampaigns,
+  fetchAdAccountHealth,
+  listAdAccounts,
   type MetaAdsPeriod,
   type MetaAdsInsights,
   type MetaAdsCampaign,
+  type MetaAdsAdAccount,
+  type MetaAdsAccountHealth,
 } from '@/actions/meta-ads'
+import { countUnreadAlerts } from '@/actions/meta-ads-alerts'
 import { MetaAdsDashboard } from './meta-ads-dashboard'
 
 export const metadata = { title: 'Meta Ads — Smart ERP' }
@@ -19,6 +24,13 @@ export type OriginTotals = {
   igPagoCents:   number
   igOrgCents:    number
   facebookCents: number
+  txCount:       number
+}
+
+export type CampaignCodeTotal = {
+  code:          string
+  revenueCents:  number
+  customerCount: number
   txCount:       number
 }
 
@@ -68,6 +80,63 @@ async function getIgFacebookRevenue(tenantId: string, sinceIso: string): Promise
   return totals
 }
 
+async function getRevenueByCampaignCode(tenantId: string, sinceIso: string): Promise<CampaignCodeTotal[]> {
+  const { supabase } = await requireAuth()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any
+
+  const [salesRes, osRes] = await Promise.all([
+    sb.from('sales')
+      .select('customer_id, total_cents, customers!inner(campaign_code)')
+      .eq('tenant_id', tenantId)
+      .gte('created_at', sinceIso)
+      .neq('status', 'cancelled')
+      .not('customers.campaign_code', 'is', null)
+      .limit(5000),
+    sb.from('service_orders')
+      .select('customer_id, total_price_cents, service_price_cents, parts_sale_cents, discount_cents, customers!inner(campaign_code)')
+      .eq('tenant_id', tenantId)
+      .gte('received_at', sinceIso)
+      .in('status', ['delivered', 'Entregue'])
+      .not('customers.campaign_code', 'is', null)
+      .limit(5000),
+  ])
+
+  type SaleRow = { customer_id: string; total_cents: number; customers: { campaign_code: string } }
+  type OsRow   = { customer_id: string; total_price_cents: number|null; service_price_cents: number|null; parts_sale_cents: number|null; discount_cents: number|null; customers: { campaign_code: string } }
+
+  const byCode = new Map<string, { revenueCents: number; customerIds: Set<string>; txCount: number }>()
+  const bump = (code: string, customerId: string, v: number) => {
+    const bucket = byCode.get(code) ?? { revenueCents: 0, customerIds: new Set<string>(), txCount: 0 }
+    bucket.revenueCents += v
+    bucket.customerIds.add(customerId)
+    bucket.txCount++
+    byCode.set(code, bucket)
+  }
+
+  for (const s of (salesRes.data ?? []) as SaleRow[]) {
+    const code = s.customers?.campaign_code
+    if (!code) continue
+    bump(code, s.customer_id, s.total_cents ?? 0)
+  }
+  for (const o of (osRes.data ?? []) as OsRow[]) {
+    const code = o.customers?.campaign_code
+    if (!code) continue
+    const v = o.total_price_cents
+      ?? Math.max(0, (o.service_price_cents ?? 0) + (o.parts_sale_cents ?? 0) - (o.discount_cents ?? 0))
+    bump(code, o.customer_id, v)
+  }
+
+  return Array.from(byCode.entries())
+    .map(([code, b]) => ({
+      code,
+      revenueCents:  b.revenueCents,
+      customerCount: b.customerIds.size,
+      txCount:       b.txCount,
+    }))
+    .sort((a, b) => b.revenueCents - a.revenueCents)
+}
+
 function periodToIso(period: MetaAdsPeriod): string {
   const now = new Date()
   if (period === 'today') { now.setHours(0, 0, 0, 0); return now.toISOString() }
@@ -80,10 +149,25 @@ function periodToIso(period: MetaAdsPeriod): string {
   return now.toISOString()
 }
 
+function resolveSelectedAccount(
+  accounts: MetaAdsAdAccount[],
+  requested: string | undefined,
+): MetaAdsAdAccount | null {
+  if (accounts.length === 0) return null
+  const active = accounts.filter(a => a.isActive)
+  if (active.length === 0) return null
+  if (requested) {
+    const normalized = requested.startsWith('act_') ? requested : `act_${requested}`
+    const match = active.find(a => a.adAccountId === normalized)
+    if (match) return match
+  }
+  return active.find(a => a.isPrimary) ?? active[0]
+}
+
 export default async function MetaAdsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ period?: string }>
+  searchParams: Promise<{ period?: string; account?: string }>
 }) {
   let auth: Awaited<ReturnType<typeof requireAuth>>
   try { auth = await requireAuth() } catch { redirect('/login') }
@@ -91,7 +175,7 @@ export default async function MetaAdsPage({
   const { user } = auth
   const tenantId = getTenantId(user)
 
-  const { period: rawPeriod = '30d' } = await searchParams
+  const { period: rawPeriod = '30d', account: rawAccount } = await searchParams
   const period = (['7d', '30d', '90d', 'today', 'yesterday'].includes(rawPeriod)
     ? rawPeriod
     : '30d') as MetaAdsPeriod
@@ -136,29 +220,61 @@ export default async function MetaAdsPage({
     )
   }
 
+  const accounts = await listAdAccounts().catch(() => [] as MetaAdsAdAccount[])
+  const selectedAccount = resolveSelectedAccount(accounts, rawAccount)
+
   let insights: MetaAdsInsights | null = null
   let campaigns: MetaAdsCampaign[] = []
   let loadError: string | null = null
 
-  try {
-    ;[insights, campaigns] = await Promise.all([
-      fetchMetaAdsInsights(period),
-      fetchMetaAdsCampaigns(period),
+  let accountHealth: MetaAdsAccountHealth | null = null
+
+  if (selectedAccount) {
+    // Promise.allSettled: se uma falha, não derruba a outra.
+    const [insightsRes, campaignsRes, healthRes] = await Promise.allSettled([
+      fetchMetaAdsInsights(period, selectedAccount.adAccountId),
+      fetchMetaAdsCampaigns(period, selectedAccount.adAccountId),
+      fetchAdAccountHealth(selectedAccount.adAccountId),
     ])
-  } catch (err) {
-    loadError = err instanceof Error ? err.message : 'Erro ao carregar dados do Meta'
+
+    if (insightsRes.status === 'fulfilled') {
+      insights = insightsRes.value
+    } else {
+      loadError = insightsRes.reason instanceof Error ? insightsRes.reason.message : 'Erro ao carregar insights'
+    }
+
+    if (campaignsRes.status === 'fulfilled') {
+      campaigns = campaignsRes.value
+    } else if (!loadError) {
+      loadError = campaignsRes.reason instanceof Error ? campaignsRes.reason.message : 'Erro ao carregar campanhas'
+    }
+
+    if (healthRes.status === 'fulfilled') {
+      accountHealth = healthRes.value
+    }
+  } else {
+    loadError = 'Nenhuma conta de anúncios ativa. Cadastre uma em Configurações.'
   }
 
-  const origins = await getIgFacebookRevenue(tenantId, periodToIso(period))
+  const sinceIso = periodToIso(period)
+  const [origins, campaignCodeTotals, unreadAlerts] = await Promise.all([
+    getIgFacebookRevenue(tenantId, sinceIso),
+    getRevenueByCampaignCode(tenantId, sinceIso),
+    countUnreadAlerts().catch(() => 0),
+  ])
 
   return (
     <MetaAdsDashboard
       period={period}
-      credentials={credentials}
+      accounts={accounts}
+      selectedAccount={selectedAccount}
+      accountHealth={accountHealth}
       insights={insights}
       campaigns={campaigns}
       loadError={loadError}
       originRevenue={origins}
+      campaignCodeTotals={campaignCodeTotals}
+      unreadAlertsCount={unreadAlerts}
     />
   )
 }

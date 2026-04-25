@@ -123,3 +123,19 @@
 - 🔍 Causa: Outside-click handler escutava `mousedown` mas botões usavam `onClick` — race condition podia fechar o menu antes do click ser processado
 - ✅ Solução: Todos os botões agora usam `onMouseDown` com `preventDefault` + `stopPropagation`, `type="button"`
 - 📅 Data: 24/04/2026
+
+**BUG-019** *(resolvido)*
+- 📍 Financeiro → modal "Editar Venda" → botão "Salvar Venda"
+- 🔴 Descrição: Modal abre, dados aparecem, mas botão "Salvar Venda" fica desabilitado/não clicável quando a venda foi cancelada
+- 🔍 Causa: Botão Salvar tem `disabled={savingEs || esCart.length === 0 || !esDate}`. Se a venda original do banco veio sem `sale_items` (legacy data, ou caso edge de cancelamento), `esCart` fica vazio e o botão trava em disabled. Backend `updateCancelledSale` também rejeitava com `'Adicione ao menos um item.'` mesmo pra reclassificação só de canal/entrega
+- ✅ Solução: (1) Backend `updateCancelledSale` agora aceita items vazios — só limpa+insere se houver items, caso contrário só atualiza fields da venda (canal, entrega, data, pagamento, cliente). (2) Botão Salvar no modal: removido `esCart.length === 0` da condição de disabled — agora salva mesmo sem items no carrinho (caso de uso: só reclassificar canal/entrega de venda legada)
+- 📅 Data: 24/04/2026
+
+**BUG-020** *(resolvido)*
+- 📍 Financeiro → menu de ações (⋯) em vendas/OS canceladas
+- 🔴 Descrição: Menu dropdown abre em venda cancelada mas botões Reativar / Editar / Excluir parecem transparentes (mostra valores das linhas debaixo "atravessando") e cliques não disparam ações. Vendas ativas: tudo funciona. Vendas canceladas: travado.
+- 🔍 Causa: Row da venda tinha `style={{ opacity: row.cancelled ? 0.45 : 1 }}` aplicado no container pai. CSS `opacity < 1` (1) propaga pra TODOS os descendentes (menu herda 0.45 → fica transparente), (2) cria stacking context isolado (z-[60] do menu fica preso dentro do contexto da row, abaixo de outras rows com opacity 1), (3) em alguns navegadores, áreas com opacity baixa podem perder hit-testing
+- ✅ Solução: Substituído `style={{ opacity }}` por classe Tailwind arbitrary variant: `[&>*:not(:last-child)]:opacity-45` aplicada na row pai. Aplica opacity em todos os filhos diretos EXCETO o último (que é o container do menu ⋯). Resultado: row continua desbotada visualmente mas menu fica 100% opaco e clicável.
+- 📅 Data: 25/04/2026
+
+**BUG-LIÇÃO**: opacity em CSS é uma das poucas propriedades que NÃO podem ser desfeitas em descendentes — sempre aplique em folhas (filhos visuais), nunca em containers que tenham UI interativa (dropdowns, modais, popovers).

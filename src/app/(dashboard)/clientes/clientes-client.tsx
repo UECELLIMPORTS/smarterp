@@ -28,6 +28,7 @@ export type CustomerRow = {
   address_complement: string | null; address_city: string | null
   address_state: string | null; created_at: string
   origin: string | null
+  campaign_code: string | null
 }
 
 type Props = {
@@ -53,6 +54,7 @@ type FormState = {
   addressCity: string; addressState: string
   clienteSince: string
   origin: string
+  campaignCode: string
 }
 
 const EMPTY_FORM: FormState = {
@@ -67,6 +69,7 @@ const EMPTY_FORM: FormState = {
   addressNumber: '', addressComplement: '', addressCity: '', addressState: '',
   clienteSince: '',
   origin: '',
+  campaignCode: '',
 }
 
 // ── Formatters ─────────────────────────────────────────────────────────────
@@ -236,6 +239,7 @@ function CustomerModal({
         address_city: form.addressCity || null, address_state: form.addressState || null,
         created_at: resolvedCreatedAt,
         origin: form.origin || null,
+        campaign_code: form.campaignCode.trim() || null,
       }
 
       onSaved(row, mode === 'edit')
@@ -441,6 +445,24 @@ function CustomerModal({
               ))}
             </select>
           </div>
+          {(form.origin === 'instagram_pago' || form.origin === 'facebook') && (
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#00E5FF' }}>
+                Código da campanha
+              </label>
+              <input
+                value={form.campaignCode}
+                onChange={e => set({ campaignCode: e.target.value.toUpperCase() })}
+                placeholder="Ex: HJ-VAI-1"
+                className={inputCls + ' font-mono'}
+                style={inputStyle}
+                maxLength={40}
+              />
+              <p className="text-[10px]" style={{ color: '#5A7A9A' }}>
+                Veja na mensagem pré-preenchida que o cliente mandou no WhatsApp
+              </p>
+            </div>
+          )}
         </section>
 
         {/* ── Observações ── */}
@@ -632,6 +654,7 @@ export function ClientesClient({
       addressCity: c.address_city ?? '', addressState: c.address_state ?? '',
       clienteSince: c.created_at ? c.created_at.split('T')[0] : '',
       origin: c.origin ?? '',
+      campaignCode: c.campaign_code ?? '',
     }
   }
 

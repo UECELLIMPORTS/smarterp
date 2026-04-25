@@ -17,10 +17,14 @@ import {
   type EditSaleInput,
 } from '@/actions/financeiro'
 import {
-  searchCustomers, searchProducts, createCustomer,
+  searchCustomers, searchProducts, createCustomer, updateCustomerOrigin,
   type Customer, type Product,
 } from '@/actions/pos'
 import { AddressCityState } from '@/components/ui/address-fields'
+import { CUSTOMER_ORIGIN_OPTIONS, originLabel } from '@/lib/customer-origin'
+import { CampaignCodePicker } from '@/components/meta-ads/campaign-code-picker'
+import { SALE_CHANNEL_OPTIONS_PICKABLE, DELIVERY_TYPE_OPTIONS, type SaleChannel, type DeliveryType } from '@/lib/sale-channels'
+import { updateServiceOrderChannel, updateSaleChannel } from '@/actions/sales-channels'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -35,6 +39,8 @@ export type FinanceiroRow = {
   // ERP-only (for edit modal)
   customerId?: string | null
   saleItems?: { name: string; quantity: number; unitPriceCents: number }[]
+  saleChannel?: string | null
+  deliveryType?: string | null
 }
 
 type CartItem = {
@@ -53,6 +59,41 @@ const parseCents = (v: string) => {
 }
 
 const fmtBRL = (c: number) => (c / 100).toFixed(2).replace('.', ',')
+
+// ── MenuItem ───────────────────────────────────────────────────────────────
+// Botão padrão do dropdown de ações (⋯). Grande, clicável em qualquer área,
+// com borda lateral colorida no hover.
+function MenuItem({
+  icon, label, accentColor, labelColor, onClick,
+}: {
+  icon: React.ReactNode
+  label: string
+  accentColor: string          // cor da borda lateral no hover + background
+  labelColor?: string           // cor do texto (default E8F0FE)
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={e => { e.stopPropagation(); onClick() }}
+      className="flex w-full items-center gap-3 px-5 py-4 text-sm font-semibold
+                 border-l-4 border-transparent transition-all cursor-pointer
+                 hover:bg-white/[0.03]"
+      style={{ color: labelColor ?? '#E8F0FE' }}
+      onMouseEnter={e => {
+        e.currentTarget.style.borderLeftColor = accentColor
+        e.currentTarget.style.background = `${accentColor}14`
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.borderLeftColor = 'transparent'
+        e.currentTarget.style.background = 'transparent'
+      }}
+    >
+      {icon}
+      <span className="pointer-events-none">{label}</span>
+    </button>
+  )
+}
 
 const fmtCpf = (v: string) => {
   const d = v.replace(/\D/g, '').slice(0, 11)
@@ -149,6 +190,47 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
   const [esDate, setEsDate]                   = useState('')
   const [esDiscountStr, setEsDiscountStr]     = useState('')
   const [esPayMethod, setEsPayMethod]         = useState<string>('pix')
+  const [esSaleChannel, setEsSaleChannel]     = useState<SaleChannel | ''>('')
+  const [esDeliveryType, setEsDeliveryType]   = useState<DeliveryType | ''>('')
+
+  // Reclassify channel modal (works for ERP sales AND CheckSmart OS)
+  const [rcRow, setRcRow]                     = useState<FinanceiroRow | null>(null)
+  const [rcChannel, setRcChannel]             = useState<SaleChannel | ''>('')
+  const [rcDelivery, setRcDelivery]           = useState<DeliveryType | ''>('')
+  const [rcSaving, startRcSave]               = useTransition()
+
+  function openReclassify(row: FinanceiroRow) {
+    setRcChannel((row.saleChannel as SaleChannel | undefined) ?? '')
+    setRcDelivery((row.deliveryType as DeliveryType | undefined) ?? '')
+    setRcRow(row)
+  }
+
+  function doReclassify() {
+    if (!rcRow) return
+    const row = rcRow
+    startRcSave(async () => {
+      try {
+        const patch = {
+          saleChannel:  rcChannel  || null,
+          deliveryType: rcDelivery || null,
+        }
+        if (row.source === 'erp') {
+          await updateSaleChannel(row.rawId, patch)
+        } else {
+          await updateServiceOrderChannel(row.rawId, patch)
+        }
+        setRows(rs => rs.map(r => r.id === row.id ? {
+          ...r,
+          saleChannel:  patch.saleChannel,
+          deliveryType: patch.deliveryType,
+        } : r))
+        toast.success('Canal reclassificado.')
+        setRcRow(null)
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : 'Erro ao reclassificar.')
+      }
+    })
+  }
   const [esCart, setEsCart]                   = useState<CartItem[]>([])
   const [esCustomerId, setEsCustomerId]       = useState<string | null>(null)
   const [esCustomerName, setEsCustomerName]   = useState('')
@@ -260,6 +342,8 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
   const [novaVendaOpen, setNovaVendaOpen] = useState(false)
   const [saleDate, setSaleDate]           = useState(new Date().toISOString().slice(0, 10))
   const [payMethod, setPayMethod]         = useState<'cash'|'pix'|'card'|'mixed'>('pix')
+  const [nvSaleChannel, setNvSaleChannel] = useState<SaleChannel | ''>('')
+  const [nvDeliveryType, setNvDeliveryType] = useState<DeliveryType | ''>('')
   const [discountStr, setDiscountStr]     = useState('')
   const [nvSaving, startNvSave]           = useTransition()
   const [nvError, setNvError]             = useState('')
@@ -291,6 +375,19 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
   const [custSearching, setCustSearching]   = useState(false)
   const [custDrop, setCustDrop]             = useState(false)
   const [showCustForm, setShowCustForm]     = useState(false)
+  const [savingOrigin, setSavingOrigin]     = useState(false)
+
+  async function handleSetCustomerOrigin(origin: string) {
+    if (!customer || !origin) return
+    setSavingOrigin(true)
+    try {
+      const c = await updateCustomerOrigin(customer.id, origin)
+      setCustomer(c)
+      toast.success('Origem registrada!')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao salvar origem')
+    } finally { setSavingOrigin(false) }
+  }
   const [nc, setNc]                         = useState(EMPTY_NC)
   const [fetchingCep, setFetchingCep]       = useState(false)
   const [savingCust, setSavingCust]         = useState(false)
@@ -321,13 +418,16 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
     return () => document.removeEventListener('mousedown', fn)
   }, [])
 
-  // Close row menu on outside click
+  // Close row menu on outside click.
+  // NOTA: listener usa 'click' (não 'mousedown') pra evitar race condition
+  // com os onClick dos botões do menu — antes o mousedown global fechava
+  // o menu ANTES do click dos botões registrar, impedindo a ação.
   useEffect(() => {
     const fn = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) setOpenMenu(null)
     }
-    document.addEventListener('mousedown', fn)
-    return () => document.removeEventListener('mousedown', fn)
+    document.addEventListener('click', fn)
+    return () => document.removeEventListener('click', fn)
   }, [])
 
   // Edit modal — product search debounce
@@ -354,6 +454,8 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
     setCart([]); setPQuery(''); setDiscountStr(''); setSaleDate(new Date().toISOString().slice(0, 10))
     setPayMethod('pix'); setCustomer(null); setCustQuery(''); setShowCustForm(false)
     setNc(EMPTY_NC); setNvError(''); setShowManual(false)
+    setNvSaleChannel(''); setNvDeliveryType('')
+    setEsSaleChannel(''); setEsDeliveryType('')
   }
 
   // ── KPIs ──────────────────────────────────────────────────────────────────
@@ -445,10 +547,10 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
     })
   }
 
-  // ── Edit cancelled ERP sale ───────────────────────────────────────────────
+  // ── Edit ERP sale (cancelada ou ativa) ────────────────────────────────────
   function openEditSale(row: FinanceiroRow) {
-    // row.date pode chegar como Date (estado local) ou string (vindo do server
-    // via JSON). Normaliza pra Date antes de qualquer .toISOString() etc.
+    // row.date pode chegar como Date (estado local) ou string (vindo do server via JSON).
+    // Normaliza pra Date antes de .toISOString() (BUG-015).
     const dateObj = row.date instanceof Date ? row.date : new Date(row.date as unknown as string)
     setEsDate(!isNaN(dateObj.getTime()) ? dateObj.toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10))
     setEsDiscountStr(row.discount > 0 ? fmtBRL(row.discount) : '')
@@ -459,6 +561,8 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
       key: randKey(), productId: null,
       name: i.name, quantity: i.quantity, unitPriceCents: i.unitPriceCents,
     })))
+    setEsSaleChannel((row.saleChannel as SaleChannel | undefined) ?? '')
+    setEsDeliveryType((row.deliveryType as DeliveryType | undefined) ?? '')
     setEsPQuery(''); setEsMName(''); setEsMPrice(''); setEsMQty('1')
     setEsShowManual(false); setEsCustQuery(''); setEsCustDrop(false)
     setEsRow(row)
@@ -498,7 +602,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
   }
 
   function doEditSale() {
-    if (!esRow || !esCart.length) return
+    if (!esRow) return
     const row = esRow; setEsRow(null)
     startEsSave(async () => {
       try {
@@ -509,6 +613,8 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
           discountCents,
           paymentMethod: esPayMethod,
           saleDate:      esDate,
+          saleChannel:   esSaleChannel  || null,
+          deliveryType:  esDeliveryType || null,
         }
         await updateCancelledSale(row.rawId, input)
         const subtotal   = esCart.reduce((s, i) => s + i.unitPriceCents * i.quantity, 0)
@@ -604,7 +710,15 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
           productId: i.productId, source: i.source,
           name: i.name, quantity: i.quantity, unitPriceCents: i.unitPriceCents,
         }))
-        await createManualSale({ saleDate, customerId: customer?.id ?? null, items, discountCents: discount, paymentMethod: payMethod })
+        await createManualSale({
+          saleDate,
+          customerId:    customer?.id ?? null,
+          items,
+          discountCents: discount,
+          paymentMethod: payMethod,
+          saleChannel:   nvSaleChannel  || null,
+          deliveryType:  nvDeliveryType || null,
+        })
         toast.success('Venda registrada com sucesso!')
         setNovaVendaOpen(false)
         resetNovaVenda()
@@ -654,7 +768,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
 
       {totalDesconto > 0 && (
         <div className="flex items-center gap-3 rounded-xl border px-5 py-3" style={{ background: '#111827', borderColor: '#1E2D45' }}>
-          <Receipt className="h-4 w-4 shrink-0" style={{ color: '#FF5C5C' }} />
+          <Receipt className="h-4 w-4 shrink-0 pointer-events-none" style={{ color: '#FF5C5C' }} />
           <p className="text-sm text-muted">
             Total de descontos: <span className="font-semibold" style={{ color: '#FF5C5C' }}>{BRL(totalDesconto)}</span>
           </p>
@@ -758,8 +872,10 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
               const srcColor = row.cancelled ? '#64748B' : isERP ? '#00FF94' : '#00E5FF'
               const pmColor  = row.payment ? (METHOD_COLOR[row.payment] ?? '#64748B') : '#64748B'
               return (
-                <div key={row.id} className="grid gap-4 px-5 py-3.5 border-b items-center last:border-0 transition-opacity"
-                  style={{ borderColor: '#1E2D45', gridTemplateColumns: '32px 90px 1fr 150px 110px 100px 110px 40px', opacity: row.cancelled ? 0.45 : 1 }}>
+                <div key={row.id}
+                  className={`grid gap-4 px-5 py-3.5 border-b items-center last:border-0 transition-opacity
+                    ${row.cancelled ? '[&>*:not(:last-child)]:opacity-45' : ''}`}
+                  style={{ borderColor: '#1E2D45', gridTemplateColumns: '32px 90px 1fr 150px 110px 100px 110px 40px' }}>
                   <input type="checkbox" checked={selected.has(row.id)} onChange={() => toggleSelect(row.id)}
                     className="h-4 w-4 rounded accent-accent cursor-pointer" />
                   <div className="flex flex-col gap-1">
@@ -808,90 +924,83 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                   <div className="relative flex items-center justify-center" ref={openMenu === row.id ? menuRef : undefined}>
                     <button
                       type="button"
-                      onMouseDown={e => { e.preventDefault(); e.stopPropagation(); setOpenMenu(openMenu === row.id ? null : row.id) }}
-                      className="rounded p-1.5 text-muted hover:text-text transition-colors hover:bg-white/5">
-                      <MoreVertical className="h-4 w-4" />
+                      onClick={e => { e.stopPropagation(); setOpenMenu(openMenu === row.id ? null : row.id) }}
+                      className="rounded p-2 text-muted hover:text-text transition-colors hover:bg-white/5 cursor-pointer">
+                      <MoreVertical className="h-4 w-4 pointer-events-none" />
                     </button>
                     {openMenu === row.id && (
                       <div
-                        className="absolute right-0 top-8 z-40 w-52 rounded-xl border overflow-hidden py-1"
+                        className="absolute right-0 top-8 z-[60] w-60 rounded-xl border overflow-hidden"
                         style={{
                           background: '#0F1A2B',
                           borderColor: '#2A3D5C',
                           boxShadow: '0 12px 36px rgba(0,0,0,0.65), 0 0 0 1px rgba(0,229,255,0.08)',
                           backdropFilter: 'none',
-                        }}>
+                        }}
+                        onClick={e => e.stopPropagation()}>
+                        {/* Editar venda — ERP (qualquer status) */}
+                        {row.source === 'erp' && (
+                          <MenuItem
+                            icon={<Pencil className="h-5 w-5 shrink-0 pointer-events-none" style={{ color: '#00E5FF' }} />}
+                            label="Editar venda"
+                            accentColor="#00E5FF"
+                            onClick={() => { setOpenMenu(null); openEditSale(row) }}
+                          />
+                        )}
                         {/* Alterar data — só ERP ativo */}
                         {row.source === 'erp' && !row.cancelled && (
-                          <button type="button"
-                            onMouseDown={e => { e.preventDefault(); e.stopPropagation(); setOpenMenu(null); openEditDate(row) }}
-                            className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors"
-                            style={{ color: '#E8F0FE' }}
-                            onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,229,255,0.08)'}
-                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                            <CalendarDays className="h-4 w-4 shrink-0" style={{ color: '#00E5FF' }} />
-                            Alterar data
-                          </button>
+                          <MenuItem
+                            icon={<CalendarDays className="h-5 w-5 shrink-0 pointer-events-none" style={{ color: '#00E5FF' }} />}
+                            label="Alterar data"
+                            accentColor="#00E5FF"
+                            onClick={() => { setOpenMenu(null); openEditDate(row) }}
+                          />
                         )}
                         {/* Editar pagamento — OS CheckSmart */}
                         {row.source === 'checksmart' && !row.cancelled && (
-                          <button type="button"
-                            onMouseDown={e => { e.preventDefault(); e.stopPropagation(); setOpenMenu(null); setEditPayVal(row.payment ?? ''); setEditPayRow(row) }}
-                            className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors"
-                            style={{ color: '#E8F0FE' }}
-                            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,184,0,0.1)'}
-                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                            <CreditCard className="h-4 w-4 shrink-0" style={{ color: '#FFB800' }} />
-                            Editar pagamento
-                          </button>
+                          <MenuItem
+                            icon={<CreditCard className="h-5 w-5 shrink-0 pointer-events-none" style={{ color: '#FFB800' }} />}
+                            label="Editar pagamento"
+                            accentColor="#FFB800"
+                            onClick={() => { setOpenMenu(null); setEditPayVal(row.payment ?? ''); setEditPayRow(row) }}
+                          />
+                        )}
+                        {/* Reclassificar canal — OS CheckSmart */}
+                        {row.source === 'checksmart' && (
+                          <MenuItem
+                            icon={<Pencil className="h-5 w-5 shrink-0 pointer-events-none" style={{ color: '#00E5FF' }} />}
+                            label="Reclassificar canal"
+                            accentColor="#00E5FF"
+                            onClick={() => { setOpenMenu(null); openReclassify(row) }}
+                          />
                         )}
                         {/* Cancelar / Reativar */}
                         {row.cancelled ? (
-                          <button type="button"
-                            onMouseDown={e => { e.preventDefault(); e.stopPropagation(); setOpenMenu(null); setConfirmReactivate(row) }}
-                            className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors"
-                            style={{ color: '#E8F0FE' }}
-                            onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,255,148,0.1)'}
-                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                            <RefreshCw className="h-4 w-4 shrink-0" style={{ color: '#00FF94' }} />
-                            Reativar
-                          </button>
+                          <MenuItem
+                            icon={<RefreshCw className="h-5 w-5 shrink-0 pointer-events-none" style={{ color: '#00FF94' }} />}
+                            label="Reativar"
+                            accentColor="#00FF94"
+                            onClick={() => { setOpenMenu(null); setConfirmReactivate(row) }}
+                          />
                         ) : (
-                          <button type="button"
-                            onMouseDown={e => { e.preventDefault(); e.stopPropagation(); setOpenMenu(null); setConfirmCancel(row) }}
-                            className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors"
-                            style={{ color: '#E8F0FE' }}
-                            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,92,92,0.1)'}
-                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                            <XCircle className="h-4 w-4 shrink-0" style={{ color: '#FF5C5C' }} />
-                            Cancelar
-                          </button>
-                        )}
-                        {/* Editar venda — só ERP cancelado */}
-                        {row.source === 'erp' && row.cancelled && (
-                          <button type="button"
-                            onMouseDown={e => { e.preventDefault(); e.stopPropagation(); setOpenMenu(null); openEditSale(row) }}
-                            className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors"
-                            style={{ color: '#E8F0FE' }}
-                            onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,229,255,0.1)'}
-                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                            <Pencil className="h-4 w-4 shrink-0" style={{ color: '#00E5FF' }} />
-                            Editar venda
-                          </button>
+                          <MenuItem
+                            icon={<XCircle className="h-5 w-5 shrink-0 pointer-events-none" style={{ color: '#FF5C5C' }} />}
+                            label="Cancelar"
+                            accentColor="#FF5C5C"
+                            onClick={() => { setOpenMenu(null); setConfirmCancel(row) }}
+                          />
                         )}
                         {/* Excluir — só ERP cancelado */}
                         {row.source === 'erp' && row.cancelled && (
                           <>
-                            <div className="mx-3 my-1 h-px" style={{ background: '#2A3D5C' }} />
-                            <button type="button"
-                              onMouseDown={e => { e.preventDefault(); e.stopPropagation(); setOpenMenu(null); setConfirmDelete(row) }}
-                              className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-semibold transition-colors"
-                              style={{ color: '#FF5C5C' }}
-                              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,92,92,0.12)'}
-                              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                              <Trash2 className="h-4 w-4 shrink-0" />
-                              Excluir venda
-                            </button>
+                            <div className="mx-3 h-px" style={{ background: '#2A3D5C' }} />
+                            <MenuItem
+                              icon={<Trash2 className="h-5 w-5 shrink-0 pointer-events-none" style={{ color: '#FF5C5C' }} />}
+                              label="Excluir venda"
+                              accentColor="#FF5C5C"
+                              labelColor="#FF5C5C"
+                              onClick={() => { setOpenMenu(null); setConfirmDelete(row) }}
+                            />
                           </>
                         )}
                       </div>
@@ -1135,7 +1244,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
               <div className="flex items-center justify-between border-b px-6 py-4" style={{ borderColor: '#1E2D45' }}>
                 <div className="flex items-center gap-3">
                   <Pencil className="h-4 w-4" style={{ color: '#00E5FF' }} />
-                  <h2 className="text-base font-semibold text-text">Editar Venda Cancelada</h2>
+                  <h2 className="text-base font-semibold text-text">{esRow.cancelled ? 'Editar Venda Cancelada' : 'Editar Venda'}</h2>
                 </div>
                 <button onClick={() => setEsRow(null)} className="text-muted hover:text-text"><X className="h-5 w-5" /></button>
               </div>
@@ -1302,6 +1411,36 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                   </div>
                 </div>
 
+                {/* ── Canal + Entrega (reclassificar venda) ── */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-muted">Canal da venda</label>
+                    <select
+                      value={esSaleChannel}
+                      onChange={e => setEsSaleChannel(e.target.value as SaleChannel | '')}
+                      className={INP} style={{ ...INP_S, appearance: 'none' }}
+                    >
+                      <option value="">Não informar</option>
+                      {SALE_CHANNEL_OPTIONS_PICKABLE.map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-muted">Entrega</label>
+                    <select
+                      value={esDeliveryType}
+                      onChange={e => setEsDeliveryType(e.target.value as DeliveryType | '')}
+                      className={INP} style={{ ...INP_S, appearance: 'none' }}
+                    >
+                      <option value="">Não informar</option>
+                      {DELIVERY_TYPE_OPTIONS.map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
                 {esCart.length > 0 && (
                   <div className="rounded-lg border px-4 py-3 space-y-1" style={{ ...INP_S, background: '#111827' }}>
                     <div className="flex items-center justify-between text-xs text-muted">
@@ -1324,7 +1463,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                 <button onClick={() => setEsRow(null)} className="rounded-lg border px-4 py-2 text-sm text-muted hover:text-text" style={INP_S}>
                   Cancelar
                 </button>
-                <button onClick={doEditSale} disabled={savingEs || esCart.length === 0 || !esDate}
+                <button onClick={doEditSale} disabled={savingEs || !esDate}
                   className="flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-semibold text-black disabled:opacity-50"
                   style={{ background: '#00E5FF' }}>
                   {savingEs && <Loader2 className="h-4 w-4 animate-spin" />}
@@ -1350,7 +1489,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
             <div className="space-y-5 px-6 py-5">
               {nvError && (
                 <div className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm" style={{ background: '#FF5C5C18', color: '#FF5C5C', border: '1px solid #FF5C5C40' }}>
-                  <AlertTriangle className="h-4 w-4 shrink-0" />{nvError}
+                  <AlertTriangle className="h-4 w-4 shrink-0 pointer-events-none" />{nvError}
                 </div>
               )}
 
@@ -1369,15 +1508,82 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted">Cliente (opcional)</p>
 
                 {customer ? (
-                  <div className="flex items-center justify-between rounded-lg border px-3 py-2.5" style={{ borderColor: '#00E5FF30', background: '#00E5FF08' }}>
-                    <div>
-                      <p className="text-sm font-medium text-text">{customer.full_name}</p>
-                      {customer.whatsapp && <p className="text-xs text-muted">{customer.whatsapp}</p>}
+                  <>
+                    <div className="flex items-center justify-between rounded-lg border px-3 py-2.5" style={{ borderColor: '#00E5FF30', background: '#00E5FF08' }}>
+                      <div>
+                        <p className="text-sm font-medium text-text">{customer.full_name}</p>
+                        {customer.whatsapp && <p className="text-xs text-muted">{customer.whatsapp}</p>}
+                      </div>
+                      <button onClick={() => { setCustomer(null); setCustQuery('') }} className="text-muted hover:text-text">
+                        <X className="h-4 w-4" />
+                      </button>
                     </div>
-                    <button onClick={() => { setCustomer(null); setCustQuery('') }} className="text-muted hover:text-text">
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
+
+                    {/* ── Origem (Como nos conheceu?) ── */}
+                    {customer.origin ? (
+                      <div className="flex items-center justify-between rounded-lg border px-3 py-2"
+                        style={{ background: '#0D1320', borderColor: '#1E2D45' }}>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-[10px] font-semibold uppercase tracking-wider shrink-0" style={{ color: '#5A7A9A' }}>
+                            Origem
+                          </span>
+                          <span className="rounded-full px-2 py-0.5 text-[10px] font-bold truncate"
+                            style={{ background: 'rgba(0,229,255,.12)', color: '#00E5FF' }}>
+                            {originLabel(customer.origin)}
+                          </span>
+                        </div>
+                        <select
+                          value={customer.origin}
+                          onChange={e => handleSetCustomerOrigin(e.target.value)}
+                          disabled={savingOrigin}
+                          className="text-xs bg-transparent text-muted hover:text-accent transition-colors outline-none cursor-pointer"
+                          title="Alterar origem"
+                        >
+                          {CUSTOMER_ORIGIN_OPTIONS.map(opt => (
+                            <option key={opt.value} value={opt.value} style={{ background: '#0D1320' }}>
+                              {opt.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    ) : (
+                      <div className="rounded-lg border px-3 py-2.5 space-y-1.5"
+                        style={{ background: 'rgba(255,170,0,.06)', borderColor: 'rgba(255,170,0,.35)' }}>
+                        <label className="text-[10px] font-semibold uppercase tracking-wider block" style={{ color: '#FFAA00' }}>
+                          Como nos conheceu?
+                        </label>
+                        <select
+                          value=""
+                          onChange={e => handleSetCustomerOrigin(e.target.value)}
+                          disabled={savingOrigin}
+                          className={INP}
+                          style={{ ...INP_S, appearance: 'none' }}
+                        >
+                          <option value="">Selecione uma opção…</option>
+                          {CUSTOMER_ORIGIN_OPTIONS.map(opt => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    {/* ── Código da campanha (origens Meta) ── */}
+                    {customer.origin && (customer.origin === 'instagram_pago' || customer.origin === 'facebook') && (
+                      <div className="rounded-lg border px-3 py-2 flex items-center justify-between gap-2"
+                        style={{ background: '#0D1320', borderColor: '#1E2D45' }}>
+                        <span className="text-[10px] font-semibold uppercase tracking-wider shrink-0" style={{ color: '#5A7A9A' }}>
+                          Campanha
+                        </span>
+                        <CampaignCodePicker
+                          customerId={customer.id}
+                          currentCode={customer.campaign_code}
+                          origin={customer.origin}
+                          onUpdated={code => setCustomer(customer ? { ...customer, campaign_code: code } : null)}
+                          compact
+                        />
+                      </div>
+                    )}
+                  </>
                 ) : (
                   <>
                     {!showCustForm && (
@@ -1610,6 +1816,36 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                 </div>
               </div>
 
+              {/* ── Canal + Entrega ── */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-muted">Canal da venda</label>
+                  <select
+                    value={nvSaleChannel}
+                    onChange={e => setNvSaleChannel(e.target.value as SaleChannel | '')}
+                    className={INP} style={{ ...INP_S, appearance: 'none' }}
+                  >
+                    <option value="">Não informar</option>
+                    {SALE_CHANNEL_OPTIONS_PICKABLE.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-muted">Entrega</label>
+                  <select
+                    value={nvDeliveryType}
+                    onChange={e => setNvDeliveryType(e.target.value as DeliveryType | '')}
+                    className={INP} style={{ ...INP_S, appearance: 'none' }}
+                  >
+                    <option value="">Não informar</option>
+                    {DELIVERY_TYPE_OPTIONS.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
               {/* Total preview */}
               {cart.length > 0 && (
                 <div className="rounded-lg border px-4 py-3 space-y-1" style={{ ...INP_S, background: '#111827' }}>
@@ -1639,6 +1875,86 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                 style={{ background: '#00FF94' }}>
                 {nvSaving && <Loader2 className="h-4 w-4 animate-spin" />}
                 {nvSaving ? 'Registrando…' : 'Registrar Venda'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal Reclassificar Canal (ERP sale + OS CheckSmart) ──────────── */}
+      {rcRow && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.75)' }}
+          onClick={e => { if (e.target === e.currentTarget) setRcRow(null) }}>
+          <div className="w-full max-w-md rounded-2xl border p-6 space-y-4"
+            style={{ background: '#0D1320', borderColor: '#1E2D45' }}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Pencil className="h-4 w-4" style={{ color: '#00E5FF' }} />
+                <h3 className="text-base font-semibold text-text">Reclassificar canal</h3>
+              </div>
+              <button onClick={() => setRcRow(null)} className="text-muted hover:text-coral transition-colors">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="rounded-lg border px-3 py-2" style={{ background: '#111827', borderColor: '#1E2D45' }}>
+              <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#5A7A9A' }}>
+                {rcRow.source === 'erp' ? 'Venda' : 'Ordem de Serviço'}
+              </p>
+              <p className="text-sm mt-1" style={{ color: '#E8F0FE' }}>{rcRow.customerName}</p>
+              <p className="text-xs mt-0.5 font-mono" style={{ color: '#8AA8C8' }}>
+                {rcRow.dateStr} · {BRL(rcRow.total)}
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#5A7A9A' }}>
+                Canal da venda
+              </label>
+              <select
+                value={rcChannel}
+                onChange={e => setRcChannel(e.target.value as SaleChannel | '')}
+                className={INP} style={{ ...INP_S, appearance: 'none' }}
+              >
+                <option value="">Não informar</option>
+                {SALE_CHANNEL_OPTIONS_PICKABLE.map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#5A7A9A' }}>
+                Entrega
+              </label>
+              <select
+                value={rcDelivery}
+                onChange={e => setRcDelivery(e.target.value as DeliveryType | '')}
+                className={INP} style={{ ...INP_S, appearance: 'none' }}
+              >
+                <option value="">Não informar</option>
+                {DELIVERY_TYPE_OPTIONS.map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                onClick={() => setRcRow(null)}
+                className="rounded-lg border px-4 py-2 text-sm text-muted hover:text-text" style={INP_S}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={doReclassify}
+                disabled={rcSaving}
+                className="flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-semibold text-black disabled:opacity-50"
+                style={{ background: '#00FF94' }}
+              >
+                {rcSaving && <Loader2 className="h-4 w-4 animate-spin" />}
+                {rcSaving ? 'Salvando…' : 'Salvar'}
               </button>
             </div>
           </div>
