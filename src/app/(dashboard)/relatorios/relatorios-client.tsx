@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import type { RelatoriosData, OriginReportRow, TopClientRow } from './page'
 import { CUSTOMER_ORIGIN_OPTIONS, originLabel } from '@/lib/customer-origin'
+import { SALE_CHANNEL_OPTIONS_PICKABLE, channelLabel } from '@/lib/sale-channels'
 
 const BRL = (c: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(c / 100)
@@ -34,7 +35,7 @@ function fmtPhone(s: string | null): string {
 
 export function RelatoriosClient({ data }: { data: RelatoriosData }) {
   const router = useRouter()
-  const { period, source, origin, resumo, origins, topClients, from, to } = data
+  const { period, source, origin, channel, resumo, origins, topClients, from, to } = data
 
   const [customOpen, setCustomOpen] = useState(period === 'custom')
   const [fromDate, setFromDate]     = useState(from ?? '')
@@ -42,10 +43,11 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
 
   function updateQuery(changes: Record<string, string | undefined>) {
     const p = new URLSearchParams()
-    const merged = { period, source, origin, ...changes }
+    const merged = { period, source, origin, channel, ...changes }
     if (merged.period)   p.set('period', merged.period)
     if (merged.source)   p.set('source', merged.source)
     if (merged.origin)   p.set('origin', merged.origin)
+    if (merged.channel)  p.set('channel', merged.channel)
     if (merged.period === 'custom' && fromDate && toDate) {
       p.set('from', fromDate)
       p.set('to', toDate)
@@ -61,6 +63,7 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
     p.set('to', toDate)
     p.set('source', source)
     p.set('origin', origin)
+    p.set('channel', channel)
     router.push(`/relatorios?${p.toString()}`)
   }
 
@@ -189,6 +192,20 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
           ))}
           <option value="__no_origin__">Sem origem informada</option>
         </select>
+
+        {/* Filtro de Canal de Venda */}
+        <select
+          value={channel}
+          onChange={e => updateQuery({ channel: e.target.value })}
+          className="rounded-lg border px-3 py-1.5 text-xs outline-none"
+          style={{ background: '#0D1320', borderColor: '#1E2D45', color: '#E8F0FE' }}
+        >
+          <option value="all">Todos os canais</option>
+          {SALE_CHANNEL_OPTIONS_PICKABLE.map(opt => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+          <option value="__no_channel__">Sem canal informado</option>
+        </select>
       </div>
 
       {/* Cards de resumo */}
@@ -252,6 +269,7 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
             <p className="text-[11px]" style={{ color: '#5A7A9A' }}>
               No período, aplicando todos os filtros
               {origin !== 'all' && <> · <span style={{ color: '#00E5FF' }}>origem: {origin === '__no_origin__' ? 'Não informado' : originLabel(origin)}</span></>}
+              {channel !== 'all' && <> · <span style={{ color: '#00E5FF' }}>canal: {channel === '__no_channel__' ? 'Não informado' : channelLabel(channel)}</span></>}
             </p>
           </div>
         </div>

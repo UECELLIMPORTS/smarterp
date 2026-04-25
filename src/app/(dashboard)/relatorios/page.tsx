@@ -59,6 +59,7 @@ export type RelatoriosData = {
   to:   string | null
   source: 'total' | 'smarterp' | 'checksmart'
   origin: string
+  channel: string
   resumo: {
     totalCents:      number
     profitCents:     number
@@ -73,7 +74,7 @@ export type RelatoriosData = {
 export default async function RelatoriosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ period?: string; from?: string; to?: string; source?: string; origin?: string }>
+  searchParams: Promise<{ period?: string; from?: string; to?: string; source?: string; origin?: string; channel?: string }>
 }) {
   let auth: Awaited<ReturnType<typeof requireAuth>>
   try { auth = await requireAuth() } catch { redirect('/login') }
@@ -90,11 +91,12 @@ export default async function RelatoriosPage({
   const source = (['total', 'smarterp', 'checksmart'].includes(params.source ?? '')
     ? params.source
     : 'total') as 'total' | 'smarterp' | 'checksmart'
-  const origin = params.origin ?? 'all'
+  const origin  = params.origin ?? 'all'
+  const channel = params.channel ?? 'all'
   const { start, end } = getPeriodRange(period, params.from, params.to)
 
-  const cols = 'customer_id, total_cents, created_at, sale_items(quantity, unit_price_cents, product_id, cost_snapshot_cents), customers(id, full_name, origin, whatsapp, phone)'
-  const osCols = 'customer_id, total_price_cents, service_price_cents, parts_sale_cents, parts_cost_cents, discount_cents, received_at, customers(id, full_name, origin, whatsapp, phone)'
+  const cols = 'customer_id, total_cents, sale_channel, created_at, sale_items(quantity, unit_price_cents, product_id, cost_snapshot_cents), customers(id, full_name, origin, whatsapp, phone)'
+  const osCols = 'customer_id, total_price_cents, service_price_cents, parts_sale_cents, parts_cost_cents, discount_cents, sale_channel, received_at, customers(id, full_name, origin, whatsapp, phone)'
 
   const [salesRes, osRes] = await Promise.all([
     source === 'checksmart'
@@ -120,6 +122,7 @@ export default async function RelatoriosPage({
   type SalesRow = {
     customer_id: string | null
     total_cents: number
+    sale_channel: string | null
     sale_items: { quantity: number; unit_price_cents: number; product_id: string | null; cost_snapshot_cents: number | null }[] | null
     customers: { id: string; full_name: string; origin: string | null; whatsapp: string | null; phone: string | null } | null
   }
@@ -130,6 +133,7 @@ export default async function RelatoriosPage({
     parts_sale_cents: number | null
     parts_cost_cents: number | null
     discount_cents: number | null
+    sale_channel: string | null
     customers: { id: string; full_name: string; origin: string | null; whatsapp: string | null; phone: string | null } | null
   }
   const salesData = (salesRes.data ?? []) as SalesRow[]
@@ -154,6 +158,7 @@ export default async function RelatoriosPage({
     customerId: string | null
     name: string
     origin: string | null
+    channel: string | null
     whatsapp: string | null
     phone: string | null
     totalCents: number
@@ -172,6 +177,7 @@ export default async function RelatoriosPage({
         customerId: s.customer_id,
         name:      s.customers?.full_name ?? 'Sem cliente',
         origin:    s.customers?.origin ?? null,
+        channel:   s.sale_channel ?? null,
         whatsapp:  s.customers?.whatsapp ?? null,
         phone:     s.customers?.phone ?? null,
         totalCents: total,
@@ -185,6 +191,7 @@ export default async function RelatoriosPage({
         customerId: o.customer_id,
         name:      o.customers?.full_name ?? 'Sem cliente',
         origin:    o.customers?.origin ?? null,
+        channel:   o.sale_channel ?? null,
         whatsapp:  o.customers?.whatsapp ?? null,
         phone:     o.customers?.phone ?? null,
         totalCents: total,
@@ -193,11 +200,15 @@ export default async function RelatoriosPage({
     }),
   ]
 
-  // Aplica filtro de origem
+  // Aplica filtros de origem + canal
   const filtered = txs.filter(t => {
-    if (origin === 'all') return true
-    if (origin === '__no_origin__') return !t.origin
-    return t.origin === origin
+    // Origem
+    if (origin === '__no_origin__' && t.origin) return false
+    if (origin !== 'all' && origin !== '__no_origin__' && t.origin !== origin) return false
+    // Canal
+    if (channel === '__no_channel__' && t.channel) return false
+    if (channel !== 'all' && channel !== '__no_channel__' && t.channel !== channel) return false
+    return true
   })
 
   // Resumo
@@ -274,6 +285,7 @@ export default async function RelatoriosPage({
     to:     params.to   ?? null,
     source,
     origin,
+    channel,
     resumo: {
       totalCents:      resumoTotalCents,
       profitCents:     resumoProfitCents,
