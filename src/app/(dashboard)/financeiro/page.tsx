@@ -17,7 +17,7 @@ export default async function FinanceiroPage() {
       .from('sales')
       .select(`
         id, customer_id, total_cents, subtotal_cents, discount_cents, shipping_cents,
-        payment_method, status, created_at,
+        payment_method, status, created_at, sale_channel, delivery_type,
         customers ( full_name, cpf_cnpj, created_at ),
         sale_items ( name, quantity, unit_price_cents )
       `)
@@ -29,7 +29,7 @@ export default async function FinanceiroPage() {
       .from('service_orders')
       .select(`
         id, total_price_cents, service_price_cents, parts_sale_cents,
-        discount_cents, status, payment_method, received_at,
+        discount_cents, status, payment_method, received_at, sale_channel, delivery_type,
         customers ( full_name, cpf_cnpj, created_at )
       `)
       .eq('tenant_id', tenantId)
@@ -42,6 +42,7 @@ export default async function FinanceiroPage() {
     total_cents: number; subtotal_cents: number
     discount_cents: number; shipping_cents: number
     payment_method: string; status: string; created_at: string
+    sale_channel: string | null; delivery_type: string | null
     customers: { full_name: string; cpf_cnpj: string | null; created_at: string } | null
     sale_items: { name: string; quantity: number; unit_price_cents: number }[]
   }
@@ -49,6 +50,7 @@ export default async function FinanceiroPage() {
     id: string; total_price_cents: number; service_price_cents: number
     parts_sale_cents: number; discount_cents: number
     status: string; payment_method: string | null; received_at: string
+    sale_channel: string | null; delivery_type: string | null
     customers: { full_name: string; cpf_cnpj: string | null; created_at: string } | null
   }
 
@@ -87,6 +89,8 @@ export default async function FinanceiroPage() {
       total:        s.total_cents,
       customerId:   s.customer_id ?? null,
       saleItems:    s.sale_items.map(i => ({ name: i.name, quantity: i.quantity, unitPriceCents: i.unit_price_cents })),
+      saleChannel:  s.sale_channel  ?? null,
+      deliveryType: s.delivery_type ?? null,
       clienteType:  s.customer_id ? clienteType(s.customers?.created_at) : null,
     })),
     ...orders.map(o => ({
@@ -105,6 +109,8 @@ export default async function FinanceiroPage() {
       cancelled:    o.status === 'cancelled',
       discount:     o.discount_cents ?? 0,
       total:        osTotal(o),
+      saleChannel:  o.sale_channel  ?? null,
+      deliveryType: o.delivery_type ?? null,
       clienteType:  o.customers ? clienteType(o.customers.created_at) : null,
     })),
   ].sort((a, b) => b.date.getTime() - a.date.getTime())
