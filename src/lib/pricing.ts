@@ -65,3 +65,87 @@ export function fmtBRL(cents: number): string {
 export function centsToReais(cents: number): number {
   return cents / 100
 }
+
+// ── Features de cada plano (pra exibir nos modais de upgrade/downgrade) ───
+// Usado pra cliente comparar o que ganha/perde ao mudar de plano.
+
+export const PLAN_FEATURES: Record<Product, Record<Plan, string[]>> = {
+  gestao_smart: {
+    basico: [
+      'Frente de Caixa (POS) com busca e carrinho',
+      'Estoque com controle de custo',
+      'Financeiro consolidado (vendas + OS)',
+      'Cadastro de clientes',
+      'Dashboards básicos (faturamento, top produtos)',
+      'Multi-usuário (até 3 vendedores)',
+    ],
+    pro: [
+      'Tudo do Básico',
+      'Relatórios avançados (período, ticket médio, comparativos)',
+      'Análise de Canais (Online vs Física, Break-even)',
+      'ERP Clientes (heatmap, em risco, origem)',
+      'Diagnóstico de Lucro (itens órfãos, prejuízo)',
+      'Multi-usuário ilimitado',
+    ],
+    premium: [
+      'Tudo do Pro',
+      'Meta Ads incluído (ROAS, CAC, alertas)',
+      'CRM incluído (pipeline + WhatsApp + Instagram)',
+      'CheckSmart incluído (OS de assistência)',
+      'Suporte prioritário',
+    ],
+  },
+  checksmart: {
+    basico: [
+      'OS (Ordem de Serviço) com checklist',
+      'Cadastro de aparelhos e clientes',
+      'Estoque de peças',
+      'PDF da OS',
+    ],
+    pro: [
+      'Tudo do Básico',
+      'OS multi-aparelho (várias na mesma OS)',
+      'Escudo jurídico (aparelho apagado bloqueia)',
+      'Relatórios de produtividade',
+    ],
+    premium: [
+      'Tudo do Pro',
+      'Integração com Gestão Smart (caixa unificado)',
+      'Notificação SMS pro cliente',
+      'Suporte prioritário',
+    ],
+  },
+  crm: {
+    basico: [
+      'Pipeline de vendas (leads → clientes)',
+      'Inbox WhatsApp unificado',
+      'Histórico de mensagens por cliente',
+    ],
+    pro: [
+      'Tudo do Básico',
+      'Inbox Instagram',
+      'Mensagens automáticas (boas-vindas, lembretes)',
+      'Templates pré-aprovados Meta',
+    ],
+    premium: [
+      'Tudo do Pro',
+      'IA de mensagens (resposta automática)',
+      'Atribuição automática por palavra-chave',
+      'Suporte prioritário',
+    ],
+  },
+  meta_ads: {
+    basico: [
+      'Conexão com até 3 contas de anúncio',
+      'Métricas em tempo real (ROAS, CAC, CPC)',
+      'Alertas de campanhas com problema',
+      'Atribuição via campaign_code WhatsApp',
+    ],
+    pro:     [],   // não usa (módulo só tem 1 plano)
+    premium: [],   // não usa
+  },
+}
+
+export function featuresFor(product: Product, plan: Plan): string[] {
+  return PLAN_FEATURES[product]?.[plan] ?? []
+}

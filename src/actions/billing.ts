@@ -20,7 +20,7 @@ import { getTenantId } from '@/lib/tenant'
 import {
   createAsaasCustomer, findAsaasCustomerByCpfCnpj,
   createAsaasSubscription, cancelAsaasSubscription,
-  createAsaasOneTimePayment,
+  createAsaasOneTimePayment, updateAsaasSubscription,
   getSubscriptionFirstPayment, getPaymentPixQrCode,
   isAsaasCustomerValid,
   asaasToday,
@@ -706,4 +706,176 @@ export async function executeUpgrade(
     pixQrCode,
     chargeValueCents: preview.proratedChargeCents,
   }
+}
+
+// ── Downgrade: agendado pro próximo ciclo (sem reembolso) ────────────────
+// Cliente continua usando plano atual + features até a data de vencimento.
+// Webhook PAYMENT_RECEIVED ao receber próxima cobrança aplica o pending_plan.
+
+export type DowngradePreview = {
+  ok:               true
+  currentPlan:      Plan
+  currentPriceCents: number
+  newPlan:          Plan
+  newPriceCents:    number
+  effectiveDate:    string             // YYYY-MM-DD — quando vai virar
+} | { ok: false; error: string }
+
+export async function previewDowngrade(
+  product: Product,
+  newPlan: Plan,
+): Promise<DowngradePreview> {
+  const { user } = await requireAuth()
+  const tenantId = getTenantId(user)
+  if (user.app_metadata?.tenant_role !== 'owner') {
+    return { ok: false, error: 'Apenas o dono pode mudar plano.' }
+  }
+
+  const newPrice = getPrice(product, newPlan)
+  if (!newPrice) return { ok: false, error: 'Plano inválido.' }
+
+  const admin = createAdminClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = admin as any
+
+  const { data: sub } = await sb
+    .from('subscriptions')
+    .select('plan_name, price_cents, status, next_due_date')
+    .eq('tenant_id', tenantId)
+    .eq('product', product)
+    .maybeSingle()
+
+  if (!sub) return { ok: false, error: 'Assinatura não encontrada.' }
+  if (sub.status !== 'active') {
+    return { ok: false, error: 'Downgrade só está disponível pra assinaturas ativas.' }
+  }
+  if (sub.plan_name === newPlan) {
+    return { ok: false, error: 'Você já está nesse plano.' }
+  }
+
+  const currentRank = PLAN_RANK[sub.plan_name as Plan] ?? 0
+  if (PLAN_RANK[newPlan] >= currentRank) {
+    return { ok: false, error: 'Pra plano superior use o fluxo de upgrade.' }
+  }
+
+  return {
+    ok:               true,
+    currentPlan:      sub.plan_name as Plan,
+    currentPriceCents: sub.price_cents,
+    newPlan,
+    newPriceCents:    newPrice.priceCents,
+    effectiveDate:    sub.next_due_date ?? '',
+  }
+}
+
+/** Agenda downgrade pro próximo ciclo. Não cobra nada agora. */
+export async function executeDowngrade(
+  product: Product,
+  newPlan: Plan,
+): Promise<{ ok: true; effectiveDate: string } | { ok: false; error: string }> {
+  const preview = await previewDowngrade(product, newPlan)
+  if (!preview.ok) return { ok: false, error: preview.error }
+
+  const { user } = await requireAuth()
+  const tenantId = getTenantId(user)
+
+  const admin = createAdminClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = admin as any
+
+  const { data: sub } = await sb
+    .from('subscriptions')
+    .select('id, asaas_subscription_id')
+    .eq('tenant_id', tenantId)
+    .eq('product', product)
+    .maybeSingle()
+
+  if (!sub?.asaas_subscription_id) {
+    return { ok: false, error: 'Subscription do Asaas não encontrada.' }
+  }
+
+  const newPrice = getPrice(product, newPlan)!
+
+  // Atualiza valor no Asaas (próxima cobrança usa o novo valor)
+  try {
+    await updateAsaasSubscription(sub.asaas_subscription_id, {
+      value:       centsToReais(newPrice.priceCents),
+      description: newPrice.description,
+    })
+  } catch (e) {
+    console.error('[executeDowngrade] update Asaas falhou:', e)
+    return { ok: false, error: 'Erro ao atualizar valor no gateway.' }
+  }
+
+  // Salva pending no banco (plan_name continua o atual até webhook)
+  await sb.from('subscriptions')
+    .update({
+      pending_plan:        newPlan,
+      pending_price_cents: newPrice.priceCents,
+    })
+    .eq('id', sub.id)
+
+  void createNotification({
+    userId: user.id, tenantId, type: 'subscription_active',
+    title: 'Downgrade agendado',
+    body: `Seu plano vira ${newPlan} a partir de ${preview.effectiveDate}. Até lá, você continua com tudo do plano atual.`,
+    link: '/configuracoes/assinatura',
+  })
+
+  revalidatePath('/configuracoes/assinatura')
+  return { ok: true, effectiveDate: preview.effectiveDate }
+}
+
+/** Cancela um downgrade pendente — volta ao plano atual no Asaas. */
+export async function cancelPendingDowngrade(
+  product: Product,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { user } = await requireAuth()
+  const tenantId = getTenantId(user)
+  if (user.app_metadata?.tenant_role !== 'owner') {
+    return { ok: false, error: 'Apenas o dono pode mudar plano.' }
+  }
+
+  const admin = createAdminClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = admin as any
+
+  const { data: sub } = await sb
+    .from('subscriptions')
+    .select('id, asaas_subscription_id, plan_name, price_cents, pending_plan')
+    .eq('tenant_id', tenantId)
+    .eq('product', product)
+    .maybeSingle()
+
+  if (!sub?.pending_plan) {
+    return { ok: false, error: 'Não há downgrade pendente.' }
+  }
+
+  // Volta valor da sub Asaas pro plano atual (pre-downgrade)
+  if (sub.asaas_subscription_id) {
+    try {
+      const currentPrice = getPrice(product, sub.plan_name as Plan)
+      await updateAsaasSubscription(sub.asaas_subscription_id, {
+        value:       centsToReais(sub.price_cents),
+        description: currentPrice?.description ?? `${product} ${sub.plan_name}`,
+      })
+    } catch (e) {
+      console.error('[cancelPendingDowngrade] update Asaas falhou:', e)
+    }
+  }
+
+  // Limpa pending no banco
+  await sb.from('subscriptions')
+    .update({ pending_plan: null, pending_price_cents: null })
+    .eq('id', sub.id)
+
+  void createNotification({
+    userId: user.id, tenantId, type: 'subscription_active',
+    title: 'Downgrade cancelado',
+    body: 'Você continua no plano atual sem mudanças.',
+    link: '/configuracoes/assinatura',
+  })
+
+  revalidatePath('/configuracoes/assinatura')
+  return { ok: true }
 }

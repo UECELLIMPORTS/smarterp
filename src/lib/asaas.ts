@@ -244,6 +244,18 @@ export async function cancelAsaasSubscription(id: string): Promise<{ deleted: bo
   })
 }
 
+/** Atualiza valor/descrição/etc de uma subscription. Usado pra downgrade:
+ *  Asaas cobra novo valor a partir da próxima fatura, mantendo o ciclo. */
+export async function updateAsaasSubscription(
+  id:    string,
+  patch: Partial<Pick<AsaasSubscription, 'value' | 'description' | 'cycle' | 'nextDueDate' | 'billingType'>>,
+): Promise<AsaasSubscription> {
+  return asaasFetch<AsaasSubscription>(`/v3/subscriptions/${id}`, {
+    method: 'PUT',
+    body:   JSON.stringify(patch),
+  })
+}
+
 // ── One-time payments (pra upgrades com cobrança proporcional) ────────────
 
 /** Input pra criar uma cobrança one-time (não recorrente). Usado em upgrades:

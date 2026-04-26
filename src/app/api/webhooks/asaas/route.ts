@@ -138,7 +138,7 @@ async function handlePaymentReceived(sb: any, payment?: AsaasPayment): Promise<v
   // Acha a subscription local pelo asaas_subscription_id
   const { data: sub } = await sb
     .from('subscriptions')
-    .select('id, tenant_id, product, plan_name, status')
+    .select('id, tenant_id, product, plan_name, status, pending_plan, pending_price_cents')
     .eq('asaas_subscription_id', payment.subscription)
     .maybeSingle()
 
@@ -152,12 +152,24 @@ async function handlePaymentReceived(sb: any, payment?: AsaasPayment): Promise<v
   next.setMonth(next.getMonth() + 1)
   const nextDate = next.toISOString().slice(0, 10)
 
+  // Aplica downgrade pendente se houver — cliente esperou o ciclo expirar
+  // pra fazer efeito, agora vira o novo plano (com novo plan_name e preço).
+  const update: Record<string, unknown> = {
+    status:        'active',
+    next_due_date: nextDate,
+    trial_ends_at: null,
+  }
+  let appliedDowngrade = false
+  if (sub.pending_plan && sub.pending_price_cents) {
+    update.plan_name           = sub.pending_plan
+    update.price_cents         = sub.pending_price_cents
+    update.pending_plan        = null
+    update.pending_price_cents = null
+    appliedDowngrade = true
+  }
+
   await sb.from('subscriptions')
-    .update({
-      status:         'active',
-      next_due_date:  nextDate,
-      trial_ends_at:  null,
-    })
+    .update(update)
     .eq('id', sub.id)
 
   // Notifica o owner do tenant
@@ -172,8 +184,10 @@ async function handlePaymentReceived(sb: any, payment?: AsaasPayment): Promise<v
       userId:   tenant.owner_user_id,
       tenantId: sub.tenant_id,
       type:     'subscription_active',
-      title:    'Pagamento confirmado!',
-      body:     `Sua assinatura de ${sub.product} (${sub.plan_name}) está ativa.`,
+      title:    appliedDowngrade ? 'Plano atualizado' : 'Pagamento confirmado!',
+      body:     appliedDowngrade
+                  ? `Você agora está no plano ${sub.pending_plan} de ${sub.product}.`
+                  : `Sua assinatura de ${sub.product} (${sub.plan_name}) está ativa.`,
       link:     '/configuracoes/assinatura',
     })
   }
