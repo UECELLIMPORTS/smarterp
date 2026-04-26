@@ -287,33 +287,58 @@ export async function subscribeToProduct(input: SubscribeInput): Promise<Subscri
     return { ok: false, error: 'Assinatura criada no gateway mas erro ao registrar. Contate suporte.' }
   }
 
-  void createNotification({
-    userId:   user.id,
-    tenantId: tenantId,
-    type:     'subscription_active',
-    title:    `Assinatura ${price.description} criada`,
-    body:     billingType === 'PIX'
-                ? 'Pague o PIX pra ativar — o QR code está aberto na tela.'
-                : 'Pagamento via cartão processado.',
-    link:     '/configuracoes/assinatura',
-  })
-
-  revalidatePath('/configuracoes/assinatura')
-
-  // ── 6. Resposta diferenciada por método ────────────────────────────────
+  // ── 6. Para cartão: confirma cobrança imediata + atualiza otimista ────
+  // Asaas cobra cartão na hora. Em vez de esperar webhook (que demora
+  // 10-60s), buscamos a 1ª cobrança e, se status=CONFIRMED|RECEIVED,
+  // marcamos active local imediatamente. Webhook fica como redundância.
   if (billingType === 'CREDIT_CARD') {
-    // Cartão: Asaas já cobrou. Webhook vai chegar e setar status='active'.
+    const firstPayment = await getSubscriptionFirstPayment(asaasSub.id)
+    const paid = firstPayment && (firstPayment.status === 'CONFIRMED' || firstPayment.status === 'RECEIVED')
+
+    if (paid) {
+      const next = new Date()
+      next.setMonth(next.getMonth() + 1)
+      await sb.from('subscriptions')
+        .update({ status: 'active', trial_ends_at: null, next_due_date: next.toISOString().slice(0, 10) })
+        .eq('tenant_id', tenantId)
+        .eq('product', input.product)
+    }
+
+    void createNotification({
+      userId:   user.id,
+      tenantId: tenantId,
+      type:     'subscription_active',
+      title:    paid ? 'Pagamento confirmado!' : 'Pagamento em processamento',
+      body:     paid
+                  ? `Sua assinatura ${price.description} está ativa.`
+                  : 'Assinatura criada. Confirmação chega em alguns instantes.',
+      link:     '/configuracoes/assinatura',
+    })
+
+    revalidatePath('/configuracoes/assinatura')
+    revalidatePath('/', 'layout')   // refresh do gate de feature em todo o app
     return {
       ok:                  true,
       asaasSubscriptionId: asaasSub.id,
       mode:                'card',
-      chargedNow:          true,
+      chargedNow:          !!paid,
     }
   }
 
   // PIX: busca QR code da 1ª cobrança pra exibir inline no modal
   const firstPayment = await getSubscriptionFirstPayment(asaasSub.id)
   const pixQrCode = firstPayment ? await getPaymentPixQrCode(firstPayment.id) : null
+
+  void createNotification({
+    userId:   user.id,
+    tenantId: tenantId,
+    type:     'subscription_active',
+    title:    `Assinatura ${price.description} criada`,
+    body:     'Pague o PIX pra ativar — o QR code está aberto na tela.',
+    link:     '/configuracoes/assinatura',
+  })
+
+  revalidatePath('/configuracoes/assinatura')
 
   return {
     ok:                  true,
@@ -322,6 +347,59 @@ export async function subscribeToProduct(input: SubscribeInput): Promise<Subscri
     pixQrCode,
     paymentValue:        centsToReais(price.priceCents),
   }
+}
+
+/**
+ * Sincroniza status de subscriptions locais com o Asaas. Útil se o webhook
+ * atrasou ou falhou. Pra cada sub do tenant que não está active/cancelled,
+ * busca o pagamento mais recente no Asaas e atualiza o status local se
+ * tiver sido pago.
+ *
+ * Idempotente — pode ser chamada várias vezes sem efeito colateral.
+ */
+export async function syncSubscriptionsWithAsaas(): Promise<{ updated: number }> {
+  const { user } = await requireAuth()
+  const tenantId = getTenantId(user)
+
+  const admin = createAdminClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = admin as any
+
+  const { data: subs } = await sb
+    .from('subscriptions')
+    .select('id, asaas_subscription_id, status')
+    .eq('tenant_id', tenantId)
+    .not('asaas_subscription_id', 'is', null)
+    .in('status', ['inactive', 'trial', 'late'])
+
+  if (!subs || subs.length === 0) return { updated: 0 }
+
+  let updated = 0
+  for (const sub of subs as { id: string; asaas_subscription_id: string }[]) {
+    try {
+      const payment = await getSubscriptionFirstPayment(sub.asaas_subscription_id)
+      if (payment && (payment.status === 'CONFIRMED' || payment.status === 'RECEIVED')) {
+        const next = new Date()
+        next.setMonth(next.getMonth() + 1)
+        await sb.from('subscriptions')
+          .update({
+            status:        'active',
+            trial_ends_at: null,
+            next_due_date: next.toISOString().slice(0, 10),
+          })
+          .eq('id', sub.id)
+        updated++
+      }
+    } catch (e) {
+      console.error('[syncSubscriptionsWithAsaas] sync falhou pra', sub.id, e)
+    }
+  }
+
+  if (updated > 0) {
+    revalidatePath('/configuracoes/assinatura')
+    revalidatePath('/', 'layout')
+  }
+  return { updated }
 }
 
 /**

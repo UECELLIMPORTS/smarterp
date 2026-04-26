@@ -1,8 +1,10 @@
 import { redirect } from 'next/navigation'
 import { requireAuth } from '@/lib/supabase/server'
 import { Sidebar } from '@/components/layout/sidebar'
-import { Topbar } from '@/components/layout/topbar'
-import { getTenantSubscriptions, daysUntilTrialEnds } from '@/lib/subscription'
+import { Topbar, type PlanBadge } from '@/components/layout/topbar'
+import {
+  getTenantSubscriptions, daysUntilTrialEnds, getProductSubscription,
+} from '@/lib/subscription'
 import { TrialBanner } from '@/components/trial-banner'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -18,14 +20,32 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const userName  = user.user_metadata?.full_name ?? user.user_metadata?.name ?? ''
   const userEmail = user.email ?? ''
 
-  // Trial banner global — só aparece se o tenant tá em trial
+  // Status do plano principal (Gestão Smart) pra exibir no topbar
   const subs       = await getTenantSubscriptions(user)
   const trialDays  = daysUntilTrialEnds(subs)
+  const gestaoSub  = getProductSubscription(subs, 'gestao_smart')
+
+  // Determina badge a mostrar — prioridade: pagamento pendente > trial > plano ativo
+  let planBadge: PlanBadge | null = null
+  if (gestaoSub?.status === 'inactive') {
+    planBadge = { label: 'Pagamento pendente', kind: 'pending' }
+  } else if (gestaoSub?.status === 'late') {
+    planBadge = { label: 'Pagamento em atraso', kind: 'late' }
+  } else if (trialDays !== null) {
+    planBadge = {
+      label: trialDays === 0 ? 'Trial expira hoje' : `Trial · ${trialDays}d`,
+      kind:  'trial',
+    }
+  } else if (gestaoSub?.status === 'active' && gestaoSub.planName) {
+    const labels: Record<string, string> = { basico: 'BÁSICO', pro: 'PRO', premium: 'PREMIUM' }
+    const label = labels[gestaoSub.planName] ?? gestaoSub.planName.toUpperCase()
+    planBadge = { label, kind: gestaoSub.planName as 'basico' | 'pro' | 'premium' }
+  }
 
   return (
     <div className="min-h-screen" style={{ background: '#080C14' }}>
       <Sidebar />
-      <Topbar userName={userName} userEmail={userEmail} />
+      <Topbar userName={userName} userEmail={userEmail} planBadge={planBadge} />
 
       {/* Conteúdo principal — sem margem em mobile, 240px em lg+ pra dar espaço pra Sidebar */}
       <main className="pt-16 lg:ml-60">
