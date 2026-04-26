@@ -1,8 +1,10 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import Link from 'next/link'
 import {
   Package, CheckCircle, AlertTriangle, Ban, Loader2, Save, Store,
+  Sparkles, ChevronRight,
 } from 'lucide-react'
 import { saveSettings, type TenantSettings, type StockControlMode } from '@/actions/settings'
 
@@ -88,6 +90,25 @@ export function ConfiguracoesClient({ initialSettings }: Props) {
         <h1 className="text-2xl font-bold text-text">Configurações</h1>
         <p className="mt-1 text-sm text-muted">Personalize o comportamento do sistema</p>
       </div>
+
+      {/* Link Minha Assinatura — sempre no topo */}
+      <Link href="/configuracoes/assinatura"
+        className="block rounded-xl border p-4 transition-all hover:border-cyan-400/40"
+        style={{ background: '#111827', borderColor: '#1E2D45' }}>
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg shrink-0"
+            style={{ background: 'rgba(255,184,0,.15)' }}>
+            <Sparkles className="h-5 w-5" style={{ color: '#FFB800' }} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 className="text-sm font-semibold text-text">Minha Assinatura</h2>
+            <p className="text-xs text-muted mt-0.5">
+              Veja seu plano, mude de plano ou contrate outros produtos
+            </p>
+          </div>
+          <ChevronRight className="h-5 w-5 shrink-0" style={{ color: '#5A7A9A' }} />
+        </div>
+      </Link>
 
       {/* Estoque section */}
       <div className="rounded-xl border overflow-hidden" style={{ background: '#111827', borderColor: '#1E2D45' }}>

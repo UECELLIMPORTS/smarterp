@@ -3,6 +3,8 @@ import { getTenantId } from '@/lib/tenant'
 import { redirect } from 'next/navigation'
 import { originLabel } from '@/lib/customer-origin'
 import { ErpClientesClient } from './erp-clientes-client'
+import { getTenantSubscriptions, canAccess } from '@/lib/subscription'
+import { UpgradeBlock } from '@/components/upgrade-block'
 
 export const metadata = { title: 'ERP Clientes — Smart ERP' }
 
@@ -137,6 +139,13 @@ export default async function ErpClientesPage({
   try { auth = await requireAuth() } catch { redirect('/login') }
 
   const { supabase, user } = auth
+
+  // Gate de feature: ERP Clientes é Pro+
+  const subs = await getTenantSubscriptions(user)
+  if (!canAccess(subs, 'erp_clientes')) {
+    return <UpgradeBlock feature="erp_clientes" pageTitle="ERP Clientes" />
+  }
+
   const tenantId = getTenantId(user)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any

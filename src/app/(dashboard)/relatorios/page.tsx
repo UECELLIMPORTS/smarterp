@@ -1,4 +1,6 @@
 import { requireAuth } from '@/lib/supabase/server'
+import { getTenantSubscriptions, canAccess } from '@/lib/subscription'
+import { UpgradeBlock } from '@/components/upgrade-block'
 import { getTenantId } from '@/lib/tenant'
 import { redirect }    from 'next/navigation'
 import { originLabel } from '@/lib/customer-origin'
@@ -80,6 +82,13 @@ export default async function RelatoriosPage({
   try { auth = await requireAuth() } catch { redirect('/login') }
 
   const { supabase, user } = auth
+
+  // Gate: Relatórios é Pro+
+  const subs = await getTenantSubscriptions(user)
+  if (!canAccess(subs, 'reports')) {
+    return <UpgradeBlock feature="reports" pageTitle="Relatórios" />
+  }
+
   const tenantId = getTenantId(user)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any

@@ -1,4 +1,6 @@
 import { requireAuth } from '@/lib/supabase/server'
+import { getTenantSubscriptions, canAccess } from '@/lib/subscription'
+import { UpgradeBlock } from '@/components/upgrade-block'
 import { getTenantId } from '@/lib/tenant'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
@@ -173,6 +175,13 @@ export default async function MetaAdsPage({
   try { auth = await requireAuth() } catch { redirect('/login') }
 
   const { user } = auth
+
+  // Gate: Meta Ads é Premium (ou subscription dedicada de meta_ads)
+  const subs = await getTenantSubscriptions(user)
+  if (!canAccess(subs, 'meta_ads')) {
+    return <UpgradeBlock feature="meta_ads" pageTitle="Meta Ads" />
+  }
+
   const tenantId = getTenantId(user)
 
   const { period: rawPeriod = '30d', account: rawAccount } = await searchParams

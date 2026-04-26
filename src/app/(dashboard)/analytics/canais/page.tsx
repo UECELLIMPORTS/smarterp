@@ -7,6 +7,8 @@ import {
 } from '@/actions/sales-channels'
 import { getSettings } from '@/actions/settings'
 import { CanaisClient } from './canais-client'
+import { getTenantSubscriptions, canAccess } from '@/lib/subscription'
+import { UpgradeBlock } from '@/components/upgrade-block'
 
 export const metadata = { title: 'Canais — Smart ERP' }
 
@@ -17,7 +19,14 @@ export default async function CanaisPage({
 }: {
   searchParams: Promise<{ period?: string }>
 }) {
-  try { await requireAuth() } catch { redirect('/login') }
+  let auth: Awaited<ReturnType<typeof requireAuth>>
+  try { auth = await requireAuth() } catch { redirect('/login') }
+
+  // Gate: Canais é Pro+
+  const subs = await getTenantSubscriptions(auth.user)
+  if (!canAccess(subs, 'canais')) {
+    return <UpgradeBlock feature="canais" pageTitle="Análise de Canais" />
+  }
 
   const { period: rawPeriod = '30d' } = await searchParams
   const period = (VALID_PERIODS as string[]).includes(rawPeriod)
