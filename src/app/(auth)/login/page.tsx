@@ -133,6 +133,12 @@ export default function LoginPage() {
               {loading && <Loader2 className="h-4 w-4 animate-spin" />}
               {loading ? 'Entrando...' : 'Entrar'}
             </button>
+
+            <p className="text-center text-xs">
+              <a href="/forgot-password" className="hover:underline" style={{ color: '#5A7A9A' }}>
+                Esqueci minha senha
+              </a>
+            </p>
           </form>
         </div>
 

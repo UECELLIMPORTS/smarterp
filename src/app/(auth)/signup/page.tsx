@@ -157,8 +157,14 @@ export default function SignupPage() {
           </form>
 
           <p className="mt-4 text-center text-[11px]" style={{ color: '#5A7A9A' }}>
-            Ao criar a conta você concorda com nossos
-            {' '}<a href="https://smartgestao-site.vercel.app" className="underline hover:text-white">Termos de Uso</a>.
+            Ao criar a conta você concorda com nossos{' '}
+            <a href="https://smartgestao-site.vercel.app/termos"
+              target="_blank" rel="noopener noreferrer"
+              className="underline hover:text-white">Termos de Uso</a>
+            {' '}e{' '}
+            <a href="https://smartgestao-site.vercel.app/privacidade"
+              target="_blank" rel="noopener noreferrer"
+              className="underline hover:text-white">Política de Privacidade</a>.
           </p>
         </div>
 

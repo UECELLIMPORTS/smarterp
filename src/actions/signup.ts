@@ -14,6 +14,7 @@
 
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
+import { sendWelcomeEmail } from '@/lib/email'
 
 export type SignupInput = {
   fullName:   string
@@ -91,6 +92,9 @@ export async function signupTenant(input: SignupInput): Promise<SignupResult> {
     console.error('[signupTenant] updateUserById (app_metadata) falhou:', metaErr)
     return { ok: false, error: 'Conta criada parcialmente. Contate o suporte.' }
   }
+
+  // Email de boas-vindas (best-effort — não falha o signup se email não rolar)
+  void sendWelcomeEmail({ to: email, fullName, tenantName })
 
   return { ok: true, email }
 }
