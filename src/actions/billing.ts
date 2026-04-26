@@ -21,6 +21,7 @@ import {
   createAsaasCustomer, findAsaasCustomerByCpfCnpj,
   createAsaasSubscription, cancelAsaasSubscription,
   getSubscriptionFirstPayment, getPaymentPixQrCode,
+  isAsaasCustomerValid,
   asaasToday,
   type AsaasBillingType, type AsaasCreditCard, type AsaasCreditCardHolderInfo,
   type AsaasPixQrCode,
@@ -32,10 +33,10 @@ export type SubscribeInput = {
   product:       Product
   plan:          Plan
   paymentMethod: 'PIX' | 'CREDIT_CARD'
-  // Dados pra criar customer no Asaas (1ª vez assinando) — opcionais se
-  // tenant já tem asaas_customer_id setado.
+  // Dados de contato — obrigatórios pra Asaas em PIX e Cartão
+  fullName?:     string             // nome completo (titular)
   cpfCnpj?:      string             // só números
-  phone?:        string             // celular
+  phone?:        string             // celular (DDD + número)
   // Dados de cartão — obrigatórios quando paymentMethod=CREDIT_CARD
   creditCard?: {
     holderName:  string
@@ -110,25 +111,55 @@ export async function subscribeToProduct(input: SubscribeInput): Promise<Subscri
   let asaasCustomerId = tenant.asaas_customer_id as string | null
   let cpfCnpj         = tenant.cpf_cnpj as string | null
 
+  // Valida cache: se asaas_customer_id existe mas customer foi removido
+  // do Asaas (admin deletou no painel), invalida pra criar um novo
+  if (asaasCustomerId) {
+    const valid = await isAsaasCustomerValid(asaasCustomerId)
+    if (!valid) {
+      console.warn('[subscribeToProduct] customer cache inválido, recriando:', asaasCustomerId)
+      asaasCustomerId = null
+      // Limpa também no banco pra não tentar reusar de novo
+      await sb.from('tenants')
+        .update({ asaas_customer_id: null })
+        .eq('id', tenantId)
+    }
+  }
+
+  // Validação dos campos de contato — exigidos pra qualquer método de pagamento
+  const fullName = (input.fullName ?? '').trim()
+  const phone    = input.phone ? digitsOnly(input.phone) : ''
+  if (fullName.length < 3) {
+    return { ok: false, error: 'Informe seu nome completo.' }
+  }
+  if (phone.length < 10 || phone.length > 11) {
+    return { ok: false, error: 'Informe um celular válido com DDD (10 ou 11 dígitos).' }
+  }
+
   if (!asaasCustomerId) {
-    const cleanCpfCnpj = input.cpfCnpj ? digitsOnly(input.cpfCnpj) : ''
+    const cleanCpfCnpj = input.cpfCnpj ? digitsOnly(input.cpfCnpj) : (cpfCnpj ?? '')
     if (!cleanCpfCnpj || !isValidCpfCnpj(cleanCpfCnpj)) {
       return { ok: false, error: 'CPF (11 dígitos) ou CNPJ (14 dígitos) é obrigatório.' }
     }
 
     try {
-      // Tenta achar customer existente pelo CPF/CNPJ (caso usuário já tenha
-      // sido cadastrado em fluxo anterior que abortou)
-      const existing = await findAsaasCustomerByCpfCnpj(cleanCpfCnpj)
-      const customer = existing ?? await createAsaasCustomer({
-        name:      tenant.name,
-        email:     user.email ?? '',
-        cpfCnpj:   cleanCpfCnpj,
-        mobilePhone: input.phone ? digitsOnly(input.phone) : undefined,
+      // Tenta achar customer existente pelo CPF/CNPJ (Asaas não permite
+      // 2 customers com mesmo CPF/CNPJ — se existe, reusa).
+      // findAsaasCustomerByCpfCnpj retorna até deletados, então também valida.
+      let customer = await findAsaasCustomerByCpfCnpj(cleanCpfCnpj)
+      if (customer) {
+        const stillValid = await isAsaasCustomerValid(customer.id)
+        if (!stillValid) customer = null
+      }
+
+      const finalCustomer = customer ?? await createAsaasCustomer({
+        name:        fullName,
+        email:       user.email ?? '',
+        cpfCnpj:     cleanCpfCnpj,
+        mobilePhone: phone,
         externalReference: tenant.id,
       })
 
-      asaasCustomerId = customer.id
+      asaasCustomerId = finalCustomer.id
       cpfCnpj         = cleanCpfCnpj
 
       // Salva no tenant pra reusar
@@ -137,7 +168,8 @@ export async function subscribeToProduct(input: SubscribeInput): Promise<Subscri
         .eq('id', tenantId)
     } catch (e) {
       console.error('[subscribeToProduct] criar customer Asaas falhou:', e)
-      return { ok: false, error: 'Não foi possível registrar dados de cobrança. Verifique CPF/CNPJ.' }
+      const msg = e instanceof Error ? e.message : 'Não foi possível registrar dados de cobrança.'
+      return { ok: false, error: msg }
     }
   }
 
@@ -183,12 +215,12 @@ export async function subscribeToProduct(input: SubscribeInput): Promise<Subscri
       ccv:         input.creditCard.ccv,
     }
     creditCardHolderInfo = {
-      name:          tenant.name,
+      name:          fullName,
       email:         user.email ?? '',
       cpfCnpj:       cpfCnpj!,
       postalCode:    digitsOnly(input.postalCode),
       addressNumber: input.addressNumber,
-      mobilePhone:   input.phone ? digitsOnly(input.phone) : undefined,
+      mobilePhone:   phone,
     }
   }
 

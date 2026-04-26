@@ -74,6 +74,7 @@ export function SubscribeModal({ open, onClose, product, productLabel, hasCpfCnp
   // Form state
   const [plan, setPlan] = useState<Plan>(plans[0]?.plan ?? 'basico')
   const [paymentMethod, setPaymentMethod] = useState<'PIX' | 'CREDIT_CARD'>('PIX')
+  const [fullName, setFullName] = useState('')
   const [cpfCnpj, setCpfCnpj] = useState('')
   const [phone, setPhone] = useState('')
   // Card fields
@@ -95,6 +96,7 @@ export function SubscribeModal({ open, onClose, product, productLabel, hasCpfCnp
       setStep('form')
       setPlan(plans[0]?.plan ?? 'basico')
       setPaymentMethod('PIX')
+      setFullName('')
       setCpfCnpj('')
       setPhone('')
       setCardNumber(''); setCardHolder(''); setCardExpiry(''); setCardCcv('')
@@ -109,6 +111,14 @@ export function SubscribeModal({ open, onClose, product, productLabel, hasCpfCnp
 
   async function handleSubmit() {
     // Validações pré-server
+    if (fullName.trim().length < 3) {
+      toast.error('Informe seu nome completo.')
+      return
+    }
+    if (phone.replace(/\D/g, '').length < 10) {
+      toast.error('Informe um celular válido com DDD.')
+      return
+    }
     if (!hasCpfCnpj) {
       const digits = cpfCnpj.replace(/\D/g, '')
       if (digits.length !== 11 && digits.length !== 14) {
@@ -136,8 +146,9 @@ export function SubscribeModal({ open, onClose, product, productLabel, hasCpfCnp
 
     const res = await subscribeToProduct({
       product, plan, paymentMethod,
+      fullName,
       cpfCnpj: hasCpfCnpj ? undefined : cpfCnpj,
-      phone:   phone || undefined,
+      phone,
       creditCard: paymentMethod === 'CREDIT_CARD' ? {
         holderName:  cardHolder,
         number:      cardNumber.replace(/\D/g, ''),
@@ -348,6 +359,19 @@ export function SubscribeModal({ open, onClose, product, productLabel, hasCpfCnp
             </div>
           </div>
 
+          {/* Dados de contato — sempre obrigatórios */}
+          <div>
+            <label className="text-[11px] font-bold uppercase tracking-widest mb-2 block"
+              style={{ color: '#5A7A9A' }}>
+              Nome completo <span style={{ color: '#FF4D6D' }}>*</span>
+            </label>
+            <input type="text" value={fullName}
+              onChange={e => setFullName(e.target.value)}
+              placeholder="Seu nome ou razão social"
+              className="w-full rounded-lg border px-3 py-2 text-sm"
+              style={{ background: '#0D1320', borderColor: '#1E2D45', color: '#E8F0FE' }} />
+          </div>
+
           {/* CPF/CNPJ — só se tenant não tem ainda */}
           {!hasCpfCnpj && (
             <div>
@@ -362,6 +386,17 @@ export function SubscribeModal({ open, onClose, product, productLabel, hasCpfCnp
                 style={{ background: '#0D1320', borderColor: '#1E2D45', color: '#E8F0FE' }} />
             </div>
           )}
+
+          <div>
+            <label className="text-[11px] font-bold uppercase tracking-widest mb-2 block"
+              style={{ color: '#5A7A9A' }}>
+              Celular com DDD <span style={{ color: '#FF4D6D' }}>*</span>
+            </label>
+            <input type="tel" value={phone} onChange={e => setPhone(e.target.value)}
+              placeholder="(79) 99999-9999"
+              className="w-full rounded-lg border px-3 py-2 text-sm font-mono"
+              style={{ background: '#0D1320', borderColor: '#1E2D45', color: '#E8F0FE' }} />
+          </div>
 
           {/* Campos do cartão (só se CREDIT_CARD) */}
           {paymentMethod === 'CREDIT_CARD' && (
@@ -441,16 +476,6 @@ export function SubscribeModal({ open, onClose, product, productLabel, hasCpfCnp
               </div>
             </>
           )}
-
-          {/* Celular (sempre opcional) */}
-          <div>
-            <label className="text-[11px] font-bold uppercase tracking-widest mb-2 block"
-              style={{ color: '#5A7A9A' }}>Celular (opcional)</label>
-            <input type="tel" value={phone} onChange={e => setPhone(e.target.value)}
-              placeholder="(79) 99999-9999"
-              className="w-full rounded-lg border px-3 py-2 text-sm font-mono"
-              style={{ background: '#0D1320', borderColor: '#1E2D45', color: '#E8F0FE' }} />
-          </div>
 
           {/* Resumo */}
           {selected && (

@@ -178,6 +178,22 @@ export async function getAsaasCustomer(customerId: string): Promise<AsaasCustome
   return asaasFetch<AsaasCustomer>(`/v3/customers/${customerId}`)
 }
 
+/** Valida se o customer existe e está utilizável (não foi deletado no Asaas).
+ *  Útil pra detectar a situação onde o admin deletou o customer mas o ID
+ *  ainda está cacheado no nosso banco. */
+export async function isAsaasCustomerValid(customerId: string): Promise<boolean> {
+  try {
+    const c = await asaasFetch<AsaasCustomer & { deleted?: boolean }>(
+      `/v3/customers/${customerId}`,
+    )
+    // Asaas marca como deleted=true em vez de retornar 404 pra customers
+    // removidos. Algumas situações também aparecem com fields ausentes.
+    return !c.deleted && !!c.id
+  } catch {
+    return false
+  }
+}
+
 // ── Subscriptions ──────────────────────────────────────────────────────────
 
 export async function createAsaasSubscription(
