@@ -924,9 +924,10 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
         )}
       </div>
 
-      {/* Table */}
-      <div className="rounded-xl border overflow-hidden" style={{ background: '#111827', borderColor: '#1E2D45' }}>
-        <div className="flex items-center justify-between border-b px-5 py-4" style={{ borderColor: '#1E2D45' }}>
+      {/* Table — sem overflow-hidden no wrapper pra não cortar o dropdown
+           do menu de 3 pontinhos quando ele abre pra baixo da última row. */}
+      <div className="rounded-xl border" style={{ background: '#111827', borderColor: '#1E2D45' }}>
+        <div className="flex items-center justify-between border-b px-5 py-4 rounded-t-xl" style={{ borderColor: '#1E2D45' }}>
           <h2 className="text-sm font-semibold text-text">Todas as Transações</h2>
           <div className="flex items-center gap-3">
             {someSelected && (
