@@ -244,6 +244,34 @@ export async function cancelAsaasSubscription(id: string): Promise<{ deleted: bo
   })
 }
 
+// ── One-time payments (pra upgrades com cobrança proporcional) ────────────
+
+/** Input pra criar uma cobrança one-time (não recorrente). Usado em upgrades:
+ *  cobramos a diferença proporcional fora do ciclo regular da subscription. */
+export type CreateOneTimePaymentInput = {
+  customer:           string
+  billingType:        AsaasBillingType
+  value:              number             // em reais
+  dueDate:            string             // YYYY-MM-DD
+  description?:       string
+  externalReference?: string
+  // Pra cartão: Asaas cobra na hora usando token salvo (sem precisar
+  // pedir cartão de novo). Pra PIX: gera QR code que cliente paga.
+  creditCard?:           AsaasCreditCard
+  creditCardHolderInfo?: AsaasCreditCardHolderInfo
+  remoteIp?:           string
+}
+
+/** Cria cobrança avulsa (não recorrente). */
+export async function createAsaasOneTimePayment(
+  input: CreateOneTimePaymentInput,
+): Promise<AsaasPayment> {
+  return asaasFetch<AsaasPayment>('/v3/payments', {
+    method: 'POST',
+    body:   JSON.stringify(input),
+  })
+}
+
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 /** Formata data pra YYYY-MM-DD (formato esperado pelo Asaas). */

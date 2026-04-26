@@ -8,9 +8,10 @@ import {
 } from 'lucide-react'
 import type { Subscription } from '@/lib/subscription'
 import { SubscribeModal } from './subscribe-modal'
+import { UpgradeModal } from './upgrade-modal'
 import { cancelSubscriptionAsaas } from '@/actions/billing'
 import { toast } from 'sonner'
-import type { Product } from '@/lib/pricing'
+import type { Product, Plan } from '@/lib/pricing'
 
 const BRL = (cents: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cents / 100)
@@ -34,6 +35,7 @@ type Data = {
 
 export function AssinaturaClient({ data }: { data: Data }) {
   const [modal, setModal] = useState<{ product: Product; label: string } | null>(null)
+  const [upgradeModal, setUpgradeModal] = useState<{ product: Product; label: string; currentPlan: Plan } | null>(null)
 
   return (
     <div className="space-y-6 max-w-5xl">
@@ -76,6 +78,7 @@ export function AssinaturaClient({ data }: { data: Data }) {
           icon={Store} color="#00E5FF" sub={data.gestaoSmart}
           plansAvailable={['basico', 'pro', 'premium']}
           onSubscribe={(label) => setModal({ product: 'gestao_smart', label })}
+          onUpgrade={(label, currentPlan) => setUpgradeModal({ product: 'gestao_smart', label, currentPlan })}
         />
         <ProductCard
           name="CRM" product="crm"
@@ -83,6 +86,7 @@ export function AssinaturaClient({ data }: { data: Data }) {
           icon={Users} color="#00FF94" sub={data.crm}
           plansAvailable={['basico', 'pro', 'premium']}
           onSubscribe={(label) => setModal({ product: 'crm', label })}
+          onUpgrade={(label, currentPlan) => setUpgradeModal({ product: 'crm', label, currentPlan })}
           comingSoon
           includedInPremium={data.gestaoSmartIsPremium}
         />
@@ -92,6 +96,7 @@ export function AssinaturaClient({ data }: { data: Data }) {
           icon={TrendingUp} color="#E4405F" sub={data.metaAds}
           plansAvailable={['basico']}
           onSubscribe={(label) => setModal({ product: 'meta_ads', label })}
+          onUpgrade={(label, currentPlan) => setUpgradeModal({ product: 'meta_ads', label, currentPlan })}
           note="Add-on de R$47/mês — incluso no Premium do Gestão Smart"
           includedInPremium={data.gestaoSmartIsPremium}
         />
@@ -101,17 +106,27 @@ export function AssinaturaClient({ data }: { data: Data }) {
           icon={Wrench} color="#FFB800" sub={data.checkSmart}
           plansAvailable={['basico', 'pro', 'premium']}
           onSubscribe={(label) => setModal({ product: 'checksmart', label })}
+          onUpgrade={(label, currentPlan) => setUpgradeModal({ product: 'checksmart', label, currentPlan })}
           includedInPremium={data.gestaoSmartIsPremium}
         />
       </div>
 
-      {/* Modal de assinatura */}
+      {/* Modal de assinatura (1ª vez) */}
       <SubscribeModal
         open={!!modal}
         onClose={() => setModal(null)}
         product={modal?.product ?? 'gestao_smart'}
         productLabel={modal?.label ?? ''}
         hasCpfCnpj={data.hasCpfCnpj}
+      />
+
+      {/* Modal de upgrade (mudança entre planos pagos) */}
+      <UpgradeModal
+        open={!!upgradeModal}
+        onClose={() => setUpgradeModal(null)}
+        product={upgradeModal?.product ?? 'gestao_smart'}
+        productLabel={upgradeModal?.label ?? ''}
+        currentPlan={upgradeModal?.currentPlan ?? 'basico'}
       />
     </div>
   )
@@ -121,7 +136,7 @@ export function AssinaturaClient({ data }: { data: Data }) {
 
 function ProductCard({
   name, product, description, icon: Icon, color, sub, plansAvailable,
-  onSubscribe, comingSoon, note, includedInPremium,
+  onSubscribe, onUpgrade, comingSoon, note, includedInPremium,
 }: {
   name:               string
   product:            Product
@@ -131,6 +146,7 @@ function ProductCard({
   sub:                Subscription | null
   plansAvailable:     string[]
   onSubscribe:        (label: string) => void
+  onUpgrade:          (label: string, currentPlan: Plan) => void
   comingSoon?:        boolean
   note?:              string
   /** Se true, oculta "Contratar" e mostra "Incluso no Premium" — pra produtos
@@ -140,6 +156,7 @@ function ProductCard({
   const [cancelling, setCancelling] = useState(false)
   const isActive = !!sub && (sub.status === 'active' || sub.status === 'trial')
   const isTrial  = sub?.status === 'trial'
+  const isPaidActive = sub?.status === 'active'   // tá pago e ativo (pode upgrade)
 
   async function handleCancel() {
     if (!confirm(`Cancelar assinatura de ${name}? Você mantém acesso até o fim do ciclo atual.`)) return
@@ -201,7 +218,11 @@ function ProductCard({
           </div>
 
           <div className="flex flex-col sm:flex-row gap-2">
-            <button onClick={() => onSubscribe(name)}
+            <button
+              onClick={() => {
+                if (isPaidActive && sub) onUpgrade(name, sub.planName as Plan)
+                else onSubscribe(name)
+              }}
               className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg py-2.5 text-xs font-bold transition-opacity hover:opacity-90"
               style={{ background: '#00E5FF', color: '#080C14' }}>
               {isTrial ? 'Assinar agora' : 'Mudar plano'}

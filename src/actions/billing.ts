@@ -20,6 +20,7 @@ import { getTenantId } from '@/lib/tenant'
 import {
   createAsaasCustomer, findAsaasCustomerByCpfCnpj,
   createAsaasSubscription, cancelAsaasSubscription,
+  createAsaasOneTimePayment,
   getSubscriptionFirstPayment, getPaymentPixQrCode,
   isAsaasCustomerValid,
   asaasToday,
@@ -448,4 +449,261 @@ export async function cancelSubscriptionAsaas(product: Product): Promise<{ ok: b
 
   revalidatePath('/configuracoes/assinatura')
   return { ok: true }
+}
+
+// ── Upgrade com cobrança proporcional ─────────────────────────────────────
+// Modelo (igual Stripe/Claude Code):
+// 1. Cliente está em PlanoAtual (ex: Básico R$97), pagou no início do ciclo
+// 2. No dia X de 30, decide upgrade pra PlanoNovo (ex: Premium R$197)
+// 3. Crédito pelos dias não usados: oldPrice * (daysRemaining/30)
+// 4. Cobrança imediata: newPrice - credit
+// 5. Ciclo reinicia hoje → próxima cobrança em 30 dias com newPrice cheio
+//
+// Observações:
+// - Se cliente está em trial → muda plano sem cobrança (paga full ao converter)
+// - Se cliente tem sub pendente (inactive sem pagar) → cancela pendente,
+//   começa novo fluxo de subscribe (não é upgrade)
+// - Downgrade: tratado separadamente abaixo (vale só no próximo ciclo)
+
+export type UpgradePreview = {
+  ok:                   true
+  currentPlan:          Plan
+  currentPriceCents:    number
+  newPlan:              Plan
+  newPriceCents:        number
+  daysUsed:             number             // dias já consumidos do ciclo atual
+  daysRemaining:        number             // dias não usados
+  creditCents:          number             // crédito proporcional do plano antigo
+  proratedChargeCents:  number             // valor a cobrar agora (newPrice - credit)
+  nextDueDate:          string             // YYYY-MM-DD (hoje + 30 dias)
+  paymentMethod:        'PIX' | 'CREDIT_CARD'
+} | { ok: false; error: string }
+
+const PLAN_RANK: Record<Plan, number> = { basico: 0, pro: 1, premium: 2 }
+
+/** Calcula a prévia do upgrade SEM efetivar nenhuma cobrança. UI usa
+ *  esse resultado pra mostrar "vai cobrar R$X agora" antes de confirmar. */
+export async function previewUpgrade(
+  product: Product,
+  newPlan: Plan,
+): Promise<UpgradePreview> {
+  const { user } = await requireAuth()
+  const tenantId = getTenantId(user)
+  if (user.app_metadata?.tenant_role !== 'owner') {
+    return { ok: false, error: 'Apenas o dono pode mudar plano.' }
+  }
+
+  const newPrice = getPrice(product, newPlan)
+  if (!newPrice) return { ok: false, error: 'Plano inválido.' }
+
+  const admin = createAdminClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = admin as any
+
+  const { data: sub } = await sb
+    .from('subscriptions')
+    .select('plan_name, price_cents, status, payment_method, next_due_date')
+    .eq('tenant_id', tenantId)
+    .eq('product', product)
+    .maybeSingle()
+
+  if (!sub) return { ok: false, error: 'Assinatura não encontrada.' }
+  if (sub.status !== 'active') {
+    return { ok: false, error: 'Upgrade só está disponível pra assinaturas ativas.' }
+  }
+  if (sub.plan_name === newPlan) {
+    return { ok: false, error: 'Você já está nesse plano.' }
+  }
+
+  // Bloqueia downgrade aqui — fluxo separado
+  const currentRank = PLAN_RANK[sub.plan_name as Plan] ?? 0
+  if (PLAN_RANK[newPlan] < currentRank) {
+    return { ok: false, error: 'Downgrade só vale no próximo ciclo. Use o botão dedicado.' }
+  }
+
+  const oldPriceCents = sub.price_cents as number
+  const newPriceCents = newPrice.priceCents
+
+  // Calcula dias do ciclo atual: assume 30 dias (consistente com Asaas MONTHLY)
+  // dueDate = data da próxima cobrança original; cycleStart = dueDate - 30
+  const dueDate = sub.next_due_date ? new Date(sub.next_due_date as string) : null
+  if (!dueDate) {
+    // Fallback: se não tem next_due_date salvo, assume cycle inteiro restante
+    const next = new Date()
+    next.setMonth(next.getMonth() + 1)
+    return {
+      ok:                  true,
+      currentPlan:         sub.plan_name as Plan,
+      currentPriceCents:   oldPriceCents,
+      newPlan,
+      newPriceCents,
+      daysUsed:            0,
+      daysRemaining:       30,
+      creditCents:         oldPriceCents,    // crédito = valor inteiro (não usou nada)
+      proratedChargeCents: Math.max(0, newPriceCents - oldPriceCents),
+      nextDueDate:         next.toISOString().slice(0, 10),
+      paymentMethod:       (sub.payment_method as 'PIX' | 'CREDIT_CARD') ?? 'PIX',
+    }
+  }
+
+  const cycleStart = new Date(dueDate)
+  cycleStart.setDate(cycleStart.getDate() - 30)
+  const now = new Date()
+  const msPerDay = 1000 * 60 * 60 * 24
+  let daysUsed = Math.max(0, Math.floor((now.getTime() - cycleStart.getTime()) / msPerDay))
+  if (daysUsed > 30) daysUsed = 30
+  const daysRemaining = 30 - daysUsed
+
+  // Crédito = valor proporcional dos dias NÃO USADOS no plano antigo
+  const creditCents = Math.round((oldPriceCents * daysRemaining) / 30)
+  // Cobrança = novo plano cheio menos crédito (mínimo 0)
+  const proratedChargeCents = Math.max(0, newPriceCents - creditCents)
+
+  const nextDue = new Date()
+  nextDue.setDate(nextDue.getDate() + 30)
+
+  return {
+    ok:                  true,
+    currentPlan:         sub.plan_name as Plan,
+    currentPriceCents:   oldPriceCents,
+    newPlan,
+    newPriceCents,
+    daysUsed,
+    daysRemaining,
+    creditCents,
+    proratedChargeCents,
+    nextDueDate:         nextDue.toISOString().slice(0, 10),
+    paymentMethod:       (sub.payment_method as 'PIX' | 'CREDIT_CARD') ?? 'PIX',
+  }
+}
+
+export type ExecuteUpgradeResult =
+  | { ok: true;  mode: 'pix';  pixQrCode: AsaasPixQrCode | null; chargeValueCents: number }
+  | { ok: true;  mode: 'card'; chargeValueCents: number; chargedNow: boolean }
+  | { ok: true;  mode: 'free'; message: string }    // upgrade sem cobrança (caso credit >= newPrice)
+  | { ok: false; error: string }
+
+/** Executa upgrade: cancela sub antiga no Asaas, cria nova no novo plano,
+ *  e cobra a diferença proporcional via cobrança avulsa. */
+export async function executeUpgrade(
+  product: Product,
+  newPlan: Plan,
+): Promise<ExecuteUpgradeResult> {
+  const preview = await previewUpgrade(product, newPlan)
+  if (!preview.ok) return { ok: false, error: preview.error }
+
+  const { user } = await requireAuth()
+  const tenantId = getTenantId(user)
+
+  const admin = createAdminClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = admin as any
+
+  // Carrega tenant e sub atual
+  const [{ data: tenant }, { data: sub }] = await Promise.all([
+    sb.from('tenants').select('asaas_customer_id').eq('id', tenantId).maybeSingle(),
+    sb.from('subscriptions').select('id, asaas_subscription_id, payment_method')
+      .eq('tenant_id', tenantId).eq('product', product).maybeSingle(),
+  ])
+
+  if (!tenant?.asaas_customer_id || !sub?.asaas_subscription_id) {
+    return { ok: false, error: 'Dados de cobrança não encontrados.' }
+  }
+
+  // 1. Cancela sub antiga no Asaas
+  try {
+    await cancelAsaasSubscription(sub.asaas_subscription_id)
+  } catch (e) {
+    console.warn('[executeUpgrade] cancelar sub antiga falhou (segue):', e)
+  }
+
+  // 2. Cria sub nova com o novo plano (próxima cobrança em 30 dias)
+  const newSubInput = {
+    customer:    tenant.asaas_customer_id,
+    billingType: preview.paymentMethod as AsaasBillingType,
+    value:       centsToReais(preview.newPriceCents),
+    nextDueDate: preview.nextDueDate,
+    cycle:       'MONTHLY' as const,
+    description: getPrice(product, newPlan)!.description,
+    externalReference: `${tenantId}::${product}`,
+  }
+
+  let newAsaasSub
+  try {
+    newAsaasSub = await createAsaasSubscription(newSubInput)
+  } catch (e) {
+    console.error('[executeUpgrade] criar nova sub falhou:', e)
+    return { ok: false, error: 'Erro ao criar nova assinatura no gateway.' }
+  }
+
+  // 3. Atualiza local: novo plano, novo asaas_subscription_id, novo due
+  await sb.from('subscriptions')
+    .update({
+      plan_name:             newPlan,
+      price_cents:           preview.newPriceCents,
+      asaas_subscription_id: newAsaasSub.id,
+      next_due_date:         preview.nextDueDate,
+      // status continua 'active' — user já tinha acesso, agora upgrade
+    })
+    .eq('id', sub.id)
+
+  // 4. Cobra a diferença proporcional como one-time payment
+  if (preview.proratedChargeCents <= 0) {
+    // Nada a cobrar (caso raro: crédito >= preço novo)
+    revalidatePath('/configuracoes/assinatura')
+    revalidatePath('/', 'layout')
+    void createNotification({
+      userId: user.id, tenantId, type: 'subscription_active',
+      title: 'Plano atualizado!',
+      body: `Você agora está no plano ${newPlan}. Sem cobrança extra agora — crédito do plano anterior cobriu.`,
+      link: '/configuracoes/assinatura',
+    })
+    return { ok: true, mode: 'free', message: 'Upgrade aplicado sem cobrança extra.' }
+  }
+
+  let oneTimePayment
+  try {
+    oneTimePayment = await createAsaasOneTimePayment({
+      customer:    tenant.asaas_customer_id,
+      billingType: preview.paymentMethod as AsaasBillingType,
+      value:       centsToReais(preview.proratedChargeCents),
+      dueDate:     asaasToday(),
+      description: `Upgrade ${preview.currentPlan} → ${newPlan} (proporcional)`,
+      externalReference: `${tenantId}::${product}::upgrade`,
+    })
+  } catch (e) {
+    console.error('[executeUpgrade] criar one-time payment falhou:', e)
+    return { ok: false, error: 'Upgrade aplicado mas erro ao gerar cobrança da diferença. Contate suporte.' }
+  }
+
+  if (preview.paymentMethod === 'CREDIT_CARD') {
+    const paid = oneTimePayment.status === 'CONFIRMED' || oneTimePayment.status === 'RECEIVED'
+    void createNotification({
+      userId: user.id, tenantId, type: 'subscription_active',
+      title: paid ? 'Upgrade confirmado!' : 'Upgrade processando',
+      body: paid
+        ? `Plano ${newPlan} ativo! Foi cobrado R$${preview.proratedChargeCents/100} (proporcional).`
+        : `Upgrade pra ${newPlan} criado. Confirmação chega em alguns instantes.`,
+      link: '/configuracoes/assinatura',
+    })
+    revalidatePath('/configuracoes/assinatura')
+    revalidatePath('/', 'layout')
+    return { ok: true, mode: 'card', chargeValueCents: preview.proratedChargeCents, chargedNow: paid }
+  }
+
+  // PIX: busca QR code da cobrança avulsa
+  const pixQrCode = await getPaymentPixQrCode(oneTimePayment.id)
+  void createNotification({
+    userId: user.id, tenantId, type: 'subscription_active',
+    title: 'Upgrade quase pronto!',
+    body: `Pague o PIX de R$${preview.proratedChargeCents/100} (proporcional) pra ativar o plano ${newPlan}.`,
+    link: '/configuracoes/assinatura',
+  })
+  revalidatePath('/configuracoes/assinatura')
+  return {
+    ok:               true,
+    mode:             'pix',
+    pixQrCode,
+    chargeValueCents: preview.proratedChargeCents,
+  }
 }
