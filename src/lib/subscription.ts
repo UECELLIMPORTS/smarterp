@@ -124,7 +124,7 @@ export function canAccess(subs: Subscription[], feature: FeatureKey): boolean {
     case 'crm':
       return gestaoSmartPlanAtLeast(subs, 'premium') || hasProductAccess(subs, 'crm')
     case 'checksmart':
-      return hasProductAccess(subs, 'checksmart')
+      return gestaoSmartPlanAtLeast(subs, 'premium') || hasProductAccess(subs, 'checksmart')
   }
 }
 

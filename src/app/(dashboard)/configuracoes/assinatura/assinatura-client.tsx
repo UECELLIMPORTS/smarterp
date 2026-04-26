@@ -101,6 +101,7 @@ export function AssinaturaClient({ data }: { data: Data }) {
           icon={Wrench} color="#FFB800" sub={data.checkSmart}
           plansAvailable={['basico', 'pro', 'premium']}
           onSubscribe={(label) => setModal({ product: 'checksmart', label })}
+          includedInPremium={data.gestaoSmartIsPremium}
         />
       </div>
 
