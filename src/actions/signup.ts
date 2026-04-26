@@ -15,6 +15,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { sendWelcomeEmail } from '@/lib/email'
+import { createNotification } from '@/lib/notifications'
 
 export type SignupInput = {
   fullName:   string
@@ -95,6 +96,16 @@ export async function signupTenant(input: SignupInput): Promise<SignupResult> {
 
   // Email de boas-vindas (best-effort — não falha o signup se email não rolar)
   void sendWelcomeEmail({ to: email, fullName, tenantName })
+
+  // Notificação in-app de boas-vindas (sino mostra na próxima sessão)
+  void createNotification({
+    userId:   userId,
+    tenantId: tenantId,
+    type:     'welcome',
+    title:    `Bem-vindo, ${fullName.split(' ')[0]}!`,
+    body:     `Sua conta da ${tenantName} está pronta. Você tem 7 dias de trial Premium pra explorar tudo.`,
+    link:     '/',
+  })
 
   return { ok: true, email }
 }

@@ -1,10 +1,11 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { LogOut, Bell } from 'lucide-react'
+import { LogOut } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { MobileNav } from './mobile-nav'
+import { NotificationsBell } from './notifications-bell'
 
 type Props = { userName: string; userEmail: string }
 
@@ -34,12 +35,7 @@ export function Topbar({ userName, userEmail }: Props) {
 
       <div className="flex items-center gap-3">
         {/* Notificações */}
-        <button
-          className="relative flex h-9 w-9 items-center justify-center rounded-lg border transition-colors hover:bg-card"
-          style={{ borderColor: '#1E2D45', color: '#64748B' }}
-        >
-          <Bell className="h-4 w-4" />
-        </button>
+        <NotificationsBell />
 
         {/* Usuário */}
         <div className="flex items-center gap-2.5">
