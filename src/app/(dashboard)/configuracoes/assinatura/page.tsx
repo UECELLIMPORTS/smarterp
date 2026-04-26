@@ -48,15 +48,22 @@ export default async function AssinaturaPage() {
     .select('cpf_cnpj').eq('id', tenantId).maybeSingle()
   const hasCpfCnpj = !!tenantRow?.cpf_cnpj
 
+  const gestaoSub = getProductSubscription(subs, 'gestao_smart')
+  // Premium ativo libera Meta Ads + CRM como add-ons inclusos
+  const gestaoSmartIsPremium =
+    gestaoSub?.planName === 'premium' &&
+    (gestaoSub.status === 'active' || gestaoSub.status === 'trial')
+
   // Estado consolidado pra renderizar os 4 produtos (contratados ou não)
   const data = {
-    gestaoSmart: getProductSubscription(subs, 'gestao_smart'),
+    gestaoSmart: gestaoSub,
     checkSmart:  getProductSubscription(subs, 'checksmart'),
     crm:         getProductSubscription(subs, 'crm'),
     metaAds:     getProductSubscription(subs, 'meta_ads'),
     trialDays:   daysUntilTrialEnds(subs),
     userEmail:   auth.user.email ?? '',
     hasCpfCnpj,
+    gestaoSmartIsPremium,
   }
 
   return <AssinaturaClient data={data} />

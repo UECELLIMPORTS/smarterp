@@ -21,13 +21,15 @@ const DT = (date: Date | null) => {
 }
 
 type Data = {
-  gestaoSmart: Subscription | null
-  checkSmart:  Subscription | null
-  crm:         Subscription | null
-  metaAds:     Subscription | null
-  trialDays:   number | null
-  userEmail:   string
-  hasCpfCnpj:  boolean
+  gestaoSmart:           Subscription | null
+  checkSmart:            Subscription | null
+  crm:                   Subscription | null
+  metaAds:               Subscription | null
+  trialDays:             number | null
+  userEmail:             string
+  hasCpfCnpj:            boolean
+  /** True se Gestão Smart está com plano Premium ativo (libera Meta Ads + CRM). */
+  gestaoSmartIsPremium:  boolean
 }
 
 export function AssinaturaClient({ data }: { data: Data }) {
@@ -82,6 +84,7 @@ export function AssinaturaClient({ data }: { data: Data }) {
           plansAvailable={['basico', 'pro', 'premium']}
           onSubscribe={(label) => setModal({ product: 'crm', label })}
           comingSoon
+          includedInPremium={data.gestaoSmartIsPremium}
         />
         <ProductCard
           name="Meta Ads" product="meta_ads"
@@ -90,6 +93,7 @@ export function AssinaturaClient({ data }: { data: Data }) {
           plansAvailable={['basico']}
           onSubscribe={(label) => setModal({ product: 'meta_ads', label })}
           note="Add-on de R$47/mês — incluso no Premium do Gestão Smart"
+          includedInPremium={data.gestaoSmartIsPremium}
         />
         <ProductCard
           name="CheckSmart" product="checksmart"
@@ -116,18 +120,21 @@ export function AssinaturaClient({ data }: { data: Data }) {
 
 function ProductCard({
   name, product, description, icon: Icon, color, sub, plansAvailable,
-  onSubscribe, comingSoon, note,
+  onSubscribe, comingSoon, note, includedInPremium,
 }: {
-  name:           string
-  product:        Product
-  description:    string
-  icon:           React.ElementType
-  color:          string
-  sub:            Subscription | null
-  plansAvailable: string[]
-  onSubscribe:    (label: string) => void
-  comingSoon?:    boolean
-  note?:          string
+  name:               string
+  product:            Product
+  description:        string
+  icon:               React.ElementType
+  color:              string
+  sub:                Subscription | null
+  plansAvailable:     string[]
+  onSubscribe:        (label: string) => void
+  comingSoon?:        boolean
+  note?:              string
+  /** Se true, oculta "Contratar" e mostra "Incluso no Premium" — pra produtos
+   *  cobertos pelo plano Premium do Gestão Smart (Meta Ads, CRM). */
+  includedInPremium?: boolean
 }) {
   const [cancelling, setCancelling] = useState(false)
   const isActive = !!sub && (sub.status === 'active' || sub.status === 'trial')
@@ -205,6 +212,19 @@ function ProductCard({
                 {cancelling ? '…' : 'Cancelar'}
               </button>
             )}
+          </div>
+        </>
+      ) : includedInPremium ? (
+        <>
+          <p className="text-xs mb-4" style={{ color: '#5A7A9A' }}>
+            {comingSoon
+              ? '🚧 Em desenvolvimento — você terá acesso assim que lançarmos'
+              : 'Esse módulo já está liberado pelo seu plano atual.'}
+          </p>
+          <div className="w-full inline-flex items-center justify-center gap-2 rounded-lg py-2.5 text-xs font-bold border"
+            style={{ background: 'rgba(0,255,148,.08)', color: '#00FF94', borderColor: 'rgba(0,255,148,.3)' }}>
+            <Check className="h-3.5 w-3.5" />
+            Incluso no plano Premium
           </div>
         </>
       ) : (
