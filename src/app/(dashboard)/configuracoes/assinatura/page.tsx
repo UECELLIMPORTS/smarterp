@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Lock } from 'lucide-react'
 import { getTenantSubscriptions, getProductSubscription, daysUntilTrialEnds } from '@/lib/subscription'
+import { getTenantId } from '@/lib/tenant'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { AssinaturaClient } from './assinatura-client'
 
 export const metadata = { title: 'Minha Assinatura — Smart ERP' }
@@ -37,6 +39,15 @@ export default async function AssinaturaPage() {
 
   const subs = await getTenantSubscriptions(auth.user)
 
+  // Lê CPF/CNPJ do tenant pra modal de assinatura saber se precisa pedir
+  const tenantId = getTenantId(auth.user)
+  const admin = createAdminClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = admin as any
+  const { data: tenantRow } = await sb.from('tenants')
+    .select('cpf_cnpj').eq('id', tenantId).maybeSingle()
+  const hasCpfCnpj = !!tenantRow?.cpf_cnpj
+
   // Estado consolidado pra renderizar os 4 produtos (contratados ou não)
   const data = {
     gestaoSmart: getProductSubscription(subs, 'gestao_smart'),
@@ -45,6 +56,7 @@ export default async function AssinaturaPage() {
     metaAds:     getProductSubscription(subs, 'meta_ads'),
     trialDays:   daysUntilTrialEnds(subs),
     userEmail:   auth.user.email ?? '',
+    hasCpfCnpj,
   }
 
   return <AssinaturaClient data={data} />

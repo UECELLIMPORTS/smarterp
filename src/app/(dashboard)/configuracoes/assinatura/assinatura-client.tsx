@@ -1,11 +1,16 @@
 'use client'
 
 import Link from 'next/link'
+import { useState } from 'react'
 import {
   Store, Users, TrendingUp, Wrench, Sparkles, ArrowLeft,
-  Check, Plus, MessageCircle, AlertTriangle,
+  Check, Plus, AlertTriangle,
 } from 'lucide-react'
 import type { Subscription } from '@/lib/subscription'
+import { SubscribeModal } from './subscribe-modal'
+import { cancelSubscriptionAsaas } from '@/actions/billing'
+import { toast } from 'sonner'
+import type { Product } from '@/lib/pricing'
 
 const BRL = (cents: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cents / 100)
@@ -15,11 +20,6 @@ const DT = (date: Date | null) => {
   return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
 }
 
-/** Link WhatsApp pra acionar mudança de plano (placeholder até Asaas integrar). */
-function whatsappLink(message: string): string {
-  return `https://wa.me/5579999998876?text=${encodeURIComponent(message)}`
-}
-
 type Data = {
   gestaoSmart: Subscription | null
   checkSmart:  Subscription | null
@@ -27,9 +27,12 @@ type Data = {
   metaAds:     Subscription | null
   trialDays:   number | null
   userEmail:   string
+  hasCpfCnpj:  boolean
 }
 
 export function AssinaturaClient({ data }: { data: Data }) {
+  const [modal, setModal] = useState<{ product: Product; label: string } | null>(null)
+
   return (
     <div className="space-y-6 max-w-5xl">
       {/* Header */}
@@ -45,19 +48,6 @@ export function AssinaturaClient({ data }: { data: Data }) {
         <p className="mt-1 text-sm" style={{ color: '#5A7A9A' }}>
           Gerencie os produtos contratados, mude de plano ou cancele.
         </p>
-      </div>
-
-      {/* Aviso: pagamento online não disponível */}
-      <div className="rounded-xl border p-4 flex items-start gap-3"
-        style={{ background: 'rgba(0,229,255,.04)', borderColor: 'rgba(0,229,255,.3)' }}>
-        <MessageCircle className="h-5 w-5 mt-0.5 shrink-0" style={{ color: '#00E5FF' }} />
-        <div className="text-sm" style={{ color: '#E8F0FE' }}>
-          <p className="font-bold" style={{ color: '#00E5FF' }}>Pagamento online em breve</p>
-          <p className="text-xs mt-1" style={{ color: '#8AA8C8' }}>
-            Por enquanto, mudanças de plano são feitas via WhatsApp. Em até 1 hora útil você recebe
-            o link de pagamento (PIX ou cartão).
-          </p>
-        </div>
       </div>
 
       {/* Banner de trial expirando, se for o caso */}
@@ -79,44 +69,45 @@ export function AssinaturaClient({ data }: { data: Data }) {
       {/* Cards dos produtos */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <ProductCard
-          name="Gestão Smart"
+          name="Gestão Smart" product="gestao_smart"
           description="ERP completo: vendas, estoque, financeiro, dashboards"
-          icon={Store}
-          color="#00E5FF"
-          sub={data.gestaoSmart}
+          icon={Store} color="#00E5FF" sub={data.gestaoSmart}
           plansAvailable={['basico', 'pro', 'premium']}
-          userEmail={data.userEmail}
+          onSubscribe={(label) => setModal({ product: 'gestao_smart', label })}
         />
         <ProductCard
-          name="CRM"
+          name="CRM" product="crm"
           description="Pipeline + inbox WhatsApp/Instagram unificado"
-          icon={Users}
-          color="#00FF94"
-          sub={data.crm}
-          plansAvailable={['premium']}   // por enquanto só "premium" como label
-          userEmail={data.userEmail}
+          icon={Users} color="#00FF94" sub={data.crm}
+          plansAvailable={['basico', 'pro', 'premium']}
+          onSubscribe={(label) => setModal({ product: 'crm', label })}
           comingSoon
         />
         <ProductCard
-          name="Meta Ads"
+          name="Meta Ads" product="meta_ads"
           description="ROAS e CAC integrados ao seu ERP"
-          icon={TrendingUp}
-          color="#E4405F"
-          sub={data.metaAds}
-          plansAvailable={['premium']}
-          userEmail={data.userEmail}
-          note="Incluso no plano Premium do Gestão Smart"
+          icon={TrendingUp} color="#E4405F" sub={data.metaAds}
+          plansAvailable={['basico']}
+          onSubscribe={(label) => setModal({ product: 'meta_ads', label })}
+          note="Add-on de R$47/mês — incluso no Premium do Gestão Smart"
         />
         <ProductCard
-          name="CheckSmart"
+          name="CheckSmart" product="checksmart"
           description="OS de assistência técnica com escudo jurídico"
-          icon={Wrench}
-          color="#FFB800"
-          sub={data.checkSmart}
-          plansAvailable={['plano_unico']}
-          userEmail={data.userEmail}
+          icon={Wrench} color="#FFB800" sub={data.checkSmart}
+          plansAvailable={['basico', 'pro', 'premium']}
+          onSubscribe={(label) => setModal({ product: 'checksmart', label })}
         />
       </div>
+
+      {/* Modal de assinatura */}
+      <SubscribeModal
+        open={!!modal}
+        onClose={() => setModal(null)}
+        product={modal?.product ?? 'gestao_smart'}
+        productLabel={modal?.label ?? ''}
+        hasCpfCnpj={data.hasCpfCnpj}
+      />
     </div>
   )
 }
@@ -124,25 +115,36 @@ export function AssinaturaClient({ data }: { data: Data }) {
 // ── Card de produto ─────────────────────────────────────────────────────────
 
 function ProductCard({
-  name, description, icon: Icon, color, sub, plansAvailable, userEmail, comingSoon, note,
+  name, product, description, icon: Icon, color, sub, plansAvailable,
+  onSubscribe, comingSoon, note,
 }: {
   name:           string
+  product:        Product
   description:    string
   icon:           React.ElementType
   color:          string
   sub:            Subscription | null
   plansAvailable: string[]
-  userEmail:      string
+  onSubscribe:    (label: string) => void
   comingSoon?:    boolean
   note?:          string
 }) {
+  const [cancelling, setCancelling] = useState(false)
   const isActive = !!sub && (sub.status === 'active' || sub.status === 'trial')
   const isTrial  = sub?.status === 'trial'
 
-  // Mensagens pré-preenchidas
-  const msgChange = `Olá! Quero mudar meu plano do ${name}. Conta: ${userEmail}`
-  const msgCancel = `Olá! Quero cancelar meu plano do ${name}. Conta: ${userEmail}`
-  const msgAdd    = `Olá! Quero contratar o ${name}. Conta: ${userEmail}`
+  async function handleCancel() {
+    if (!confirm(`Cancelar assinatura de ${name}? Você mantém acesso até o fim do ciclo atual.`)) return
+    setCancelling(true)
+    const res = await cancelSubscriptionAsaas(product)
+    setCancelling(false)
+    if (res.ok) {
+      toast.success('Assinatura cancelada.')
+      window.location.reload()
+    } else {
+      toast.error(res.error ?? 'Erro ao cancelar.')
+    }
+  }
 
   return (
     <article className="rounded-2xl border p-6"
@@ -191,17 +193,17 @@ function ProductCard({
           </div>
 
           <div className="flex flex-col sm:flex-row gap-2">
-            <a href={whatsappLink(msgChange)} target="_blank" rel="noopener noreferrer"
+            <button onClick={() => onSubscribe(name)}
               className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg py-2.5 text-xs font-bold transition-opacity hover:opacity-90"
               style={{ background: '#00E5FF', color: '#080C14' }}>
               {isTrial ? 'Assinar agora' : 'Mudar plano'}
-            </a>
+            </button>
             {!isTrial && (
-              <a href={whatsappLink(msgCancel)} target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-1 rounded-lg border px-4 py-2.5 text-xs font-semibold transition-colors hover:bg-white/5"
+              <button onClick={handleCancel} disabled={cancelling}
+                className="inline-flex items-center justify-center gap-1 rounded-lg border px-4 py-2.5 text-xs font-semibold transition-colors hover:bg-white/5 disabled:opacity-50"
                 style={{ borderColor: '#1E2D45', color: '#8AA8C8' }}>
-                Cancelar
-              </a>
+                {cancelling ? '…' : 'Cancelar'}
+              </button>
             )}
           </div>
         </>
@@ -210,22 +212,19 @@ function ProductCard({
           <p className="text-xs mb-4" style={{ color: '#5A7A9A' }}>
             {comingSoon
               ? '🚧 Em desenvolvimento — falaremos com você quando estiver disponível'
-              : note
-                ? note
-                : 'Você ainda não contratou esse produto.'}
+              : note ?? 'Você ainda não contratou esse produto.'}
           </p>
-          <a
-            href={whatsappLink(msgAdd)}
-            target="_blank" rel="noopener noreferrer"
-            className="w-full inline-flex items-center justify-center gap-2 rounded-lg py-2.5 text-xs font-bold transition-opacity hover:opacity-90"
+          <button
+            onClick={() => !comingSoon && onSubscribe(name)}
+            disabled={comingSoon}
+            className="w-full inline-flex items-center justify-center gap-2 rounded-lg py-2.5 text-xs font-bold transition-opacity hover:opacity-90 disabled:cursor-not-allowed"
             style={comingSoon
               ? { background: '#1E2D45', color: '#8AA8C8' }
               : { background: 'linear-gradient(135deg, #00E5FF, #00FF94)', color: '#080C14' }
-            }
-          >
+            }>
             <Plus className="h-3.5 w-3.5" />
-            {comingSoon ? 'Avise-me quando lançar' : `Contratar ${name}`}
-          </a>
+            {comingSoon ? 'Em breve' : `Contratar ${name}`}
+          </button>
         </>
       )}
 
