@@ -9,7 +9,7 @@
  */
 
 import { useState, useEffect, useMemo } from 'react'
-import { X, Loader2, QrCode, CreditCard } from 'lucide-react'
+import { X, Loader2, QrCode, CreditCard, ExternalLink, CheckCircle2 } from 'lucide-react'
 import { subscribeToProduct } from '@/actions/billing'
 import { fmtBRL, plansForProduct, type Product, type Plan } from '@/lib/pricing'
 import { toast } from 'sonner'
@@ -50,6 +50,9 @@ export function SubscribeModal({ open, onClose, product, productLabel, hasCpfCnp
   const [cpfCnpj, setCpfCnpj] = useState('')
   const [phone, setPhone] = useState('')
   const [loading, setLoading] = useState(false)
+  // URL retornada pelo Asaas após criar a sub. Quando setada, mostra
+  // estado de sucesso com botão pra abrir (popup blocker friendly).
+  const [paymentUrl, setPaymentUrl] = useState<string | null>(null)
 
   // Reset ao abrir (com produto novo)
   useEffect(() => {
@@ -58,6 +61,7 @@ export function SubscribeModal({ open, onClose, product, productLabel, hasCpfCnp
       setPaymentMethod('PIX')
       setCpfCnpj('')
       setPhone('')
+      setPaymentUrl(null)
     }
   }, [open, product, plans])
 
@@ -90,14 +94,65 @@ export function SubscribeModal({ open, onClose, product, productLabel, hasCpfCnp
     }
 
     if (res.paymentLinkHint) {
-      toast.success('Assinatura criada! Redirecionando pra pagamento…')
-      // Abre o link do Asaas em nova aba
-      window.open(res.paymentLinkHint, '_blank', 'noopener,noreferrer')
+      // Popup blocker bloqueia window.open após operação async. Em vez
+      // de tentar abrir aqui, mostramos um botão que o user clica → o
+      // próprio click do user libera o open na nova aba.
+      setPaymentUrl(res.paymentLinkHint)
     } else {
       toast.success('Assinatura criada! Em breve você verá o link de pagamento.')
+      onClose()
     }
+  }
 
-    onClose()
+  // Estado de sucesso: mostra botão pra abrir página do Asaas (evita
+  // popup blocker — o click do user é gesto direto, browser permite)
+  if (paymentUrl) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        style={{ background: 'rgba(0,0,0,0.7)' }}
+        onClick={onClose}>
+        <div
+          className="rounded-2xl border w-full max-w-md"
+          style={{ background: '#0F1A2B', borderColor: '#2A3D5C' }}
+          onClick={e => e.stopPropagation()}>
+
+          <div className="p-8 text-center space-y-5">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full"
+              style={{ background: 'rgba(0,255,148,.15)', border: '2px solid #00FF94' }}>
+              <CheckCircle2 className="h-8 w-8" style={{ color: '#00FF94' }} />
+            </div>
+
+            <div>
+              <h3 className="text-xl font-bold" style={{ color: '#E8F0FE' }}>
+                Assinatura criada!
+              </h3>
+              <p className="text-sm mt-2" style={{ color: '#8AA8C8' }}>
+                Pra ativar sua assinatura de <strong>{productLabel}</strong>, finalize
+                o pagamento na página segura do Asaas:
+              </p>
+            </div>
+
+            <a href={paymentUrl} target="_blank" rel="noopener noreferrer"
+              onClick={() => setTimeout(() => onClose(), 500)}
+              className="w-full inline-flex items-center justify-center gap-2 rounded-lg py-3 text-sm font-bold transition-opacity hover:opacity-90"
+              style={{ background: 'linear-gradient(135deg, #00E5FF, #00FF94)', color: '#080C14' }}>
+              <ExternalLink className="h-4 w-4" />
+              {paymentMethod === 'PIX' ? 'Abrir QR Code PIX' : 'Abrir página do cartão'}
+            </a>
+
+            <p className="text-[10px]" style={{ color: '#5A7A9A' }}>
+              Após o pagamento, sua assinatura é ativada automaticamente e você
+              recebe uma notificação aqui no sistema.
+            </p>
+
+            <button onClick={onClose}
+              className="text-xs hover:underline" style={{ color: '#8AA8C8' }}>
+              Fechar e pagar depois
+            </button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
