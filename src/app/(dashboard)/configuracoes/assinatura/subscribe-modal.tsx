@@ -8,7 +8,7 @@
  * (página deles com QR PIX ou formulário de cartão).
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { X, Loader2, QrCode, CreditCard } from 'lucide-react'
 import { subscribeToProduct } from '@/actions/billing'
 import { fmtBRL, plansForProduct, type Product, type Plan } from '@/lib/pricing'
@@ -42,14 +42,16 @@ function formatCpfCnpj(raw: string): string {
 }
 
 export function SubscribeModal({ open, onClose, product, productLabel, hasCpfCnpj }: Props) {
-  const plans = plansForProduct(product)
+  // useMemo evita recriar o array a cada render — sem isso, o useEffect
+  // abaixo dispararia em loop e resetaria a seleção do plano
+  const plans = useMemo(() => plansForProduct(product), [product])
   const [plan, setPlan] = useState<Plan>(plans[0]?.plan ?? 'basico')
   const [paymentMethod, setPaymentMethod] = useState<'PIX' | 'CREDIT_CARD'>('PIX')
   const [cpfCnpj, setCpfCnpj] = useState('')
   const [phone, setPhone] = useState('')
   const [loading, setLoading] = useState(false)
 
-  // Reset ao abrir
+  // Reset ao abrir (com produto novo)
   useEffect(() => {
     if (open) {
       setPlan(plans[0]?.plan ?? 'basico')
@@ -57,7 +59,7 @@ export function SubscribeModal({ open, onClose, product, productLabel, hasCpfCnp
       setCpfCnpj('')
       setPhone('')
     }
-  }, [open, plans])
+  }, [open, product, plans])
 
   if (!open) return null
 
