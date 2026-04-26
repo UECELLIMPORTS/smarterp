@@ -138,7 +138,7 @@ async function handlePaymentReceived(sb: any, payment?: AsaasPayment): Promise<v
   // Acha a subscription local pelo asaas_subscription_id
   const { data: sub } = await sb
     .from('subscriptions')
-    .select('id, tenant_id, product, plan_name, status, pending_plan, pending_price_cents')
+    .select('id, tenant_id, product, plan_name, status, billing_cycle, pending_plan, pending_price_cents')
     .eq('asaas_subscription_id', payment.subscription)
     .maybeSingle()
 
@@ -147,9 +147,13 @@ async function handlePaymentReceived(sb: any, payment?: AsaasPayment): Promise<v
     return
   }
 
-  // Calcula próxima cobrança (1 mês depois do pagamento confirmado)
+  // Calcula próxima cobrança (+1 mês ou +12 meses dependendo do cycle)
   const next = new Date()
-  next.setMonth(next.getMonth() + 1)
+  if (sub.billing_cycle === 'YEARLY') {
+    next.setFullYear(next.getFullYear() + 1)
+  } else {
+    next.setMonth(next.getMonth() + 1)
+  }
   const nextDate = next.toISOString().slice(0, 10)
 
   // Aplica downgrade pendente se houver — cliente esperou o ciclo expirar

@@ -263,7 +263,7 @@ export async function updateAsaasSubscription(
 export type CreateOneTimePaymentInput = {
   customer:           string
   billingType:        AsaasBillingType
-  value:              number             // em reais
+  value:              number             // em reais (TOTAL — Asaas divide pelas parcelas)
   dueDate:            string             // YYYY-MM-DD
   description?:       string
   externalReference?: string
@@ -272,6 +272,11 @@ export type CreateOneTimePaymentInput = {
   creditCard?:           AsaasCreditCard
   creditCardHolderInfo?: AsaasCreditCardHolderInfo
   remoteIp?:           string
+  // Parcelamento sem juros (só faz sentido em CREDIT_CARD).
+  // Asaas divide value/installmentCount em N cobranças mensais
+  // (1ª agora, demais geradas automaticamente).
+  installmentCount?:  number
+  installmentValue?:  number             // alternativa ao installmentCount
 }
 
 /** Cria cobrança avulsa (não recorrente). */

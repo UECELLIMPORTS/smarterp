@@ -66,6 +66,39 @@ export function centsToReais(cents: number): number {
   return cents / 100
 }
 
+// ── Plano anual: 10% de desconto sobre 12 mensalidades ───────────────────
+// O desconto vale só no PRIMEIRO ciclo (não na renovação). A subscription
+// no Asaas registra value=preço cheio anual; a 1ª cobrança é um Payment
+// standalone com value=anual_com_desconto (parcelado em 12x sem juros se
+// for cartão). Renovação no ano seguinte cobra preço cheio.
+
+export const YEARLY_DISCOUNT_PCT = 0.1   // 10%
+export const YEARLY_INSTALLMENTS  = 12   // parcelas no cartão
+
+export type YearlyPrice = {
+  fullCents:        number   // 12 × monthlyCents (renovação)
+  discountedCents:  number   // 12 × monthlyCents × 0.9 (1º ano)
+  installmentCents: number   // discountedCents / 12 (cada parcela)
+  savingsCents:     number   // fullCents - discountedCents
+}
+
+/** Calcula valores anuais a partir do preço mensal. */
+export function getYearlyPrice(product: Product, plan: Plan): YearlyPrice | null {
+  const monthly = getPrice(product, plan)
+  if (!monthly) return null
+  const fullCents       = monthly.priceCents * 12
+  const discountedCents = Math.round(fullCents * (1 - YEARLY_DISCOUNT_PCT))
+  const installmentCents = Math.round(discountedCents / YEARLY_INSTALLMENTS)
+  return {
+    fullCents,
+    discountedCents,
+    installmentCents,
+    savingsCents: fullCents - discountedCents,
+  }
+}
+
+export type BillingCycle = 'MONTHLY' | 'YEARLY'
+
 // ── Features de cada plano (pra exibir nos modais de upgrade/downgrade) ───
 // Usado pra cliente comparar o que ganha/perde ao mudar de plano.
 

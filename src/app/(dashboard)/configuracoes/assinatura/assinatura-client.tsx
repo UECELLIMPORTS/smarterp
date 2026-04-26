@@ -202,8 +202,13 @@ function ProductCard({
             <Row label="Plano">
               <span className="font-bold capitalize" style={{ color: '#E8F0FE' }}>{sub.planName}</span>
             </Row>
-            <Row label="Valor mensal">
-              <span className="font-mono font-bold" style={{ color }}>{BRL(sub.priceCents)}</span>
+            <Row label={sub.billingCycle === 'YEARLY' ? 'Valor anual' : 'Valor mensal'}>
+              <span className="font-mono font-bold" style={{ color }}>
+                {BRL(sub.priceCents)}
+                <span className="text-[10px] font-normal ml-1" style={{ color: '#5A7A9A' }}>
+                  {sub.billingCycle === 'YEARLY' ? '/ano' : '/mês'}
+                </span>
+              </span>
             </Row>
             {isTrial && sub.trialEndsAt && (
               <Row label="Trial até">

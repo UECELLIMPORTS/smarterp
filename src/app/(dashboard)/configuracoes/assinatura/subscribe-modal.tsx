@@ -22,7 +22,10 @@ import {
   Shield, Lock, Sparkles, Star, Zap, Crown, ShieldCheck, RefreshCcw,
 } from 'lucide-react'
 import { subscribeToProduct } from '@/actions/billing'
-import { fmtBRL, plansForProduct, featuresFor, type Product, type Plan } from '@/lib/pricing'
+import {
+  fmtBRL, plansForProduct, featuresFor, getYearlyPrice, YEARLY_INSTALLMENTS,
+  type Product, type Plan, type BillingCycle,
+} from '@/lib/pricing'
 import { toast } from 'sonner'
 import type { AsaasPixQrCode } from '@/lib/asaas'
 
@@ -76,6 +79,7 @@ export function SubscribeModal({ open, onClose, product, productLabel, hasCpfCnp
 
   // Form state
   const [plan, setPlan] = useState<Plan>(plans[0]?.plan ?? 'basico')
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>('MONTHLY')
   const [paymentMethod, setPaymentMethod] = useState<'PIX' | 'CREDIT_CARD'>('PIX')
   const [fullName, setFullName] = useState('')
   const [cpfCnpj, setCpfCnpj] = useState('')
@@ -98,6 +102,7 @@ export function SubscribeModal({ open, onClose, product, productLabel, hasCpfCnp
     if (open) {
       setStep('form')
       setPlan(plans[0]?.plan ?? 'basico')
+      setBillingCycle('MONTHLY')
       setPaymentMethod('PIX')
       setFullName('')
       setCpfCnpj('')
@@ -149,6 +154,7 @@ export function SubscribeModal({ open, onClose, product, productLabel, hasCpfCnp
 
     const res = await subscribeToProduct({
       product, plan, paymentMethod,
+      billingCycle,
       fullName,
       cpfCnpj: hasCpfCnpj ? undefined : cpfCnpj,
       phone,
@@ -398,6 +404,38 @@ export function SubscribeModal({ open, onClose, product, productLabel, hasCpfCnp
         </div>
 
         <div className="p-6 space-y-5">
+          {/* Toggle Mensal/Anual */}
+          <div>
+            <label className="text-[11px] font-bold uppercase tracking-widest mb-2 block"
+              style={{ color: '#5A7A9A' }}>Período da assinatura</label>
+            <div className="grid grid-cols-2 gap-2 rounded-xl border p-1"
+              style={{ background: '#0D1320', borderColor: '#1E2D45' }}>
+              <button type="button" onClick={() => setBillingCycle('MONTHLY')}
+                className="rounded-lg py-2 text-sm font-bold transition-all"
+                style={billingCycle === 'MONTHLY'
+                  ? { background: 'linear-gradient(135deg, #00E5FF, #00FF94)', color: '#080C14' }
+                  : { background: 'transparent', color: '#8AA8C8' }}>
+                Mensal
+              </button>
+              <button type="button" onClick={() => setBillingCycle('YEARLY')}
+                className="rounded-lg py-2 text-sm font-bold transition-all relative"
+                style={billingCycle === 'YEARLY'
+                  ? { background: 'linear-gradient(135deg, #00FF94, #00E5FF)', color: '#080C14' }
+                  : { background: 'transparent', color: '#8AA8C8' }}>
+                Anual
+                <span className="absolute -top-2 -right-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+                  style={{ background: '#FFB800', color: '#080C14' }}>
+                  -10%
+                </span>
+              </button>
+            </div>
+            {billingCycle === 'YEARLY' && (
+              <p className="text-[11px] mt-2 text-center" style={{ color: '#00FF94' }}>
+                💰 Economize 10% pagando anual {paymentMethod === 'CREDIT_CARD' && `· em até ${YEARLY_INSTALLMENTS}x sem juros`}
+              </p>
+            )}
+          </div>
+
           {/* Plano com features inline */}
           <div>
             <label className="text-[11px] font-bold uppercase tracking-widest mb-3 block"
@@ -405,18 +443,19 @@ export function SubscribeModal({ open, onClose, product, productLabel, hasCpfCnp
             <div className="space-y-2.5">
               {plans.map((p, idx) => {
                 const planFeatures = featuresFor(product, p.plan)
-                const isPopular = plans.length === 3 && idx === 1   // plano do meio = mais popular
+                const isPopular = plans.length === 3 && idx === 1
                 const isPremium = p.plan === 'premium' && plans.length === 3
                 const PlanIcon = p.plan === 'basico' ? Sparkles : p.plan === 'pro' ? Zap : Crown
                 const accentColor = p.plan === 'premium' ? '#00FF94' : p.plan === 'pro' ? '#00E5FF' : '#8AA8C8'
                 const isSelected = plan === p.plan
+                // Cálculo do preço a exibir baseado no cycle
+                const yearlyPrice = billingCycle === 'YEARLY' ? getYearlyPrice(product, p.plan) : null
                 return (
                   <button key={p.plan} type="button" onClick={() => setPlan(p.plan)}
                     className="w-full rounded-xl border-2 p-4 text-left transition-all relative"
                     style={isSelected
                       ? { background: `${accentColor}10`, borderColor: accentColor, transform: 'scale(1.01)' }
                       : { background: '#0D1320', borderColor: '#1E2D45' }}>
-                    {/* Badge de popular/premium */}
                     {(isPopular || isPremium) && !isSelected && (
                       <span className="absolute -top-2 right-3 text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded"
                         style={{ background: accentColor, color: '#080C14' }}>
@@ -431,11 +470,34 @@ export function SubscribeModal({ open, onClose, product, productLabel, hasCpfCnp
                         </p>
                       </div>
                       <div className="text-right shrink-0">
-                        <p className="text-xl font-bold font-mono leading-none"
-                          style={{ color: isSelected ? accentColor : '#E8F0FE' }}>
-                          {fmtBRL(p.priceCents)}
-                        </p>
-                        <p className="text-[10px] mt-0.5" style={{ color: '#5A7A9A' }}>/mês</p>
+                        {yearlyPrice ? (
+                          <>
+                            {/* Preço cheio riscado */}
+                            <p className="text-xs line-through font-mono leading-tight"
+                              style={{ color: '#5A7A9A' }}>
+                              {fmtBRL(yearlyPrice.fullCents)}
+                            </p>
+                            {/* Preço com desconto */}
+                            <p className="text-xl font-bold font-mono leading-tight"
+                              style={{ color: isSelected ? accentColor : '#E8F0FE' }}>
+                              {fmtBRL(yearlyPrice.discountedCents)}
+                            </p>
+                            <p className="text-[10px] mt-0.5" style={{ color: '#5A7A9A' }}>/ano</p>
+                            {paymentMethod === 'CREDIT_CARD' && (
+                              <p className="text-[10px] font-mono" style={{ color: '#00FF94' }}>
+                                ou {YEARLY_INSTALLMENTS}x {fmtBRL(yearlyPrice.installmentCents)}
+                              </p>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            <p className="text-xl font-bold font-mono leading-none"
+                              style={{ color: isSelected ? accentColor : '#E8F0FE' }}>
+                              {fmtBRL(p.priceCents)}
+                            </p>
+                            <p className="text-[10px] mt-0.5" style={{ color: '#5A7A9A' }}>/mês</p>
+                          </>
+                        )}
                       </div>
                     </div>
                     {planFeatures.length > 0 && (
@@ -623,35 +685,65 @@ export function SubscribeModal({ open, onClose, product, productLabel, hasCpfCnp
           </div>
 
           {/* Resumo do pedido — destaque */}
-          {selected && (
-            <div className="rounded-xl border-2 p-4 space-y-2"
-              style={{ background: '#0D1320', borderColor: '#2A3D5C' }}>
-              <div className="flex justify-between items-baseline">
-                <span className="text-xs" style={{ color: '#8AA8C8' }}>Plano</span>
-                <span className="text-sm font-bold capitalize" style={{ color: '#E8F0FE' }}>
-                  {productLabel} {selected.plan === 'basico' ? 'Básico' : selected.plan === 'pro' ? 'Pro' : 'Premium'}
-                </span>
-              </div>
-              <div className="flex justify-between items-baseline">
-                <span className="text-xs" style={{ color: '#8AA8C8' }}>Pagamento</span>
-                <span className="text-xs" style={{ color: '#E8F0FE' }}>
-                  {paymentMethod === 'PIX' ? 'PIX (recorrente mensal)' : 'Cartão de crédito (recorrente)'}
-                </span>
-              </div>
-              <div className="border-t pt-2 flex justify-between items-baseline"
-                style={{ borderColor: '#1E2D45' }}>
-                <span className="text-sm font-bold" style={{ color: '#E8F0FE' }}>Total hoje</span>
-                <div className="text-right">
-                  <span className="text-2xl font-bold font-mono" style={{ color: '#00FF94' }}>
-                    {fmtBRL(selected.priceCents)}
-                  </span>
-                  <span className="text-[10px] block" style={{ color: '#5A7A9A' }}>
-                    /mês · próxima cobrança em 30 dias
+          {selected && (() => {
+            const yearly = billingCycle === 'YEARLY' ? getYearlyPrice(product, selected.plan) : null
+            const totalCents = yearly ? yearly.discountedCents : selected.priceCents
+            const isInstallment = yearly && paymentMethod === 'CREDIT_CARD'
+            return (
+              <div className="rounded-xl border-2 p-4 space-y-2"
+                style={{ background: '#0D1320', borderColor: '#2A3D5C' }}>
+                <div className="flex justify-between items-baseline">
+                  <span className="text-xs" style={{ color: '#8AA8C8' }}>Plano</span>
+                  <span className="text-sm font-bold capitalize" style={{ color: '#E8F0FE' }}>
+                    {productLabel} {selected.plan === 'basico' ? 'Básico' : selected.plan === 'pro' ? 'Pro' : 'Premium'}
                   </span>
                 </div>
+                <div className="flex justify-between items-baseline">
+                  <span className="text-xs" style={{ color: '#8AA8C8' }}>Período</span>
+                  <span className="text-xs font-bold" style={{ color: billingCycle === 'YEARLY' ? '#00FF94' : '#E8F0FE' }}>
+                    {billingCycle === 'YEARLY' ? 'Anual (10% off)' : 'Mensal'}
+                  </span>
+                </div>
+                <div className="flex justify-between items-baseline">
+                  <span className="text-xs" style={{ color: '#8AA8C8' }}>Pagamento</span>
+                  <span className="text-xs" style={{ color: '#E8F0FE' }}>
+                    {paymentMethod === 'PIX'
+                      ? (yearly ? 'PIX (1x à vista anual)' : 'PIX (recorrente mensal)')
+                      : (yearly ? `Cartão ${YEARLY_INSTALLMENTS}x sem juros` : 'Cartão (recorrente mensal)')}
+                  </span>
+                </div>
+                {yearly && (
+                  <div className="flex justify-between items-baseline">
+                    <span className="text-xs" style={{ color: '#8AA8C8' }}>Você economiza</span>
+                    <span className="text-xs font-bold font-mono" style={{ color: '#00FF94' }}>
+                      -{fmtBRL(yearly.savingsCents)}
+                    </span>
+                  </div>
+                )}
+                <div className="border-t pt-2 flex justify-between items-baseline"
+                  style={{ borderColor: '#1E2D45' }}>
+                  <span className="text-sm font-bold" style={{ color: '#E8F0FE' }}>
+                    Total {yearly ? 'do ano' : 'hoje'}
+                  </span>
+                  <div className="text-right">
+                    <span className="text-2xl font-bold font-mono" style={{ color: '#00FF94' }}>
+                      {fmtBRL(totalCents)}
+                    </span>
+                    {isInstallment && (
+                      <span className="text-[11px] block" style={{ color: '#00E5FF' }}>
+                        {YEARLY_INSTALLMENTS}x {fmtBRL(yearly!.installmentCents)} no cartão
+                      </span>
+                    )}
+                    <span className="text-[10px] block" style={{ color: '#5A7A9A' }}>
+                      {yearly
+                        ? '· renovação automática em 1 ano (preço cheio)'
+                        : '/mês · próxima cobrança em 30 dias'}
+                    </span>
+                  </div>
+                </div>
               </div>
-            </div>
-          )}
+            )
+          })()}
 
           {/* CTA gigante e claro */}
           <button onClick={handleSubmit} disabled={loading}

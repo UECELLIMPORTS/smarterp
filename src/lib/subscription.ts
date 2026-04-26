@@ -22,6 +22,7 @@ export type Subscription = {
   priceCents:        number
   trialEndsAt:       Date | null
   currentPeriodEnd:  Date | null
+  billingCycle:      'MONTHLY' | 'YEARLY'
 }
 
 /** Status que liberam acesso ao produto (trial e active). */
@@ -47,7 +48,7 @@ export async function getTenantSubscriptions(user: User): Promise<Subscription[]
   const sb = supabase as any
   const { data, error } = await sb
     .from('subscriptions')
-    .select('product, status, plan_name, price_cents, trial_ends_at, current_period_end')
+    .select('product, status, plan_name, price_cents, trial_ends_at, current_period_end, billing_cycle')
     .eq('tenant_id', tenantId)
 
   if (error) {
@@ -58,6 +59,7 @@ export async function getTenantSubscriptions(user: User): Promise<Subscription[]
   type Row = {
     product: Product; status: SubStatus; plan_name: string; price_cents: number
     trial_ends_at: string | null; current_period_end: string | null
+    billing_cycle: 'MONTHLY' | 'YEARLY' | null
   }
   return ((data ?? []) as Row[]).map(r => ({
     product:          r.product,
@@ -66,6 +68,7 @@ export async function getTenantSubscriptions(user: User): Promise<Subscription[]
     priceCents:       r.price_cents,
     trialEndsAt:      r.trial_ends_at      ? new Date(r.trial_ends_at)      : null,
     currentPeriodEnd: r.current_period_end ? new Date(r.current_period_end) : null,
+    billingCycle:     r.billing_cycle ?? 'MONTHLY',
   }))
 }
 

@@ -27,13 +27,15 @@ import {
   type AsaasBillingType, type AsaasCreditCard, type AsaasCreditCardHolderInfo,
   type AsaasPixQrCode,
 } from '@/lib/asaas'
-import { getPrice, centsToReais, type Product, type Plan } from '@/lib/pricing'
+import { getPrice, getYearlyPrice, centsToReais, YEARLY_INSTALLMENTS, type Product, type Plan, type BillingCycle } from '@/lib/pricing'
 import { createNotification } from '@/lib/notifications'
 
 export type SubscribeInput = {
   product:       Product
   plan:          Plan
   paymentMethod: 'PIX' | 'CREDIT_CARD'
+  /** MONTHLY (default) ou YEARLY (10% off + 12x sem juros no cartão). */
+  billingCycle?: BillingCycle
   // Dados de contato — obrigatórios pra Asaas em PIX e Cartão
   fullName?:     string             // nome completo (titular)
   cpfCnpj?:      string             // só números
@@ -235,19 +237,62 @@ export async function subscribeToProduct(input: SubscribeInput): Promise<Subscri
     }
   }
 
+  // ── 4.b. Decide MONTHLY vs YEARLY ─────────────────────────────────────
+  const cycle: BillingCycle = input.billingCycle ?? 'MONTHLY'
+  const yearlyPrice = cycle === 'YEARLY' ? getYearlyPrice(input.product, input.plan) : null
+  if (cycle === 'YEARLY' && !yearlyPrice) {
+    return { ok: false, error: 'Plano anual não disponível pra esse produto.' }
+  }
+
   let asaasSub
+  let yearlyOneTimePayment: Awaited<ReturnType<typeof createAsaasOneTimePayment>> | null = null
+
   try {
-    asaasSub = await createAsaasSubscription({
-      customer:    asaasCustomerId,
-      billingType,
-      value:       centsToReais(price.priceCents),
-      nextDueDate: dueDate,
-      cycle:       'MONTHLY',
-      description: price.description,
-      externalReference: `${tenantId}::${input.product}`,
-      creditCard,
-      creditCardHolderInfo,
-    })
+    if (cycle === 'YEARLY' && yearlyPrice) {
+      // YEARLY: 1) Cobrança avulsa parcelada em 12x (com 10% off) AGORA
+      //         2) Subscription anual com value=preço cheio pra renovação em 1 ano
+      yearlyOneTimePayment = await createAsaasOneTimePayment({
+        customer:    asaasCustomerId,
+        billingType,
+        value:       centsToReais(yearlyPrice.discountedCents),
+        dueDate,
+        description: `${price.description} — Anual (10% off)`,
+        externalReference: `${tenantId}::${input.product}::yearly_initial`,
+        creditCard,
+        creditCardHolderInfo,
+        // 12x sem juros no cartão; PIX cobra à vista (sem installments)
+        installmentCount: billingType === 'CREDIT_CARD' ? YEARLY_INSTALLMENTS : undefined,
+      })
+
+      // Subscription pra renovação automática no ano seguinte (preço cheio,
+      // sem desconto — desconto vale só no 1º ciclo conforme regra acordada)
+      const nextYearDate = new Date()
+      nextYearDate.setFullYear(nextYearDate.getFullYear() + 1)
+      asaasSub = await createAsaasSubscription({
+        customer:    asaasCustomerId,
+        billingType,
+        value:       centsToReais(yearlyPrice.fullCents),
+        nextDueDate: nextYearDate.toISOString().slice(0, 10),
+        cycle:       'YEARLY',
+        description: `${price.description} — Renovação anual`,
+        externalReference: `${tenantId}::${input.product}`,
+        creditCard,           // Asaas reusa token salvo da cobrança avulsa
+        creditCardHolderInfo,
+      })
+    } else {
+      // MONTHLY (default)
+      asaasSub = await createAsaasSubscription({
+        customer:    asaasCustomerId,
+        billingType,
+        value:       centsToReais(price.priceCents),
+        nextDueDate: dueDate,
+        cycle:       'MONTHLY',
+        description: price.description,
+        externalReference: `${tenantId}::${input.product}`,
+        creditCard,
+        creditCardHolderInfo,
+      })
+    }
   } catch (e) {
     console.error('[subscribeToProduct] criar subscription Asaas falhou:', e)
     const msg = e instanceof Error ? e.message : 'Erro ao criar assinatura no gateway.'
@@ -265,16 +310,26 @@ export async function subscribeToProduct(input: SubscribeInput): Promise<Subscri
   const trialActive = existingSub?.status === 'trial'
                        && existingSub.trial_ends_at
                        && new Date(existingSub.trial_ends_at) > new Date()
+  // price_cents salvo localmente reflete o que cliente paga POR CICLO:
+  // - MONTHLY: preço mensal
+  // - YEARLY: preço anual cheio (porque renovação cobra cheio)
+  const localPriceCents = cycle === 'YEARLY' && yearlyPrice ? yearlyPrice.fullCents : price.priceCents
+  // next_due_date: pra YEARLY a sub renova só em 1 ano (cobrança avulsa
+  // de hoje é separada). Pra MONTHLY usa o dueDate de hoje.
+  const localNextDueDate = cycle === 'YEARLY'
+    ? new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().slice(0, 10)
+    : dueDate
+
   const subRow = {
     tenant_id:             tenantId,
     product:               input.product,
     plan_name:             input.plan,
-    price_cents:           price.priceCents,
+    price_cents:           localPriceCents,
     status:                trialActive ? 'trial' : 'inactive',
     asaas_subscription_id: asaasSub.id,
     payment_method:        billingType,
-    next_due_date:         dueDate,
-    billing_cycle:         'MONTHLY',
+    next_due_date:         localNextDueDate,
+    billing_cycle:         cycle,
     trial_ends_at:         trialActive ? existingSub!.trial_ends_at : null,
   }
 
@@ -289,18 +344,25 @@ export async function subscribeToProduct(input: SubscribeInput): Promise<Subscri
   }
 
   // ── 6. Para cartão: confirma cobrança imediata + atualiza otimista ────
-  // Asaas cobra cartão na hora. Em vez de esperar webhook (que demora
-  // 10-60s), buscamos a 1ª cobrança e, se status=CONFIRMED|RECEIVED,
-  // marcamos active local imediatamente. Webhook fica como redundância.
+  // Asaas cobra cartão na hora. Em vez de esperar webhook (10-60s),
+  // marcamos active local imediatamente quando confirmado.
   if (billingType === 'CREDIT_CARD') {
-    const firstPayment = await getSubscriptionFirstPayment(asaasSub.id)
-    const paid = firstPayment && (firstPayment.status === 'CONFIRMED' || firstPayment.status === 'RECEIVED')
+    // Pra YEARLY: a cobrança é o yearlyOneTimePayment (parcelado em 12x).
+    // Pra MONTHLY: a cobrança é a 1ª da subscription.
+    const checkPayment = yearlyOneTimePayment ?? await getSubscriptionFirstPayment(asaasSub.id)
+    const paid = checkPayment && (checkPayment.status === 'CONFIRMED' || checkPayment.status === 'RECEIVED')
 
     if (paid) {
-      const next = new Date()
-      next.setMonth(next.getMonth() + 1)
+      // YEARLY: next_due_date já está setado pra +1 ano no upsert
+      // MONTHLY: setamos pra +1 mês aqui
+      const update: Record<string, unknown> = { status: 'active', trial_ends_at: null }
+      if (cycle === 'MONTHLY') {
+        const next = new Date()
+        next.setMonth(next.getMonth() + 1)
+        update.next_due_date = next.toISOString().slice(0, 10)
+      }
       await sb.from('subscriptions')
-        .update({ status: 'active', trial_ends_at: null, next_due_date: next.toISOString().slice(0, 10) })
+        .update(update)
         .eq('tenant_id', tenantId)
         .eq('product', input.product)
     }
@@ -311,13 +373,15 @@ export async function subscribeToProduct(input: SubscribeInput): Promise<Subscri
       type:     'subscription_active',
       title:    paid ? 'Pagamento confirmado!' : 'Pagamento em processamento',
       body:     paid
-                  ? `Sua assinatura ${price.description} está ativa.`
+                  ? cycle === 'YEARLY'
+                      ? `Plano anual ativo! Você economizou 10% no ${price.description}.`
+                      : `Sua assinatura ${price.description} está ativa.`
                   : 'Assinatura criada. Confirmação chega em alguns instantes.',
       link:     '/configuracoes/assinatura',
     })
 
     revalidatePath('/configuracoes/assinatura')
-    revalidatePath('/', 'layout')   // refresh do gate de feature em todo o app
+    revalidatePath('/', 'layout')
     return {
       ok:                  true,
       asaasSubscriptionId: asaasSub.id,
@@ -326,16 +390,21 @@ export async function subscribeToProduct(input: SubscribeInput): Promise<Subscri
     }
   }
 
-  // PIX: busca QR code da 1ª cobrança pra exibir inline no modal
-  const firstPayment = await getSubscriptionFirstPayment(asaasSub.id)
-  const pixQrCode = firstPayment ? await getPaymentPixQrCode(firstPayment.id) : null
+  // PIX: busca QR code da cobrança pra exibir inline no modal
+  // YEARLY: QR do yearlyOneTimePayment (cobrança avulsa anual com desconto)
+  // MONTHLY: QR da 1ª cobrança da subscription
+  const paymentForQr = yearlyOneTimePayment ?? await getSubscriptionFirstPayment(asaasSub.id)
+  const pixQrCode = paymentForQr ? await getPaymentPixQrCode(paymentForQr.id) : null
+  const pixValueCents = cycle === 'YEARLY' && yearlyPrice ? yearlyPrice.discountedCents : price.priceCents
 
   void createNotification({
     userId:   user.id,
     tenantId: tenantId,
     type:     'subscription_active',
     title:    `Assinatura ${price.description} criada`,
-    body:     'Pague o PIX pra ativar — o QR code está aberto na tela.',
+    body:     cycle === 'YEARLY'
+                ? `Pague o PIX anual com 10% off pra ativar — QR aberto na tela.`
+                : 'Pague o PIX pra ativar — o QR code está aberto na tela.',
     link:     '/configuracoes/assinatura',
   })
 
@@ -346,7 +415,7 @@ export async function subscribeToProduct(input: SubscribeInput): Promise<Subscri
     asaasSubscriptionId: asaasSub.id,
     mode:                'pix',
     pixQrCode,
-    paymentValue:        centsToReais(price.priceCents),
+    paymentValue:        centsToReais(pixValueCents),
   }
 }
 
