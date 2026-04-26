@@ -176,13 +176,23 @@ export async function subscribeToProduct(input: SubscribeInput): Promise<Subscri
   // ── 3. Verifica se já existe sub ativa (idempotência) ───────────────────
   const { data: existingSub } = await sb
     .from('subscriptions')
-    .select('id, asaas_subscription_id, status')
+    .select('id, asaas_subscription_id, status, trial_ends_at')
     .eq('tenant_id', tenantId)
     .eq('product', input.product)
     .maybeSingle()
 
   if (existingSub?.asaas_subscription_id && existingSub.status === 'active') {
     return { ok: false, error: `Você já tem assinatura ativa de ${input.product}.` }
+  }
+
+  // Se já tem sub Asaas pendente (status inactive ou trial), cancela ela
+  // antes de criar uma nova — evita órfãs no Asaas e cobranças duplicadas
+  if (existingSub?.asaas_subscription_id) {
+    try {
+      await cancelAsaasSubscription(existingSub.asaas_subscription_id)
+    } catch (e) {
+      console.warn('[subscribeToProduct] cancelar sub antiga falhou (segue):', e)
+    }
   }
 
   // ── 4. Cria subscription no Asaas ───────────────────────────────────────
@@ -245,19 +255,26 @@ export async function subscribeToProduct(input: SubscribeInput): Promise<Subscri
   }
 
   // ── 5. Upsert local em subscriptions ────────────────────────────────────
-  // status='inactive' até webhook PAYMENT_RECEIVED chegar e setar 'active'.
-  // CHECK constraint do banco só aceita: trial|active|late|inactive|cancelled.
+  // Decisão de status:
+  // - Se estava em 'trial' válido (não expirado) → mantém trial até pagar.
+  //   Assim user continua usando o app enquanto Asaas processa pagamento.
+  // - Senão → 'inactive' (sem acesso até confirmar pagamento)
+  //
+  // Webhook PAYMENT_RECEIVED finaliza: status='active', trial_ends_at=null.
+  const trialActive = existingSub?.status === 'trial'
+                       && existingSub.trial_ends_at
+                       && new Date(existingSub.trial_ends_at) > new Date()
   const subRow = {
     tenant_id:             tenantId,
     product:               input.product,
     plan_name:             input.plan,
     price_cents:           price.priceCents,
-    status:                'inactive',
+    status:                trialActive ? 'trial' : 'inactive',
     asaas_subscription_id: asaasSub.id,
     payment_method:        billingType,
     next_due_date:         dueDate,
     billing_cycle:         'MONTHLY',
-    trial_ends_at:         null,                  // saiu do trial ao assinar
+    trial_ends_at:         trialActive ? existingSub!.trial_ends_at : null,
   }
 
   const { error: upsertErr } = await sb
