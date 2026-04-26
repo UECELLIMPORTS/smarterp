@@ -4,12 +4,13 @@ import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import {
   Package, CheckCircle, AlertTriangle, Ban, Loader2, Save, Store,
-  Sparkles, ChevronRight,
+  Sparkles, ChevronRight, Users,
 } from 'lucide-react'
 import { saveSettings, type TenantSettings, type StockControlMode } from '@/actions/settings'
 
 type Props = {
   initialSettings: TenantSettings
+  isOwner?:        boolean
 }
 
 const STOCK_OPTIONS: {
@@ -42,7 +43,7 @@ const STOCK_OPTIONS: {
   },
 ]
 
-export function ConfiguracoesClient({ initialSettings }: Props) {
+export function ConfiguracoesClient({ initialSettings, isOwner = false }: Props) {
   const [settings, setSettings] = useState<TenantSettings>(initialSettings)
   const [custoFixoStr, setCustoFixoStr] = useState(
     initialSettings.fisica_fixed_cost_cents != null
@@ -91,24 +92,46 @@ export function ConfiguracoesClient({ initialSettings }: Props) {
         <p className="mt-1 text-sm text-muted">Personalize o comportamento do sistema</p>
       </div>
 
-      {/* Link Minha Assinatura — sempre no topo */}
-      <Link href="/configuracoes/assinatura"
-        className="block rounded-xl border p-4 transition-all hover:border-cyan-400/40"
-        style={{ background: '#111827', borderColor: '#1E2D45' }}>
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg shrink-0"
-            style={{ background: 'rgba(255,184,0,.15)' }}>
-            <Sparkles className="h-5 w-5" style={{ color: '#FFB800' }} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <h2 className="text-sm font-semibold text-text">Minha Assinatura</h2>
-            <p className="text-xs text-muted mt-0.5">
-              Veja seu plano, mude de plano ou contrate outros produtos
-            </p>
-          </div>
-          <ChevronRight className="h-5 w-5 shrink-0" style={{ color: '#5A7A9A' }} />
+      {/* Cards de gestão (owner-only) */}
+      {isOwner && (
+        <div className="space-y-3">
+          <Link href="/configuracoes/assinatura"
+            className="block rounded-xl border p-4 transition-all hover:border-cyan-400/40"
+            style={{ background: '#111827', borderColor: '#1E2D45' }}>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg shrink-0"
+                style={{ background: 'rgba(255,184,0,.15)' }}>
+                <Sparkles className="h-5 w-5" style={{ color: '#FFB800' }} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h2 className="text-sm font-semibold text-text">Minha Assinatura</h2>
+                <p className="text-xs text-muted mt-0.5">
+                  Veja seu plano, mude de plano ou contrate outros produtos
+                </p>
+              </div>
+              <ChevronRight className="h-5 w-5 shrink-0" style={{ color: '#5A7A9A' }} />
+            </div>
+          </Link>
+
+          <Link href="/configuracoes/equipe"
+            className="block rounded-xl border p-4 transition-all hover:border-green-400/40"
+            style={{ background: '#111827', borderColor: '#1E2D45' }}>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg shrink-0"
+                style={{ background: 'rgba(0,255,148,.15)' }}>
+                <Users className="h-5 w-5" style={{ color: '#00FF94' }} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h2 className="text-sm font-semibold text-text">Equipe</h2>
+                <p className="text-xs text-muted mt-0.5">
+                  Convide membros pra trabalhar com você na mesma conta
+                </p>
+              </div>
+              <ChevronRight className="h-5 w-5 shrink-0" style={{ color: '#5A7A9A' }} />
+            </div>
+          </Link>
         </div>
-      </Link>
+      )}
 
       {/* Estoque section */}
       <div className="rounded-xl border overflow-hidden" style={{ background: '#111827', borderColor: '#1E2D45' }}>

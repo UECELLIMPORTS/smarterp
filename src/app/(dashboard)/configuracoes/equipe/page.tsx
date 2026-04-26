@@ -1,18 +1,19 @@
 import { requireAuth } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { listTeamMembers, listPendingInvites } from '@/actions/team'
+import { EquipeClient } from './equipe-client'
 import Link from 'next/link'
 import { ArrowLeft, Lock } from 'lucide-react'
-import { getTenantSubscriptions, getProductSubscription, daysUntilTrialEnds } from '@/lib/subscription'
-import { AssinaturaClient } from './assinatura-client'
 
-export const metadata = { title: 'Minha Assinatura — Smart ERP' }
+export const metadata = { title: 'Equipe — Smart ERP' }
 
-export default async function AssinaturaPage() {
+export default async function EquipePage() {
   let auth: Awaited<ReturnType<typeof requireAuth>>
   try { auth = await requireAuth() } catch { redirect('/login') }
 
-  // Gate owner-only — manager não pode mexer em assinatura
   const isOwner = auth.user.app_metadata?.tenant_role === 'owner'
+
+  // Gate owner-only — manager não acessa essa página
   if (!isOwner) {
     return (
       <div className="max-w-2xl">
@@ -28,24 +29,17 @@ export default async function AssinaturaPage() {
           </div>
           <h1 className="text-xl font-bold mb-2" style={{ color: '#E8F0FE' }}>Acesso restrito</h1>
           <p className="text-sm" style={{ color: '#8AA8C8' }}>
-            Apenas o dono da conta pode ver e gerenciar a assinatura.
+            Apenas o dono da conta pode gerenciar a equipe.
           </p>
         </div>
       </div>
     )
   }
 
-  const subs = await getTenantSubscriptions(auth.user)
+  const [members, invites] = await Promise.all([
+    listTeamMembers(),
+    listPendingInvites(),
+  ])
 
-  // Estado consolidado pra renderizar os 4 produtos (contratados ou não)
-  const data = {
-    gestaoSmart: getProductSubscription(subs, 'gestao_smart'),
-    checkSmart:  getProductSubscription(subs, 'checksmart'),
-    crm:         getProductSubscription(subs, 'crm'),
-    metaAds:     getProductSubscription(subs, 'meta_ads'),
-    trialDays:   daysUntilTrialEnds(subs),
-    userEmail:   auth.user.email ?? '',
-  }
-
-  return <AssinaturaClient data={data} />
+  return <EquipeClient members={members} invites={invites} ownerEmail={auth.user.email ?? ''} />
 }
