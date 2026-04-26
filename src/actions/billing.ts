@@ -167,12 +167,14 @@ export async function subscribeToProduct(input: SubscribeInput): Promise<Subscri
   }
 
   // ── 5. Upsert local em subscriptions ────────────────────────────────────
+  // status='inactive' até webhook PAYMENT_RECEIVED chegar e setar 'active'.
+  // CHECK constraint do banco só aceita: trial|active|late|inactive|cancelled.
   const subRow = {
     tenant_id:             tenantId,
     product:               input.product,
     plan_name:             input.plan,
     price_cents:           price.priceCents,
-    status:                'pending_payment',     // trialing → pending_payment até pagar
+    status:                'inactive',
     asaas_subscription_id: asaasSub.id,
     payment_method:        billingType,
     next_due_date:         dueDate,
