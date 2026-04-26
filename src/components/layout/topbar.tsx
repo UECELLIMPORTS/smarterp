@@ -46,7 +46,9 @@ export function Topbar({ userName, userEmail, planBadge }: Props) {
   return (
     <header
       // No mobile (left:0) ocupa tela toda; em lg+ recua 240px pra dar espaço pra Sidebar.
-      className="fixed right-0 top-0 z-30 flex h-16 items-center justify-between border-b px-4 sm:px-6 left-0 lg:left-60"
+      // z-50 (acima da sidebar z-40) pra que dropdowns filhos (notifs, badge plano)
+      // possam sobrepor a sidebar quando expandem pra esquerda.
+      className="fixed right-0 top-0 z-50 flex h-16 items-center justify-between border-b px-4 sm:px-6 left-0 lg:left-60"
       style={{ background: '#080C14', borderColor: '#1E2D45' }}
     >
       {/* Slot esquerdo: hamburger no mobile */}
