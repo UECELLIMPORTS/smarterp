@@ -17,9 +17,12 @@
  */
 
 import { useState, useEffect, useMemo } from 'react'
-import { X, Loader2, QrCode, CreditCard, CheckCircle2, Copy, Check } from 'lucide-react'
+import {
+  X, Loader2, QrCode, CreditCard, CheckCircle2, Copy, Check,
+  Shield, Lock, Sparkles, Star, Zap, Crown, ShieldCheck, RefreshCcw,
+} from 'lucide-react'
 import { subscribeToProduct } from '@/actions/billing'
-import { fmtBRL, plansForProduct, type Product, type Plan } from '@/lib/pricing'
+import { fmtBRL, plansForProduct, featuresFor, type Product, type Plan } from '@/lib/pricing'
 import { toast } from 'sonner'
 import type { AsaasPixQrCode } from '@/lib/asaas'
 
@@ -193,65 +196,101 @@ export function SubscribeModal({ open, onClose, product, productLabel, hasCpfCnp
         <div className="rounded-2xl border w-full max-w-md max-h-[95vh] overflow-y-auto"
           style={{ background: '#0F1A2B', borderColor: '#2A3D5C' }}
           onClick={e => e.stopPropagation()}>
-          <div className="flex items-center justify-between px-6 py-4 border-b"
-            style={{ borderColor: '#1E2D45' }}>
-            <h3 className="text-lg font-bold flex items-center gap-2" style={{ color: '#E8F0FE' }}>
-              <QrCode className="h-5 w-5" style={{ color: '#00FF94' }} />
-              Pagar com PIX
-            </h3>
-            <button onClick={onClose} className="p-1 rounded hover:bg-white/5"
+
+          {/* Header com gradient */}
+          <div className="relative px-6 pt-5 pb-4 border-b"
+            style={{
+              background: 'linear-gradient(180deg, rgba(0,255,148,.1) 0%, transparent 100%)',
+              borderColor: '#1E2D45',
+            }}>
+            <button onClick={onClose} className="absolute top-4 right-4 p-1 rounded hover:bg-white/5"
               style={{ color: '#5A7A9A' }}><X className="h-5 w-5" /></button>
+            <div className="flex items-center gap-2 mb-1">
+              <QrCode className="h-5 w-5" style={{ color: '#00FF94' }} />
+              <p className="text-[11px] font-bold uppercase tracking-widest" style={{ color: '#00FF94' }}>
+                Falta só o pagamento
+              </p>
+            </div>
+            <h3 className="text-xl font-bold" style={{ color: '#E8F0FE' }}>Pagar com PIX</h3>
+            <p className="text-xs mt-1" style={{ color: '#8AA8C8' }}>
+              Pague em segundos pelo app do seu banco
+            </p>
           </div>
 
           <div className="p-6 space-y-4">
-            <div className="text-center">
-              <p className="text-xs" style={{ color: '#8AA8C8' }}>Total a pagar</p>
-              <p className="text-3xl font-bold font-mono mt-1" style={{ color: '#00FF94' }}>
+            {/* Valor em destaque */}
+            <div className="text-center rounded-xl border p-4"
+              style={{ background: 'rgba(0,255,148,.06)', borderColor: 'rgba(0,255,148,.3)' }}>
+              <p className="text-[11px] font-bold uppercase tracking-widest" style={{ color: '#5A7A9A' }}>
+                Total a pagar
+              </p>
+              <p className="text-4xl font-bold font-mono mt-1" style={{ color: '#00FF94' }}>
                 {fmtBRL(pixValue * 100)}
+              </p>
+              <p className="text-[10px] mt-1" style={{ color: '#8AA8C8' }}>
+                Cobrança recorrente mensal · próxima em 30 dias
               </p>
             </div>
 
-            {/* QR code */}
-            <div className="rounded-xl bg-white p-4 flex items-center justify-center">
+            {/* QR code com borda destacada */}
+            <div className="rounded-xl bg-white p-5 flex items-center justify-center"
+              style={{ boxShadow: '0 4px 20px rgba(0, 255, 148, 0.15)' }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={`data:image/png;base64,${pixQr.encodedImage}`}
                 alt="QR Code PIX" className="w-56 h-56" />
             </div>
 
-            <p className="text-xs text-center" style={{ color: '#8AA8C8' }}>
-              Escaneie o QR Code com o app do seu banco
+            <p className="text-xs text-center font-semibold" style={{ color: '#E8F0FE' }}>
+              📱 Escaneie o QR Code com o app do seu banco
             </p>
 
             {/* Código copia-e-cola */}
             <div>
               <label className="text-[11px] font-bold uppercase tracking-widest mb-2 block"
                 style={{ color: '#5A7A9A' }}>
-                Ou copie o código
+                Ou copie o código PIX (Pix Copia e Cola)
               </label>
-              <div className="rounded-lg border p-3 flex items-center gap-2"
-                style={{ background: '#0D1320', borderColor: '#1E2D45' }}>
-                <code className="text-[10px] flex-1 truncate font-mono"
+              <button onClick={handleCopyPix}
+                className="w-full rounded-lg border p-3 flex items-center gap-2 transition-colors hover:bg-white/[0.02]"
+                style={{
+                  background: copiedPix ? 'rgba(0,255,148,.06)' : '#0D1320',
+                  borderColor: copiedPix ? '#00FF94' : '#1E2D45',
+                }}>
+                <code className="text-[10px] flex-1 truncate font-mono text-left"
                   style={{ color: '#E8F0FE' }}>{pixQr.payload}</code>
-                <button onClick={handleCopyPix}
-                  className="shrink-0 p-2 rounded hover:bg-white/5 transition-colors"
+                <span className="shrink-0 inline-flex items-center gap-1 text-xs font-semibold"
                   style={{ color: copiedPix ? '#00FF94' : '#00E5FF' }}>
-                  {copiedPix ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                </button>
+                  {copiedPix ? <><Check className="h-4 w-4" /> Copiado</> : <><Copy className="h-4 w-4" /> Copiar</>}
+                </span>
+              </button>
+            </div>
+
+            {/* Aviso de ativação automática */}
+            <div className="rounded-lg border p-3 flex items-start gap-2.5"
+              style={{ background: 'rgba(0,229,255,.06)', borderColor: 'rgba(0,229,255,.3)' }}>
+              <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" style={{ color: '#00E5FF' }} />
+              <div>
+                <p className="text-xs font-bold" style={{ color: '#00E5FF' }}>
+                  Ativação em segundos
+                </p>
+                <p className="text-[11px] mt-0.5 leading-relaxed" style={{ color: '#E8F0FE' }}>
+                  Após pagar, sua assinatura é liberada automaticamente. Você pode fechar
+                  essa tela — uma notificação chega no sino assim que confirmar.
+                </p>
               </div>
             </div>
 
-            <div className="rounded-lg border p-3"
-              style={{ background: 'rgba(255,184,0,.06)', borderColor: 'rgba(255,184,0,.2)' }}>
-              <p className="text-[11px]" style={{ color: '#FFB800' }}>
-                ⏱ Após pagar, sua assinatura é ativada em poucos segundos. Pode fechar
-                essa tela — você verá uma notificação no sino quando confirmar.
-              </p>
+            {/* Garantia também aqui */}
+            <div className="flex items-center justify-center gap-2 text-[10px]"
+              style={{ color: '#5A7A9A' }}>
+              <Shield className="h-3.5 w-3.5" style={{ color: '#00FF94' }} />
+              Garantia de 7 dias · 100% reembolso se não gostar
             </div>
 
             <button onClick={onClose}
               className="w-full rounded-lg py-3 text-sm font-bold border transition-colors hover:bg-white/5"
               style={{ borderColor: '#1E2D45', color: '#E8F0FE' }}>
-              Fechar
+              Fechar — pagar depois
             </button>
           </div>
         </div>
@@ -264,25 +303,61 @@ export function SubscribeModal({ open, onClose, product, productLabel, hasCpfCnp
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
         style={{ background: 'rgba(0,0,0,0.7)' }} onClick={onClose}>
-        <div className="rounded-2xl border w-full max-w-md"
+        <div className="rounded-2xl border w-full max-w-md overflow-hidden"
           style={{ background: '#0F1A2B', borderColor: '#2A3D5C' }}
           onClick={e => e.stopPropagation()}>
-          <div className="p-8 text-center space-y-5">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full"
-              style={{ background: 'rgba(0,255,148,.15)', border: '2px solid #00FF94' }}>
-              <CheckCircle2 className="h-8 w-8" style={{ color: '#00FF94' }} />
+          {/* Hero celebratório com gradient */}
+          <div className="px-8 py-10 text-center"
+            style={{
+              background: 'linear-gradient(135deg, rgba(0,255,148,.15) 0%, rgba(0,229,255,.08) 100%)',
+            }}>
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full mb-4"
+              style={{
+                background: 'linear-gradient(135deg, #00FF94, #00E5FF)',
+                boxShadow: '0 8px 32px rgba(0, 255, 148, 0.4)',
+              }}>
+              <CheckCircle2 className="h-10 w-10" style={{ color: '#080C14' }} strokeWidth={2.5} />
             </div>
+            <p className="text-[11px] font-bold uppercase tracking-widest mb-1" style={{ color: '#00FF94' }}>
+              Pagamento aprovado
+            </p>
+            <h3 className="text-2xl font-bold" style={{ color: '#E8F0FE' }}>
+              Bem-vindo ao {productLabel}! 🎉
+            </h3>
+            <p className="text-sm mt-2" style={{ color: '#8AA8C8' }}>
+              Sua assinatura está ativa e todas as features liberadas.
+            </p>
+          </div>
+
+          <div className="p-6 space-y-4">
+            {/* Próximos passos */}
             <div>
-              <h3 className="text-xl font-bold" style={{ color: '#E8F0FE' }}>Pagamento aprovado!</h3>
-              <p className="text-sm mt-2" style={{ color: '#8AA8C8' }}>
-                Sua assinatura de <strong>{productLabel}</strong> está sendo ativada.
-                Em alguns instantes você recebe a confirmação aqui no sino.
+              <p className="text-[11px] font-bold uppercase tracking-widest mb-3"
+                style={{ color: '#5A7A9A' }}>Comece agora:</p>
+              <ul className="space-y-2.5">
+                <NextStep num={1} title="Cadastre seus produtos" desc="Importe ou cadastre o estoque inicial" />
+                <NextStep num={2} title="Cadastre seus clientes" desc="Ou deixe o app criar automaticamente nas vendas" />
+                <NextStep num={3} title="Configure seus canais de venda" desc="Online, Loja física, Marketplace, etc." />
+              </ul>
+            </div>
+
+            {/* Garantia recap */}
+            <div className="rounded-lg border p-3 flex items-center gap-2.5"
+              style={{ background: 'rgba(0,255,148,.04)', borderColor: 'rgba(0,255,148,.2)' }}>
+              <Shield className="h-4 w-4 shrink-0" style={{ color: '#00FF94' }} />
+              <p className="text-[11px]" style={{ color: '#E8F0FE' }}>
+                Lembre: você tem <strong>7 dias de garantia</strong>. Não gostou? Devolvemos 100%.
               </p>
             </div>
+
             <button onClick={() => { onClose(); window.location.reload() }}
-              className="w-full rounded-lg py-3 text-sm font-bold transition-opacity hover:opacity-90"
-              style={{ background: 'linear-gradient(135deg, #00E5FF, #00FF94)', color: '#080C14' }}>
-              Continuar
+              className="w-full rounded-xl py-3.5 text-sm font-bold transition-opacity hover:opacity-90"
+              style={{
+                background: 'linear-gradient(135deg, #00E5FF, #00FF94)',
+                color: '#080C14',
+                boxShadow: '0 4px 16px rgba(0, 255, 148, 0.2)',
+              }}>
+              Começar a usar →
             </button>
           </div>
         </div>
@@ -294,42 +369,94 @@ export function SubscribeModal({ open, onClose, product, productLabel, hasCpfCnp
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: 'rgba(0,0,0,0.7)' }} onClick={onClose}>
-      <div className="rounded-2xl border w-full max-w-md max-h-[95vh] overflow-y-auto"
+      <div className="rounded-2xl border w-full max-w-lg max-h-[95vh] overflow-y-auto"
         style={{ background: '#0F1A2B', borderColor: '#2A3D5C' }}
         onClick={e => e.stopPropagation()}>
 
-        <div className="flex items-center justify-between px-6 py-4 border-b sticky top-0 z-10"
-          style={{ background: '#0F1A2B', borderColor: '#1E2D45' }}>
-          <h3 className="text-lg font-bold" style={{ color: '#E8F0FE' }}>Assinar {productLabel}</h3>
-          <button onClick={onClose} className="p-1 rounded hover:bg-white/5"
+        {/* Header com gradient + título */}
+        <div className="relative px-6 pt-6 pb-4 border-b"
+          style={{
+            background: 'linear-gradient(180deg, rgba(0,255,148,.08) 0%, rgba(0,229,255,.04) 50%, transparent 100%)',
+            borderColor: '#1E2D45',
+          }}>
+          <button onClick={onClose} className="absolute top-4 right-4 p-1 rounded hover:bg-white/5"
             style={{ color: '#5A7A9A' }}><X className="h-5 w-5" /></button>
+          <p className="text-[11px] font-bold uppercase tracking-widest mb-1"
+            style={{ color: '#00FF94' }}>Assinar agora</p>
+          <h3 className="text-2xl font-bold" style={{ color: '#E8F0FE' }}>{productLabel}</h3>
+          <p className="text-xs mt-1" style={{ color: '#8AA8C8' }}>
+            Comece em menos de 2 minutos. Cancele quando quiser.
+          </p>
+        </div>
+
+        {/* Trust strip — garantia + segurança */}
+        <div className="grid grid-cols-3 gap-2 px-6 py-3 border-b"
+          style={{ background: '#0D1320', borderColor: '#1E2D45' }}>
+          <TrustBadge icon={ShieldCheck} label="Garantia 7 dias" sub="100% reembolso" color="#00FF94" />
+          <TrustBadge icon={RefreshCcw} label="Sem fidelidade" sub="Cancele quando" color="#00E5FF" />
+          <TrustBadge icon={Lock} label="Pagamento seguro" sub="Asaas + SSL" color="#FFB800" />
         </div>
 
         <div className="p-6 space-y-5">
-          {/* Plano */}
+          {/* Plano com features inline */}
           <div>
-            <label className="text-[11px] font-bold uppercase tracking-widest mb-2 block"
-              style={{ color: '#5A7A9A' }}>Escolha o plano</label>
-            <div className="space-y-2">
-              {plans.map(p => (
-                <button key={p.plan} type="button" onClick={() => setPlan(p.plan)}
-                  className="w-full flex items-center justify-between rounded-lg border px-4 py-3 text-left transition-colors"
-                  style={plan === p.plan
-                    ? { background: 'rgba(0,229,255,.08)', borderColor: '#00E5FF' }
-                    : { background: '#0D1320', borderColor: '#1E2D45' }}>
-                  <div>
-                    <p className="text-sm font-bold capitalize" style={{ color: '#E8F0FE' }}>
-                      {p.plan === 'basico' ? 'Básico' : p.plan === 'pro' ? 'Pro' : 'Premium'}
-                    </p>
-                    <p className="text-xs mt-0.5" style={{ color: '#8AA8C8' }}>{p.description}</p>
-                  </div>
-                  <p className="text-base font-bold font-mono shrink-0 ml-4"
-                    style={{ color: plan === p.plan ? '#00E5FF' : '#E8F0FE' }}>
-                    {fmtBRL(p.priceCents)}
-                    <span className="text-[10px] font-normal" style={{ color: '#5A7A9A' }}>/mês</span>
-                  </p>
-                </button>
-              ))}
+            <label className="text-[11px] font-bold uppercase tracking-widest mb-3 block"
+              style={{ color: '#5A7A9A' }}>1. Escolha seu plano</label>
+            <div className="space-y-2.5">
+              {plans.map((p, idx) => {
+                const planFeatures = featuresFor(product, p.plan)
+                const isPopular = plans.length === 3 && idx === 1   // plano do meio = mais popular
+                const isPremium = p.plan === 'premium' && plans.length === 3
+                const PlanIcon = p.plan === 'basico' ? Sparkles : p.plan === 'pro' ? Zap : Crown
+                const accentColor = p.plan === 'premium' ? '#00FF94' : p.plan === 'pro' ? '#00E5FF' : '#8AA8C8'
+                const isSelected = plan === p.plan
+                return (
+                  <button key={p.plan} type="button" onClick={() => setPlan(p.plan)}
+                    className="w-full rounded-xl border-2 p-4 text-left transition-all relative"
+                    style={isSelected
+                      ? { background: `${accentColor}10`, borderColor: accentColor, transform: 'scale(1.01)' }
+                      : { background: '#0D1320', borderColor: '#1E2D45' }}>
+                    {/* Badge de popular/premium */}
+                    {(isPopular || isPremium) && !isSelected && (
+                      <span className="absolute -top-2 right-3 text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded"
+                        style={{ background: accentColor, color: '#080C14' }}>
+                        {isPremium ? '⭐ Melhor escolha' : 'Mais popular'}
+                      </span>
+                    )}
+                    <div className="flex items-start justify-between gap-3 mb-2">
+                      <div className="flex items-center gap-2">
+                        <PlanIcon className="h-4 w-4 shrink-0" style={{ color: accentColor }} />
+                        <p className="text-base font-bold capitalize" style={{ color: '#E8F0FE' }}>
+                          {p.plan === 'basico' ? 'Básico' : p.plan === 'pro' ? 'Pro' : 'Premium'}
+                        </p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-xl font-bold font-mono leading-none"
+                          style={{ color: isSelected ? accentColor : '#E8F0FE' }}>
+                          {fmtBRL(p.priceCents)}
+                        </p>
+                        <p className="text-[10px] mt-0.5" style={{ color: '#5A7A9A' }}>/mês</p>
+                      </div>
+                    </div>
+                    {planFeatures.length > 0 && (
+                      <ul className="space-y-1 mt-2">
+                        {planFeatures.slice(0, 3).map(f => (
+                          <li key={f} className="text-[11px] flex items-start gap-1.5"
+                            style={{ color: '#E8F0FE' }}>
+                            <Check className="h-3 w-3 mt-0.5 shrink-0" style={{ color: accentColor }} />
+                            {f}
+                          </li>
+                        ))}
+                        {planFeatures.length > 3 && (
+                          <li className="text-[10px] italic" style={{ color: '#5A7A9A' }}>
+                            + {planFeatures.length - 3} outros recursos
+                          </li>
+                        )}
+                      </ul>
+                    )}
+                  </button>
+                )
+              })}
             </div>
           </div>
 
@@ -477,33 +604,125 @@ export function SubscribeModal({ open, onClose, product, productLabel, hasCpfCnp
             </>
           )}
 
-          {/* Resumo */}
+          {/* Garantia 7 dias — banner persuasivo */}
+          <div className="rounded-xl border-2 p-4 flex items-start gap-3"
+            style={{ background: 'rgba(0,255,148,.06)', borderColor: 'rgba(0,255,148,.4)' }}>
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+              style={{ background: 'rgba(0,255,148,.15)', border: '2px solid #00FF94' }}>
+              <Shield className="h-5 w-5" style={{ color: '#00FF94' }} />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-bold" style={{ color: '#00FF94' }}>
+                Garantia incondicional de 7 dias
+              </p>
+              <p className="text-[11px] mt-1 leading-relaxed" style={{ color: '#E8F0FE' }}>
+                Se em até <strong>7 dias</strong> você não estiver satisfeito por qualquer motivo,
+                <strong> devolvemos 100% do seu dinheiro</strong>. Sem perguntas, sem letra miúda.
+              </p>
+            </div>
+          </div>
+
+          {/* Resumo do pedido — destaque */}
           {selected && (
-            <div className="rounded-lg border p-3 flex justify-between items-center"
-              style={{ background: '#0D1320', borderColor: '#1E2D45' }}>
-              <span className="text-xs" style={{ color: '#8AA8C8' }}>Total mensal</span>
-              <span className="text-xl font-bold font-mono" style={{ color: '#00FF94' }}>
-                {fmtBRL(selected.priceCents)}
-              </span>
+            <div className="rounded-xl border-2 p-4 space-y-2"
+              style={{ background: '#0D1320', borderColor: '#2A3D5C' }}>
+              <div className="flex justify-between items-baseline">
+                <span className="text-xs" style={{ color: '#8AA8C8' }}>Plano</span>
+                <span className="text-sm font-bold capitalize" style={{ color: '#E8F0FE' }}>
+                  {productLabel} {selected.plan === 'basico' ? 'Básico' : selected.plan === 'pro' ? 'Pro' : 'Premium'}
+                </span>
+              </div>
+              <div className="flex justify-between items-baseline">
+                <span className="text-xs" style={{ color: '#8AA8C8' }}>Pagamento</span>
+                <span className="text-xs" style={{ color: '#E8F0FE' }}>
+                  {paymentMethod === 'PIX' ? 'PIX (recorrente mensal)' : 'Cartão de crédito (recorrente)'}
+                </span>
+              </div>
+              <div className="border-t pt-2 flex justify-between items-baseline"
+                style={{ borderColor: '#1E2D45' }}>
+                <span className="text-sm font-bold" style={{ color: '#E8F0FE' }}>Total hoje</span>
+                <div className="text-right">
+                  <span className="text-2xl font-bold font-mono" style={{ color: '#00FF94' }}>
+                    {fmtBRL(selected.priceCents)}
+                  </span>
+                  <span className="text-[10px] block" style={{ color: '#5A7A9A' }}>
+                    /mês · próxima cobrança em 30 dias
+                  </span>
+                </div>
+              </div>
             </div>
           )}
 
+          {/* CTA gigante e claro */}
           <button onClick={handleSubmit} disabled={loading}
-            className="w-full inline-flex items-center justify-center gap-2 rounded-lg py-3 text-sm font-bold transition-opacity hover:opacity-90 disabled:opacity-50"
-            style={{ background: 'linear-gradient(135deg, #00E5FF, #00FF94)', color: '#080C14' }}>
+            className="w-full inline-flex items-center justify-center gap-2 rounded-xl py-4 text-base font-bold transition-all hover:opacity-90 disabled:opacity-50 shadow-lg"
+            style={{
+              background: 'linear-gradient(135deg, #00E5FF, #00FF94)',
+              color: '#080C14',
+              boxShadow: '0 8px 24px rgba(0, 255, 148, 0.25)',
+            }}>
             {loading ? (
-              <><Loader2 className="h-4 w-4 animate-spin" /> Processando…</>
+              <><Loader2 className="h-5 w-5 animate-spin" /> Processando…</>
             ) : (
-              paymentMethod === 'PIX' ? 'Gerar QR Code PIX' : 'Pagar com cartão'
+              paymentMethod === 'PIX'
+                ? <><QrCode className="h-5 w-5" /> Gerar QR Code PIX</>
+                : <><CreditCard className="h-5 w-5" /> Pagar com cartão</>
             )}
           </button>
 
-          <p className="text-[10px] text-center" style={{ color: '#5A7A9A' }}>
-            🔒 Pagamento seguro processado pelo Asaas. Você pode cancelar a qualquer
-            momento na sua área de assinatura.
+          {/* Linha de selos de segurança embaixo do CTA */}
+          <div className="flex items-center justify-center gap-4 pt-1">
+            <span className="inline-flex items-center gap-1 text-[10px]" style={{ color: '#5A7A9A' }}>
+              <Lock className="h-3 w-3" /> SSL 256-bit
+            </span>
+            <span className="inline-flex items-center gap-1 text-[10px]" style={{ color: '#5A7A9A' }}>
+              <ShieldCheck className="h-3 w-3" /> PCI-DSS
+            </span>
+            <span className="inline-flex items-center gap-1 text-[10px]" style={{ color: '#5A7A9A' }}>
+              <Star className="h-3 w-3" /> Asaas
+            </span>
+          </div>
+
+          <p className="text-[10px] text-center leading-relaxed" style={{ color: '#5A7A9A' }}>
+            Ao confirmar, você concorda com os <a href="https://smartgestao-site.vercel.app/termos" target="_blank" rel="noopener noreferrer" className="underline" style={{ color: '#8AA8C8' }}>Termos de Uso</a> e{' '}
+            <a href="https://smartgestao-site.vercel.app/privacidade" target="_blank" rel="noopener noreferrer" className="underline" style={{ color: '#8AA8C8' }}>Política de Privacidade</a>.
+            Pagamento processado com criptografia de ponta a ponta pelo Asaas.
           </p>
         </div>
       </div>
     </div>
+  )
+}
+
+/** Badge pequeno de confiança (linha em cima do form). */
+function TrustBadge({ icon: Icon, label, sub, color }: {
+  icon: React.ElementType; label: string; sub: string; color: string
+}) {
+  return (
+    <div className="flex flex-col items-center text-center">
+      <Icon className="h-4 w-4 mb-1" style={{ color }} />
+      <p className="text-[10px] font-bold leading-tight" style={{ color: '#E8F0FE' }}>{label}</p>
+      <p className="text-[9px] leading-tight" style={{ color: '#5A7A9A' }}>{sub}</p>
+    </div>
+  )
+}
+
+/** Item de "próximos passos" exibido na tela de sucesso após cartão. */
+function NextStep({ num, title, desc }: { num: number; title: string; desc: string }) {
+  return (
+    <li className="flex items-start gap-3">
+      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold"
+        style={{
+          background: 'rgba(0,229,255,.12)',
+          color: '#00E5FF',
+          border: '1px solid rgba(0,229,255,.3)',
+        }}>
+        {num}
+      </div>
+      <div className="flex-1">
+        <p className="text-sm font-semibold" style={{ color: '#E8F0FE' }}>{title}</p>
+        <p className="text-[11px] mt-0.5" style={{ color: '#8AA8C8' }}>{desc}</p>
+      </div>
+    </li>
   )
 }
