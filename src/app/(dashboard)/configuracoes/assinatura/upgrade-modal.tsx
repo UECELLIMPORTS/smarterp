@@ -49,7 +49,10 @@ type DowngradePreviewOK = {
 export function UpgradeModal({ open, onClose, product, productLabel, currentPlan }: Props) {
   const [step, setStep] = useState<Step>('choose')
   const [previews, setPreviews] = useState<Record<Plan, { dir: Direction; data: UpgradePreviewOK | DowngradePreviewOK | { error: string } }>>({} as never)
-  const [loadingPreviews, setLoadingPreviews] = useState(false)
+  // IMPORTANTE: começa como `true` pra cobrir o primeiro render antes do
+  // useEffect rodar — se começasse como false, os cards tentariam acessar
+  // previews vazios e quebrariam a tela.
+  const [loadingPreviews, setLoadingPreviews] = useState(true)
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null)
   const [executing, setExecuting] = useState(false)
   const [pixQr, setPixQr] = useState<AsaasPixQrCode | null>(null)
@@ -67,12 +70,20 @@ export function UpgradeModal({ open, onClose, product, productLabel, currentPlan
     setLoadingPreviews(true)
     Promise.all(otherPlans.map(async p => {
       const isUpgrade = RANK[p.plan] > RANK[currentPlan]
-      if (isUpgrade) {
-        const data = await previewUpgrade(product, p.plan)
-        return [p.plan, { dir: 'upgrade' as const, data: data.ok ? data : { error: data.error } }] as const
-      } else {
-        const data = await previewDowngrade(product, p.plan)
-        return [p.plan, { dir: 'downgrade' as const, data: data.ok ? data : { error: data.error } }] as const
+      try {
+        if (isUpgrade) {
+          const data = await previewUpgrade(product, p.plan)
+          return [p.plan, { dir: 'upgrade' as const, data: data.ok ? data : { error: data.error } }] as const
+        } else {
+          const data = await previewDowngrade(product, p.plan)
+          return [p.plan, { dir: 'downgrade' as const, data: data.ok ? data : { error: data.error } }] as const
+        }
+      } catch (e) {
+        // Server action throw — não quebra a tela, mostra como erro no card
+        return [p.plan, {
+          dir: (isUpgrade ? 'upgrade' : 'downgrade') as Direction,
+          data: { error: e instanceof Error ? e.message : 'Erro ao calcular' },
+        }] as const
       }
     }))
       .then(results => {
@@ -80,6 +91,10 @@ export function UpgradeModal({ open, onClose, product, productLabel, currentPlan
         const map: any = {}
         for (const [plan, prev] of results) map[plan] = prev
         setPreviews(map)
+      })
+      .catch(err => {
+        console.error('[UpgradeModal] previews falharam:', err)
+        toast.error('Erro ao carregar opções de plano. Tente de novo.')
       })
       .finally(() => setLoadingPreviews(false))
   }, [open, product, currentPlan])
@@ -385,8 +400,13 @@ export function UpgradeModal({ open, onClose, product, productLabel, currentPlan
             <div className="space-y-3">
               {otherPlans.map(plan => {
                 const prev = previews[plan.plan]
-                const isUpgrade = prev?.dir === 'upgrade'
-                const hasError = prev && 'error' in prev.data
+                if (!prev) {
+                  // Preview ainda não carregou (não deveria acontecer porque
+                  // loadingPreviews bloqueia, mas defensivo)
+                  return null
+                }
+                const isUpgrade = prev.dir === 'upgrade'
+                const hasError = 'error' in prev.data
                 const features = featuresFor(product, plan.plan)
 
                 return (
@@ -421,14 +441,14 @@ export function UpgradeModal({ open, onClose, product, productLabel, currentPlan
                             <>
                               <p className="text-[10px]" style={{ color: '#5A7A9A' }}>Você paga agora</p>
                               <p className="text-lg font-bold font-mono" style={{ color: '#00FF94' }}>
-                                {fmtBRL((prev!.data as UpgradePreviewOK).proratedChargeCents)}
+                                {fmtBRL((prev.data as UpgradePreviewOK).proratedChargeCents)}
                               </p>
                             </>
                           ) : (
                             <>
                               <p className="text-[10px]" style={{ color: '#5A7A9A' }}>Vale em</p>
                               <p className="text-xs font-mono" style={{ color: '#FFB800' }}>
-                                {formatDate((prev!.data as DowngradePreviewOK).effectiveDate)}
+                                {formatDate((prev.data as DowngradePreviewOK).effectiveDate)}
                               </p>
                             </>
                           )}
@@ -458,8 +478,8 @@ export function UpgradeModal({ open, onClose, product, productLabel, currentPlan
                     )}
 
                     {hasError && (
-                      <p className="text-[11px]" style={{ color: '#FF4D6D' }}>
-                        {(prev!.data as { error: string }).error}
+                      <p className="text-[11px] mt-2" style={{ color: '#FF4D6D' }}>
+                        ⚠ {(prev.data as { error: string }).error}
                       </p>
                     )}
                   </button>
