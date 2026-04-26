@@ -20,9 +20,10 @@ import { getTenantId } from '@/lib/tenant'
 import {
   createAsaasCustomer, findAsaasCustomerByCpfCnpj,
   createAsaasSubscription, cancelAsaasSubscription,
-  getSubscriptionFirstPaymentUrl,
+  getSubscriptionFirstPayment, getPaymentPixQrCode,
   asaasToday,
-  type AsaasBillingType,
+  type AsaasBillingType, type AsaasCreditCard, type AsaasCreditCardHolderInfo,
+  type AsaasPixQrCode,
 } from '@/lib/asaas'
 import { getPrice, centsToReais, type Product, type Plan } from '@/lib/pricing'
 import { createNotification } from '@/lib/notifications'
@@ -35,10 +36,24 @@ export type SubscribeInput = {
   // tenant já tem asaas_customer_id setado.
   cpfCnpj?:      string             // só números
   phone?:        string             // celular
+  // Dados de cartão — obrigatórios quando paymentMethod=CREDIT_CARD
+  creditCard?: {
+    holderName:  string
+    number:      string             // só números
+    expiryMonth: string             // "01"-"12"
+    expiryYear:  string             // "2030"
+    ccv:         string
+  }
+  // Endereço de cobrança (Asaas exige pra cartão — anti-fraude)
+  postalCode?:    string             // só números (8 dígitos)
+  addressNumber?: string
 }
 
+/** Resposta unificada — pode trazer dados pra UI exibir QR PIX inline,
+ *  ou só sinalizar sucesso (cartão é cobrado imediatamente). */
 export type SubscribeResult =
-  | { ok: true;  asaasSubscriptionId: string; nextDueDate: string; paymentLinkHint: string }
+  | { ok: true;  asaasSubscriptionId: string; mode: 'pix';  pixQrCode: AsaasPixQrCode | null; paymentValue: number }
+  | { ok: true;  asaasSubscriptionId: string; mode: 'card'; chargedNow: boolean }
   | { ok: false; error: string }
 
 /** Limpa CPF/CNPJ pra só números. */
@@ -134,21 +149,48 @@ export async function subscribeToProduct(input: SubscribeInput): Promise<Subscri
     .eq('product', input.product)
     .maybeSingle()
 
-  if (existingSub?.asaas_subscription_id && existingSub.status !== 'cancelled') {
-    const url = await getSubscriptionFirstPaymentUrl(existingSub.asaas_subscription_id)
-    return {
-      ok: true,
-      asaasSubscriptionId: existingSub.asaas_subscription_id,
-      nextDueDate:         '',
-      paymentLinkHint:     url ?? '',
-    }
+  if (existingSub?.asaas_subscription_id && existingSub.status === 'active') {
+    return { ok: false, error: `Você já tem assinatura ativa de ${input.product}.` }
   }
 
   // ── 4. Cria subscription no Asaas ───────────────────────────────────────
   const billingType: AsaasBillingType = input.paymentMethod === 'CREDIT_CARD' ? 'CREDIT_CARD' : 'PIX'
-  // 1ª cobrança imediata pra usuário pagar logo (especialmente PIX que precisa
-  // ver o QR code agora). Próximas seguem o ciclo mensal automaticamente.
+  // 1ª cobrança imediata. Cartão é cobrado na hora; PIX gera QR pra cliente
+  // pagar manualmente (status fica inactive até webhook PAYMENT_RECEIVED).
   const dueDate = asaasToday()
+
+  // Pra cartão, valida e prepara dados sensíveis
+  let creditCard:           AsaasCreditCard | undefined
+  let creditCardHolderInfo: AsaasCreditCardHolderInfo | undefined
+  if (input.paymentMethod === 'CREDIT_CARD') {
+    if (!input.creditCard) {
+      return { ok: false, error: 'Dados do cartão são obrigatórios.' }
+    }
+    if (!input.postalCode || !input.addressNumber) {
+      return { ok: false, error: 'CEP e número do endereço são obrigatórios pra pagamento com cartão.' }
+    }
+
+    const cardNum = digitsOnly(input.creditCard.number)
+    if (cardNum.length < 13 || cardNum.length > 19) {
+      return { ok: false, error: 'Número do cartão inválido.' }
+    }
+
+    creditCard = {
+      holderName:  input.creditCard.holderName.trim(),
+      number:      cardNum,
+      expiryMonth: input.creditCard.expiryMonth.padStart(2, '0'),
+      expiryYear:  input.creditCard.expiryYear,
+      ccv:         input.creditCard.ccv,
+    }
+    creditCardHolderInfo = {
+      name:          tenant.name,
+      email:         user.email ?? '',
+      cpfCnpj:       cpfCnpj!,
+      postalCode:    digitsOnly(input.postalCode),
+      addressNumber: input.addressNumber,
+      mobilePhone:   input.phone ? digitsOnly(input.phone) : undefined,
+    }
+  }
 
   let asaasSub
   try {
@@ -160,10 +202,14 @@ export async function subscribeToProduct(input: SubscribeInput): Promise<Subscri
       cycle:       'MONTHLY',
       description: price.description,
       externalReference: `${tenantId}::${input.product}`,
+      creditCard,
+      creditCardHolderInfo,
     })
   } catch (e) {
     console.error('[subscribeToProduct] criar subscription Asaas falhou:', e)
-    return { ok: false, error: 'Erro ao criar assinatura no gateway. Tente novamente.' }
+    const msg = e instanceof Error ? e.message : 'Erro ao criar assinatura no gateway.'
+    // Erros comuns: cartão recusado, CVV errado, limite, etc.
+    return { ok: false, error: msg.includes('Asaas') ? msg : 'Erro ao processar pagamento. Verifique os dados.' }
   }
 
   // ── 5. Upsert local em subscriptions ────────────────────────────────────
@@ -198,20 +244,34 @@ export async function subscribeToProduct(input: SubscribeInput): Promise<Subscri
     type:     'subscription_active',
     title:    `Assinatura ${price.description} criada`,
     body:     billingType === 'PIX'
-                ? 'Acesse a página de assinatura pra pagar via PIX e ativar.'
-                : 'Pagamento via cartão será processado em instantes.',
+                ? 'Pague o PIX pra ativar — o QR code está aberto na tela.'
+                : 'Pagamento via cartão processado.',
     link:     '/configuracoes/assinatura',
   })
 
-  // Pega URL da 1ª cobrança (Asaas-hosted page com QR PIX ou form cartão)
-  const paymentUrl = await getSubscriptionFirstPaymentUrl(asaasSub.id) ?? ''
-
   revalidatePath('/configuracoes/assinatura')
+
+  // ── 6. Resposta diferenciada por método ────────────────────────────────
+  if (billingType === 'CREDIT_CARD') {
+    // Cartão: Asaas já cobrou. Webhook vai chegar e setar status='active'.
+    return {
+      ok:                  true,
+      asaasSubscriptionId: asaasSub.id,
+      mode:                'card',
+      chargedNow:          true,
+    }
+  }
+
+  // PIX: busca QR code da 1ª cobrança pra exibir inline no modal
+  const firstPayment = await getSubscriptionFirstPayment(asaasSub.id)
+  const pixQrCode = firstPayment ? await getPaymentPixQrCode(firstPayment.id) : null
+
   return {
-    ok: true,
+    ok:                  true,
     asaasSubscriptionId: asaasSub.id,
-    nextDueDate:         dueDate,
-    paymentLinkHint:     paymentUrl,
+    mode:                'pix',
+    pixQrCode,
+    paymentValue:        centsToReais(price.priceCents),
   }
 }
 
