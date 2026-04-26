@@ -189,8 +189,7 @@ export async function subscribeToProduct(input: SubscribeInput): Promise<Subscri
   if (upsertErr) {
     // Asaas já criou — não dá rollback fácil. Loga e segue (admin reconcilia).
     console.error('[subscribeToProduct] upsert local falhou:', upsertErr)
-    // TEMP: expor erro real pro debug. Tirar depois.
-    return { ok: false, error: `DB: ${upsertErr.message ?? upsertErr.code ?? JSON.stringify(upsertErr)}` }
+    return { ok: false, error: 'Assinatura criada no gateway mas erro ao registrar. Contate suporte.' }
   }
 
   void createNotification({
