@@ -23,13 +23,13 @@ export async function proxy(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Rotas públicas — redireciona usuário autenticado para dashboard
-  if (pathname === '/login') {
+  // Rotas públicas — redireciona usuário autenticado pro dashboard
+  if (pathname === '/login' || pathname === '/signup') {
     if (user) return NextResponse.redirect(new URL('/', request.url))
     return response
   }
 
-  // Rotas protegidas — redireciona não-autenticado para login
+  // Rotas protegidas — redireciona não-autenticado pro login
   if (!user) {
     return NextResponse.redirect(new URL('/login', request.url))
   }

@@ -136,7 +136,14 @@ export default function LoginPage() {
           </form>
         </div>
 
-        <p className="mt-6 text-center text-xs" style={{ color: '#64748B' }}>
+        <p className="mt-6 text-center text-sm" style={{ color: '#8AA8C8' }}>
+          Não tem conta?{' '}
+          <a href="/signup" className="font-semibold hover:underline" style={{ color: '#00E5FF' }}>
+            Criar grátis (7 dias)
+          </a>
+        </p>
+
+        <p className="mt-3 text-center text-xs" style={{ color: '#64748B' }}>
           Smart ERP © {new Date().getFullYear()} — Todos os direitos reservados
         </p>
       </div>
