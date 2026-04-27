@@ -370,6 +370,18 @@ export async function createSale(input: CreateSaleInput): Promise<{ id: string }
   const { supabase, user } = await requireAuth()
   const tenantId = getTenantId(user)
 
+  // Pega sessão de caixa aberta (se houver) pra associar a venda. Se caixa
+  // fechado, a venda fica com cash_session_id=null — POS UI já bloqueia
+  // vender com caixa fechado, então normalmente isso não acontece.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any
+  const { data: activeSession } = await sb
+    .from('cash_sessions')
+    .select('id')
+    .eq('tenant_id', tenantId)
+    .eq('status', 'open')
+    .maybeSingle()
+
   const { data: sale, error: saleError } = await supabase
     .from('sales')
     .insert({
@@ -384,6 +396,7 @@ export async function createSale(input: CreateSaleInput): Promise<{ id: string }
       payment_details: input.paymentDetails,
       sale_channel:    input.saleChannel  ?? null,
       delivery_type:   input.deliveryType ?? null,
+      cash_session_id: activeSession?.id ?? null,
     })
     .select('id')
     .single()

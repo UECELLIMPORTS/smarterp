@@ -9,7 +9,7 @@ export async function proxy(request: NextRequest) {
   // Sem essa exceção, requests de webhook são redirecionados pra /login (307)
   // e nunca chegam no handler. Causou bug onde Asaas marcava webhook como
   // "Penalização aplicada" (15 tentativas com 307) e parava de enviar.
-  if (pathname.startsWith('/api/webhooks/')) {
+  if (pathname.startsWith('/api/webhooks/') || pathname.startsWith('/api/cron/')) {
     return NextResponse.next({ request })
   }
 
