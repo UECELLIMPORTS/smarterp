@@ -37,6 +37,7 @@ export function EquipeClient({ members, invites, ownerEmail }: Props) {
   const [email, setEmail] = useState('')
   const [role, setRole]   = useState<Exclude<TeamRole, 'owner'>>('employee')
   const [permissions, setPermissions] = useState<ModuleKey[]>(['pos', 'estoque'])  // defaults sensatos
+  const [limitManagerAccess, setLimitManagerAccess] = useState(false)              // default off — manager full
   const [showInviteUrl, setShowInviteUrl] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
 
@@ -52,17 +53,21 @@ export function EquipeClient({ members, invites, ownerEmail }: Props) {
   function handleInvite(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
+    // Decide o que enviar como permissions:
+    // - employee → sempre permissions
+    // - manager + limitar acesso ON → permissions (limitado)
+    // - manager + limitar acesso OFF → undefined (acesso total)
+    const sendPerms = role === 'employee' || (role === 'manager' && limitManagerAccess)
+      ? permissions
+      : undefined
     startTransition(async () => {
-      const result = await inviteMember({
-        email,
-        role,
-        permissions: role === 'employee' ? permissions : undefined,
-      })
+      const result = await inviteMember({ email, role, permissions: sendPerms })
       if (!result.ok) { setError(result.error); return }
       setShowInviteUrl(result.inviteUrl)
       setEmail('')
       setRole('employee')
       setPermissions(['pos', 'estoque'])
+      setLimitManagerAccess(false)
       router.refresh()
     })
   }
@@ -186,12 +191,35 @@ export function EquipeClient({ members, invites, ownerEmail }: Props) {
             </div>
           </div>
 
-          {/* Checklist de módulos — só aparece se employee */}
-          {role === 'employee' && (
+          {/* Toggle "Limitar acessos" — só aparece se manager */}
+          {role === 'manager' && (
+            <label className="flex items-center gap-2.5 rounded-lg border p-3 cursor-pointer transition-colors hover:bg-white/[0.02]"
+              style={{
+                background: limitManagerAccess ? 'rgba(255,184,0,.06)' : '#0D1320',
+                borderColor: limitManagerAccess ? '#FFB800' : '#1E2D45',
+              }}>
+              <input type="checkbox" checked={limitManagerAccess}
+                onChange={e => setLimitManagerAccess(e.target.checked)}
+                className="h-4 w-4 cursor-pointer" />
+              <div className="flex-1">
+                <p className="text-xs font-bold flex items-center gap-1.5" style={{ color: '#E8F0FE' }}>
+                  <Shield className="h-3 w-3" style={{ color: '#FFB800' }} />
+                  Limitar acessos desse manager
+                </p>
+                <p className="text-[10px] mt-0.5" style={{ color: '#8AA8C8' }}>
+                  Marque pra escolher quais módulos esse manager pode acessar.
+                  Sem marcar, ele tem acesso total (exceto Equipe e Assinatura).
+                </p>
+              </div>
+            </label>
+          )}
+
+          {/* Checklist de módulos — aparece pra employee SEMPRE ou pra manager limitado */}
+          {(role === 'employee' || (role === 'manager' && limitManagerAccess)) && (
             <div>
               <label className="text-[10px] font-bold uppercase tracking-widest mb-2 block flex items-center gap-1.5"
                 style={{ color: '#5A7A9A' }}>
-                <Shield className="h-3 w-3" /> Módulos liberados pra esse funcionário
+                <Shield className="h-3 w-3" /> Módulos liberados {role === 'employee' ? 'pra esse funcionário' : 'pra esse manager'}
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {MODULES.map(mod => {
@@ -221,7 +249,10 @@ export function EquipeClient({ members, invites, ownerEmail }: Props) {
           )}
 
           <div className="flex justify-end">
-            <button type="submit" disabled={pending || !email || (role === 'employee' && permissions.length === 0)}
+            <button type="submit"
+              disabled={pending || !email
+                || (role === 'employee' && permissions.length === 0)
+                || (role === 'manager' && limitManagerAccess && permissions.length === 0)}
               className="inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-sm font-bold transition-opacity hover:opacity-90 disabled:opacity-40"
               style={{ background: 'linear-gradient(135deg, #00E5FF, #00FF94)', color: '#080C14' }}>
               {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
@@ -232,7 +263,9 @@ export function EquipeClient({ members, invites, ownerEmail }: Props) {
         <p className="mt-3 text-xs" style={{ color: '#5A7A9A' }}>
           {role === 'employee'
             ? 'Funcionário entra com acesso APENAS aos módulos marcados acima.'
-            : 'Manager entra com acesso total exceto Equipe e Assinatura.'}
+            : limitManagerAccess
+              ? 'Manager limitado: só vê os módulos marcados acima.'
+              : 'Manager entra com acesso total exceto Equipe e Assinatura.'}
           {' '}Convite expira em 7 dias.
         </p>
         {error && (
@@ -270,10 +303,16 @@ export function EquipeClient({ members, invites, ownerEmail }: Props) {
                       <Crown className="h-3 w-3" /> dono
                     </span>
                   )}
-                  {m.role === 'manager' && (
+                  {m.role === 'manager' && m.permissions.length === 0 && (
                     <span className="rounded px-2 py-0.5 text-[10px] font-bold uppercase"
                       style={{ background: 'rgba(0,229,255,.15)', color: '#00E5FF' }}>
                       manager · acesso total
+                    </span>
+                  )}
+                  {m.role === 'manager' && m.permissions.length > 0 && (
+                    <span className="rounded px-2 py-0.5 text-[10px] font-bold uppercase"
+                      style={{ background: 'rgba(255,184,0,.15)', color: '#FFB800' }}>
+                      manager · limitado
                     </span>
                   )}
                   {m.role === 'employee' && (
@@ -284,7 +323,7 @@ export function EquipeClient({ members, invites, ownerEmail }: Props) {
                   )}
                 </div>
                 <p className="text-xs truncate" style={{ color: '#8AA8C8' }}>{m.email}</p>
-                {m.role === 'employee' && (
+                {(m.role === 'employee' || (m.role === 'manager' && m.permissions.length > 0)) && (
                   <div className="flex flex-wrap gap-1 mt-1.5">
                     {m.permissions.length === 0 ? (
                       <span className="text-[10px] italic" style={{ color: '#FF4D6D' }}>
@@ -309,7 +348,7 @@ export function EquipeClient({ members, invites, ownerEmail }: Props) {
                 </p>
               </div>
               <div className="flex items-center gap-1 shrink-0">
-                {m.role === 'employee' && (
+                {(m.role === 'employee' || m.role === 'manager') && (
                   <button onClick={() => startEditMember(m)}
                     disabled={pending}
                     className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-white/5 transition-colors"
@@ -355,8 +394,19 @@ export function EquipeClient({ members, invites, ownerEmail }: Props) {
 
             <div className="p-6 space-y-3">
               <p className="text-xs" style={{ color: '#8AA8C8' }}>
-                Marque os módulos que esse funcionário pode acessar.
+                {editingMember.role === 'manager'
+                  ? 'Marque os módulos pra limitar o acesso. Desmarque tudo pra dar acesso total.'
+                  : 'Marque os módulos que esse funcionário pode acessar.'}
               </p>
+
+              {editingMember.role === 'manager' && (
+                <button type="button"
+                  onClick={() => setEditPerms([])}
+                  className="w-full rounded-lg border py-2 text-xs font-bold transition-colors hover:bg-white/[0.02]"
+                  style={{ borderColor: '#1E2D45', color: '#FFB800' }}>
+                  🔓 Dar acesso total (limpar todas)
+                </button>
+              )}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {MODULES.map(mod => {
@@ -386,7 +436,8 @@ export function EquipeClient({ members, invites, ownerEmail }: Props) {
                   style={{ borderColor: '#1E2D45', color: '#8AA8C8' }}>
                   Cancelar
                 </button>
-                <button onClick={handleSaveEditPerms} disabled={pending || editPerms.length === 0}
+                <button onClick={handleSaveEditPerms}
+                  disabled={pending || (editingMember.role === 'employee' && editPerms.length === 0)}
                   className="flex-1 rounded-lg py-2.5 text-sm font-bold transition-opacity hover:opacity-90 disabled:opacity-50"
                   style={{ background: 'linear-gradient(135deg, #00E5FF, #00FF94)', color: '#080C14' }}>
                   {pending ? 'Salvando...' : 'Salvar'}

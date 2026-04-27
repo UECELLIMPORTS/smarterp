@@ -72,19 +72,20 @@ export async function listTeamMembers(): Promise<TeamMember[]> {
 
   const members = data.users.filter(u => u.app_metadata?.tenant_id === tenantId)
 
-  // Carrega permissions de TODOS os employees em 1 query
-  const employeeIds = members
-    .filter(u => (u.app_metadata?.tenant_role as TeamRole) === 'employee')
+  // Carrega permissions de TODOS os não-owners (manager + employee) em 1 query.
+  // Manager sem rows = acesso total (compat). Manager com rows = limitado.
+  const nonOwnerIds = members
+    .filter(u => (u.app_metadata?.tenant_role as TeamRole) !== 'owner')
     .map(u => u.id)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = admin as any
   const permsByUser: Record<string, string[]> = {}
-  if (employeeIds.length > 0) {
+  if (nonOwnerIds.length > 0) {
     const { data: perms } = await sb
       .from('tenant_member_permissions')
       .select('user_id, module_key')
-      .in('user_id', employeeIds)
+      .in('user_id', nonOwnerIds)
       .eq('tenant_id', tenantId)
     type Row = { user_id: string; module_key: string }
     for (const r of (perms ?? []) as Row[]) {
@@ -147,7 +148,10 @@ export async function listPendingInvites(): Promise<PendingInvite[]> {
 export async function inviteMember(input: {
   email: string
   role:  TeamRole
-  /** Pra role='employee': lista de module_keys liberados. Pra manager: ignorado. */
+  /**
+   * Pra employee: lista obrigatória de module_keys liberados.
+   * Pra manager: opcional. Vazio/undefined = acesso total. Com itens = limitado.
+   */
   permissions?: string[]
 }): Promise<{ ok: true; inviteUrl: string } | { ok: false; error: string }> {
   const { supabase, user } = await requireAuth()
@@ -181,7 +185,8 @@ export async function inviteMember(input: {
       tenant_id:   tenantId,
       email,
       role:        input.role,
-      permissions: input.role === 'employee' ? input.permissions : [],
+      // Salva permissions independente do role. Manager sem permissions = full access.
+      permissions: input.permissions ?? [],
       token,
       invited_by:  user.id,
     })
@@ -258,8 +263,9 @@ export async function acceptInvite(input: {
     return { ok: false, error: 'Erro ao criar conta. Tente novamente.' }
   }
 
-  // 3. Pra employees: copia permissions do convite pra tenant_member_permissions
-  if (invite.role === 'employee' && Array.isArray(invite.permissions) && invite.permissions.length > 0) {
+  // 3. Copia permissions do convite (manager OU employee). Vazio = acesso total
+  // (só faz sentido pra manager — employee vazio é bloqueado em inviteMember).
+  if (Array.isArray(invite.permissions) && invite.permissions.length > 0) {
     const rows = (invite.permissions as string[]).map(module_key => ({
       user_id:   created.user.id,
       tenant_id: invite.tenant_id,

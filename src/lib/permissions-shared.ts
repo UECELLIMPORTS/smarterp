@@ -47,10 +47,15 @@ export function isValidModuleKey(s: string): s is ModuleKey {
 // objeto simples — usar `unknown`-like loose shape pra compatibilidade.
 type UserLike = { app_metadata?: Record<string, unknown> | { tenant_role?: string } }
 
-/** True se o role é 'owner' ou 'manager' (legado). Esses têm acesso total. */
+/**
+ * True se o user tem garantia de acesso total — apenas owner.
+ * Manager pode ter ou não acesso total (depende de tenant_member_permissions);
+ * a fonte da verdade é `getUserPermissions` (server). Pra UI, sempre filtre
+ * a partir de allowedModules — esse helper é só pra atalhos óbvios.
+ */
 export function hasFullAccess(user: UserLike): boolean {
   const role = (user.app_metadata as { tenant_role?: string } | undefined)?.tenant_role
-  return role === 'owner' || role === 'manager'
+  return role === 'owner'
 }
 
 /** Sync: dado uma lista pré-carregada, checa se módulo está liberado. */

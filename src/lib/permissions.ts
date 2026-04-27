@@ -24,9 +24,18 @@ export {
 } from './permissions-shared'
 export type { ModuleKey, ModuleInfo } from './permissions-shared'
 
-/** Lê todas as permissions ativas do user logado. */
+/**
+ * Lê todas as permissions ativas do user logado.
+ *
+ * Regras:
+ * - owner → sempre todos os módulos (acesso total)
+ * - manager sem rows em tenant_member_permissions → todos (compat retroativa)
+ * - manager com rows → só os módulos das rows (limitado)
+ * - employee → só os módulos das rows (sempre limitado, bloqueado se vazio)
+ */
 export async function getUserPermissions(user: User): Promise<ModuleKey[]> {
-  if (hasFullAccess(user)) return MODULES.map(m => m.key)
+  const role = user.app_metadata?.tenant_role
+  if (role === 'owner') return MODULES.map(m => m.key)
 
   const tenantId = getTenantId(user)
   if (!tenantId) return []
@@ -46,9 +55,15 @@ export async function getUserPermissions(user: User): Promise<ModuleKey[]> {
   }
 
   type Row = { module_key: string }
-  return ((data ?? []) as Row[])
+  const perms = ((data ?? []) as Row[])
     .map(r => r.module_key)
     .filter(isValidModuleKey)
+
+  // Manager sem permissions registradas → acesso total (compat com managers
+  // antigos que não passaram pelo fluxo de "limitar acessos").
+  if (role === 'manager' && perms.length === 0) return MODULES.map(m => m.key)
+
+  return perms
 }
 
 /** True se user pode acessar o módulo. Owner/manager sempre true. */
