@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { MobileNav } from './mobile-nav'
 import { NotificationsBell } from './notifications-bell'
+import type { ModuleKey } from '@/lib/permissions-shared'
 
 export type PlanBadge = {
   label: string
@@ -14,9 +15,12 @@ export type PlanBadge = {
 }
 
 type Props = {
-  userName:  string
-  userEmail: string
-  planBadge: PlanBadge | null
+  userName:        string
+  userEmail:       string
+  planBadge:       PlanBadge | null
+  hasFullAccess?:  boolean
+  allowedModules?: ModuleKey[]
+  isOwner?:        boolean
 }
 
 const BADGE_STYLES: Record<PlanBadge['kind'], { bg: string; color: string; border: string; icon: React.ElementType }> = {
@@ -28,7 +32,10 @@ const BADGE_STYLES: Record<PlanBadge['kind'], { bg: string; color: string; borde
   premium:  { bg: 'rgba(0,255,148,.12)',   color: '#00FF94', border: 'rgba(0,255,148,.4)', icon: Crown },
 }
 
-export function Topbar({ userName, userEmail, planBadge }: Props) {
+export function Topbar({
+  userName, userEmail, planBadge,
+  hasFullAccess = true, allowedModules = [], isOwner = true,
+}: Props) {
   const router = useRouter()
 
   async function handleSignOut() {
@@ -52,7 +59,7 @@ export function Topbar({ userName, userEmail, planBadge }: Props) {
       style={{ background: '#080C14', borderColor: '#1E2D45' }}
     >
       {/* Slot esquerdo: hamburger no mobile */}
-      <MobileNav />
+      <MobileNav hasFullAccess={hasFullAccess} allowedModules={allowedModules} isOwner={isOwner} />
 
       <div className="flex items-center gap-3">
         {/* Badge do plano atual — clicável vai pra página de assinatura */}

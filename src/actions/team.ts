@@ -22,23 +22,25 @@ import { getTenantId } from '@/lib/tenant'
 import { sendEmail } from '@/lib/email'
 import { randomBytes } from 'crypto'
 
-export type TeamRole = 'owner' | 'manager'
+export type TeamRole = 'owner' | 'manager' | 'employee'
 
 export type TeamMember = {
   userId:      string
   email:       string
   fullName:    string | null
   role:        TeamRole
+  permissions: string[]                // só relevante pra employees
   createdAt:   string
 }
 
 export type PendingInvite = {
-  id:        string
-  email:     string
-  role:      TeamRole
-  expiresAt: string
-  createdAt: string
-  inviteUrl: string
+  id:          string
+  email:       string
+  role:        TeamRole
+  permissions: string[]
+  expiresAt:   string
+  createdAt:   string
+  inviteUrl:   string
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -65,22 +67,41 @@ export async function listTeamMembers(): Promise<TeamMember[]> {
   if (!isOwner(user)) throw new Error('Apenas o dono pode listar a equipe.')
 
   const admin = createAdminClient()
-  // listUsers traz até 50 por página por default. Pra tenant com >50 membros
-  // precisaria paginar — não é caso comum por enquanto.
   const { data, error } = await admin.auth.admin.listUsers({ page: 1, perPage: 100 })
   if (error) throw new Error(error.message)
 
-  return data.users
-    .filter(u => u.app_metadata?.tenant_id === tenantId)
+  const members = data.users.filter(u => u.app_metadata?.tenant_id === tenantId)
+
+  // Carrega permissions de TODOS os employees em 1 query
+  const employeeIds = members
+    .filter(u => (u.app_metadata?.tenant_role as TeamRole) === 'employee')
+    .map(u => u.id)
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = admin as any
+  const permsByUser: Record<string, string[]> = {}
+  if (employeeIds.length > 0) {
+    const { data: perms } = await sb
+      .from('tenant_member_permissions')
+      .select('user_id, module_key')
+      .in('user_id', employeeIds)
+      .eq('tenant_id', tenantId)
+    type Row = { user_id: string; module_key: string }
+    for (const r of (perms ?? []) as Row[]) {
+      ;(permsByUser[r.user_id] ??= []).push(r.module_key)
+    }
+  }
+
+  return members
     .map(u => ({
-      userId:    u.id,
-      email:     u.email ?? '',
-      fullName:  (u.user_metadata?.full_name as string | undefined) ?? null,
-      role:      (u.app_metadata?.tenant_role as TeamRole) ?? 'manager',
-      createdAt: u.created_at,
+      userId:      u.id,
+      email:       u.email ?? '',
+      fullName:    (u.user_metadata?.full_name as string | undefined) ?? null,
+      role:        (u.app_metadata?.tenant_role as TeamRole) ?? 'manager',
+      permissions: permsByUser[u.id] ?? [],
+      createdAt:   u.created_at,
     }))
     .sort((a, b) => {
-      // Owner primeiro, depois ordem de criação
       if (a.role === 'owner' && b.role !== 'owner') return -1
       if (b.role === 'owner' && a.role !== 'owner') return 1
       return a.createdAt.localeCompare(b.createdAt)
@@ -98,7 +119,7 @@ export async function listPendingInvites(): Promise<PendingInvite[]> {
   const sb = supabase as any
   const { data, error } = await sb
     .from('tenant_invites')
-    .select('id, email, role, token, expires_at, created_at')
+    .select('id, email, role, permissions, token, expires_at, created_at')
     .eq('tenant_id', tenantId)
     .is('accepted_at', null)
     .gt('expires_at', new Date().toISOString())
@@ -106,14 +127,18 @@ export async function listPendingInvites(): Promise<PendingInvite[]> {
 
   if (error) throw new Error(error.message)
 
-  type Row = { id: string; email: string; role: TeamRole; token: string; expires_at: string; created_at: string }
+  type Row = {
+    id: string; email: string; role: TeamRole; permissions: string[] | null
+    token: string; expires_at: string; created_at: string
+  }
   return ((data ?? []) as Row[]).map(r => ({
-    id:        r.id,
-    email:     r.email,
-    role:      r.role,
-    expiresAt: r.expires_at,
-    createdAt: r.created_at,
-    inviteUrl: `${appOrigin()}/aceitar-convite/${r.token}`,
+    id:          r.id,
+    email:       r.email,
+    role:        r.role,
+    permissions: r.permissions ?? [],
+    expiresAt:   r.expires_at,
+    createdAt:   r.created_at,
+    inviteUrl:   `${appOrigin()}/aceitar-convite/${r.token}`,
   }))
 }
 
@@ -122,6 +147,8 @@ export async function listPendingInvites(): Promise<PendingInvite[]> {
 export async function inviteMember(input: {
   email: string
   role:  TeamRole
+  /** Pra role='employee': lista de module_keys liberados. Pra manager: ignorado. */
+  permissions?: string[]
 }): Promise<{ ok: true; inviteUrl: string } | { ok: false; error: string }> {
   const { supabase, user } = await requireAuth()
   const tenantId = getTenantId(user)
@@ -129,7 +156,12 @@ export async function inviteMember(input: {
 
   const email = input.email.trim().toLowerCase()
   if (!/^\S+@\S+\.\S+$/.test(email)) return { ok: false, error: 'E-mail inválido.' }
-  if (input.role !== 'manager') return { ok: false, error: 'Role inválida.' }
+  if (input.role !== 'manager' && input.role !== 'employee') {
+    return { ok: false, error: 'Role inválida (use manager ou employee).' }
+  }
+  if (input.role === 'employee' && (!input.permissions || input.permissions.length === 0)) {
+    return { ok: false, error: 'Funcionário precisa ter ao menos 1 módulo liberado.' }
+  }
 
   // Verifica se o email já é membro
   const admin = createAdminClient()
@@ -139,7 +171,6 @@ export async function inviteMember(input: {
   )
   if (alreadyMember) return { ok: false, error: 'Esse email já é membro da equipe.' }
 
-  // Gera token único (32 bytes hex = 64 chars)
   const token = randomBytes(32).toString('hex')
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -147,11 +178,12 @@ export async function inviteMember(input: {
   const { error: insertErr } = await sb
     .from('tenant_invites')
     .insert({
-      tenant_id:  tenantId,
+      tenant_id:   tenantId,
       email,
-      role:       input.role,
+      role:        input.role,
+      permissions: input.role === 'employee' ? input.permissions : [],
       token,
-      invited_by: user.id,
+      invited_by:  user.id,
     })
 
   if (insertErr) {
@@ -201,7 +233,7 @@ export async function acceptInvite(input: {
   // 1. Busca o convite (precisa ser válido + não aceito + não expirado)
   const { data: invite, error: inviteErr } = await sb
     .from('tenant_invites')
-    .select('id, tenant_id, email, role, expires_at, accepted_at')
+    .select('id, tenant_id, email, role, permissions, expires_at, accepted_at')
     .eq('token', token)
     .maybeSingle()
 
@@ -226,12 +258,69 @@ export async function acceptInvite(input: {
     return { ok: false, error: 'Erro ao criar conta. Tente novamente.' }
   }
 
-  // 3. Marca invite como aceito
+  // 3. Pra employees: copia permissions do convite pra tenant_member_permissions
+  if (invite.role === 'employee' && Array.isArray(invite.permissions) && invite.permissions.length > 0) {
+    const rows = (invite.permissions as string[]).map(module_key => ({
+      user_id:   created.user.id,
+      tenant_id: invite.tenant_id,
+      module_key,
+    }))
+    const { error: permErr } = await sb.from('tenant_member_permissions').insert(rows)
+    if (permErr) {
+      console.error('[acceptInvite] inserir permissions falhou:', permErr)
+      // Não falha o flow — admin pode reconciliar depois
+    }
+  }
+
+  // 4. Marca invite como aceito
   await sb.from('tenant_invites')
     .update({ accepted_at: new Date().toISOString(), accepted_by: created.user.id })
     .eq('id', invite.id)
 
   return { ok: true, email: invite.email }
+}
+
+// ── Atualizar permissions de um employee existente ─────────────────────────
+
+export async function updateMemberPermissions(input: {
+  userId:      string
+  permissions: string[]
+}): Promise<{ ok: boolean; error?: string }> {
+  const { user } = await requireAuth()
+  const tenantId = getTenantId(user)
+  if (!isOwner(user)) return { ok: false, error: 'Apenas o dono pode editar permissões.' }
+
+  const admin = createAdminClient()
+  // Confirma que o target pertence ao mesmo tenant + é employee
+  const { data: target } = await admin.auth.admin.getUserById(input.userId)
+  if (!target?.user || target.user.app_metadata?.tenant_id !== tenantId) {
+    return { ok: false, error: 'Usuário não pertence a este tenant.' }
+  }
+  if (target.user.app_metadata?.tenant_role === 'owner') {
+    return { ok: false, error: 'Owner tem acesso total — não dá pra editar.' }
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = admin as any
+
+  // Apaga permissions antigas + insere novas (delete-then-insert)
+  await sb.from('tenant_member_permissions')
+    .delete()
+    .eq('user_id', input.userId)
+    .eq('tenant_id', tenantId)
+
+  if (input.permissions.length > 0) {
+    const rows = input.permissions.map(module_key => ({
+      user_id:   input.userId,
+      tenant_id: tenantId,
+      module_key,
+    }))
+    const { error } = await sb.from('tenant_member_permissions').insert(rows)
+    if (error) return { ok: false, error: error.message }
+  }
+
+  revalidatePath('/configuracoes/equipe')
+  return { ok: true }
 }
 
 // ── Cancelar convite pendente ──────────────────────────────────────────────

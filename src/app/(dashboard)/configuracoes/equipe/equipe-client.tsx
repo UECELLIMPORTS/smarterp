@@ -5,9 +5,14 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
   Users, ArrowLeft, UserPlus, Crown, Mail, Trash2, Loader2,
-  Copy, Check, Clock, X,
+  Copy, Check, Clock, X, Edit2, Shield,
 } from 'lucide-react'
-import { inviteMember, removeMember, cancelInvite, type TeamMember, type PendingInvite } from '@/actions/team'
+import {
+  inviteMember, removeMember, cancelInvite, updateMemberPermissions,
+  type TeamMember, type PendingInvite, type TeamRole,
+} from '@/actions/team'
+import { MODULES, type ModuleKey } from '@/lib/permissions-shared'
+import { toast } from 'sonner'
 
 const inputCls = 'w-full rounded-lg border px-3.5 py-2.5 text-sm text-text placeholder:text-muted outline-none transition-colors focus:border-accent/60'
 const inputStyle = { background: '#111827', borderColor: '#1E2D45' }
@@ -30,17 +35,53 @@ export function EquipeClient({ members, invites, ownerEmail }: Props) {
 
   // Form de convite
   const [email, setEmail] = useState('')
+  const [role, setRole]   = useState<Exclude<TeamRole, 'owner'>>('employee')
+  const [permissions, setPermissions] = useState<ModuleKey[]>(['pos', 'estoque'])  // defaults sensatos
   const [showInviteUrl, setShowInviteUrl] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+
+  // Edição de permissions de membro existente
+  const [editingMember, setEditingMember] = useState<TeamMember | null>(null)
+  const [editPerms, setEditPerms] = useState<ModuleKey[]>([])
+
+  function togglePermission(key: ModuleKey, list: ModuleKey[], setter: (v: ModuleKey[]) => void) {
+    if (list.includes(key)) setter(list.filter(k => k !== key))
+    else                    setter([...list, key])
+  }
 
   function handleInvite(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
     startTransition(async () => {
-      const result = await inviteMember({ email, role: 'manager' })
+      const result = await inviteMember({
+        email,
+        role,
+        permissions: role === 'employee' ? permissions : undefined,
+      })
       if (!result.ok) { setError(result.error); return }
       setShowInviteUrl(result.inviteUrl)
       setEmail('')
+      setRole('employee')
+      setPermissions(['pos', 'estoque'])
+      router.refresh()
+    })
+  }
+
+  function startEditMember(m: TeamMember) {
+    setEditingMember(m)
+    setEditPerms((m.permissions as ModuleKey[]) ?? [])
+  }
+
+  function handleSaveEditPerms() {
+    if (!editingMember) return
+    startTransition(async () => {
+      const res = await updateMemberPermissions({
+        userId: editingMember.userId,
+        permissions: editPerms,
+      })
+      if (!res.ok) { toast.error(res.error ?? 'Erro'); return }
+      toast.success('Permissões atualizadas')
+      setEditingMember(null)
       router.refresh()
     })
   }
@@ -122,19 +163,77 @@ export function EquipeClient({ members, invites, ownerEmail }: Props) {
           <UserPlus className="h-4 w-4" style={{ color: '#00E5FF' }} />
           Convidar novo membro
         </h2>
-        <form onSubmit={handleInvite} className="flex flex-col sm:flex-row gap-2">
-          <input type="email" required value={email} onChange={e => setEmail(e.target.value)}
-            placeholder="email@empresa.com" className={inputCls} style={inputStyle} />
-          <button type="submit" disabled={pending || !email}
-            className="inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-sm font-bold transition-opacity hover:opacity-90 disabled:opacity-40"
-            style={{ background: 'linear-gradient(135deg, #00E5FF, #00FF94)', color: '#080C14' }}>
-            {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
-            Enviar convite
-          </button>
+        <form onSubmit={handleInvite} className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-[10px] font-bold uppercase tracking-widest mb-1.5 block"
+                style={{ color: '#5A7A9A' }}>
+                Email do convidado
+              </label>
+              <input type="email" required value={email} onChange={e => setEmail(e.target.value)}
+                placeholder="email@empresa.com" className={inputCls} style={inputStyle} />
+            </div>
+            <div>
+              <label className="text-[10px] font-bold uppercase tracking-widest mb-1.5 block"
+                style={{ color: '#5A7A9A' }}>
+                Tipo de acesso
+              </label>
+              <select value={role} onChange={e => setRole(e.target.value as 'manager' | 'employee')}
+                className={inputCls} style={inputStyle}>
+                <option value="employee">Funcionário (módulos restritos)</option>
+                <option value="manager">Manager (acesso total)</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Checklist de módulos — só aparece se employee */}
+          {role === 'employee' && (
+            <div>
+              <label className="text-[10px] font-bold uppercase tracking-widest mb-2 block flex items-center gap-1.5"
+                style={{ color: '#5A7A9A' }}>
+                <Shield className="h-3 w-3" /> Módulos liberados pra esse funcionário
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {MODULES.map(mod => {
+                  const checked = permissions.includes(mod.key)
+                  return (
+                    <label key={mod.key}
+                      className="flex items-start gap-2.5 rounded-lg border p-3 cursor-pointer transition-colors hover:bg-white/[0.02]"
+                      style={{
+                        background: checked ? 'rgba(0,229,255,.06)' : '#0D1320',
+                        borderColor: checked ? '#00E5FF' : '#1E2D45',
+                      }}>
+                      <input type="checkbox" checked={checked}
+                        onChange={() => togglePermission(mod.key, permissions, setPermissions)}
+                        className="mt-0.5 h-4 w-4 accent-accent cursor-pointer" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold" style={{ color: '#E8F0FE' }}>{mod.label}</p>
+                        <p className="text-[10px] mt-0.5" style={{ color: '#8AA8C8' }}>{mod.description}</p>
+                      </div>
+                    </label>
+                  )
+                })}
+              </div>
+              <p className="text-[10px] mt-2" style={{ color: '#5A7A9A' }}>
+                Funcionário só vai ver no menu lateral os módulos que você marcar.
+              </p>
+            </div>
+          )}
+
+          <div className="flex justify-end">
+            <button type="submit" disabled={pending || !email || (role === 'employee' && permissions.length === 0)}
+              className="inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-sm font-bold transition-opacity hover:opacity-90 disabled:opacity-40"
+              style={{ background: 'linear-gradient(135deg, #00E5FF, #00FF94)', color: '#080C14' }}>
+              {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+              Enviar convite
+            </button>
+          </div>
         </form>
         <p className="mt-3 text-xs" style={{ color: '#5A7A9A' }}>
-          Convidado entra como <strong>manager</strong> — acessa tudo no app exceto Equipe e Assinatura.
-          Convite expira em 7 dias.
+          {role === 'employee'
+            ? 'Funcionário entra com acesso APENAS aos módulos marcados acima.'
+            : 'Manager entra com acesso total exceto Equipe e Assinatura.'}
+          {' '}Convite expira em 7 dias.
         </p>
         {error && (
           <p className="mt-2 text-xs" style={{ color: '#FF5C5C' }}>{error}</p>
@@ -174,28 +273,129 @@ export function EquipeClient({ members, invites, ownerEmail }: Props) {
                   {m.role === 'manager' && (
                     <span className="rounded px-2 py-0.5 text-[10px] font-bold uppercase"
                       style={{ background: 'rgba(0,229,255,.15)', color: '#00E5FF' }}>
-                      manager
+                      manager · acesso total
+                    </span>
+                  )}
+                  {m.role === 'employee' && (
+                    <span className="rounded px-2 py-0.5 text-[10px] font-bold uppercase"
+                      style={{ background: 'rgba(0,255,148,.12)', color: '#00FF94' }}>
+                      funcionário
                     </span>
                   )}
                 </div>
                 <p className="text-xs truncate" style={{ color: '#8AA8C8' }}>{m.email}</p>
-                <p className="text-[10px] mt-0.5" style={{ color: '#5A7A9A' }}>
+                {m.role === 'employee' && (
+                  <div className="flex flex-wrap gap-1 mt-1.5">
+                    {m.permissions.length === 0 ? (
+                      <span className="text-[10px] italic" style={{ color: '#FF4D6D' }}>
+                        ⚠ sem módulos liberados
+                      </span>
+                    ) : (
+                      m.permissions.map(p => {
+                        const mod = MODULES.find(m => m.key === p)
+                        if (!mod) return null
+                        return (
+                          <span key={p} className="text-[10px] font-bold px-1.5 py-0.5 rounded"
+                            style={{ background: 'rgba(0,229,255,.1)', color: '#00E5FF' }}>
+                            {mod.label}
+                          </span>
+                        )
+                      })
+                    )}
+                  </div>
+                )}
+                <p className="text-[10px] mt-1" style={{ color: '#5A7A9A' }}>
                   No time desde {DT(m.createdAt)}
                 </p>
               </div>
-              {m.role !== 'owner' && (
-                <button onClick={() => handleRemove(m.userId, m.email)}
-                  disabled={pending}
-                  className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-white/5 transition-colors"
-                  title="Remover da equipe"
-                  style={{ color: '#FF5C5C' }}>
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              )}
+              <div className="flex items-center gap-1 shrink-0">
+                {m.role === 'employee' && (
+                  <button onClick={() => startEditMember(m)}
+                    disabled={pending}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-white/5 transition-colors"
+                    title="Editar permissões"
+                    style={{ color: '#00E5FF' }}>
+                    <Edit2 className="h-4 w-4" />
+                  </button>
+                )}
+                {m.role !== 'owner' && (
+                  <button onClick={() => handleRemove(m.userId, m.email)}
+                    disabled={pending}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-white/5 transition-colors"
+                    title="Remover da equipe"
+                    style={{ color: '#FF5C5C' }}>
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
             </li>
           ))}
         </ul>
       </div>
+
+      {/* Modal edit permissions */}
+      {editingMember && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.7)' }}
+          onClick={() => setEditingMember(null)}>
+          <div className="rounded-2xl border w-full max-w-lg max-h-[90vh] overflow-y-auto"
+            style={{ background: '#0F1A2B', borderColor: '#2A3D5C' }}
+            onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b"
+              style={{ borderColor: '#1E2D45' }}>
+              <h3 className="text-base font-bold flex items-center gap-2" style={{ color: '#E8F0FE' }}>
+                <Shield className="h-4 w-4" style={{ color: '#00E5FF' }} />
+                Permissões — {editingMember.fullName ?? editingMember.email}
+              </h3>
+              <button onClick={() => setEditingMember(null)}
+                className="p-1 rounded hover:bg-white/5" style={{ color: '#5A7A9A' }}>
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-3">
+              <p className="text-xs" style={{ color: '#8AA8C8' }}>
+                Marque os módulos que esse funcionário pode acessar.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {MODULES.map(mod => {
+                  const checked = editPerms.includes(mod.key)
+                  return (
+                    <label key={mod.key}
+                      className="flex items-start gap-2.5 rounded-lg border p-3 cursor-pointer transition-colors hover:bg-white/[0.02]"
+                      style={{
+                        background: checked ? 'rgba(0,229,255,.06)' : '#0D1320',
+                        borderColor: checked ? '#00E5FF' : '#1E2D45',
+                      }}>
+                      <input type="checkbox" checked={checked}
+                        onChange={() => togglePermission(mod.key, editPerms, setEditPerms)}
+                        className="mt-0.5 h-4 w-4 accent-accent cursor-pointer" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold" style={{ color: '#E8F0FE' }}>{mod.label}</p>
+                        <p className="text-[10px] mt-0.5" style={{ color: '#8AA8C8' }}>{mod.description}</p>
+                      </div>
+                    </label>
+                  )
+                })}
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button onClick={() => setEditingMember(null)} disabled={pending}
+                  className="flex-1 rounded-lg py-2.5 text-sm font-bold border"
+                  style={{ borderColor: '#1E2D45', color: '#8AA8C8' }}>
+                  Cancelar
+                </button>
+                <button onClick={handleSaveEditPerms} disabled={pending || editPerms.length === 0}
+                  className="flex-1 rounded-lg py-2.5 text-sm font-bold transition-opacity hover:opacity-90 disabled:opacity-50"
+                  style={{ background: 'linear-gradient(135deg, #00E5FF, #00FF94)', color: '#080C14' }}>
+                  {pending ? 'Salvando...' : 'Salvar'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Lista de convites pendentes */}
       {invites.length > 0 && (

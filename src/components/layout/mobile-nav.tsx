@@ -4,12 +4,20 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Menu, X, Zap } from 'lucide-react'
-import { NAV } from './sidebar'
+import { filterNavByPermissions } from './sidebar'
+import type { ModuleKey } from '@/lib/permissions-shared'
+
+type Props = {
+  hasFullAccess?: boolean
+  allowedModules?: ModuleKey[]
+  isOwner?:       boolean
+}
 
 /** Hamburger + drawer pra mobile. Só aparece em <lg. */
-export function MobileNav() {
+export function MobileNav({ hasFullAccess = true, allowedModules = [], isOwner = true }: Props) {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
+  const visibleNav = filterNavByPermissions(hasFullAccess, allowedModules, isOwner)
 
   // Fecha drawer ao navegar
   useEffect(() => {
@@ -78,7 +86,7 @@ export function MobileNav() {
             {/* Nav */}
             <nav className="flex-1 overflow-y-auto px-3 py-4">
               <ul className="space-y-0.5">
-                {NAV.map(({ href, icon: Icon, label }) => {
+                {visibleNav.map(({ href, icon: Icon, label }) => {
                   const active = href === '/' ? pathname === '/' : pathname.startsWith(href)
                   return (
                     <li key={href}>

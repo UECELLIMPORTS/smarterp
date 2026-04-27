@@ -6,6 +6,7 @@ import {
   getTenantSubscriptions, daysUntilTrialEnds, getProductSubscription,
 } from '@/lib/subscription'
 import { TrialBanner } from '@/components/trial-banner'
+import { hasFullAccess, getUserPermissions } from '@/lib/permissions'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   let auth: Awaited<ReturnType<typeof requireAuth>>
@@ -19,6 +20,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const { user } = auth
   const userName  = user.user_metadata?.full_name ?? user.user_metadata?.name ?? ''
   const userEmail = user.email ?? ''
+
+  // Permissions pra Sidebar/MobileNav
+  const fullAccess  = hasFullAccess(user)
+  const permissions = await getUserPermissions(user)
+  const isOwner     = user.app_metadata?.tenant_role === 'owner'
 
   // Status do plano principal (Gestão Smart) pra exibir no topbar
   const subs       = await getTenantSubscriptions(user)
@@ -44,8 +50,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <div className="min-h-screen" style={{ background: '#080C14' }}>
-      <Sidebar />
-      <Topbar userName={userName} userEmail={userEmail} planBadge={planBadge} />
+      <Sidebar hasFullAccess={fullAccess} allowedModules={permissions} isOwner={isOwner} />
+      <Topbar
+        userName={userName}
+        userEmail={userEmail}
+        planBadge={planBadge}
+        hasFullAccess={fullAccess}
+        allowedModules={permissions}
+        isOwner={isOwner}
+      />
 
       {/* Conteúdo principal — sem margem em mobile, 240px em lg+ pra dar espaço pra Sidebar */}
       <main className="pt-16 lg:ml-60">
