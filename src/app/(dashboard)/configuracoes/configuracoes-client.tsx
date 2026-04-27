@@ -7,10 +7,13 @@ import {
   Sparkles, ChevronRight, Users,
 } from 'lucide-react'
 import { saveSettings, type TenantSettings, type StockControlMode } from '@/actions/settings'
+import type { RecurringExpense } from '@/lib/expense-categories'
+import { RecurringExpensesSection } from './recurring-expenses-section'
 
 type Props = {
   initialSettings: TenantSettings
   isOwner?:        boolean
+  initialExpenses: RecurringExpense[]
 }
 
 const STOCK_OPTIONS: {
@@ -43,7 +46,7 @@ const STOCK_OPTIONS: {
   },
 ]
 
-export function ConfiguracoesClient({ initialSettings, isOwner = false }: Props) {
+export function ConfiguracoesClient({ initialSettings, isOwner = false, initialExpenses }: Props) {
   const [settings, setSettings] = useState<TenantSettings>(initialSettings)
   const [custoFixoStr, setCustoFixoStr] = useState(
     initialSettings.fisica_fixed_cost_cents != null
@@ -189,50 +192,8 @@ export function ConfiguracoesClient({ initialSettings, isOwner = false }: Props)
         </div>
       </div>
 
-      {/* Custo fixo da loja física */}
-      <div className="rounded-xl border overflow-hidden" style={{ background: '#111827', borderColor: '#1E2D45' }}>
-        <div className="flex items-center gap-3 border-b px-5 py-4" style={{ borderColor: '#1E2D45' }}>
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: '#FFAA0018' }}>
-            <Store className="h-4 w-4" style={{ color: '#FFAA00' }} />
-          </div>
-          <div>
-            <h2 className="text-sm font-semibold text-text">Custo fixo da loja física</h2>
-            <p className="text-xs text-muted">Usado no dashboard de Canais pra calcular break-even</p>
-          </div>
-        </div>
-
-        <div className="p-5 space-y-4">
-          <div>
-            <label className="block text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: '#5A7A9A' }}>
-              Valor mensal
-            </label>
-            <div className="relative max-w-xs">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm" style={{ color: '#8AA8C8' }}>R$</span>
-              <input
-                value={custoFixoStr}
-                onChange={e => setCustoFixoStr(e.target.value.replace(/[^0-9.,]/g, ''))}
-                placeholder="15.000,00"
-                className="w-full rounded-lg border pl-10 pr-3 py-2.5 text-sm outline-none font-mono"
-                style={{ background: '#0D1320', borderColor: '#1E2D45', color: '#E8F0FE' }}
-                inputMode="decimal"
-              />
-            </div>
-            <p className="text-[11px] mt-2" style={{ color: '#8AA8C8' }}>
-              <strong>Inclua:</strong> aluguel + luz + água + internet + salários alocados à física + contabilidade + outros recorrentes.
-              Deixe em branco se ainda não souber — o break-even só aparece quando estiver preenchido.
-            </p>
-          </div>
-
-          <div className="rounded-lg border px-3 py-2.5 flex items-start gap-2 text-[11px]"
-            style={{ background: 'rgba(0,229,255,.05)', borderColor: 'rgba(0,229,255,.25)' }}>
-            <CheckCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: '#00E5FF' }} />
-            <span style={{ color: '#8AA8C8' }}>
-              No futuro, dará pra cadastrar cada despesa recorrente separadamente (aluguel, salário, conta de luz) e esse total vai ser calculado automático.
-              Por enquanto, <strong>soma tudo e coloca o valor aqui</strong>.
-            </span>
-          </div>
-        </div>
-      </div>
+      {/* Custos fixos detalhados (substitui o campo único) */}
+      <RecurringExpensesSection initial={initialExpenses} />
 
       {/* Save button */}
       {error && (

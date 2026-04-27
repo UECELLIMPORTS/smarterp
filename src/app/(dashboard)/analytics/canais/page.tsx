@@ -5,7 +5,7 @@ import {
   getOriginChannelMatrix, getCacByChannel,
   type ChannelAnalyticsPeriod,
 } from '@/actions/sales-channels'
-import { getSettings } from '@/actions/settings'
+import { getMonthlyFixedCostCents } from '@/actions/recurring-expenses'
 import { CanaisClient } from './canais-client'
 import { getTenantSubscriptions, canAccess } from '@/lib/subscription'
 import { UpgradeBlock } from '@/components/upgrade-block'
@@ -33,9 +33,9 @@ export default async function CanaisPage({
     ? (rawPeriod as ChannelAnalyticsPeriod)
     : '30d'
 
-  const [data, settings, origins, inferredOrigins, originChannelMatrix, cac] = await Promise.all([
+  const [data, monthlyFixedCostCents, origins, inferredOrigins, originChannelMatrix, cac] = await Promise.all([
     getChannelAnalytics(period),
-    getSettings(),
+    getMonthlyFixedCostCents(),  // soma despesas detalhadas (fallback pro campo antigo)
     getOriginAnalytics(period),
     getInferredOriginAnalytics(period),
     getOriginChannelMatrix(period),
@@ -49,7 +49,7 @@ export default async function CanaisPage({
       inferredOrigins={inferredOrigins}
       originChannelMatrix={originChannelMatrix}
       cac={cac}
-      fixedCostMonthlyCents={settings.fisica_fixed_cost_cents}
+      fixedCostMonthlyCents={monthlyFixedCostCents > 0 ? monthlyFixedCostCents : null}
     />
   )
 }
