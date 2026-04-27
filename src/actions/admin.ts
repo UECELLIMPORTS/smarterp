@@ -89,8 +89,8 @@ export async function grantManualPlan(input: GrantManualPlanInput): Promise<Resu
     price_cents:           priceCents,
     billing_cycle:         input.billingCycle,
     status:                'active',
-    asaas_subscription_id: null,    // null = manual, sem cobrança automática
-    payment_method:        'manual',
+    asaas_subscription_id: null,    // null em ambos = manual, sem cobrança automática
+    payment_method:        null,
     trial_ends_at:         null,
     current_period_end:    periodEnd.toISOString(),
     next_due_date:         null,
