@@ -22,6 +22,7 @@
 import { requireAuth } from '@/lib/supabase/server'
 import { getTenantId } from '@/lib/tenant'
 import { revalidatePath } from 'next/cache'
+import { createNotification } from '@/lib/notifications'
 import {
   listAdAccounts,
   fetchMetaAdsCampaigns,
@@ -526,6 +527,19 @@ export async function evaluateMyAlerts(): Promise<EvaluateAlertsResult> {
             result.errors.push(`Regra "${rule.name}" × "${campaign.name}": ${insertErr.message}`)
           } else {
             result.eventsCreated++
+            // Dispara notificação in-app pro owner do tenant
+            void createNotification({
+              userId:   user.id,
+              tenantId,
+              type:     'meta_ads_alert',
+              title:    `Alerta Meta Ads: ${rule.name}`,
+              body:     `${campaign.name}: ${violation.message}`,
+              link:     '/meta-ads/alertas',
+              metadata: {
+                ruleId:     rule.id,
+                campaignId: campaign.id,
+              },
+            })
           }
         }
       }

@@ -8,6 +8,7 @@ import {
 import { DashboardFilters } from './dashboard-filters'
 import { OriginDonut } from './origin-donut'
 import { ChannelDonut } from './channel-donut'
+import { OnboardingWizard } from '@/components/onboarding-wizard'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -284,6 +285,20 @@ export default async function DashboardPage(props: { searchParams: Promise<Searc
   const osAbertas      = osAbertasRes.count ?? 0
   const clientesAtivos = clientesRes.count  ?? 0
 
+  // ── Onboarding wizard: detecta tenant vazio (recém-cadastrado) ──────────
+  // Faz 3 counts leves pra saber se é tenant novo. Se completou os 3 passos,
+  // o wizard não aparece.
+  const [productCountRes, customerCountRes, channelsRes] = await Promise.all([
+    supabase.from('products').select('id', { count: 'exact', head: true }).eq('tenant_id', tenantId),
+    supabase.from('customers').select('id', { count: 'exact', head: true })
+      .eq('tenant_id', tenantId)
+      .neq('full_name', 'Consumidor Final'),
+    supabase.from('sale_channels').select('id', { count: 'exact', head: true }).eq('tenant_id', tenantId),
+  ])
+  const productCount  = productCountRes.count  ?? 0
+  const customerCount = customerCountRes.count ?? 0
+  const hasChannels   = (channelsRes.count ?? 0) > 0
+
   // ── Breakdown por origem do cliente (pra gráfico de rosca) ────────────────
   type OriginTx = { customer_id: string | null; total: number; origin: string | null }
   const originTxs: OriginTx[] = [
@@ -422,6 +437,13 @@ export default async function DashboardPage(props: { searchParams: Promise<Searc
 
   return (
     <div className="space-y-6">
+
+      {/* Onboarding wizard pra tenants vazios — desaparece quando completa */}
+      <OnboardingWizard
+        productCount={productCount}
+        customerCount={customerCount}
+        hasChannels={hasChannels}
+      />
 
       {/* Header + Filters */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">

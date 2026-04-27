@@ -356,7 +356,7 @@ export function SubscribeModal({ open, onClose, product, productLabel, hasCpfCnp
               </p>
             </div>
 
-            <button onClick={() => { onClose(); window.location.reload() }}
+            <button onClick={() => { onClose(); window.location.href = '/obrigado' }}
               className="w-full rounded-xl py-3.5 text-sm font-bold transition-opacity hover:opacity-90"
               style={{
                 background: 'linear-gradient(135deg, #00E5FF, #00FF94)',
