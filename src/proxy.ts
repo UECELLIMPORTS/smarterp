@@ -4,6 +4,15 @@ import { NextResponse, type NextRequest } from 'next/server'
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
+  // Webhooks externos (Asaas, etc) não passam pelo auth do Supabase — o
+  // auth deles é feito por token no header dentro do próprio route handler.
+  // Sem essa exceção, requests de webhook são redirecionados pra /login (307)
+  // e nunca chegam no handler. Causou bug onde Asaas marcava webhook como
+  // "Penalização aplicada" (15 tentativas com 307) e parava de enviar.
+  if (pathname.startsWith('/api/webhooks/')) {
+    return NextResponse.next({ request })
+  }
+
   let response = NextResponse.next({ request })
 
   const supabase = createServerClient(
