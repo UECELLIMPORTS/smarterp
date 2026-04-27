@@ -5,6 +5,10 @@ import { getTenantId } from '@/lib/tenant'
 import { redirect }    from 'next/navigation'
 import { originLabel } from '@/lib/customer-origin'
 import { RelatoriosClient } from './relatorios-client'
+import { getDetailedSalesReport, getProductsReport } from '@/actions/relatorios'
+import type { SalesReportData, ProductReportRow } from '@/actions/relatorios'
+
+export type Tab = 'geral' | 'vendas' | 'produtos'
 
 export const metadata = { title: 'Relatórios — Smart ERP' }
 
@@ -56,12 +60,16 @@ export type TopClientRow = {
 }
 
 export type RelatoriosData = {
+  tab:    Tab
   period: Period
   from: string | null
   to:   string | null
   source: 'total' | 'smarterp' | 'checksmart'
   origin: string
   channel: string
+  paymentMethod: string
+  status: 'all' | 'completed' | 'cancelled'
+  category: string
   resumo: {
     totalCents:      number
     profitCents:     number
@@ -71,12 +79,18 @@ export type RelatoriosData = {
   }
   origins:    OriginReportRow[]
   topClients: TopClientRow[]
+  salesReport:    SalesReportData | null
+  productsReport: ProductReportRow[] | null
 }
 
 export default async function RelatoriosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ period?: string; from?: string; to?: string; source?: string; origin?: string; channel?: string }>
+  searchParams: Promise<{
+    tab?: string; period?: string; from?: string; to?: string;
+    source?: string; origin?: string; channel?: string;
+    payment?: string; status?: string; category?: string;
+  }>
 }) {
   let auth: Awaited<ReturnType<typeof requireAuth>>
   try { auth = await requireAuth() } catch { redirect('/login') }
@@ -94,14 +108,18 @@ export default async function RelatoriosPage({
   const sb = supabase as any
 
   const params = await searchParams
+  const tab = (['geral', 'vendas', 'produtos'].includes(params.tab ?? '') ? params.tab : 'geral') as Tab
   const period = (['7d', '30d', '90d', '6m', 'custom'].includes(params.period ?? '')
     ? params.period
     : '30d') as Period
   const source = (['total', 'smarterp', 'checksmart'].includes(params.source ?? '')
     ? params.source
     : 'total') as 'total' | 'smarterp' | 'checksmart'
-  const origin  = params.origin ?? 'all'
-  const channel = params.channel ?? 'all'
+  const origin        = params.origin   ?? 'all'
+  const channel       = params.channel  ?? 'all'
+  const paymentMethod = params.payment  ?? 'all'
+  const status        = (['all', 'completed', 'cancelled'].includes(params.status ?? '') ? params.status : 'completed') as 'all' | 'completed' | 'cancelled'
+  const category      = params.category ?? 'all'
   const { start, end } = getPeriodRange(period, params.from, params.to)
 
   const cols = 'customer_id, total_cents, sale_channel, created_at, sale_items(quantity, unit_price_cents, product_id, cost_snapshot_cents), customers(id, full_name, origin, whatsapp, phone)'
@@ -288,13 +306,38 @@ export default async function RelatoriosPage({
     .sort((a, b) => b.totalCents - a.totalCents)
     .slice(0, 10)
 
+  // Carrega dados das abas Vendas/Produtos sob demanda (evita query pesada
+  // se o user só está olhando a Visão Geral)
+  let salesReport: SalesReportData | null = null
+  let productsReport: ProductReportRow[] | null = null
+
+  if (tab === 'vendas') {
+    salesReport = await getDetailedSalesReport({
+      start:          start.toISOString(),
+      end:            end.toISOString(),
+      paymentMethods: paymentMethod !== 'all' ? [paymentMethod] : undefined,
+      saleChannels:   channel !== 'all' ? [channel] : undefined,
+      status,
+    })
+  } else if (tab === 'produtos') {
+    productsReport = await getProductsReport({
+      start:    start.toISOString(),
+      end:      end.toISOString(),
+      category: category !== 'all' ? category : undefined,
+    })
+  }
+
   const data: RelatoriosData = {
+    tab,
     period,
     from:   params.from ?? null,
     to:     params.to   ?? null,
     source,
     origin,
     channel,
+    paymentMethod,
+    status,
+    category,
     resumo: {
       totalCents:      resumoTotalCents,
       profitCents:     resumoProfitCents,
@@ -304,6 +347,8 @@ export default async function RelatoriosPage({
     },
     origins,
     topClients,
+    salesReport,
+    productsReport,
   }
 
   return <RelatoriosClient data={data} />

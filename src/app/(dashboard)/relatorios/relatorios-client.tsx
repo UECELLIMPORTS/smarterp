@@ -4,10 +4,13 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   BarChart2, Download, Megaphone, TrendingUp, Users, Phone, MessageCircle,
+  ShoppingCart, Package,
 } from 'lucide-react'
-import type { RelatoriosData, OriginReportRow, TopClientRow } from './page'
+import type { RelatoriosData, OriginReportRow, TopClientRow, Tab } from './page'
 import { CUSTOMER_ORIGIN_OPTIONS, originLabel } from '@/lib/customer-origin'
 import { SALE_CHANNEL_OPTIONS_PICKABLE, channelLabel } from '@/lib/sale-channels'
+import { VendasTab } from './vendas-tab'
+import { ProdutosTab } from './produtos-tab'
 
 const BRL = (c: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(c / 100)
@@ -35,24 +38,36 @@ function fmtPhone(s: string | null): string {
 
 export function RelatoriosClient({ data }: { data: RelatoriosData }) {
   const router = useRouter()
-  const { period, source, origin, channel, resumo, origins, topClients, from, to } = data
+  const { tab, period, source, origin, channel, resumo, origins, topClients, from, to } = data
 
   const [customOpen, setCustomOpen] = useState(period === 'custom')
   const [fromDate, setFromDate]     = useState(from ?? '')
   const [toDate, setToDate]         = useState(to ?? '')
 
-  function updateQuery(changes: Record<string, string | undefined>) {
+  function buildUrl(changes: Record<string, string | undefined>): string {
     const p = new URLSearchParams()
-    const merged = { period, source, origin, channel, ...changes }
-    if (merged.period)   p.set('period', merged.period)
-    if (merged.source)   p.set('source', merged.source)
-    if (merged.origin)   p.set('origin', merged.origin)
-    if (merged.channel)  p.set('channel', merged.channel)
+    const merged: Record<string, string | undefined> = {
+      tab, period, source, origin, channel,
+      payment: data.paymentMethod, status: data.status, category: data.category,
+      ...changes,
+    }
+    if (merged.tab && merged.tab !== 'geral') p.set('tab', merged.tab)
+    if (merged.period)   p.set('period',  merged.period)
+    if (merged.source && merged.source !== 'total')   p.set('source',  merged.source)
+    if (merged.origin && merged.origin !== 'all')     p.set('origin',  merged.origin)
+    if (merged.channel && merged.channel !== 'all')   p.set('channel', merged.channel)
+    if (merged.payment && merged.payment !== 'all')   p.set('payment', merged.payment)
+    if (merged.status && merged.status !== 'completed') p.set('status', merged.status)
+    if (merged.category && merged.category !== 'all') p.set('category', merged.category)
     if (merged.period === 'custom' && fromDate && toDate) {
       p.set('from', fromDate)
       p.set('to', toDate)
     }
-    router.push(`/relatorios?${p.toString()}`)
+    return `/relatorios?${p.toString()}`
+  }
+
+  function updateQuery(changes: Record<string, string | undefined>) {
+    router.push(buildUrl(changes))
   }
 
   function applyCustom() {
@@ -108,6 +123,12 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
     URL.revokeObjectURL(url)
   }
 
+  const TABS: { v: Tab; label: string; icon: React.ElementType }[] = [
+    { v: 'geral',    label: 'Visão geral', icon: BarChart2 },
+    { v: 'vendas',   label: 'Vendas',      icon: ShoppingCart },
+    { v: 'produtos', label: 'Produtos',    icon: Package },
+  ]
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -115,7 +136,9 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
         <div>
           <h1 className="text-2xl font-bold" style={{ color: '#E8F0FE' }}>Relatórios</h1>
           <p className="mt-1 text-sm" style={{ color: '#5A7A9A' }}>
-            Análise consolidada por origem, com filtros de período e sistema
+            {tab === 'geral'    && 'Análise consolidada por origem dos clientes'}
+            {tab === 'vendas'   && 'Tabela detalhada de cada venda com filtros e export'}
+            {tab === 'produtos' && 'Ranking de produtos: faturamento, lucro e margem'}
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -163,7 +186,48 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
         </div>
       </div>
 
-      {/* Filtros secundários */}
+      {/* Tabs */}
+      <div className="flex gap-1 rounded-xl p-1 w-fit"
+        style={{ background: '#0D1320', border: '1px solid #1E2D45' }}>
+        {TABS.map(t => {
+          const Icon = t.icon
+          const active = tab === t.v
+          return (
+            <button key={t.v}
+              onClick={() => updateQuery({ tab: t.v })}
+              className="rounded-lg px-3 py-1.5 text-xs font-bold transition-all inline-flex items-center gap-1.5"
+              style={active
+                ? { background: '#00E5FF', color: '#000' }
+                : { color: '#5A7A9A' }
+              }>
+              <Icon className="h-3.5 w-3.5" />
+              {t.label}
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Conteúdo das abas Vendas/Produtos */}
+      {tab === 'vendas' && data.salesReport && (
+        <VendasTab
+          data={data.salesReport}
+          paymentMethod={data.paymentMethod}
+          status={data.status}
+          channel={data.channel}
+          buildUrl={buildUrl}
+        />
+      )}
+      {tab === 'produtos' && data.productsReport && (
+        <ProdutosTab
+          data={data.productsReport}
+          category={data.category}
+          buildUrl={buildUrl}
+        />
+      )}
+
+      {/* Conteúdo da aba Geral */}
+      {tab === 'geral' && (
+      <>
       <div className="flex flex-wrap items-center gap-3">
         {/* Sistema */}
         <div className="flex gap-1 rounded-lg p-1" style={{ background: '#0D1320', border: '1px solid #1E2D45' }}>
@@ -296,6 +360,8 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
           )}
         </div>
       </div>
+      </>
+      )}
     </div>
   )
 }
