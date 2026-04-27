@@ -16,6 +16,8 @@ import {
 import { requireAuth } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { fmtBRL } from '@/lib/pricing'
+import type { Product } from '@/lib/pricing'
+import { AdminTenantRow } from './admin-tenant-row'
 
 export const metadata = { title: 'Admin — Smart ERP' }
 
@@ -74,7 +76,7 @@ export default async function AdminPage() {
     sb.from('subscriptions').select('id, tenant_id, price_cents, billing_cycle')
       .eq('status', 'cancelled')
       .gte('updated_at', thirtyDaysAgo),
-    sb.from('subscriptions').select('id, tenant_id, status, billing_cycle, price_cents'),
+    sb.from('subscriptions').select('id, tenant_id, product, plan_name, status, billing_cycle, price_cents'),
   ])
 
   type Sub = {
@@ -160,42 +162,36 @@ export default async function AdminPage() {
         </div>
       </div>
 
-      {/* Tenants recentes */}
+      {/* Tenants — clique nos botões pra liberar plano, estender trial ou cancelar */}
       <div className="rounded-2xl border p-6"
         style={{ background: '#0D1320', borderColor: '#1E2D45' }}>
-        <h3 className="text-sm font-bold mb-4 uppercase tracking-widest" style={{ color: '#8AA8C8' }}>
-          Tenants ({tenants.length} total)
-        </h3>
-        <div className="space-y-2 max-h-96 overflow-y-auto">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-bold uppercase tracking-widest" style={{ color: '#8AA8C8' }}>
+            Tenants ({tenants.length} total)
+          </h3>
+          <p className="text-[10px]" style={{ color: '#5A7A9A' }}>
+            🎁 liberar manual · ⏰ estender trial · ✕ cancelar sub
+          </p>
+        </div>
+        <div className="space-y-2 max-h-[600px] overflow-y-auto">
           {tenants.length === 0 ? (
             <p className="text-xs" style={{ color: '#5A7A9A' }}>Nenhum tenant ainda.</p>
           ) : (
             tenants.slice().sort((a, b) => b.created_at.localeCompare(a.created_at)).map(t => {
-              const tenantSub = subsAll.find(s => s.tenant_id === t.id && s.status !== 'cancelled')
-              const status = tenantSub?.status ?? 'sem sub'
-              const planLabel = tenantSub?.status === 'active'
-                ? `${tenantSub.plan_name} · ${tenantSub.billing_cycle === 'YEARLY' ? 'Anual' : 'Mensal'}`
-                : status
-              const statusColor = tenantSub?.status === 'active' ? '#00FF94'
-                                : tenantSub?.status === 'trial' ? '#FFB800'
-                                : '#5A7A9A'
+              const tenantSubs = subsAll
+                .filter(s => s.tenant_id === t.id)
+                .map(s => ({
+                  product:      s.product as Product,
+                  status:       s.status ?? 'inactive',
+                  planName:     s.plan_name ?? null,
+                  billingCycle: s.billing_cycle ?? null,
+                  priceCents:   s.price_cents,
+                }))
               return (
-                <div key={t.id}
-                  className="flex items-center justify-between rounded-lg border p-3"
-                  style={{ background: '#0F1A2B', borderColor: '#1E2D45' }}>
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold truncate" style={{ color: '#E8F0FE' }}>
-                      {t.name}
-                    </p>
-                    <p className="text-[10px] mt-0.5" style={{ color: '#5A7A9A' }}>
-                      Cadastrado: {new Date(t.created_at).toLocaleDateString('pt-BR')}
-                    </p>
-                  </div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded shrink-0"
-                    style={{ background: `${statusColor}18`, color: statusColor }}>
-                    {planLabel}
-                  </span>
-                </div>
+                <AdminTenantRow
+                  key={t.id}
+                  tenant={{ id: t.id, name: t.name, createdAt: t.created_at, subs: tenantSubs }}
+                />
               )
             })
           )}
