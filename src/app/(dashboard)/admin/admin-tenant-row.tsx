@@ -2,12 +2,13 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Gift, Clock, X, Loader2 } from 'lucide-react'
+import { Gift, Clock, X, Loader2, Eye } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   grantManualPlan, extendTrial, cancelSubscriptionAdmin,
 } from '@/actions/admin'
 import type { Product, Plan } from '@/lib/pricing'
+import { AdminTenantDrawer } from './admin-tenant-drawer'
 
 type Sub = {
   product:        Product
@@ -44,6 +45,7 @@ const STATUS_COLORS: Record<string, string> = {
 export function AdminTenantRow({ tenant }: Props) {
   const [grantOpen,  setGrantOpen]  = useState(false)
   const [extendOpen, setExtendOpen] = useState(false)
+  const [drawerOpen, setDrawerOpen] = useState(false)
 
   // Resumo do tenant: pega a sub principal (gestao_smart) pra exibir
   const mainSub = tenant.subs.find(s => s.product === 'gestao_smart') ?? tenant.subs[0]
@@ -58,16 +60,21 @@ export function AdminTenantRow({ tenant }: Props) {
     <div className="rounded-lg border p-3"
       style={{ background: '#0F1A2B', borderColor: '#1E2D45' }}>
       <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-sm font-semibold truncate" style={{ color: '#E8F0FE' }}>
+        <button
+          type="button"
+          onClick={() => setDrawerOpen(true)}
+          className="min-w-0 text-left transition-opacity hover:opacity-80 cursor-pointer"
+          title="Ver dados operacionais (modo suporte)">
+          <p className="text-sm font-semibold truncate flex items-center gap-1.5" style={{ color: '#E8F0FE' }}>
             {tenant.name}
+            <Eye className="h-3 w-3" style={{ color: '#5A7A9A' }} />
           </p>
           <p className="text-[10px] mt-0.5" style={{ color: '#5A7A9A' }}>
             Cadastrado: {new Date(tenant.createdAt).toLocaleDateString('pt-BR')}
             {' · '}
             {tenant.subs.length} {tenant.subs.length === 1 ? 'assinatura' : 'assinaturas'}
           </p>
-        </div>
+        </button>
 
         <div className="flex items-center gap-2 shrink-0">
           <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded"
@@ -104,6 +111,7 @@ export function AdminTenantRow({ tenant }: Props) {
 
       {grantOpen  && <GrantManualModal  tenantId={tenant.id} tenantName={tenant.name} onClose={() => setGrantOpen(false)} />}
       {extendOpen && <ExtendTrialModal  tenantId={tenant.id} tenantName={tenant.name} subs={tenant.subs} onClose={() => setExtendOpen(false)} />}
+      {drawerOpen && <AdminTenantDrawer tenantId={tenant.id} onClose={() => setDrawerOpen(false)} />}
     </div>
   )
 }
