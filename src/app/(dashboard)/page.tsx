@@ -9,6 +9,7 @@ import { DashboardFilters } from './dashboard-filters'
 import { OriginDonut } from './origin-donut'
 import { ChannelDonut } from './channel-donut'
 import { OnboardingWizard } from '@/components/onboarding-wizard'
+import { getUserFeatures, getDefaultRoute } from '@/lib/permissions'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -118,6 +119,17 @@ export default async function DashboardPage(props: { searchParams: Promise<Searc
 
   const { supabase, user } = auth
   const tenantId = getTenantId(user)
+
+  // Gate: se user não tem acesso ao Dashboard, manda pra primeira rota acessível
+  const features = await getUserFeatures(user)
+  if (!features.has('dashboard')) {
+    const fallback = await getDefaultRoute(user)
+    redirect(fallback)
+  }
+  const showKpis    = features.has('dashboard:kpis')
+  const showCharts  = features.has('dashboard:charts')
+  const showReports = features.has('dashboard:reports')
+  const showFiltros = features.has('dashboard:filtros')
 
   const sp = await props.searchParams
   const period = (sp.period ?? 'today') as Period
@@ -451,10 +463,11 @@ export default async function DashboardPage(props: { searchParams: Promise<Searc
           <h1 className="text-2xl font-bold text-text">Dashboard</h1>
           <p className="mt-1 text-sm capitalize" style={{ color: '#64748B' }}>{today}</p>
         </div>
-        <DashboardFilters />
+        {showFiltros && <DashboardFilters />}
       </div>
 
       {/* KPIs */}
+      {showKpis && (
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <KPICard
           title={`Faturamento — ${periodLabel(period, fromDate, toDate)}`}
@@ -499,14 +512,14 @@ export default async function DashboardPage(props: { searchParams: Promise<Searc
           color="#FF5C5C"
         />
       </div>
+      )}
 
-      {/* Origem dos Clientes (gráfico de rosca) */}
-      <OriginDonut breakdown={originBreakdown} />
-
-      {/* Faturamento por Canal de Venda (gráfico de rosca) */}
-      <ChannelDonut breakdown={channelBreakdown} />
+      {/* Origem dos Clientes + Canais (gráficos) */}
+      {showCharts && <OriginDonut breakdown={originBreakdown} />}
+      {showCharts && <ChannelDonut breakdown={channelBreakdown} />}
 
       {/* Atividade recente */}
+      {showReports && (
       <div className="rounded-xl border" style={{ background: '#111827', borderColor: '#1E2D45' }}>
         <div className="flex items-center justify-between border-b px-5 py-4" style={{ borderColor: '#1E2D45' }}>
           <h2 className="text-sm font-semibold text-text">Atividade Recente</h2>
@@ -543,6 +556,17 @@ export default async function DashboardPage(props: { searchParams: Promise<Searc
           </ul>
         )}
       </div>
+      )}
+
+      {/* Mensagem se nenhum bloco está liberado */}
+      {!showKpis && !showCharts && !showReports && (
+        <div className="rounded-xl border p-12 text-center"
+          style={{ background: '#111827', borderColor: '#1E2D45' }}>
+          <p className="text-sm" style={{ color: '#8AA8C8' }}>
+            Você tem acesso ao Dashboard mas nenhum bloco foi liberado pelo dono.
+          </p>
+        </div>
+      )}
 
     </div>
   )

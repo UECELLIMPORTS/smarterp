@@ -17,7 +17,7 @@ export const NAV: {
   label: string
   moduleKey?: ModuleKey
 }[] = [
-  { href: '/',                  icon: LayoutDashboard, label: 'Dashboard' },              // sempre acessível
+  { href: '/',                  icon: LayoutDashboard, label: 'Dashboard',       moduleKey: 'dashboard' },
   { href: '/pos',               icon: ShoppingCart,    label: 'Frente de Caixa', moduleKey: 'pos' },
   { href: '/estoque',           icon: Package,         label: 'Estoque',         moduleKey: 'estoque' },
   { href: '/financeiro',        icon: DollarSign,      label: 'Financeiro',      moduleKey: 'financeiro' },

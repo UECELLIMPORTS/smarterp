@@ -11,7 +11,7 @@ import {
   inviteMember, removeMember, cancelInvite, updateMemberPermissions,
   type TeamMember, type PendingInvite, type TeamRole,
 } from '@/actions/team'
-import { MODULES, type ModuleKey } from '@/lib/permissions-shared'
+import { MODULES, MODULE_FEATURES, featureKey, type ModuleKey } from '@/lib/permissions-shared'
 import { toast } from 'sonner'
 
 const inputCls = 'w-full rounded-lg border px-3.5 py-2.5 text-sm text-text placeholder:text-muted outline-none transition-colors focus:border-accent/60'
@@ -33,21 +33,47 @@ export function EquipeClient({ members, invites, ownerEmail }: Props) {
   const [pending, startTransition] = useTransition()
   const [error, setError]         = useState<string | null>(null)
 
-  // Form de convite
+  // Form de convite — permissions agora pode conter módulos OU feature keys ('dashboard:kpis')
   const [email, setEmail] = useState('')
   const [role, setRole]   = useState<Exclude<TeamRole, 'owner'>>('employee')
-  const [permissions, setPermissions] = useState<ModuleKey[]>(['pos', 'estoque'])  // defaults sensatos
-  const [limitManagerAccess, setLimitManagerAccess] = useState(false)              // default off — manager full
+  const [permissions, setPermissions] = useState<string[]>(['pos', 'estoque'])  // defaults sensatos — sem dashboard
+  const [limitManagerAccess, setLimitManagerAccess] = useState(false)
   const [showInviteUrl, setShowInviteUrl] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
 
   // Edição de permissions de membro existente
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null)
-  const [editPerms, setEditPerms] = useState<ModuleKey[]>([])
+  const [editPerms, setEditPerms] = useState<string[]>([])
 
-  function togglePermission(key: ModuleKey, list: ModuleKey[], setter: (v: ModuleKey[]) => void) {
-    if (list.includes(key)) setter(list.filter(k => k !== key))
-    else                    setter([...list, key])
+  /**
+   * Toggle de módulo. Se módulo TEM features, ao marcar adiciona o módulo +
+   * todas as features automáticas; ao desmarcar remove tudo. Owner pode
+   * desmarcar features individuais via toggleFeature mantendo módulo marcado.
+   */
+  function toggleModule(key: ModuleKey, list: string[], setter: (v: string[]) => void) {
+    const features = MODULE_FEATURES[key] ?? []
+    const allFeatureKeys = features.map(f => featureKey(key, f.key))
+    if (list.includes(key)) {
+      // Desmarca módulo + todas suas features
+      setter(list.filter(k => k !== key && !allFeatureKeys.includes(k)))
+    } else {
+      // Marca módulo + todas suas features (defaults)
+      const next = new Set(list)
+      next.add(key)
+      for (const fk of allFeatureKeys) next.add(fk)
+      setter(Array.from(next))
+    }
+  }
+
+  function toggleFeature(fullKey: string, list: string[], setter: (v: string[]) => void) {
+    if (list.includes(fullKey)) setter(list.filter(k => k !== fullKey))
+    else                        setter([...list, fullKey])
+  }
+
+  /** Conta quantos módulos PRINCIPAIS estão marcados (ignora features). */
+  function countModules(list: string[]): number {
+    const moduleKeys = new Set(MODULES.map(m => m.key as string))
+    return list.filter(k => moduleKeys.has(k)).length
   }
 
   function handleInvite(e: React.FormEvent) {
@@ -66,7 +92,7 @@ export function EquipeClient({ members, invites, ownerEmail }: Props) {
       setShowInviteUrl(result.inviteUrl)
       setEmail('')
       setRole('employee')
-      setPermissions(['pos', 'estoque'])
+      setPermissions(['pos', 'estoque'])  // sem dashboard por default
       setLimitManagerAccess(false)
       router.refresh()
     })
@@ -74,7 +100,7 @@ export function EquipeClient({ members, invites, ownerEmail }: Props) {
 
   function startEditMember(m: TeamMember) {
     setEditingMember(m)
-    setEditPerms((m.permissions as ModuleKey[]) ?? [])
+    setEditPerms(m.permissions ?? [])
   }
 
   function handleSaveEditPerms() {
@@ -221,29 +247,16 @@ export function EquipeClient({ members, invites, ownerEmail }: Props) {
                 style={{ color: '#5A7A9A' }}>
                 <Shield className="h-3 w-3" /> Módulos liberados {role === 'employee' ? 'pra esse funcionário' : 'pra esse manager'}
               </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {MODULES.map(mod => {
-                  const checked = permissions.includes(mod.key)
-                  return (
-                    <label key={mod.key}
-                      className="flex items-start gap-2.5 rounded-lg border p-3 cursor-pointer transition-colors hover:bg-white/[0.02]"
-                      style={{
-                        background: checked ? 'rgba(0,229,255,.06)' : '#0D1320',
-                        borderColor: checked ? '#00E5FF' : '#1E2D45',
-                      }}>
-                      <input type="checkbox" checked={checked}
-                        onChange={() => togglePermission(mod.key, permissions, setPermissions)}
-                        className="mt-0.5 h-4 w-4 accent-accent cursor-pointer" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-bold" style={{ color: '#E8F0FE' }}>{mod.label}</p>
-                        <p className="text-[10px] mt-0.5" style={{ color: '#8AA8C8' }}>{mod.description}</p>
-                      </div>
-                    </label>
-                  )
-                })}
-              </div>
+              <PermissionsChecklist
+                value={permissions}
+                onChange={setPermissions}
+                onToggleModule={(k) => toggleModule(k, permissions, setPermissions)}
+                onToggleFeature={(k) => toggleFeature(k, permissions, setPermissions)}
+              />
               <p className="text-[10px] mt-2" style={{ color: '#5A7A9A' }}>
                 Funcionário só vai ver no menu lateral os módulos que você marcar.
+                Módulos com sub-itens (Dashboard) podem ter partes específicas
+                liberadas — desmarque blocos individuais pra restringir.
               </p>
             </div>
           )}
@@ -251,8 +264,8 @@ export function EquipeClient({ members, invites, ownerEmail }: Props) {
           <div className="flex justify-end">
             <button type="submit"
               disabled={pending || !email
-                || (role === 'employee' && permissions.length === 0)
-                || (role === 'manager' && limitManagerAccess && permissions.length === 0)}
+                || (role === 'employee' && countModules(permissions) === 0)
+                || (role === 'manager' && limitManagerAccess && countModules(permissions) === 0)}
               className="inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-sm font-bold transition-opacity hover:opacity-90 disabled:opacity-40"
               style={{ background: 'linear-gradient(135deg, #00E5FF, #00FF94)', color: '#080C14' }}>
               {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
@@ -303,13 +316,13 @@ export function EquipeClient({ members, invites, ownerEmail }: Props) {
                       <Crown className="h-3 w-3" /> dono
                     </span>
                   )}
-                  {m.role === 'manager' && m.permissions.length === 0 && (
+                  {m.role === 'manager' && countModules(m.permissions) === 0 && (
                     <span className="rounded px-2 py-0.5 text-[10px] font-bold uppercase"
                       style={{ background: 'rgba(0,229,255,.15)', color: '#00E5FF' }}>
                       manager · acesso total
                     </span>
                   )}
-                  {m.role === 'manager' && m.permissions.length > 0 && (
+                  {m.role === 'manager' && countModules(m.permissions) > 0 && (
                     <span className="rounded px-2 py-0.5 text-[10px] font-bold uppercase"
                       style={{ background: 'rgba(255,184,0,.15)', color: '#FFB800' }}>
                       manager · limitado
@@ -323,14 +336,16 @@ export function EquipeClient({ members, invites, ownerEmail }: Props) {
                   )}
                 </div>
                 <p className="text-xs truncate" style={{ color: '#8AA8C8' }}>{m.email}</p>
-                {(m.role === 'employee' || (m.role === 'manager' && m.permissions.length > 0)) && (
+                {(m.role === 'employee' || (m.role === 'manager' && countModules(m.permissions) > 0)) && (
                   <div className="flex flex-wrap gap-1 mt-1.5">
-                    {m.permissions.length === 0 ? (
+                    {countModules(m.permissions) === 0 ? (
                       <span className="text-[10px] italic" style={{ color: '#FF4D6D' }}>
                         ⚠ sem módulos liberados
                       </span>
                     ) : (
-                      m.permissions.map(p => {
+                      m.permissions
+                        .filter(p => MODULES.some(mo => mo.key === p))
+                        .map(p => {
                         const mod = MODULES.find(m => m.key === p)
                         if (!mod) return null
                         return (
@@ -408,27 +423,12 @@ export function EquipeClient({ members, invites, ownerEmail }: Props) {
                 </button>
               )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {MODULES.map(mod => {
-                  const checked = editPerms.includes(mod.key)
-                  return (
-                    <label key={mod.key}
-                      className="flex items-start gap-2.5 rounded-lg border p-3 cursor-pointer transition-colors hover:bg-white/[0.02]"
-                      style={{
-                        background: checked ? 'rgba(0,229,255,.06)' : '#0D1320',
-                        borderColor: checked ? '#00E5FF' : '#1E2D45',
-                      }}>
-                      <input type="checkbox" checked={checked}
-                        onChange={() => togglePermission(mod.key, editPerms, setEditPerms)}
-                        className="mt-0.5 h-4 w-4 accent-accent cursor-pointer" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-bold" style={{ color: '#E8F0FE' }}>{mod.label}</p>
-                        <p className="text-[10px] mt-0.5" style={{ color: '#8AA8C8' }}>{mod.description}</p>
-                      </div>
-                    </label>
-                  )
-                })}
-              </div>
+              <PermissionsChecklist
+                value={editPerms}
+                onChange={setEditPerms}
+                onToggleModule={(k) => toggleModule(k, editPerms, setEditPerms)}
+                onToggleFeature={(k) => toggleFeature(k, editPerms, setEditPerms)}
+              />
 
               <div className="flex gap-2 pt-2">
                 <button onClick={() => setEditingMember(null)} disabled={pending}
@@ -437,7 +437,7 @@ export function EquipeClient({ members, invites, ownerEmail }: Props) {
                   Cancelar
                 </button>
                 <button onClick={handleSaveEditPerms}
-                  disabled={pending || (editingMember.role === 'employee' && editPerms.length === 0)}
+                  disabled={pending || (editingMember.role === 'employee' && countModules(editPerms) === 0)}
                   className="flex-1 rounded-lg py-2.5 text-sm font-bold transition-opacity hover:opacity-90 disabled:opacity-50"
                   style={{ background: 'linear-gradient(135deg, #00E5FF, #00FF94)', color: '#080C14' }}>
                   {pending ? 'Salvando...' : 'Salvar'}
@@ -494,6 +494,75 @@ export function EquipeClient({ members, invites, ownerEmail }: Props) {
       <p className="text-xs" style={{ color: '#5A7A9A' }}>
         Você é o dono ({ownerEmail}). Apenas você pode convidar/remover membros e gerenciar a assinatura.
       </p>
+    </div>
+  )
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// PermissionsChecklist — lista hierárquica de módulos + sub-features
+// ──────────────────────────────────────────────────────────────────────────
+
+type ChecklistProps = {
+  value:           string[]
+  onChange:        (v: string[]) => void
+  onToggleModule:  (k: ModuleKey) => void
+  onToggleFeature: (fullKey: string) => void
+}
+
+function PermissionsChecklist({ value, onToggleModule, onToggleFeature }: ChecklistProps) {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+      {MODULES.map(mod => {
+        const checked = value.includes(mod.key)
+        const features = MODULE_FEATURES[mod.key] ?? []
+
+        return (
+          <div key={mod.key}
+            className="rounded-lg border transition-colors"
+            style={{
+              background: checked ? 'rgba(0,229,255,.06)' : '#0D1320',
+              borderColor: checked ? '#00E5FF' : '#1E2D45',
+            }}>
+            {/* Módulo principal */}
+            <label className="flex items-start gap-2.5 p-3 cursor-pointer">
+              <input type="checkbox" checked={checked}
+                onChange={() => onToggleModule(mod.key)}
+                className="mt-0.5 h-4 w-4 accent-accent cursor-pointer" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-bold" style={{ color: '#E8F0FE' }}>{mod.label}</p>
+                <p className="text-[10px] mt-0.5" style={{ color: '#8AA8C8' }}>{mod.description}</p>
+              </div>
+            </label>
+
+            {/* Sub-features — só mostram se módulo está marcado E tem features */}
+            {checked && features.length > 0 && (
+              <div className="border-t px-3 py-2 space-y-1.5"
+                style={{ borderColor: 'rgba(0,229,255,.15)' }}>
+                <p className="text-[10px] font-bold uppercase tracking-wider mb-1"
+                  style={{ color: '#00E5FF' }}>
+                  Partes liberadas:
+                </p>
+                {features.map(f => {
+                  const fk = featureKey(mod.key, f.key)
+                  const fChecked = value.includes(fk)
+                  return (
+                    <label key={fk}
+                      className="flex items-start gap-2 cursor-pointer rounded px-2 py-1.5 transition-colors hover:bg-white/[0.03]">
+                      <input type="checkbox" checked={fChecked}
+                        onChange={() => onToggleFeature(fk)}
+                        className="mt-0.5 h-3.5 w-3.5 accent-accent cursor-pointer" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[11px] font-semibold" style={{ color: '#E8F0FE' }}>{f.label}</p>
+                        <p className="text-[10px]" style={{ color: '#5A7A9A' }}>{f.description}</p>
+                      </div>
+                    </label>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )
+      })}
     </div>
   )
 }
