@@ -19,6 +19,14 @@ import { Resend } from 'resend'
 const RESEND_API_KEY = process.env.RESEND_API_KEY
 const EMAIL_FROM     = process.env.EMAIL_FROM ?? 'Gestão Inteligente <onboarding@resend.dev>'
 
+/** Origem do app pros links nos emails (botões CTA). Usa env quando setada;
+ *  fallback pro domínio de produção. */
+function appUrl(): string {
+  return process.env.NEXT_PUBLIC_APP_URL
+      || process.env.APP_URL
+      || 'https://app.gestaosmarterp.online'
+}
+
 const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null
 
 export type EmailParams = {
@@ -73,7 +81,7 @@ export async function sendWelcomeEmail({
           <li>Veja o <strong>Dashboard</strong> em tempo real</li>
         </ol>
       `,
-      ctaUrl:   'https://smarterp-theta.vercel.app/',
+      ctaUrl:   `${appUrl()}/`,
       ctaLabel: 'Acessar o sistema',
     }),
   })
@@ -102,7 +110,7 @@ export async function sendTrialEndingEmail({
             : `Faltam <strong>${daysLeft} dias</strong> do seu período de teste.`}</p>
         <p>Pra continuar usando todos os recursos, escolha um plano agora:</p>
       `,
-      ctaUrl:   'https://smarterp-theta.vercel.app/configuracoes/assinatura',
+      ctaUrl:   `${appUrl()}/configuracoes/assinatura`,
       ctaLabel: 'Escolher meu plano',
     }),
   })

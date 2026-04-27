@@ -53,7 +53,7 @@ function appOrigin(): string {
   // gerando links com host vazio em produção.
   return process.env.NEXT_PUBLIC_APP_URL
       || process.env.APP_URL
-      || 'https://smarterp-theta.vercel.app'
+      || 'https://app.gestaosmarterp.online'
 }
 
 // ── Listar membros ──────────────────────────────────────────────────────────
