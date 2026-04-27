@@ -24,7 +24,9 @@ export const PRICES: PriceEntry[] = [
   // Gestão Smart
   { product: 'gestao_smart', plan: 'basico',  priceCents:  9700, description: 'Gestão Smart Básico — ERP completo' },
   { product: 'gestao_smart', plan: 'pro',     priceCents: 14700, description: 'Gestão Smart Pro — ERP + Analytics avançado' },
-  { product: 'gestao_smart', plan: 'premium', priceCents: 19700, description: 'Gestão Smart Premium — Tudo: ERP + CheckSmart + CRM + Meta Ads' },
+  // ⚠️ TESTE: Premium temporariamente R$5 pra validar fluxo de produção sem
+  // pagar R$197 de taxa. REVERTER pra 19700 após confirmar que tudo funciona.
+  { product: 'gestao_smart', plan: 'premium', priceCents: 500, description: 'Gestão Smart Premium — Tudo: ERP + CheckSmart + CRM + Meta Ads' },
 
   // CheckSmart
   { product: 'checksmart',   plan: 'basico',  priceCents:  5700, description: 'CheckSmart Básico — OS + Estoque assistência' },
