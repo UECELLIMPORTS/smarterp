@@ -41,6 +41,8 @@ export type ProductRow = {
   cst_csosn: string | null
   origem: string | null
   unidade?: string | null
+  // Garantia (override do tenants.warranty_days)
+  warranty_days: number | null
   created_at: string
   updated_at: string
 }
@@ -75,6 +77,8 @@ export type ProductInput = {
   cfop?: string        // 4 dígitos (ex: 5102 venda merc.)
   cstCsosn?: string    // CSOSN (Simples) ou CST (Normal)
   origem?: string      // 0=nacional, 1=importação direta, etc
+  // Garantia em dias (sobrepõe o padrão do tenant). NULL = usa padrão.
+  warrantyDays?: number | null
 }
 
 // Colunas para a listagem (tabela) — sem campos pesados que só o modal usa
@@ -89,7 +93,7 @@ const SELECT_COLS = `id, code, name, brand, category, format, condition, gtin,
   purchase_price_cents, cost_cents, price_cents, unit,
   stock_qty, stock_min, stock_max, location,
   supplier, image_urls, description, active,
-  ncm, cfop, cst_csosn, origem,
+  ncm, cfop, cst_csosn, origem, warranty_days,
   created_at, updated_at`
 
 // ── Params for paginated list ─────────────────────────────────────────────────
@@ -262,6 +266,10 @@ function toPayload(input: ProductInput, tenantId?: string) {
     cfop:                 input.cfop?.replace(/\D/g, '') || null,
     cst_csosn:            input.cstCsosn?.trim() || null,
     origem:               input.origem || '0',
+    // Garantia (Fase 3 — comprovante)
+    warranty_days:        (input.warrantyDays != null && Number.isFinite(input.warrantyDays))
+                            ? Math.max(0, Math.min(3650, Math.round(input.warrantyDays)))
+                            : null,
     updated_at:           new Date().toISOString(),
   }
   if (tenantId) return { ...base, tenant_id: tenantId }

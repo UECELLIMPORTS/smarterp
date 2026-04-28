@@ -36,6 +36,7 @@ const EMPTY_FORM: ProductInput = {
   unit: 'Un', stockQty: 0, stockMin: 0, stockMax: 0,
   location: '', supplier: '', imageUrls: [], description: '', active: true,
   ncm: '', cfop: '5102', cstCsosn: '102', origem: '0',
+  warrantyDays: null,
 }
 
 const INP   = 'w-full rounded-lg border bg-transparent px-3 py-2 text-sm text-text placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-accent'
@@ -179,6 +180,8 @@ export function ProdutoModal({
       cfop:               source.cfop     ?? '5102',
       cstCsosn:           source.cst_csosn ?? '102',
       origem:             source.origem   ?? '0',
+      // Garantia (Fase 3 — comprovante)
+      warrantyDays:       source.warranty_days ?? null,
     }
   }
 
@@ -615,6 +618,26 @@ export function ProdutoModal({
                     <option value="8">8 — Nacional com conteúdo importação &gt;70%</option>
                   </select>
                 </div>
+              </div>
+
+              <div className="mt-2 rounded-lg border p-3" style={{ borderColor: '#2A3650', background: 'rgba(168, 139, 250, 0.05)' }}>
+                <label className="mb-1 block text-xs font-semibold" style={{ color: '#A78BFA' }}>
+                  Garantia do produto (em dias)
+                </label>
+                <input
+                  type="number"
+                  min={0} max={3650}
+                  value={form.warrantyDays ?? ''}
+                  onChange={e => {
+                    const v = e.target.value
+                    set('warrantyDays', v === '' ? null : parseInt(v, 10) || 0)
+                  }}
+                  placeholder="Vazio = padrão do tenant"
+                  className={INP} style={INP_S}
+                />
+                <p className="mt-1 text-xs text-muted">
+                  Acessórios eletrônicos: <strong>90</strong> · Celular novo lacrado: <strong>365</strong> · Seminovo: <strong>90</strong>. Vazio usa o padrão configurado.
+                </p>
               </div>
             </>
           )}

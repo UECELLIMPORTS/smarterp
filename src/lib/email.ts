@@ -57,6 +57,44 @@ export async function sendEmail({ to, subject, html }: EmailParams): Promise<{ o
   }
 }
 
+export type EmailAttachment = {
+  filename: string
+  content:  Buffer
+}
+
+export async function sendEmailWithAttachment(
+  params: EmailParams & { attachments: EmailAttachment[] },
+): Promise<{ ok: boolean; error?: string }> {
+  if (!resend) {
+    console.log('[email:dev-mode] sem RESEND_API_KEY — email com anexo não enviado:')
+    console.log('  to:', params.to)
+    console.log('  subject:', params.subject)
+    console.log('  attachments:', params.attachments.map(a => `${a.filename} (${a.content.byteLength}b)`).join(', '))
+    return { ok: true }
+  }
+
+  try {
+    const { error } = await resend.emails.send({
+      from:    EMAIL_FROM,
+      to:      params.to,
+      subject: params.subject,
+      html:    params.html,
+      attachments: params.attachments.map(a => ({
+        filename: a.filename,
+        content:  a.content,
+      })),
+    })
+    if (error) {
+      console.error('[email] erro Resend (attach):', error.message)
+      return { ok: false, error: error.message }
+    }
+    return { ok: true }
+  } catch (e) {
+    console.error('[email] exceção (attach):', e)
+    return { ok: false, error: e instanceof Error ? e.message : 'unknown' }
+  }
+}
+
 // ── Templates ────────────────────────────────────────────────────────────────
 
 /** Email de boas-vindas após signup. */
@@ -118,14 +156,14 @@ export async function sendTrialEndingEmail({
 
 // ── Internals ────────────────────────────────────────────────────────────────
 
-function escapeHtml(s: string): string {
+export function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, c => (
     { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] ?? c
   ))
 }
 
 /** Wrapper HTML padrão dos emails — header, body, CTA, footer. */
-function htmlShell({
+export function htmlShell({
   title, body, ctaUrl, ctaLabel,
 }: {
   title: string; body: string; ctaUrl?: string; ctaLabel?: string

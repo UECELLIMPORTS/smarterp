@@ -5,6 +5,7 @@ import {
   Receipt, TrendingUp, ShoppingCart, CreditCard, Wrench,
   XCircle, RefreshCw, Plus, Loader2, X, AlertTriangle, Search,
   Trash2, UserPlus, Calendar, CalendarDays, MoreVertical, Filter, Pencil, FileText,
+  Download, Mail, MessageCircle,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -28,6 +29,9 @@ import { CampaignCodePicker } from '@/components/meta-ads/campaign-code-picker'
 import { SALE_CHANNEL_OPTIONS_PICKABLE, DELIVERY_TYPE_OPTIONS, type SaleChannel, type DeliveryType } from '@/lib/sale-channels'
 import { updateServiceOrderChannel, updateSaleChannel } from '@/actions/sales-channels'
 import { emitNfceFromSale } from '@/actions/fiscal-emit'
+import {
+  getSaleContact, getOrCreateShareToken, sendComprovanteEmail,
+} from '@/actions/comprovante'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -448,6 +452,83 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
   const [editPayRow, setEditPayRow]     = useState<FinanceiroRow | null>(null)
   const [editPayVal, setEditPayVal]     = useState('')
   const [savingPay, startSavePay]       = useTransition()
+
+  // Modal enviar comprovante por EMAIL
+  const [emailRow, setEmailRow]         = useState<FinanceiroRow | null>(null)
+  const [emailTo, setEmailTo]           = useState('')
+  const [emailObs, setEmailObs]         = useState('')
+  const [sendingEmail, startSendEmail]  = useTransition()
+
+  // Modal enviar comprovante por WHATSAPP
+  const [waRow, setWaRow]               = useState<FinanceiroRow | null>(null)
+  const [waTo, setWaTo]                 = useState('')
+  const [waObs, setWaObs]               = useState('')
+  const [waLoadingLink, setWaLoadingLink] = useState(false)
+
+  async function openEmailModal(row: FinanceiroRow) {
+    setEmailRow(row)
+    setEmailObs('')
+    setEmailTo('')
+    const res = await getSaleContact(row.rawId)
+    if (res.ok) setEmailTo(res.data?.email ?? '')
+  }
+
+  async function openWaModal(row: FinanceiroRow) {
+    setWaRow(row)
+    setWaObs('')
+    setWaTo('')
+    const res = await getSaleContact(row.rawId)
+    if (res.ok) setWaTo(res.data?.whatsapp ?? '')
+  }
+
+  function handleSendComprovanteEmail() {
+    if (!emailRow) return
+    if (!/.+@.+\..+/.test(emailTo.trim())) {
+      toast.error('Informe um e-mail válido.')
+      return
+    }
+    startSendEmail(async () => {
+      const res = await sendComprovanteEmail({
+        saleId:      emailRow.rawId,
+        toEmail:     emailTo.trim(),
+        observation: emailObs.trim() || undefined,
+      })
+      if (res.ok) {
+        toast.success(`Comprovante enviado pra ${emailTo.trim()}.`)
+        setEmailRow(null)
+      } else {
+        toast.error(res.error)
+      }
+    })
+  }
+
+  async function handleSendComprovanteWhatsapp() {
+    if (!waRow) return
+    const digits = waTo.replace(/\D/g, '')
+    if (digits.length < 10) {
+      toast.error('Informe um WhatsApp válido (DDD + número).')
+      return
+    }
+    setWaLoadingLink(true)
+    try {
+      const res = await getOrCreateShareToken(waRow.rawId)
+      if (!res.ok) { toast.error(res.error); return }
+      const phone = digits.startsWith('55') ? digits : `55${digits}`
+      const customer = waRow.customerName?.split(' ')[0] || 'cliente'
+      const obsLine = waObs.trim() ? `\n\n${waObs.trim()}` : ''
+      const msg = `Olá ${customer}, segue o comprovante da sua compra com termo de garantia:\n${res.data?.url ?? ''}${obsLine}`
+      const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`
+      window.open(url, '_blank', 'noopener,noreferrer')
+      toast.success('WhatsApp aberto com o link do comprovante.')
+      setWaRow(null)
+    } finally {
+      setWaLoadingLink(false)
+    }
+  }
+
+  function handleDownloadComprovante(row: FinanceiroRow) {
+    window.open(`/api/financeiro/comprovante/${row.rawId}`, '_blank', 'noopener,noreferrer')
+  }
 
   // ── Nova Venda state ──────────────────────────────────────────────────────
   const [novaVendaOpen, setNovaVendaOpen] = useState(false)
@@ -1191,6 +1272,29 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                             accentColor="#3B82F6"
                             onClick={() => { setOpenMenu(null); handleEmitNfce(row) }}
                           />
+                        )}
+                        {/* Comprovante — ERP (qualquer status, mesmo cancelada vê histórico) */}
+                        {row.source === 'erp' && (
+                          <>
+                            <MenuItem
+                              icon={<Download className="h-5 w-5 shrink-0 pointer-events-none" style={{ color: '#A78BFA' }} />}
+                              label="Baixar comprovante"
+                              accentColor="#A78BFA"
+                              onClick={() => { setOpenMenu(null); handleDownloadComprovante(row) }}
+                            />
+                            <MenuItem
+                              icon={<Mail className="h-5 w-5 shrink-0 pointer-events-none" style={{ color: '#06B6D4' }} />}
+                              label="Enviar por e-mail"
+                              accentColor="#06B6D4"
+                              onClick={() => { setOpenMenu(null); openEmailModal(row) }}
+                            />
+                            <MenuItem
+                              icon={<MessageCircle className="h-5 w-5 shrink-0 pointer-events-none" style={{ color: '#22C55E' }} />}
+                              label="Enviar por WhatsApp"
+                              accentColor="#22C55E"
+                              onClick={() => { setOpenMenu(null); openWaModal(row) }}
+                            />
+                          </>
                         )}
                         {/* Editar venda — ERP (qualquer status) */}
                         {row.source === 'erp' && (
@@ -2430,6 +2534,124 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
               >
                 {rcSaving && <Loader2 className="h-4 w-4 animate-spin" />}
                 {rcSaving ? 'Salvando…' : 'Salvar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal: Enviar comprovante por E-MAIL ──────────────────── */}
+      {emailRow && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 p-4" onClick={() => !sendingEmail && setEmailRow(null)}>
+          <div className="w-full max-w-md rounded-xl border p-5" style={{ background: '#1B2638', borderColor: '#3A4868' }} onClick={e => e.stopPropagation()}>
+            <div className="mb-4 flex items-center gap-2">
+              <Mail className="h-5 w-5" style={{ color: '#06B6D4' }} />
+              <h3 className="text-base font-semibold" style={{ color: '#E2E8F0' }}>Enviar comprovante por e-mail</h3>
+            </div>
+            <p className="mb-4 text-xs" style={{ color: '#94A3B8' }}>
+              Cliente: <span className="font-medium" style={{ color: '#E2E8F0' }}>{emailRow.customerName}</span> · {emailRow.dateStr}
+            </p>
+
+            <label className="mb-1 block text-xs font-medium" style={{ color: '#CBD5E1' }}>E-mail do cliente</label>
+            <input
+              type="email"
+              value={emailTo}
+              onChange={e => setEmailTo(e.target.value)}
+              placeholder="cliente@exemplo.com"
+              className="mb-3 w-full rounded-lg px-3 py-2 text-sm"
+              style={{ background: '#0F172A', border: '1px solid #3A4868', color: '#E2E8F0' }}
+              disabled={sendingEmail}
+              autoFocus
+            />
+
+            <label className="mb-1 block text-xs font-medium" style={{ color: '#CBD5E1' }}>Observação (opcional)</label>
+            <textarea
+              value={emailObs}
+              onChange={e => setEmailObs(e.target.value.slice(0, 500))}
+              placeholder="Mensagem que aparece no PDF e no corpo do e-mail."
+              rows={3}
+              className="mb-1 w-full rounded-lg px-3 py-2 text-sm"
+              style={{ background: '#0F172A', border: '1px solid #3A4868', color: '#E2E8F0' }}
+              disabled={sendingEmail}
+            />
+            <p className="mb-4 text-right text-[10px]" style={{ color: '#64748B' }}>{emailObs.length}/500</p>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => setEmailRow(null)}
+                disabled={sendingEmail}
+                className="flex-1 rounded-lg border py-2 text-sm"
+                style={{ borderColor: '#3A4868', color: '#94A3B8' }}
+              >Cancelar</button>
+              <button
+                onClick={handleSendComprovanteEmail}
+                disabled={sendingEmail || !emailTo.trim()}
+                className="flex-1 flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                style={{ background: '#06B6D4' }}
+              >
+                {sendingEmail && <Loader2 className="h-4 w-4 animate-spin" />}
+                {sendingEmail ? 'Enviando…' : 'Enviar e-mail'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal: Enviar comprovante por WHATSAPP ──────────────── */}
+      {waRow && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 p-4" onClick={() => !waLoadingLink && setWaRow(null)}>
+          <div className="w-full max-w-md rounded-xl border p-5" style={{ background: '#1B2638', borderColor: '#3A4868' }} onClick={e => e.stopPropagation()}>
+            <div className="mb-4 flex items-center gap-2">
+              <MessageCircle className="h-5 w-5" style={{ color: '#22C55E' }} />
+              <h3 className="text-base font-semibold" style={{ color: '#E2E8F0' }}>Enviar comprovante por WhatsApp</h3>
+            </div>
+            <p className="mb-4 text-xs" style={{ color: '#94A3B8' }}>
+              Cliente: <span className="font-medium" style={{ color: '#E2E8F0' }}>{waRow.customerName}</span> · {waRow.dateStr}
+            </p>
+
+            <label className="mb-1 block text-xs font-medium" style={{ color: '#CBD5E1' }}>WhatsApp do cliente</label>
+            <input
+              type="tel"
+              value={waTo}
+              onChange={e => setWaTo(e.target.value)}
+              placeholder="(11) 99999-9999"
+              className="mb-3 w-full rounded-lg px-3 py-2 text-sm"
+              style={{ background: '#0F172A', border: '1px solid #3A4868', color: '#E2E8F0' }}
+              disabled={waLoadingLink}
+              autoFocus
+            />
+
+            <label className="mb-1 block text-xs font-medium" style={{ color: '#CBD5E1' }}>Mensagem extra (opcional)</label>
+            <textarea
+              value={waObs}
+              onChange={e => setWaObs(e.target.value.slice(0, 300))}
+              placeholder="Texto extra que vai junto da mensagem do WhatsApp."
+              rows={3}
+              className="mb-1 w-full rounded-lg px-3 py-2 text-sm"
+              style={{ background: '#0F172A', border: '1px solid #3A4868', color: '#E2E8F0' }}
+              disabled={waLoadingLink}
+            />
+            <p className="mb-3 text-right text-[10px]" style={{ color: '#64748B' }}>{waObs.length}/300</p>
+
+            <p className="mb-4 rounded-lg p-2 text-[11px]" style={{ background: '#0F172A', color: '#94A3B8' }}>
+              💡 Vai abrir o WhatsApp Web ou app com o link do comprovante. O cliente clica e baixa o PDF — link válido por 30 dias.
+            </p>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => setWaRow(null)}
+                disabled={waLoadingLink}
+                className="flex-1 rounded-lg border py-2 text-sm"
+                style={{ borderColor: '#3A4868', color: '#94A3B8' }}
+              >Cancelar</button>
+              <button
+                onClick={handleSendComprovanteWhatsapp}
+                disabled={waLoadingLink || !waTo.trim()}
+                className="flex-1 flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-black disabled:opacity-50"
+                style={{ background: '#22C55E' }}
+              >
+                {waLoadingLink && <Loader2 className="h-4 w-4 animate-spin" />}
+                {waLoadingLink ? 'Gerando link…' : 'Abrir WhatsApp'}
               </button>
             </div>
           </div>

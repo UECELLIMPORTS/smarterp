@@ -2,6 +2,7 @@ import { requireAuth } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { getSettings } from '@/actions/settings'
 import { listRecurringExpenses } from '@/actions/recurring-expenses'
+import { getBrandingSettings } from '@/actions/comprovante'
 import { ConfiguracoesClient } from './configuracoes-client'
 
 export const metadata = { title: 'Configurações — Smart ERP' }
@@ -10,9 +11,10 @@ export default async function ConfiguracoesPage() {
   let auth: Awaited<ReturnType<typeof requireAuth>>
   try { auth = await requireAuth() } catch { redirect('/login') }
 
-  const [settings, expenses] = await Promise.all([
+  const [settings, expenses, branding] = await Promise.all([
     getSettings(),
     listRecurringExpenses(),
+    getBrandingSettings(),
   ])
   const isOwner = auth.user.app_metadata?.tenant_role === 'owner'
 
@@ -21,6 +23,7 @@ export default async function ConfiguracoesPage() {
       initialSettings={settings}
       isOwner={isOwner}
       initialExpenses={expenses}
+      initialBranding={branding}
     />
   )
 }
