@@ -15,7 +15,7 @@ import { MODULES, MODULE_FEATURES, featureKey, type ModuleKey } from '@/lib/perm
 import { toast } from 'sonner'
 
 const inputCls = 'w-full rounded-lg border px-3.5 py-2.5 text-sm text-text placeholder:text-muted outline-none transition-colors focus:border-accent/60'
-const inputStyle = { background: '#15463A', borderColor: '#1F5949' }
+const inputStyle = { background: '#1B2638', borderColor: '#2A3650' }
 
 const DT = (iso: string) => {
   const d = new Date(iso)
@@ -152,14 +152,14 @@ export function EquipeClient({ members, invites, ownerEmail }: Props) {
       {/* Header */}
       <div>
         <Link href="/configuracoes" className="inline-flex items-center gap-1.5 text-xs hover:underline mb-2"
-          style={{ color: '#86EFAC' }}>
+          style={{ color: '#94A3B8' }}>
           <ArrowLeft className="h-3.5 w-3.5" /> Voltar pra Configurações
         </Link>
         <h1 className="text-2xl font-bold flex items-center gap-2" style={{ color: '#F8FAFC' }}>
           <Users className="h-5 w-5" style={{ color: '#10B981' }} />
           Equipe
         </h1>
-        <p className="mt-1 text-sm" style={{ color: '#86EFAC' }}>
+        <p className="mt-1 text-sm" style={{ color: '#94A3B8' }}>
           Gerencie quem tem acesso à sua conta. {members.length} {members.length === 1 ? 'pessoa' : 'pessoas'} no total.
         </p>
       </div>
@@ -174,22 +174,22 @@ export function EquipeClient({ members, invites, ownerEmail }: Props) {
           <div className="flex gap-2">
             <input value={showInviteUrl} readOnly
               className="flex-1 rounded-lg border px-3 py-2 text-xs font-mono outline-none"
-              style={{ background: '#15463A', borderColor: '#1F5949', color: '#F8FAFC' }} />
+              style={{ background: '#1B2638', borderColor: '#2A3650', color: '#F8FAFC' }} />
             <button onClick={() => copyInviteUrl(showInviteUrl)}
               className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold transition-opacity hover:opacity-90"
-              style={{ background: copied ? '#10B981' : '#22C55E', color: '#0E3A30' }}>
+              style={{ background: copied ? '#10B981' : '#22C55E', color: '#131C2A' }}>
               {copied ? <><Check className="h-3.5 w-3.5" />Copiado</> : <><Copy className="h-3.5 w-3.5" />Copiar</>}
             </button>
           </div>
           <button onClick={() => setShowInviteUrl(null)}
-            className="mt-3 text-xs hover:underline" style={{ color: '#86EFAC' }}>
+            className="mt-3 text-xs hover:underline" style={{ color: '#94A3B8' }}>
             Fechar
           </button>
         </div>
       )}
 
       {/* Form convidar membro */}
-      <div className="rounded-xl border p-5" style={{ background: '#15463A', borderColor: '#1F5949' }}>
+      <div className="rounded-xl border p-5" style={{ background: '#1B2638', borderColor: '#2A3650' }}>
         <h2 className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: '#F8FAFC' }}>
           <UserPlus className="h-4 w-4" style={{ color: '#22C55E' }} />
           Convidar novo membro
@@ -198,7 +198,7 @@ export function EquipeClient({ members, invites, ownerEmail }: Props) {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="text-[10px] font-bold uppercase tracking-widest mb-1.5 block"
-                style={{ color: '#86EFAC' }}>
+                style={{ color: '#94A3B8' }}>
                 Email do convidado
               </label>
               <input type="email" required value={email} onChange={e => setEmail(e.target.value)}
@@ -206,7 +206,7 @@ export function EquipeClient({ members, invites, ownerEmail }: Props) {
             </div>
             <div>
               <label className="text-[10px] font-bold uppercase tracking-widest mb-1.5 block"
-                style={{ color: '#86EFAC' }}>
+                style={{ color: '#94A3B8' }}>
                 Tipo de acesso
               </label>
               <select value={role} onChange={e => setRole(e.target.value as 'manager' | 'employee')}
@@ -221,8 +221,8 @@ export function EquipeClient({ members, invites, ownerEmail }: Props) {
           {role === 'manager' && (
             <label className="flex items-center gap-2.5 rounded-lg border p-3 cursor-pointer transition-colors hover:bg-white/[0.02]"
               style={{
-                background: limitManagerAccess ? 'rgba(255,184,0,.06)' : '#0E3A30',
-                borderColor: limitManagerAccess ? '#F59E0B' : '#1F5949',
+                background: limitManagerAccess ? 'rgba(255,184,0,.06)' : '#131C2A',
+                borderColor: limitManagerAccess ? '#F59E0B' : '#2A3650',
               }}>
               <input type="checkbox" checked={limitManagerAccess}
                 onChange={e => setLimitManagerAccess(e.target.checked)}
@@ -244,7 +244,7 @@ export function EquipeClient({ members, invites, ownerEmail }: Props) {
           {(role === 'employee' || (role === 'manager' && limitManagerAccess)) && (
             <div>
               <label className="text-[10px] font-bold uppercase tracking-widest mb-2 block flex items-center gap-1.5"
-                style={{ color: '#86EFAC' }}>
+                style={{ color: '#94A3B8' }}>
                 <Shield className="h-3 w-3" /> Módulos liberados {role === 'employee' ? 'pra esse funcionário' : 'pra esse manager'}
               </label>
               <PermissionsChecklist
@@ -253,7 +253,7 @@ export function EquipeClient({ members, invites, ownerEmail }: Props) {
                 onToggleModule={(k) => toggleModule(k, permissions, setPermissions)}
                 onToggleFeature={(k) => toggleFeature(k, permissions, setPermissions)}
               />
-              <p className="text-[10px] mt-2" style={{ color: '#86EFAC' }}>
+              <p className="text-[10px] mt-2" style={{ color: '#94A3B8' }}>
                 Funcionário só vai ver no menu lateral os módulos que você marcar.
                 Módulos com sub-itens (Dashboard) podem ter partes específicas
                 liberadas — desmarque blocos individuais pra restringir.
@@ -267,13 +267,13 @@ export function EquipeClient({ members, invites, ownerEmail }: Props) {
                 || (role === 'employee' && countModules(permissions) === 0)
                 || (role === 'manager' && limitManagerAccess && countModules(permissions) === 0)}
               className="inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-sm font-bold transition-opacity hover:opacity-90 disabled:opacity-40"
-              style={{ background: 'linear-gradient(135deg, #22C55E, #10B981)', color: '#0E3A30' }}>
+              style={{ background: 'linear-gradient(135deg, #22C55E, #10B981)', color: '#131C2A' }}>
               {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
               Enviar convite
             </button>
           </div>
         </form>
-        <p className="mt-3 text-xs" style={{ color: '#86EFAC' }}>
+        <p className="mt-3 text-xs" style={{ color: '#94A3B8' }}>
           {role === 'employee'
             ? 'Funcionário entra com acesso APENAS aos módulos marcados acima.'
             : limitManagerAccess
@@ -287,9 +287,9 @@ export function EquipeClient({ members, invites, ownerEmail }: Props) {
       </div>
 
       {/* Lista de membros ativos */}
-      <div className="rounded-xl border overflow-hidden" style={{ background: '#15463A', borderColor: '#1F5949' }}>
-        <div className="border-b px-5 py-3" style={{ borderColor: '#1F5949' }}>
-          <h2 className="text-xs font-bold uppercase tracking-widest" style={{ color: '#86EFAC' }}>
+      <div className="rounded-xl border overflow-hidden" style={{ background: '#1B2638', borderColor: '#2A3650' }}>
+        <div className="border-b px-5 py-3" style={{ borderColor: '#2A3650' }}>
+          <h2 className="text-xs font-bold uppercase tracking-widest" style={{ color: '#94A3B8' }}>
             Membros ativos ({members.length})
           </h2>
         </div>
@@ -297,12 +297,12 @@ export function EquipeClient({ members, invites, ownerEmail }: Props) {
           {members.map(m => (
             <li key={m.userId}
               className="flex items-center gap-3 px-5 py-4 border-b last:border-0"
-              style={{ borderColor: '#1F5949' }}>
+              style={{ borderColor: '#2A3650' }}>
               <div className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold shrink-0"
                 style={{ background: m.role === 'owner'
                   ? 'linear-gradient(135deg, #F59E0B, #F59E0B)'
                   : 'linear-gradient(135deg, #22C55E, #10B981)',
-                  color: '#0E3A30' }}>
+                  color: '#131C2A' }}>
                 {(m.fullName ?? m.email).slice(0, 2).toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
@@ -358,7 +358,7 @@ export function EquipeClient({ members, invites, ownerEmail }: Props) {
                     )}
                   </div>
                 )}
-                <p className="text-[10px] mt-1" style={{ color: '#86EFAC' }}>
+                <p className="text-[10px] mt-1" style={{ color: '#94A3B8' }}>
                   No time desde {DT(m.createdAt)}
                 </p>
               </div>
@@ -393,16 +393,16 @@ export function EquipeClient({ members, invites, ownerEmail }: Props) {
           style={{ background: 'rgba(0,0,0,0.7)' }}
           onClick={() => setEditingMember(null)}>
           <div className="rounded-2xl border w-full max-w-lg max-h-[90vh] overflow-y-auto"
-            style={{ background: '#15463A', borderColor: '#266F5C' }}
+            style={{ background: '#1B2638', borderColor: '#3A4868' }}
             onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-4 border-b"
-              style={{ borderColor: '#1F5949' }}>
+              style={{ borderColor: '#2A3650' }}>
               <h3 className="text-base font-bold flex items-center gap-2" style={{ color: '#F8FAFC' }}>
                 <Shield className="h-4 w-4" style={{ color: '#22C55E' }} />
                 Permissões — {editingMember.fullName ?? editingMember.email}
               </h3>
               <button onClick={() => setEditingMember(null)}
-                className="p-1 rounded hover:bg-white/5" style={{ color: '#86EFAC' }}>
+                className="p-1 rounded hover:bg-white/5" style={{ color: '#94A3B8' }}>
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -418,7 +418,7 @@ export function EquipeClient({ members, invites, ownerEmail }: Props) {
                 <button type="button"
                   onClick={() => setEditPerms([])}
                   className="w-full rounded-lg border py-2 text-xs font-bold transition-colors hover:bg-white/[0.02]"
-                  style={{ borderColor: '#1F5949', color: '#F59E0B' }}>
+                  style={{ borderColor: '#2A3650', color: '#F59E0B' }}>
                   🔓 Dar acesso total (limpar todas)
                 </button>
               )}
@@ -433,13 +433,13 @@ export function EquipeClient({ members, invites, ownerEmail }: Props) {
               <div className="flex gap-2 pt-2">
                 <button onClick={() => setEditingMember(null)} disabled={pending}
                   className="flex-1 rounded-lg py-2.5 text-sm font-bold border"
-                  style={{ borderColor: '#1F5949', color: '#CBD5E1' }}>
+                  style={{ borderColor: '#2A3650', color: '#CBD5E1' }}>
                   Cancelar
                 </button>
                 <button onClick={handleSaveEditPerms}
                   disabled={pending || (editingMember.role === 'employee' && countModules(editPerms) === 0)}
                   className="flex-1 rounded-lg py-2.5 text-sm font-bold transition-opacity hover:opacity-90 disabled:opacity-50"
-                  style={{ background: 'linear-gradient(135deg, #22C55E, #10B981)', color: '#0E3A30' }}>
+                  style={{ background: 'linear-gradient(135deg, #22C55E, #10B981)', color: '#131C2A' }}>
                   {pending ? 'Salvando...' : 'Salvar'}
                 </button>
               </div>
@@ -450,9 +450,9 @@ export function EquipeClient({ members, invites, ownerEmail }: Props) {
 
       {/* Lista de convites pendentes */}
       {invites.length > 0 && (
-        <div className="rounded-xl border overflow-hidden" style={{ background: '#15463A', borderColor: '#1F5949' }}>
-          <div className="border-b px-5 py-3" style={{ borderColor: '#1F5949' }}>
-            <h2 className="text-xs font-bold uppercase tracking-widest" style={{ color: '#86EFAC' }}>
+        <div className="rounded-xl border overflow-hidden" style={{ background: '#1B2638', borderColor: '#2A3650' }}>
+          <div className="border-b px-5 py-3" style={{ borderColor: '#2A3650' }}>
+            <h2 className="text-xs font-bold uppercase tracking-widest" style={{ color: '#94A3B8' }}>
               Convites pendentes ({invites.length})
             </h2>
           </div>
@@ -460,7 +460,7 @@ export function EquipeClient({ members, invites, ownerEmail }: Props) {
             {invites.map(inv => (
               <li key={inv.id}
                 className="flex items-center gap-3 px-5 py-4 border-b last:border-0"
-                style={{ borderColor: '#1F5949' }}>
+                style={{ borderColor: '#2A3650' }}>
                 <div className="flex h-10 w-10 items-center justify-center rounded-full shrink-0"
                   style={{ background: 'rgba(255,184,0,.15)' }}>
                   <Clock className="h-5 w-5" style={{ color: '#F59E0B' }} />
@@ -491,7 +491,7 @@ export function EquipeClient({ members, invites, ownerEmail }: Props) {
       )}
 
       {/* Disclaimer */}
-      <p className="text-xs" style={{ color: '#86EFAC' }}>
+      <p className="text-xs" style={{ color: '#94A3B8' }}>
         Você é o dono ({ownerEmail}). Apenas você pode convidar/remover membros e gerenciar a assinatura.
       </p>
     </div>
@@ -520,8 +520,8 @@ function PermissionsChecklist({ value, onToggleModule, onToggleFeature }: Checkl
           <div key={mod.key}
             className="rounded-lg border transition-colors"
             style={{
-              background: checked ? 'rgba(34,197,94,.06)' : '#0E3A30',
-              borderColor: checked ? '#22C55E' : '#1F5949',
+              background: checked ? 'rgba(34,197,94,.06)' : '#131C2A',
+              borderColor: checked ? '#22C55E' : '#2A3650',
             }}>
             {/* Módulo principal */}
             <label className="flex items-start gap-2.5 p-3 cursor-pointer">
@@ -553,7 +553,7 @@ function PermissionsChecklist({ value, onToggleModule, onToggleFeature }: Checkl
                         className="mt-0.5 h-3.5 w-3.5 accent-accent cursor-pointer" />
                       <div className="flex-1 min-w-0">
                         <p className="text-[11px] font-semibold" style={{ color: '#F8FAFC' }}>{f.label}</p>
-                        <p className="text-[10px]" style={{ color: '#86EFAC' }}>{f.description}</p>
+                        <p className="text-[10px]" style={{ color: '#94A3B8' }}>{f.description}</p>
                       </div>
                     </label>
                   )

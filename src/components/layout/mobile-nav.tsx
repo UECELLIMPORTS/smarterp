@@ -41,7 +41,7 @@ export function MobileNav({ hasFullAccess = true, allowedModules = [], isOwner =
         onClick={() => setOpen(true)}
         aria-label="Abrir menu"
         className="flex h-9 w-9 items-center justify-center rounded-lg border transition-colors hover:bg-card lg:hidden"
-        style={{ borderColor: '#1F5949', color: '#F8FAFC' }}
+        style={{ borderColor: '#2A3650', color: '#F8FAFC' }}
       >
         <Menu className="h-5 w-5" />
       </button>
@@ -59,10 +59,10 @@ export function MobileNav({ hasFullAccess = true, allowedModules = [], isOwner =
           {/* Drawer */}
           <aside
             className="absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col border-r"
-            style={{ background: '#0E3A30', borderColor: '#1F5949' }}
+            style={{ background: '#131C2A', borderColor: '#2A3650' }}
           >
             {/* Header com logo + botão fechar */}
-            <div className="flex h-16 items-center justify-between border-b px-5" style={{ borderColor: '#1F5949' }}>
+            <div className="flex h-16 items-center justify-between border-b px-5" style={{ borderColor: '#2A3650' }}>
               <div className="flex items-center gap-3">
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg"
                   style={{ background: 'linear-gradient(135deg, #22C55E, #22D3EE)' }}>
@@ -77,7 +77,7 @@ export function MobileNav({ hasFullAccess = true, allowedModules = [], isOwner =
                 onClick={() => setOpen(false)}
                 aria-label="Fechar menu"
                 className="flex h-9 w-9 items-center justify-center rounded-lg border transition-colors hover:bg-card"
-                style={{ borderColor: '#1F5949', color: '#86EFAC' }}
+                style={{ borderColor: '#2A3650', color: '#94A3B8' }}
               >
                 <X className="h-5 w-5" />
               </button>
@@ -95,7 +95,7 @@ export function MobileNav({ hasFullAccess = true, allowedModules = [], isOwner =
                         className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-all"
                         style={active
                           ? { background: '#22C55E15', color: '#22C55E', borderLeft: '2px solid #22C55E' }
-                          : { color: '#86EFAC' }
+                          : { color: '#94A3B8' }
                         }
                       >
                         <Icon className="h-5 w-5 flex-shrink-0" />
@@ -108,8 +108,8 @@ export function MobileNav({ hasFullAccess = true, allowedModules = [], isOwner =
             </nav>
 
             {/* Footer */}
-            <div className="border-t px-4 py-3" style={{ borderColor: '#1F5949' }}>
-              <p className="text-center text-[10px]" style={{ color: '#5EC2A0' }}>v1.0.0</p>
+            <div className="border-t px-4 py-3" style={{ borderColor: '#2A3650' }}>
+              <p className="text-center text-[10px]" style={{ color: '#64748B' }}>v1.0.0</p>
             </div>
           </aside>
         </div>

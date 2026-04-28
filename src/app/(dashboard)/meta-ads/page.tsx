@@ -196,17 +196,17 @@ export default async function MetaAdsPage({
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold" style={{ color: '#F8FAFC' }}>Meta Ads</h1>
-          <p className="mt-1 text-sm" style={{ color: '#86EFAC' }}>
+          <p className="mt-1 text-sm" style={{ color: '#94A3B8' }}>
             Dashboard de campanhas do Meta (Facebook + Instagram)
           </p>
         </div>
 
         <div
           className="rounded-2xl border p-10 text-center"
-          style={{ background: '#15463A', borderColor: '#1F5949' }}
+          style={{ background: '#1B2638', borderColor: '#2A3650' }}
         >
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl mb-4"
-            style={{ background: 'linear-gradient(135deg, #E4405F22, #1877F222)', border: '1px solid #1F5949' }}>
+            style={{ background: 'linear-gradient(135deg, #E4405F22, #1877F222)', border: '1px solid #2A3650' }}>
             <TrendingUp className="h-8 w-8" style={{ color: '#E4405F' }} />
           </div>
           <h2 className="text-lg font-bold" style={{ color: '#F8FAFC' }}>Configure o Meta Ads</h2>
@@ -221,7 +221,7 @@ export default async function MetaAdsPage({
             <Settings className="h-4 w-4" />
             Configurar credenciais
           </Link>
-          <p className="mt-6 text-xs" style={{ color: '#86EFAC' }}>
+          <p className="mt-6 text-xs" style={{ color: '#94A3B8' }}>
             Leva ~15 minutos — a gente te guia passo a passo
           </p>
         </div>

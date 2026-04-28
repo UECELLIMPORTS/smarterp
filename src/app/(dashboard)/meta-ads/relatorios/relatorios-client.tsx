@@ -42,20 +42,20 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
       {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
-          <Link href="/meta-ads" className="mb-2 inline-flex items-center gap-1 text-xs" style={{ color: '#86EFAC' }}>
+          <Link href="/meta-ads" className="mb-2 inline-flex items-center gap-1 text-xs" style={{ color: '#94A3B8' }}>
             <ArrowLeft className="h-3 w-3" /> Voltar ao Dashboard
           </Link>
           <h1 className="text-2xl font-bold flex items-center gap-2" style={{ color: '#F8FAFC' }}>
             <BarChart3 className="h-5 w-5" style={{ color: '#22C55E' }} />
             Relatórios
           </h1>
-          <p className="mt-1 text-sm" style={{ color: '#86EFAC' }}>
+          <p className="mt-1 text-sm" style={{ color: '#94A3B8' }}>
             Análises cruzadas entre gasto no Meta Ads e desempenho no ERP
             {data.selectedAccount && <> · <span className="font-mono" style={{ color: '#CBD5E1' }}>{data.selectedAccount.displayName}</span></>}
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex gap-1 rounded-xl p-1" style={{ background: '#15463A', border: '1px solid #1F5949' }}>
+          <div className="flex gap-1 rounded-xl p-1" style={{ background: '#1B2638', border: '1px solid #2A3650' }}>
             {periodOptions.map(p => (
               <button
                 key={p.v}
@@ -63,7 +63,7 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
                 className="rounded-lg px-3 py-1.5 text-xs font-bold transition-all"
                 style={data.period === p.v
                   ? { background: '#E4405F', color: '#fff' }
-                  : { color: '#86EFAC' }
+                  : { color: '#94A3B8' }
                 }
               >
                 {p.label}
@@ -93,7 +93,7 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
       <Link
         href="/analytics/canais"
         className="block rounded-2xl border p-5 transition-colors hover:bg-white/5"
-        style={{ background: '#15463A', borderColor: '#1F5949' }}
+        style={{ background: '#1B2638', borderColor: '#2A3650' }}
       >
         <div className="flex items-center gap-4">
           <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
@@ -114,7 +114,7 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
         </div>
       </Link>
 
-      <div className="flex items-center justify-center gap-2 text-[11px]" style={{ color: '#86EFAC' }}>
+      <div className="flex items-center justify-center gap-2 text-[11px]" style={{ color: '#94A3B8' }}>
         <Link href="/meta-ads" className="inline-flex items-center gap-1.5 transition-colors hover:text-[#22C55E]">
           <ExternalLink className="h-3 w-3" />
           Voltar ao Dashboard
@@ -132,7 +132,7 @@ function DailyCrossSection({ points }: { points: DailyCrossPoint[] }) {
   const overallRoas  = totalSpend > 0 ? totalRevenue / totalSpend : 0
 
   return (
-    <div className="rounded-2xl border p-6 space-y-4" style={{ background: '#15463A', borderColor: '#1F5949' }}>
+    <div className="rounded-2xl border p-6 space-y-4" style={{ background: '#1B2638', borderColor: '#2A3650' }}>
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div className="flex items-center gap-2">
           <div className="h-4 w-1 rounded-full" style={{ background: '#22C55E' }} />
@@ -140,7 +140,7 @@ function DailyCrossSection({ points }: { points: DailyCrossPoint[] }) {
             <h2 className="text-xs font-bold uppercase tracking-widest" style={{ color: '#CBD5E1' }}>
               Evolução diária — Gasto Meta × Faturamento ERP
             </h2>
-            <p className="text-[11px]" style={{ color: '#86EFAC' }}>
+            <p className="text-[11px]" style={{ color: '#94A3B8' }}>
               Linhas sobrepostas por dia. Faturamento = vendas + OS de clientes com origem <strong>Instagram Pago</strong> ou <strong>Facebook</strong>.
             </p>
           </div>
@@ -158,11 +158,11 @@ function DailyCrossSection({ points }: { points: DailyCrossPoint[] }) {
       </div>
 
       {points.length === 0 ? (
-        <p className="py-8 text-center text-sm" style={{ color: '#86EFAC' }}>
+        <p className="py-8 text-center text-sm" style={{ color: '#94A3B8' }}>
           Sem dados no período pra gráfico.
         </p>
       ) : (
-        <div className="rounded-xl border p-4" style={{ background: '#0E3A30', borderColor: '#1F5949' }}>
+        <div className="rounded-xl border p-4" style={{ background: '#131C2A', borderColor: '#2A3650' }}>
           <DualBarChart points={points} />
           <div className="mt-3 flex items-center justify-center gap-4 text-[11px]">
             <span className="inline-flex items-center gap-1.5" style={{ color: '#CBD5E1' }}>
@@ -204,7 +204,7 @@ function DualBarChart({ points }: { points: DailyCrossPoint[] }) {
       {yTicks.map(t => (
         <line key={t.y}
           x1={padL} y1={t.y} x2={width - padR} y2={t.y}
-          stroke="#1F5949" strokeWidth="1" strokeDasharray="2 3"
+          stroke="#2A3650" strokeWidth="1" strokeDasharray="2 3"
         />
       ))}
 
@@ -227,7 +227,7 @@ function DualBarChart({ points }: { points: DailyCrossPoint[] }) {
       {yTicks.map(t => (
         <text key={`ylbl-${t.y}`}
           x={padL - 8} y={t.y + 3}
-          textAnchor="end" fontSize="10" fill="#86EFAC" fontFamily="ui-monospace,monospace"
+          textAnchor="end" fontSize="10" fill="#94A3B8" fontFamily="ui-monospace,monospace"
         >
           {BRL(t.value)}
         </text>
@@ -236,7 +236,7 @@ function DualBarChart({ points }: { points: DailyCrossPoint[] }) {
       {points.map((p, i) => (i % xStep === 0 || i === points.length - 1) && (
         <text key={`xlbl-${i}`}
           x={xBase(i) + barGroupW / 2} y={height - 15}
-          textAnchor="middle" fontSize="10" fill="#86EFAC" fontFamily="ui-monospace,monospace"
+          textAnchor="middle" fontSize="10" fill="#94A3B8" fontFamily="ui-monospace,monospace"
         >
           {fmtShortDate(p.date)}
         </text>
@@ -253,14 +253,14 @@ function CacSection({ items, totalSpend }: { items: CacByChannel[]; totalSpend: 
   const avgCac   = totalNew > 0 ? Math.round(totalSpend / totalNew) : 0
 
   return (
-    <div className="rounded-2xl border p-6 space-y-4" style={{ background: '#15463A', borderColor: '#1F5949' }}>
+    <div className="rounded-2xl border p-6 space-y-4" style={{ background: '#1B2638', borderColor: '#2A3650' }}>
       <div className="flex items-center gap-2">
         <div className="h-4 w-1 rounded-full" style={{ background: '#8B5CF6' }} />
         <div>
           <h2 className="text-xs font-bold uppercase tracking-widest" style={{ color: '#CBD5E1' }}>
             CAC — Custo de aquisição de cliente
           </h2>
-          <p className="text-[11px]" style={{ color: '#86EFAC' }}>
+          <p className="text-[11px]" style={{ color: '#94A3B8' }}>
             Gasto no Meta dividido pelos novos clientes do período com origem paga (IG Pago + Facebook).
             Orgânico aparece só como volume (custo zero).
           </p>
@@ -269,8 +269,8 @@ function CacSection({ items, totalSpend }: { items: CacByChannel[]; totalSpend: 
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="rounded-xl border p-4 col-span-1 sm:col-span-3"
-          style={{ background: '#0E3A30', borderColor: 'rgba(155,109,255,.3)' }}>
-          <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: '#86EFAC' }}>
+          style={{ background: '#131C2A', borderColor: 'rgba(155,109,255,.3)' }}>
+          <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: '#94A3B8' }}>
             CAC médio geral (pagos)
           </p>
           <div className="flex items-baseline gap-3 mt-1">
@@ -291,7 +291,7 @@ function CacSection({ items, totalSpend }: { items: CacByChannel[]; totalSpend: 
 
         {items.map(item => (
           <div key={item.channel} className="rounded-xl border p-4"
-            style={{ background: '#0E3A30', borderColor: '#1F5949' }}>
+            style={{ background: '#131C2A', borderColor: '#2A3650' }}>
             <div className="flex items-center gap-2 mb-1">
               <span className="h-2 w-2 rounded-full" style={{ background: item.color }} />
               <p className="text-xs font-semibold" style={{ color: '#F8FAFC' }}>{item.label}</p>
@@ -321,14 +321,14 @@ function ChannelTableSection({ channels }: { channels: ChannelMetrics[] }) {
   const totalAvgTicket = total.txCount > 0 ? Math.round(total.revenueCents / total.txCount) : 0
 
   return (
-    <div className="rounded-2xl border" style={{ background: '#15463A', borderColor: '#1F5949' }}>
-      <div className="flex items-center gap-2 border-b px-6 py-4" style={{ borderColor: '#1F5949' }}>
+    <div className="rounded-2xl border" style={{ background: '#1B2638', borderColor: '#2A3650' }}>
+      <div className="flex items-center gap-2 border-b px-6 py-4" style={{ borderColor: '#2A3650' }}>
         <div className="h-4 w-1 rounded-full" style={{ background: '#E4405F' }} />
         <div>
           <h2 className="text-xs font-bold uppercase tracking-widest" style={{ color: '#CBD5E1' }}>
             Performance por canal
           </h2>
-          <p className="text-[11px]" style={{ color: '#86EFAC' }}>
+          <p className="text-[11px]" style={{ color: '#94A3B8' }}>
             Clientes novos, transações, faturamento e ticket médio por canal de origem
           </p>
         </div>
@@ -337,9 +337,9 @@ function ChannelTableSection({ channels }: { channels: ChannelMetrics[] }) {
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b text-left" style={{ borderColor: '#1F5949' }}>
+            <tr className="border-b text-left" style={{ borderColor: '#2A3650' }}>
               {['Canal', 'Novos clientes', 'Transações', 'Faturamento', 'Ticket médio'].map(h => (
-                <th key={h} className="px-5 py-3 text-[10px] font-bold uppercase tracking-wider" style={{ color: '#86EFAC' }}>
+                <th key={h} className="px-5 py-3 text-[10px] font-bold uppercase tracking-wider" style={{ color: '#94A3B8' }}>
                   {h}
                 </th>
               ))}
@@ -360,7 +360,7 @@ function ChannelTableSection({ channels }: { channels: ChannelMetrics[] }) {
                 <td className="px-5 py-3 font-mono" style={{ color: '#CBD5E1' }}>
                   {NUM(c.txCount)}
                 </td>
-                <td className="px-5 py-3 font-mono font-semibold" style={{ color: c.revenueCents > 0 ? '#10B981' : '#86EFAC' }}>
+                <td className="px-5 py-3 font-mono font-semibold" style={{ color: c.revenueCents > 0 ? '#10B981' : '#94A3B8' }}>
                   {c.revenueCents > 0 ? BRL(c.revenueCents) : '—'}
                 </td>
                 <td className="px-5 py-3 font-mono" style={{ color: '#CBD5E1' }}>
@@ -406,7 +406,7 @@ function FunnelSection({ funnel, spendCents }: { funnel: FunnelMetrics; spendCen
   const maxVal = Math.max(1, ...stages.map(s => s.value))
 
   return (
-    <div className="rounded-2xl border p-6 space-y-4" style={{ background: '#15463A', borderColor: '#1F5949' }}>
+    <div className="rounded-2xl border p-6 space-y-4" style={{ background: '#1B2638', borderColor: '#2A3650' }}>
       <div className="flex items-center gap-2">
         <div className="h-4 w-1 rounded-full" style={{ background: '#F59E0B' }} />
         <div>
@@ -414,7 +414,7 @@ function FunnelSection({ funnel, spendCents }: { funnel: FunnelMetrics; spendCen
             <Target className="h-3.5 w-3.5" />
             Funil de conversão — Meta → ERP
           </h2>
-          <p className="text-[11px]" style={{ color: '#86EFAC' }}>
+          <p className="text-[11px]" style={{ color: '#94A3B8' }}>
             Do anúncio até a venda. A atribuição cliente → origem depende do campo &quot;Como nos conheceu&quot; preenchido no cadastro.
           </p>
         </div>
@@ -436,14 +436,14 @@ function FunnelSection({ funnel, spendCents }: { funnel: FunnelMetrics; spendCen
                     <span className="text-xs" style={{ color: '#CBD5E1' }}>{stage.label}</span>
                     <span className="text-sm font-bold font-mono" style={{ color: stage.color }}>{stage.fmt(stage.value)}</span>
                   </div>
-                  <div className="h-6 rounded-md overflow-hidden" style={{ background: '#0E3A30' }}>
+                  <div className="h-6 rounded-md overflow-hidden" style={{ background: '#131C2A' }}>
                     <div className="h-full rounded-md transition-all"
                       style={{ width, background: `linear-gradient(90deg, ${stage.color}66, ${stage.color})` }} />
                   </div>
                 </div>
               </div>
               {next && convRate != null && (
-                <div className="ml-4 my-1 flex items-center gap-2 text-[10px]" style={{ color: '#86EFAC' }}>
+                <div className="ml-4 my-1 flex items-center gap-2 text-[10px]" style={{ color: '#94A3B8' }}>
                   {convRate >= 0.01
                     ? <TrendingUp className="h-3 w-3" style={{ color: '#10B981' }} />
                     : <TrendingDown className="h-3 w-3" style={{ color: '#EF4444' }} />
@@ -456,7 +456,7 @@ function FunnelSection({ funnel, spendCents }: { funnel: FunnelMetrics; spendCen
         })}
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t" style={{ borderColor: '#1F5949' }}>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t" style={{ borderColor: '#2A3650' }}>
         <MiniStat label="CTR"                       value={PCT(ctr)}             color="#F59E0B" icon={TrendingUp} />
         <MiniStat label="Clique → Cliente"          value={PCT(clickToCustomer)} color="#8B5CF6" icon={Users} />
         <MiniStat label="Cliente → Venda"           value={PCT(customerToSale)}  color="#10B981" icon={DollarSign} />
@@ -482,9 +482,9 @@ function MiniStat({
   icon?: React.ElementType
 }) {
   return (
-    <div className="rounded-lg border p-3" style={{ background: '#0E3A30', borderColor: '#1F5949' }}>
+    <div className="rounded-lg border p-3" style={{ background: '#131C2A', borderColor: '#2A3650' }}>
       <div className="flex items-center justify-between mb-1">
-        <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#86EFAC' }}>{label}</span>
+        <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#94A3B8' }}>{label}</span>
         {Icon && <Icon className="h-3.5 w-3.5" style={{ color }} />}
       </div>
       <p className="text-lg font-bold font-mono" style={{ color }}>{value}</p>

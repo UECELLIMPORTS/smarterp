@@ -53,7 +53,7 @@ export default function ResetPasswordPage() {
             <AlertTriangle className="h-7 w-7" style={{ color: '#EF4444' }} />
           </div>
           <h1 className="text-xl font-bold mb-2" style={{ color: '#F8FAFC' }}>Link expirado ou inválido</h1>
-          <p className="text-sm mb-4" style={{ color: '#86EFAC' }}>
+          <p className="text-sm mb-4" style={{ color: '#94A3B8' }}>
             Este link não é mais válido (links de recuperação expiram em 1 hora).
           </p>
           <Link href="/forgot-password"
@@ -69,7 +69,7 @@ export default function ResetPasswordPage() {
             <CheckCircle className="h-7 w-7" style={{ color: '#10B981' }} />
           </div>
           <h1 className="text-xl font-bold mb-2" style={{ color: '#F8FAFC' }}>Senha atualizada!</h1>
-          <p className="text-sm" style={{ color: '#86EFAC' }}>
+          <p className="text-sm" style={{ color: '#94A3B8' }}>
             Redirecionando pro dashboard…
           </p>
         </div>
@@ -79,7 +79,7 @@ export default function ResetPasswordPage() {
             <h1 className="text-2xl font-bold tracking-tight" style={{ color: '#F8FAFC' }}>
               Criar nova senha
             </h1>
-            <p className="mt-1 text-sm" style={{ color: '#86EFAC' }}>
+            <p className="mt-1 text-sm" style={{ color: '#94A3B8' }}>
               Defina sua nova senha de acesso.
             </p>
           </div>
@@ -93,7 +93,7 @@ export default function ResetPasswordPage() {
                   className="auth-input pr-10" />
                 <button type="button" onClick={() => setShowPass(v => !v)}
                   className="absolute right-3 top-1/2 -translate-y-1/2"
-                  tabIndex={-1} style={{ color: '#5EC2A0' }}>
+                  tabIndex={-1} style={{ color: '#64748B' }}>
                   {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
@@ -128,7 +128,7 @@ export default function ResetPasswordPage() {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
-      <label className="text-xs font-medium uppercase tracking-wider" style={{ color: '#86EFAC' }}>
+      <label className="text-xs font-medium uppercase tracking-wider" style={{ color: '#94A3B8' }}>
         {label}
       </label>
       {children}

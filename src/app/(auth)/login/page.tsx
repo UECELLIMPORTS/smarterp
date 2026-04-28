@@ -37,7 +37,7 @@ export default function LoginPage() {
         <h1 className="text-2xl font-bold tracking-tight" style={{ color: '#F8FAFC' }}>
           Entrar na sua conta
         </h1>
-        <p className="mt-1 text-sm" style={{ color: '#86EFAC' }}>
+        <p className="mt-1 text-sm" style={{ color: '#94A3B8' }}>
           Use seu email e senha pra acessar o painel.
         </p>
       </div>
@@ -66,7 +66,7 @@ export default function LoginPage() {
             />
             <button type="button" onClick={() => setShowPass(v => !v)}
               className="absolute right-3 top-1/2 -translate-y-1/2"
-              style={{ color: '#5EC2A0' }}>
+              style={{ color: '#64748B' }}>
               {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
           </div>
@@ -86,13 +86,13 @@ export default function LoginPage() {
         </button>
 
         <p className="text-center text-xs">
-          <a href="/forgot-password" className="hover:underline" style={{ color: '#86EFAC' }}>
+          <a href="/forgot-password" className="hover:underline" style={{ color: '#94A3B8' }}>
             Esqueci minha senha
           </a>
         </p>
       </form>
 
-      <p className="mt-8 text-center text-sm" style={{ color: '#86EFAC' }}>
+      <p className="mt-8 text-center text-sm" style={{ color: '#94A3B8' }}>
         Ainda não tem conta?{' '}
         <a href="/signup" className="font-semibold hover:underline" style={{ color: '#22C55E' }}>
           Criar grátis (7 dias)
@@ -105,7 +105,7 @@ export default function LoginPage() {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
-      <label className="text-xs font-medium uppercase tracking-wider" style={{ color: '#86EFAC' }}>
+      <label className="text-xs font-medium uppercase tracking-wider" style={{ color: '#94A3B8' }}>
         {label}
       </label>
       {children}

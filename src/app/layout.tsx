@@ -38,7 +38,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Toaster
           position="top-right"
           toastOptions={{
-            style: { background: '#0E3A30', border: '1px solid #1F5949', color: '#F8FAFC' },
+            style: { background: '#131C2A', border: '1px solid #2A3650', color: '#F8FAFC' },
           }}
         />
       </body>

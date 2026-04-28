@@ -22,7 +22,7 @@ export function ChannelDonut({ breakdown }: { breakdown: ChannelItem[] }) {
   let acc = 0
   const segments: string[] = []
   for (const b of breakdown) {
-    const color = b.value == null ? '#86EFAC' : channelColor(b.value)
+    const color = b.value == null ? '#94A3B8' : channelColor(b.value)
     const startDeg = Math.round((acc / 100) * 360)
     const endDeg   = Math.round(((acc + b.sharePercent) / 100) * 360)
     segments.push(`${color} ${startDeg}deg ${endDeg}deg`)
@@ -30,16 +30,16 @@ export function ChannelDonut({ breakdown }: { breakdown: ChannelItem[] }) {
   }
   const gradient = segments.length > 0
     ? `conic-gradient(${segments.join(', ')})`
-    : '#1F5949'
+    : '#2A3650'
 
   if (breakdown.length === 0 || total === 0) {
     return (
-      <div className="rounded-xl border p-6" style={{ background: '#15463A', borderColor: '#1F5949' }}>
+      <div className="rounded-xl border p-6" style={{ background: '#1B2638', borderColor: '#2A3650' }}>
         <div className="flex items-center gap-2 mb-4">
           <Store className="h-4 w-4" style={{ color: '#22C55E' }} />
           <h2 className="text-sm font-semibold text-text">Faturamento por Canal</h2>
         </div>
-        <p className="py-6 text-center text-sm" style={{ color: '#86EFAC' }}>
+        <p className="py-6 text-center text-sm" style={{ color: '#94A3B8' }}>
           Sem vendas com canal preenchido no período
         </p>
       </div>
@@ -47,13 +47,13 @@ export function ChannelDonut({ breakdown }: { breakdown: ChannelItem[] }) {
   }
 
   return (
-    <div className="rounded-xl border p-6" style={{ background: '#15463A', borderColor: '#1F5949' }}>
+    <div className="rounded-xl border p-6" style={{ background: '#1B2638', borderColor: '#2A3650' }}>
       <div className="flex items-start justify-between mb-4 flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <Store className="h-4 w-4" style={{ color: '#22C55E' }} />
           <div>
             <h2 className="text-sm font-semibold text-text">Faturamento por Canal</h2>
-            <p className="text-xs" style={{ color: '#86EFAC' }}>
+            <p className="text-xs" style={{ color: '#94A3B8' }}>
               Onde as vendas foram fechadas no período
             </p>
           </div>
@@ -81,8 +81,8 @@ export function ChannelDonut({ breakdown }: { breakdown: ChannelItem[] }) {
       <div className="flex items-center gap-6 flex-wrap">
         <div className="h-40 w-40 rounded-full shrink-0 relative" style={{ background: gradient }}>
           <div className="absolute inset-5 rounded-full flex flex-col items-center justify-center"
-            style={{ background: '#15463A' }}>
-            <span className="text-[10px] uppercase tracking-wider" style={{ color: '#86EFAC' }}>Total</span>
+            style={{ background: '#1B2638' }}>
+            <span className="text-[10px] uppercase tracking-wider" style={{ color: '#94A3B8' }}>Total</span>
             <span className="text-base font-bold font-mono mt-0.5" style={{ color: '#F8FAFC' }}>
               {BRL(total)}
             </span>
@@ -91,7 +91,7 @@ export function ChannelDonut({ breakdown }: { breakdown: ChannelItem[] }) {
 
         <div className="flex-1 min-w-[220px] space-y-1.5">
           {breakdown.map(b => {
-            const color = b.value == null ? '#86EFAC' : channelColor(b.value)
+            const color = b.value == null ? '#94A3B8' : channelColor(b.value)
             const label = b.value == null ? 'Não informado' : channelLabel(b.value)
             return (
               <div key={b.value ?? '__no__'} className="flex items-center justify-between text-xs">

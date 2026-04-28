@@ -60,12 +60,12 @@ export function Sidebar({ hasFullAccess = true, allowedModules = [], isOwner = t
       // Esconde no mobile (<lg). Mobile usa <MobileNav> dentro do Topbar.
       className="fixed inset-y-0 left-0 z-40 hidden w-60 flex-col border-r lg:flex"
       style={{
-        background: 'linear-gradient(180deg, #0E3A30 0%, #15463A 100%)',
-        borderColor: '#1F5949',
+        background: 'linear-gradient(180deg, #131C2A 0%, #1B2638 100%)',
+        borderColor: '#2A3650',
       }}
     >
       {/* Logo */}
-      <div className="flex h-16 items-center gap-3 border-b px-5" style={{ borderColor: '#1F5949' }}>
+      <div className="flex h-16 items-center gap-3 border-b px-5" style={{ borderColor: '#2A3650' }}>
         <div className="flex h-9 w-9 items-center justify-center rounded-lg"
           style={{ background: 'linear-gradient(135deg, #22C55E, #22D3EE)' }}>
           <Zap className="h-5 w-5" style={{ color: 'white' }} />
@@ -87,14 +87,14 @@ export function Sidebar({ hasFullAccess = true, allowedModules = [], isOwner = t
                   className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-all hover:bg-slate-100"
                   style={active
                     ? {
-                        background: 'linear-gradient(90deg, #15463A 0%, #15463A 100%)',
+                        background: 'linear-gradient(90deg, #1B2638 0%, #1B2638 100%)',
                         color: '#22C55E',
                         boxShadow: 'inset 3px 0 0 #22C55E',
                       }
                     : { color: '#CBD5E1' }
                   }
                 >
-                  <Icon className="h-4 w-4 flex-shrink-0" style={{ color: active ? '#22C55E' : '#86EFAC' }} />
+                  <Icon className="h-4 w-4 flex-shrink-0" style={{ color: active ? '#22C55E' : '#94A3B8' }} />
                   {label}
                 </Link>
               </li>
@@ -104,8 +104,8 @@ export function Sidebar({ hasFullAccess = true, allowedModules = [], isOwner = t
       </nav>
 
       {/* Footer */}
-      <div className="border-t px-4 py-3" style={{ borderColor: '#1F5949' }}>
-        <p className="text-center text-[10px]" style={{ color: '#5EC2A0' }}>v1.0.0</p>
+      <div className="border-t px-4 py-3" style={{ borderColor: '#2A3650' }}>
+        <p className="text-center text-[10px]" style={{ color: '#64748B' }}>v1.0.0</p>
       </div>
     </aside>
   )

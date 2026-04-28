@@ -51,7 +51,7 @@ export default function SignupPage() {
         <h1 className="text-2xl font-bold tracking-tight" style={{ color: '#F8FAFC' }}>
           Comece agora — 7 dias grátis
         </h1>
-        <p className="mt-1 text-sm" style={{ color: '#86EFAC' }}>
+        <p className="mt-1 text-sm" style={{ color: '#94A3B8' }}>
           Sem cartão de crédito. Cancele quando quiser.
         </p>
       </div>
@@ -95,7 +95,7 @@ export default function SignupPage() {
             <button type="button" onClick={() => setShowPass(v => !v)}
               className="absolute right-3 top-1/2 -translate-y-1/2"
               tabIndex={-1} aria-label="Mostrar/esconder senha"
-              style={{ color: '#5EC2A0' }}>
+              style={{ color: '#64748B' }}>
               {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
           </div>
@@ -115,7 +115,7 @@ export default function SignupPage() {
         </button>
       </form>
 
-      <p className="mt-4 text-center text-[11px]" style={{ color: '#5EC2A0' }}>
+      <p className="mt-4 text-center text-[11px]" style={{ color: '#64748B' }}>
         Ao criar a conta você concorda com nossos{' '}
         <a href="https://gestaosmarterp.online/termos"
           target="_blank" rel="noopener noreferrer"
@@ -128,7 +128,7 @@ export default function SignupPage() {
           style={{ color: '#22C55E' }}>Política de Privacidade</a>.
       </p>
 
-      <p className="mt-8 text-center text-sm" style={{ color: '#86EFAC' }}>
+      <p className="mt-8 text-center text-sm" style={{ color: '#94A3B8' }}>
         Já tem conta?{' '}
         <Link href="/login" className="font-semibold hover:underline" style={{ color: '#22C55E' }}>
           Fazer login
@@ -141,7 +141,7 @@ export default function SignupPage() {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
-      <label className="text-xs font-medium uppercase tracking-wider" style={{ color: '#86EFAC' }}>
+      <label className="text-xs font-medium uppercase tracking-wider" style={{ color: '#94A3B8' }}>
         {label}
       </label>
       {children}

@@ -14,7 +14,7 @@ type Props = {
  */
 export function AuthShell({ children }: Props) {
   return (
-    <div className="min-h-screen flex" style={{ background: '#0E3A30', color: '#F8FAFC' }}>
+    <div className="min-h-screen flex" style={{ background: '#131C2A', color: '#F8FAFC' }}>
       {/* Left: form area */}
       <div className="flex-1 flex flex-col">
         {/* Top bar with logo */}
@@ -39,7 +39,7 @@ export function AuthShell({ children }: Props) {
 
         {/* Footer */}
         <div className="px-6 sm:px-10 py-6 text-xs flex items-center justify-between"
-          style={{ color: '#5EC2A0' }}>
+          style={{ color: '#64748B' }}>
           <span>© {new Date().getFullYear()} Gestão Inteligente</span>
           <div className="flex gap-4">
             <a href="https://gestaosmarterp.online/termos" className="hover:opacity-80 transition-opacity">Termos</a>
@@ -50,7 +50,7 @@ export function AuthShell({ children }: Props) {
 
       {/* Right: branding side — só em desktop */}
       <div className="hidden lg:flex flex-col flex-1 max-w-xl relative overflow-hidden"
-        style={{ background: 'linear-gradient(135deg, #22C55E 0%, #16A34A 50%, #86EFAC 100%)' }}>
+        style={{ background: 'linear-gradient(135deg, #22C55E 0%, #16A34A 50%, #94A3B8 100%)' }}>
         {/* Pattern decorativo sutil */}
         <div className="pointer-events-none absolute inset-0 opacity-10"
           style={{

@@ -11,7 +11,7 @@ export function ComingSoon({ title, subtitle }: Props) {
       </div>
       <div
         className="flex flex-col items-center justify-center rounded-xl border gap-4 py-32"
-        style={{ background: '#15463A', borderColor: '#1F5949' }}
+        style={{ background: '#1B2638', borderColor: '#2A3650' }}
       >
         <div
           className="flex h-16 w-16 items-center justify-center rounded-2xl"

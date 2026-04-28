@@ -38,7 +38,7 @@ const EMPTY_FORM: ProductInput = {
 }
 
 const INP   = 'w-full rounded-lg border bg-transparent px-3 py-2 text-sm text-text placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-accent'
-const INP_S = { borderColor: '#1F5949' }
+const INP_S = { borderColor: '#2A3650' }
 
 const BRL      = (c: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(c / 100)
@@ -113,7 +113,7 @@ function AutocompleteInput({ label, value, onChange, placeholder, suggestions }:
         />
         {open && filtered.length > 0 && (
           <div className="absolute top-full left-0 right-0 z-20 mt-1 max-h-48 overflow-y-auto rounded-lg border shadow-xl"
-            style={{ background: '#0E3A30', borderColor: '#1F5949' }}>
+            style={{ background: '#131C2A', borderColor: '#2A3650' }}>
             {filtered.map(s => (
               <button key={s} type="button" onMouseDown={() => { onChange(s); setOpen(false) }}
                 className="block w-full px-3 py-2 text-left text-sm text-text hover:bg-white/5">{s}</button>
@@ -243,10 +243,10 @@ export function ProdutoModal({
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4"
       style={{ background: 'rgba(0,0,0,0.7)' }}>
       <div className="relative w-full max-w-2xl rounded-2xl border my-8"
-        style={{ background: '#0E3A30', borderColor: '#1F5949' }}>
+        style={{ background: '#131C2A', borderColor: '#2A3650' }}>
 
         {/* Header */}
-        <div className="flex items-center justify-between border-b px-6 py-4" style={{ borderColor: '#1F5949' }}>
+        <div className="flex items-center justify-between border-b px-6 py-4" style={{ borderColor: '#2A3650' }}>
           <div className="flex items-center gap-2">
             {isClone && <Copy className="h-4 w-4" style={{ color: '#10B981' }} />}
             <h2 className="text-base font-semibold text-text">{modalTitle}</h2>
@@ -257,7 +257,7 @@ export function ProdutoModal({
         {/* Banner de clone */}
         {isClone && (
           <div className="border-b px-6 py-3 text-xs flex items-center gap-2"
-            style={{ borderColor: '#1F5949', background: '#10B98110', color: '#10B981' }}>
+            style={{ borderColor: '#2A3650', background: '#10B98110', color: '#10B981' }}>
             <Copy className="h-3.5 w-3.5 shrink-0" />
             Baseado em <span className="font-semibold mx-1">{cloneFrom!.name}</span>
             — SKU em branco, estoque zerado e produto inativo até você revisar.
@@ -265,7 +265,7 @@ export function ProdutoModal({
         )}
 
         {/* Dados fixos no topo */}
-        <div className="border-b px-6 py-4 space-y-4" style={{ borderColor: '#1F5949' }}>
+        <div className="border-b px-6 py-4 space-y-4" style={{ borderColor: '#2A3650' }}>
           {error && (
             <div className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm"
               style={{ background: '#EF444418', color: '#EF4444', border: '1px solid #EF444440' }}>
@@ -316,7 +316,7 @@ export function ProdutoModal({
         </div>
 
         {/* Abas */}
-        <div className="border-b flex" style={{ borderColor: '#1F5949' }}>
+        <div className="border-b flex" style={{ borderColor: '#2A3650' }}>
           {TABS.map(t => (
             <button key={t} onClick={() => setTab(t)}
               className={`relative px-5 py-3 text-sm font-medium transition-colors border-b-2 ${
@@ -373,7 +373,7 @@ export function ProdutoModal({
               </div>
 
               <div className="flex items-center justify-between rounded-lg border px-4 py-3"
-                style={{ borderColor: '#1F5949' }}>
+                style={{ borderColor: '#2A3650' }}>
                 <div>
                   <p className="text-sm font-medium text-text">Situação</p>
                   <p className="text-xs text-muted">Inativos não aparecem no Frente de Caixa</p>
@@ -473,7 +473,7 @@ export function ProdutoModal({
               <div className="flex flex-wrap gap-3">
                 {form.imageUrls.map((url, i) => (
                   <div key={i} className="relative h-24 w-24 rounded-lg overflow-hidden"
-                    style={{ border: '1px solid #1F5949' }}>
+                    style={{ border: '1px solid #2A3650' }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={url} alt="" className="h-full w-full object-cover" />
                     <button type="button"
@@ -487,7 +487,7 @@ export function ProdutoModal({
                 {form.imageUrls.length < 4 && (
                   <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
                     className="flex h-24 w-24 flex-col items-center justify-center gap-1 rounded-lg border border-dashed transition-colors hover:border-accent"
-                    style={{ borderColor: '#1F5949', color: '#86EFAC' }}>
+                    style={{ borderColor: '#2A3650', color: '#94A3B8' }}>
                     {uploading ? <Loader2 className="h-6 w-6 animate-spin" /> : <Upload className="h-6 w-6" />}
                     <span className="text-xs">{uploading ? 'Enviando…' : 'Upload'}</span>
                   </button>
@@ -550,7 +550,7 @@ export function ProdutoModal({
               )}
               {form.stockMax > 0 && form.stockQty > form.stockMax && (
                 <div className="rounded-lg px-3 py-2 text-xs flex items-center gap-2"
-                  style={{ background: '#86EFAC18', color: '#60A5FA', border: '1px solid #86EFAC40' }}>
+                  style={{ background: '#94A3B818', color: '#60A5FA', border: '1px solid #94A3B840' }}>
                   <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
                   Estoque acima do máximo configurado ({form.stockMax} unidades).
                 </div>
@@ -562,10 +562,10 @@ export function ProdutoModal({
 
         {/* Footer */}
         <div className="flex items-center justify-end gap-3 border-t px-6 py-4"
-          style={{ borderColor: '#1F5949' }}>
+          style={{ borderColor: '#2A3650' }}>
           <button onClick={onClose}
             className="rounded-lg border px-4 py-2 text-sm text-muted hover:text-text transition-colors"
-            style={{ borderColor: '#1F5949' }}>
+            style={{ borderColor: '#2A3650' }}>
             Cancelar
           </button>
           <button onClick={handleSave} disabled={saving || !form.name.trim() || !!gtinError}

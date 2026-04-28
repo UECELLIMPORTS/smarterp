@@ -33,7 +33,7 @@ export default function ForgotPasswordPage() {
   return (
     <AuthShell>
       <Link href="/login" className="inline-flex items-center gap-1.5 text-xs hover:underline mb-6"
-        style={{ color: '#86EFAC' }}>
+        style={{ color: '#94A3B8' }}>
         <ArrowLeft className="h-3.5 w-3.5" /> Voltar pra login
       </Link>
 
@@ -44,11 +44,11 @@ export default function ForgotPasswordPage() {
             <CheckCircle className="h-7 w-7" style={{ color: '#10B981' }} />
           </div>
           <h1 className="text-xl font-bold mb-2" style={{ color: '#F8FAFC' }}>Email enviado!</h1>
-          <p className="text-sm" style={{ color: '#86EFAC' }}>
+          <p className="text-sm" style={{ color: '#94A3B8' }}>
             Se essa conta existe, em alguns segundos você vai receber um email
             em <strong style={{ color: '#F8FAFC' }}>{email}</strong> com o link pra criar nova senha.
           </p>
-          <p className="mt-4 text-xs" style={{ color: '#5EC2A0' }}>
+          <p className="mt-4 text-xs" style={{ color: '#64748B' }}>
             Não chegou? Verifica a pasta de spam.
           </p>
         </div>
@@ -58,19 +58,19 @@ export default function ForgotPasswordPage() {
             <h1 className="text-2xl font-bold tracking-tight" style={{ color: '#F8FAFC' }}>
               Esqueci minha senha
             </h1>
-            <p className="mt-1 text-sm" style={{ color: '#86EFAC' }}>
+            <p className="mt-1 text-sm" style={{ color: '#94A3B8' }}>
               Digite seu email pra receber o link de recuperação.
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-medium uppercase tracking-wider" style={{ color: '#86EFAC' }}>
+              <label className="text-xs font-medium uppercase tracking-wider" style={{ color: '#94A3B8' }}>
                 E-mail
               </label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none"
-                  style={{ color: '#5EC2A0' }} />
+                  style={{ color: '#64748B' }} />
                 <input value={email} onChange={e => setEmail(e.target.value)}
                   type="email" placeholder="seu@email.com" required autoComplete="email"
                   className="auth-input pl-9" />

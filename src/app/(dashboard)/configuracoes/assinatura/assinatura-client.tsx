@@ -42,14 +42,14 @@ export function AssinaturaClient({ data }: { data: Data }) {
       {/* Header */}
       <div>
         <Link href="/configuracoes" className="inline-flex items-center gap-1.5 text-xs hover:underline mb-2"
-          style={{ color: '#86EFAC' }}>
+          style={{ color: '#94A3B8' }}>
           <ArrowLeft className="h-3.5 w-3.5" /> Voltar pra Configurações
         </Link>
         <h1 className="text-2xl font-bold flex items-center gap-2" style={{ color: '#F8FAFC' }}>
           <Sparkles className="h-5 w-5" style={{ color: '#F59E0B' }} />
           Minha Assinatura
         </h1>
-        <p className="mt-1 text-sm" style={{ color: '#86EFAC' }}>
+        <p className="mt-1 text-sm" style={{ color: '#94A3B8' }}>
           Gerencie os produtos contratados, mude de plano ou cancele.
         </p>
       </div>
@@ -173,7 +173,7 @@ function ProductCard({
 
   return (
     <article className="rounded-2xl border p-6"
-      style={{ background: '#0E3A30', borderColor: isActive ? `${color}40` : '#1F5949' }}>
+      style={{ background: '#131C2A', borderColor: isActive ? `${color}40` : '#2A3650' }}>
       {/* Header */}
       <div className="flex items-start gap-3 mb-4">
         <div className="flex h-11 w-11 items-center justify-center rounded-xl shrink-0 border"
@@ -198,14 +198,14 @@ function ProductCard({
       {isActive && sub ? (
         <>
           <div className="rounded-lg border p-3 mb-4 space-y-1.5"
-            style={{ background: '#15463A', borderColor: '#1F5949' }}>
+            style={{ background: '#1B2638', borderColor: '#2A3650' }}>
             <Row label="Plano">
               <span className="font-bold capitalize" style={{ color: '#F8FAFC' }}>{sub.planName}</span>
             </Row>
             <Row label={sub.billingCycle === 'YEARLY' ? 'Valor anual' : 'Valor mensal'}>
               <span className="font-mono font-bold" style={{ color }}>
                 {BRL(sub.priceCents)}
-                <span className="text-[10px] font-normal ml-1" style={{ color: '#86EFAC' }}>
+                <span className="text-[10px] font-normal ml-1" style={{ color: '#94A3B8' }}>
                   {sub.billingCycle === 'YEARLY' ? '/ano' : '/mês'}
                 </span>
               </span>
@@ -229,13 +229,13 @@ function ProductCard({
                 else onSubscribe(name)
               }}
               className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg py-2.5 text-xs font-bold transition-opacity hover:opacity-90"
-              style={{ background: '#22C55E', color: '#0E3A30' }}>
+              style={{ background: '#22C55E', color: '#131C2A' }}>
               {isTrial ? 'Assinar agora' : 'Mudar plano'}
             </button>
             {!isTrial && (
               <button onClick={handleCancel} disabled={cancelling}
                 className="inline-flex items-center justify-center gap-1 rounded-lg border px-4 py-2.5 text-xs font-semibold transition-colors hover:bg-white/5 disabled:opacity-50"
-                style={{ borderColor: '#1F5949', color: '#CBD5E1' }}>
+                style={{ borderColor: '#2A3650', color: '#CBD5E1' }}>
                 {cancelling ? '…' : 'Cancelar'}
               </button>
             )}
@@ -243,7 +243,7 @@ function ProductCard({
         </>
       ) : includedInPremium ? (
         <>
-          <p className="text-xs mb-4" style={{ color: '#86EFAC' }}>
+          <p className="text-xs mb-4" style={{ color: '#94A3B8' }}>
             {comingSoon
               ? '🚧 Em desenvolvimento — você terá acesso assim que lançarmos'
               : 'Esse módulo já está liberado pelo seu plano atual.'}
@@ -256,7 +256,7 @@ function ProductCard({
         </>
       ) : (
         <>
-          <p className="text-xs mb-4" style={{ color: '#86EFAC' }}>
+          <p className="text-xs mb-4" style={{ color: '#94A3B8' }}>
             {comingSoon
               ? '🚧 Em desenvolvimento — falaremos com você quando estiver disponível'
               : note ?? 'Você ainda não contratou esse produto.'}
@@ -266,8 +266,8 @@ function ProductCard({
             disabled={comingSoon}
             className="w-full inline-flex items-center justify-center gap-2 rounded-lg py-2.5 text-xs font-bold transition-opacity hover:opacity-90 disabled:cursor-not-allowed"
             style={comingSoon
-              ? { background: '#1F5949', color: '#CBD5E1' }
-              : { background: 'linear-gradient(135deg, #22C55E, #10B981)', color: '#0E3A30' }
+              ? { background: '#2A3650', color: '#CBD5E1' }
+              : { background: 'linear-gradient(135deg, #22C55E, #10B981)', color: '#131C2A' }
             }>
             <Plus className="h-3.5 w-3.5" />
             {comingSoon ? 'Em breve' : `Contratar ${name}`}
@@ -277,8 +277,8 @@ function ProductCard({
 
       {/* Lista de planos disponíveis (info) */}
       {!comingSoon && plansAvailable.length > 1 && (
-        <div className="mt-4 pt-4 border-t" style={{ borderColor: '#1F5949' }}>
-          <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: '#86EFAC' }}>
+        <div className="mt-4 pt-4 border-t" style={{ borderColor: '#2A3650' }}>
+          <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: '#94A3B8' }}>
             Planos disponíveis
           </p>
           <div className="flex gap-2 flex-wrap">
@@ -286,7 +286,7 @@ function ProductCard({
               <span key={plan} className="text-[10px] font-bold uppercase px-2 py-0.5 rounded"
                 style={sub?.planName === plan
                   ? { background: `${color}18`, color }
-                  : { background: '#15463A', color: '#86EFAC' }
+                  : { background: '#1B2638', color: '#94A3B8' }
                 }>
                 <Check className="h-3 w-3 inline mr-1" />
                 {plan}

@@ -85,15 +85,15 @@ export function ProdutosTab({ data, category, buildUrl }: Props) {
     <div className="space-y-4">
       {/* Filtro de categoria */}
       <div className="rounded-xl border p-4 flex items-end gap-3"
-        style={{ background: '#0E3A30', borderColor: '#1F5949' }}>
+        style={{ background: '#131C2A', borderColor: '#2A3650' }}>
         <div className="flex-1 max-w-xs">
-          <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: '#86EFAC' }}>
+          <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: '#94A3B8' }}>
             Categoria
           </label>
           <select value={category}
             onChange={e => router.push(buildUrl({ category: e.target.value === 'all' ? undefined : e.target.value }))}
             className="w-full rounded-lg border px-3 py-2 text-xs outline-none focus:border-accent/60"
-            style={{ background: '#15463A', borderColor: '#1F5949', color: '#F8FAFC' }}>
+            style={{ background: '#1B2638', borderColor: '#2A3650', color: '#F8FAFC' }}>
             <option value="all">Todas as categorias</option>
             {categories.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
@@ -101,7 +101,7 @@ export function ProdutosTab({ data, category, buildUrl }: Props) {
         {data.length > 0 && (
           <button onClick={exportCsv}
             className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-bold transition-colors hover:bg-white/5"
-            style={{ borderColor: '#1F5949', color: '#22C55E' }}>
+            style={{ borderColor: '#2A3650', color: '#22C55E' }}>
             <Download className="h-3.5 w-3.5" />
             CSV
           </button>
@@ -118,24 +118,24 @@ export function ProdutosTab({ data, category, buildUrl }: Props) {
 
       {/* Tabela */}
       <div className="rounded-xl border overflow-hidden"
-        style={{ background: '#0E3A30', borderColor: '#1F5949' }}>
-        <div className="border-b px-4 py-3" style={{ borderColor: '#1F5949' }}>
-          <p className="text-xs font-bold uppercase tracking-widest" style={{ color: '#86EFAC' }}>
+        style={{ background: '#131C2A', borderColor: '#2A3650' }}>
+        <div className="border-b px-4 py-3" style={{ borderColor: '#2A3650' }}>
+          <p className="text-xs font-bold uppercase tracking-widest" style={{ color: '#94A3B8' }}>
             Ranking de produtos · clique na coluna pra ordenar
           </p>
         </div>
 
         {sorted.length === 0 ? (
           <div className="py-16 text-center">
-            <Package className="mx-auto h-8 w-8 mb-3" style={{ color: '#5EC2A0' }} />
-            <p className="text-sm" style={{ color: '#86EFAC' }}>
+            <Package className="mx-auto h-8 w-8 mb-3" style={{ color: '#64748B' }} />
+            <p className="text-sm" style={{ color: '#94A3B8' }}>
               Nenhuma venda de produto no período.
             </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
-              <thead style={{ background: '#15463A' }}>
+              <thead style={{ background: '#1B2638' }}>
                 <tr>
                   <Th>#</Th>
                   <Th>Produto</Th>
@@ -164,13 +164,13 @@ export function ProdutosTab({ data, category, buildUrl }: Props) {
                 {sorted.map((r, idx) => (
                   <tr key={r.productId ?? `m-${idx}`}
                     className="border-t hover:bg-white/[0.02] transition-colors"
-                    style={{ borderColor: '#1F5949' }}>
-                    <Td color="#86EFAC">{idx + 1}</Td>
+                    style={{ borderColor: '#2A3650' }}>
+                    <Td color="#94A3B8">{idx + 1}</Td>
                     <Td bold>{r.productName}</Td>
                     <Td color="#CBD5E1">{r.category ?? '—'}</Td>
                     <Td align="right" mono>{r.quantitySold}</Td>
                     <Td align="right" mono color="#10B981">{BRL(r.revenueCents)}</Td>
-                    <Td align="right" mono color="#86EFAC">{BRL(r.costCents)}</Td>
+                    <Td align="right" mono color="#94A3B8">{BRL(r.costCents)}</Td>
                     <Td align="right" mono color={r.profitCents > 0 ? '#22C55E' : '#EF4444'}>
                       {BRL(r.profitCents)}
                     </Td>
@@ -179,17 +179,17 @@ export function ProdutosTab({ data, category, buildUrl }: Props) {
                       bold>
                       {r.marginPercent}%
                     </Td>
-                    <Td align="right" color="#86EFAC">{r.salesCount}</Td>
+                    <Td align="right" color="#94A3B8">{r.salesCount}</Td>
                   </tr>
                 ))}
               </tbody>
-              <tfoot style={{ background: '#15463A' }}>
+              <tfoot style={{ background: '#1B2638' }}>
                 <tr>
                   <Td colSpan={3}><span className="font-bold uppercase text-[10px] tracking-wider"
-                    style={{ color: '#86EFAC' }}>Totais</span></Td>
+                    style={{ color: '#94A3B8' }}>Totais</span></Td>
                   <Td align="right" mono bold>{totals.qty}</Td>
                   <Td align="right" mono bold color="#10B981">{BRL(totals.revenue)}</Td>
-                  <Td align="right" mono bold color="#86EFAC">{BRL(totals.cost)}</Td>
+                  <Td align="right" mono bold color="#94A3B8">{BRL(totals.cost)}</Td>
                   <Td align="right" mono bold color="#22C55E">{BRL(totals.profit)}</Td>
                   <Td align="right" mono bold color={totals.revenue > 0 && totals.profit / totals.revenue >= 0.3 ? '#10B981' : '#F59E0B'}>
                     {totals.revenue > 0 ? Math.round((totals.profit / totals.revenue) * 100) : 0}%
@@ -208,8 +208,8 @@ export function ProdutosTab({ data, category, buildUrl }: Props) {
 function KPI({ label, value, color }: { label: string; value: string; color: string }) {
   return (
     <div className="rounded-xl border p-4"
-      style={{ background: '#0E3A30', borderColor: '#1F5949' }}>
-      <p className="text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: '#86EFAC' }}>
+      style={{ background: '#131C2A', borderColor: '#2A3650' }}>
+      <p className="text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: '#94A3B8' }}>
         {label}
       </p>
       <p className="text-lg font-bold font-mono" style={{ color }}>{value}</p>
@@ -220,7 +220,7 @@ function KPI({ label, value, color }: { label: string; value: string; color: str
 function Th({ children, align = 'left' }: { children: React.ReactNode; align?: 'left' | 'right' }) {
   return (
     <th className={`px-3 py-2 text-[10px] font-bold uppercase tracking-wider whitespace-nowrap ${align === 'right' ? 'text-right' : 'text-left'}`}
-      style={{ color: '#86EFAC' }}>
+      style={{ color: '#94A3B8' }}>
       {children}
     </th>
   )
@@ -236,7 +236,7 @@ function SortableTh({ children, active, dir, align = 'left', onClick }: {
   return (
     <th onClick={onClick}
       className={`px-3 py-2 text-[10px] font-bold uppercase tracking-wider whitespace-nowrap cursor-pointer hover:bg-white/5 ${align === 'right' ? 'text-right' : 'text-left'}`}
-      style={{ color: active ? '#22C55E' : '#86EFAC' }}>
+      style={{ color: active ? '#22C55E' : '#94A3B8' }}>
       <span className={`inline-flex items-center gap-1 ${align === 'right' ? 'justify-end w-full' : ''}`}>
         {children}
         {active && (dir === 'desc' ? <ChevronDown className="h-3 w-3" /> : <ChevronUp className="h-3 w-3" />)}

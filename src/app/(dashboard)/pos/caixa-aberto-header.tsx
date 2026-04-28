@@ -139,23 +139,23 @@ function FecharCaixaModal({ session, onClose }: {
       style={{ background: 'rgba(0,0,0,0.75)' }}
       onClick={onClose}>
       <div className="w-full max-w-md rounded-2xl border max-h-[90vh] overflow-y-auto"
-        style={{ background: '#0E3A30', borderColor: '#1F5949' }}
+        style={{ background: '#131C2A', borderColor: '#2A3650' }}
         onClick={e => e.stopPropagation()}>
 
         <div className="flex items-start justify-between border-b p-5"
-          style={{ borderColor: '#1F5949' }}>
+          style={{ borderColor: '#2A3650' }}>
           <div>
             <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: '#F8FAFC' }}>
               <Lock className="h-4 w-4" style={{ color: '#EA580C' }} />
               Fechar caixa
             </h2>
-            <p className="text-xs mt-0.5" style={{ color: '#86EFAC' }}>
+            <p className="text-xs mt-0.5" style={{ color: '#94A3B8' }}>
               Confira o resumo e informe o valor contado em dinheiro.
             </p>
           </div>
           <button onClick={onClose}
             className="flex h-8 w-8 items-center justify-center rounded-lg border transition-colors hover:bg-card"
-            style={{ borderColor: '#1F5949', color: '#CBD5E1' }}>
+            style={{ borderColor: '#2A3650', color: '#CBD5E1' }}>
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -172,7 +172,7 @@ function FecharCaixaModal({ session, onClose }: {
             <div className="space-y-2">
               <SumRow label="Valor inicial" value={BRL(summary.session.openingBalanceCents)} color="#CBD5E1" />
               <SumRow label="Vendas em dinheiro" value={`+ ${BRL(summary.cashSalesCents)}`} color="#10B981" />
-              <div className="border-t pt-2" style={{ borderColor: '#1F5949' }}>
+              <div className="border-t pt-2" style={{ borderColor: '#2A3650' }}>
                 <SumRow label="Esperado em caixa" value={BRL(summary.expectedCashCents)}
                   color="#22C55E" bold />
               </div>
@@ -181,8 +181,8 @@ function FecharCaixaModal({ session, onClose }: {
             {/* Breakdown total */}
             {summary.breakdown.length > 0 && (
               <div className="rounded-lg border p-3"
-                style={{ background: '#15463A', borderColor: '#1F5949' }}>
-                <p className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: '#86EFAC' }}>
+                style={{ background: '#1B2638', borderColor: '#2A3650' }}>
+                <p className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: '#94A3B8' }}>
                   {summary.salesCount} {summary.salesCount === 1 ? 'venda' : 'vendas'} · Total {BRL(summary.totalSalesCents)}
                 </p>
                 <div className="space-y-1">
@@ -206,13 +206,13 @@ function FecharCaixaModal({ session, onClose }: {
                 💰 Valor contado em dinheiro
               </label>
               <div className="flex items-center gap-2">
-                <span className="text-sm font-bold" style={{ color: '#86EFAC' }}>R$</span>
+                <span className="text-sm font-bold" style={{ color: '#94A3B8' }}>R$</span>
                 <input type="text" value={countedValue}
                   onChange={e => setCountedValue(e.target.value)}
                   className="flex-1 rounded-lg border px-3.5 py-2.5 text-base font-mono outline-none transition-colors focus:border-accent/60"
-                  style={{ background: '#15463A', borderColor: '#1F5949', color: '#F8FAFC' }} />
+                  style={{ background: '#1B2638', borderColor: '#2A3650', color: '#F8FAFC' }} />
               </div>
-              <p className="text-[10px] mt-1" style={{ color: '#86EFAC' }}>
+              <p className="text-[10px] mt-1" style={{ color: '#94A3B8' }}>
                 Conte fisicamente o dinheiro na gaveta e digite aqui.
               </p>
             </div>
@@ -253,18 +253,18 @@ function FecharCaixaModal({ session, onClose }: {
                 onChange={e => setNotes(e.target.value)}
                 placeholder="ex: faltou troco no fim do dia"
                 className="w-full rounded-lg border px-3.5 py-2.5 text-sm outline-none transition-colors focus:border-accent/60"
-                style={{ background: '#15463A', borderColor: '#1F5949', color: '#F8FAFC' }} />
+                style={{ background: '#1B2638', borderColor: '#2A3650', color: '#F8FAFC' }} />
             </div>
 
             <div className="flex gap-2 pt-2">
               <button onClick={onClose} disabled={pending}
                 className="flex-1 rounded-lg border px-4 py-2.5 text-sm font-bold transition-colors hover:bg-white/5"
-                style={{ borderColor: '#1F5949', color: '#CBD5E1' }}>
+                style={{ borderColor: '#2A3650', color: '#CBD5E1' }}>
                 Cancelar
               </button>
               <button onClick={handleClose} disabled={pending}
                 className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold transition-opacity hover:opacity-90 disabled:opacity-50"
-                style={{ background: '#EA580C', color: '#0E3A30' }}>
+                style={{ background: '#EA580C', color: '#131C2A' }}>
                 {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
                 Confirmar fechamento
               </button>

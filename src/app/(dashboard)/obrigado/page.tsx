@@ -49,7 +49,7 @@ export default async function ObrigadoPage() {
             background: 'linear-gradient(135deg, #10B981, #22C55E)',
             boxShadow: '0 12px 48px rgba(16, 185, 129, 0.5)',
           }}>
-          <CheckCircle2 className="h-12 w-12" style={{ color: '#0E3A30' }} strokeWidth={2.5} />
+          <CheckCircle2 className="h-12 w-12" style={{ color: '#131C2A' }} strokeWidth={2.5} />
         </div>
 
         <p className="text-[11px] font-bold uppercase tracking-widest mb-2"
@@ -76,14 +76,14 @@ export default async function ObrigadoPage() {
             </span>
           </div>
         )}
-        <p className="text-[11px] mt-2" style={{ color: '#86EFAC' }}>
+        <p className="text-[11px] mt-2" style={{ color: '#94A3B8' }}>
           {nextDueText}
         </p>
       </div>
 
       {/* Próximos passos */}
       <div className="rounded-2xl border p-6"
-        style={{ background: '#0E3A30', borderColor: '#1F5949' }}>
+        style={{ background: '#131C2A', borderColor: '#2A3650' }}>
         <p className="text-[11px] font-bold uppercase tracking-widest mb-4"
           style={{ color: '#22C55E' }}>
           <Sparkles className="inline h-3 w-3 mb-0.5" /> Próximos passos pra começar
@@ -120,12 +120,12 @@ export default async function ObrigadoPage() {
           className="inline-flex items-center gap-2 rounded-xl px-8 py-4 text-base font-bold transition-opacity hover:opacity-90"
           style={{
             background: 'linear-gradient(135deg, #22C55E, #10B981)',
-            color: '#0E3A30',
+            color: '#131C2A',
             boxShadow: '0 8px 24px rgba(16, 185, 129, 0.25)',
           }}>
           Começar agora <ArrowRight className="h-5 w-5" />
         </Link>
-        <p className="text-[11px] mt-3" style={{ color: '#86EFAC' }}>
+        <p className="text-[11px] mt-3" style={{ color: '#94A3B8' }}>
           Você pode acessar tudo isso depois pelo menu lateral. Sem pressa! 😊
         </p>
       </div>
@@ -139,7 +139,7 @@ function NextStep({ num, icon: Icon, title, desc, href, cta }: {
 }) {
   return (
     <div className="flex items-center gap-3 rounded-lg border p-4"
-      style={{ background: '#15463A', borderColor: '#1F5949' }}>
+      style={{ background: '#1B2638', borderColor: '#2A3650' }}>
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
         style={{ background: 'rgba(34,197,94,.12)', color: '#22C55E' }}>
         <Icon className="h-5 w-5" />
@@ -152,7 +152,7 @@ function NextStep({ num, icon: Icon, title, desc, href, cta }: {
       </div>
       <Link href={href}
         className="shrink-0 rounded-lg px-3 py-2 text-[11px] font-bold transition-opacity hover:opacity-90"
-        style={{ background: '#22C55E', color: '#0E3A30' }}>
+        style={{ background: '#22C55E', color: '#131C2A' }}>
         {cta} →
       </Link>
     </div>

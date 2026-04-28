@@ -1,44 +1,53 @@
 @import "tailwindcss";
 
 /* ============================================================================
- * SmartERP — Premium DARK verde gradient claro (Latana-style)
- * Background gradient profundo emerald · DM Sans · Inter · Mono
+ * SmartERP — Premium DARK híbrido (emerald background + slate cards + accents
+ * coloridos). Sai do "tudo verde" mas mantém personalidade Latana-style.
  * ============================================================================ */
 
 :root {
-  /* Background — gradient verde profundo aplicado via body */
+  /* Background — gradient emerald profundo (mantido) */
   --bg:        #062E26;
   --bg-2:      #0A3D31;
   --bg-3:      #0F4C3D;
 
-  /* Surfaces (cards, sidebars) */
-  --surface:   #0E3A30;       /* slate-emerald */
-  --surface-2: #15463A;       /* alt surfaces */
-  --card:      #0E3A30;
+  /* Surfaces (cards, sidebars) — slate neutro com leve tint emerald */
+  --surface:   #131C2A;       /* slate dark-blue, profundidade sem ser verde */
+  --surface-2: #1B2638;       /* alt — table heads, hovers */
+  --surface-3: #243149;       /* highlight subtle */
+  --card:      #131C2A;
+
+  /* Surface translúcido pra glassmorphism — sobre o bg gradient */
+  --surface-glass: rgba(19, 28, 42, .85);
 
   /* Borders */
-  --border:    #1F5949;
-  --border-2:  #266F5C;
+  --border:    #2A3650;       /* slate-700 com tint */
+  --border-2:  #3A4868;
+  --border-accent: #22C55E40; /* verde semi-transparente pra hover */
 
-  /* Text — branco com tint emerald */
-  --text:      #F0FDF4;
-  --text-2:    #D1FAE5;
-  --muted:     #86EFAC;       /* emerald-300 — identidade */
-  --muted-2:   #5EC2A0;
+  /* Text */
+  --text:      #FFFFFF;       /* branco real pra títulos/valores */
+  --text-2:    #E2E8F0;       /* slate-200 pra body */
+  --muted:     #94A3B8;       /* slate-400 — labels neutros */
+  --muted-2:   #64748B;
 
-  /* Brand — verde vibrante com cyan accent */
-  --accent:         #22C55E;       /* green-500 — primary */
-  --accent-hover:   #16A34A;       /* green-600 */
-  --accent-dark:    #15803D;       /* green-700 */
+  /* Brand — verde primary mantido */
+  --accent:         #22C55E;
+  --accent-hover:   #16A34A;
+  --accent-dark:    #15803D;
   --accent-light:   rgba(34, 197, 94, .15);
   --accent-lighter: rgba(34, 197, 94, .08);
 
-  --accent-pink:    #22D3EE;       /* cyan-400 — secundário pra contraste */
-  --accent-fuchsia: #14B8A6;       /* teal-500 */
+  /* Accents secundários — pra dar variedade nas KPIs/elements */
+  --accent-cyan:    #22D3EE;       /* cyan-400 */
+  --accent-blue:    #3B82F6;       /* blue-500 */
+  --accent-violet:  #A78BFA;       /* violet-300 */
+  --accent-pink:    #F472B6;       /* pink-400 */
+  --accent-orange:  #FB923C;       /* orange-400 */
 
   /* Semantic */
-  --green:        #34D399;
-  --green-light:  rgba(52, 211, 153, .12);
+  --green:        #22C55E;
+  --green-light:  rgba(34, 197, 94, .12);
   --amber:        #FBBF24;
   --amber-light:  rgba(251, 191, 36, .12);
   --coral:        #F87171;
@@ -48,11 +57,12 @@
   --gold:   #FBBF24;
   --danger: #F87171;
 
-  /* Sombras dark — glow verde */
+  /* Sombras com glow sutil verde */
   --shadow-sm: 0 1px 2px rgba(0,0,0,.4), 0 1px 3px rgba(0,0,0,.2);
-  --shadow:    0 4px 12px rgba(0,0,0,.35), 0 0 0 1px rgba(34, 197, 94, .05);
-  --shadow-md: 0 12px 24px rgba(0,0,0,.4), 0 0 0 1px rgba(34, 197, 94, .08);
-  --shadow-lg: 0 24px 48px rgba(0,0,0,.5), 0 0 60px rgba(34, 197, 94, .12);
+  --shadow:    0 4px 12px rgba(0,0,0,.35), 0 0 0 1px rgba(255,255,255,.04);
+  --shadow-md: 0 12px 24px rgba(0,0,0,.4), 0 0 0 1px rgba(255,255,255,.06);
+  --shadow-lg: 0 24px 48px rgba(0,0,0,.5), 0 0 60px rgba(34, 197, 94, .1);
+  --shadow-glow: 0 0 24px rgba(34, 197, 94, .25);
 }
 
 @theme inline {
@@ -77,9 +87,9 @@ html, body { height: 100%; }
 
 body {
   background:
-    radial-gradient(ellipse at 0% 0%,   rgba(34, 197, 94, .18) 0px, transparent 40%),
-    radial-gradient(ellipse at 100% 0%, rgba(20, 184, 166, .14) 0px, transparent 50%),
-    radial-gradient(ellipse at 50% 100%, rgba(34, 211, 238, .12) 0px, transparent 50%),
+    radial-gradient(ellipse at 0% 0%,   rgba(34, 197, 94, .14) 0px, transparent 40%),
+    radial-gradient(ellipse at 100% 0%, rgba(59, 130, 246, .10) 0px, transparent 50%),
+    radial-gradient(ellipse at 50% 100%, rgba(167, 139, 250, .08) 0px, transparent 50%),
     linear-gradient(135deg, #062E26 0%, #0A3D31 50%, #0F4C3D 100%);
   background-attachment: fixed;
   color: var(--text);
@@ -90,17 +100,20 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+/* Display headings */
 h1, h2, h3, h4, h5, h6,
 .display, .font-display {
   font-family: var(--font-display), 'DM Sans', system-ui, sans-serif;
   letter-spacing: -0.02em;
   font-feature-settings: 'ss01';
+  color: var(--text);
 }
 
 .font-mono, code, kbd {
   font-family: var(--font-mono), 'JetBrains Mono', ui-monospace, monospace;
 }
 
+/* Scrollbar */
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
@@ -128,17 +141,37 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover { opacity:
   to   { opacity: 1; transform: translateY(0)   scale(1);    }
 }
 
+/* Glassmorphism utility */
 .glass {
-  background: rgba(14, 58, 48, .7);
+  background: var(--surface-glass);
   backdrop-filter: blur(20px) saturate(140%);
   -webkit-backdrop-filter: blur(20px) saturate(140%);
   border: 1px solid var(--border);
 }
 
-/* Auth — dark verde */
+/* Card branco premium — pra elementos de destaque (modais importantes, dialogs) */
+.card-light {
+  background: rgba(255, 255, 255, .04);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 0.875rem;
+}
+
+/* Highlight bar lateral colorida (pra cards com identidade) */
+.card-highlight-green  { border-left: 3px solid var(--accent); }
+.card-highlight-blue   { border-left: 3px solid var(--accent-blue); }
+.card-highlight-amber  { border-left: 3px solid var(--amber); }
+.card-highlight-violet { border-left: 3px solid var(--accent-violet); }
+.card-highlight-pink   { border-left: 3px solid var(--accent-pink); }
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Auth — dark híbrido
+ * ───────────────────────────────────────────────────────────────────────── */
+
 .auth-input {
   width: 100%;
-  background: rgba(14, 58, 48, .6);
+  background: rgba(19, 28, 42, .6);
   border: 1px solid var(--border);
   border-radius: 0.625rem;
   padding: 0.7rem 1rem;
@@ -151,7 +184,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover { opacity:
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(34, 197, 94, .15);
 }
-.auth-input::placeholder { color: var(--muted-2); }
+.auth-input::placeholder { color: var(--muted); }
 
 .auth-btn-primary {
   margin-top: 0.5rem;
@@ -160,12 +193,12 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover { opacity:
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-pink) 100%);
-  color: white;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-cyan) 100%);
+  color: #0B1220;
   border-radius: 0.625rem;
   padding: 0.7rem 0;
   font-size: 0.875rem;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: -0.01em;
   transition: opacity .15s, box-shadow .15s, transform .1s;
   box-shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(34, 197, 94, .35);
@@ -181,7 +214,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover { opacity:
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  background: rgba(14, 58, 48, .5);
+  background: rgba(19, 28, 42, .5);
   color: var(--text);
   border: 1px solid var(--border);
   border-radius: 0.625rem;
@@ -191,9 +224,13 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover { opacity:
   transition: background .15s, border-color .15s;
 }
 .auth-btn-secondary:hover {
-  background: rgba(14, 58, 48, .8);
+  background: rgba(19, 28, 42, .8);
   border-color: var(--border-2);
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * App utilities
+ * ───────────────────────────────────────────────────────────────────────── */
 
 .app-card {
   background: var(--surface);
@@ -204,7 +241,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover { opacity:
 }
 .app-card:hover {
   border-color: var(--accent);
-  box-shadow: 0 0 0 1px rgba(34, 197, 94, .2), 0 8px 24px rgba(34, 197, 94, .08);
+  box-shadow: 0 0 0 1px var(--border-accent), 0 8px 24px rgba(34, 197, 94, .08);
 }
 
 .page-title {

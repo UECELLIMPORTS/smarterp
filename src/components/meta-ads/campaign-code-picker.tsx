@@ -177,11 +177,11 @@ function PickerPopover({
   return (
     <div
       className="absolute z-40 mt-1 w-72 rounded-xl border shadow-2xl overflow-hidden"
-      style={{ background: '#15463A', borderColor: '#1F5949', right: 0 }}
+      style={{ background: '#1B2638', borderColor: '#2A3650', right: 0 }}
       onClick={e => e.stopPropagation()}
     >
-      <div className="flex items-center justify-between px-3 py-2 border-b" style={{ borderColor: '#1F5949' }}>
-        <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: '#86EFAC' }}>
+      <div className="flex items-center justify-between px-3 py-2 border-b" style={{ borderColor: '#2A3650' }}>
+        <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: '#94A3B8' }}>
           Código da campanha
         </span>
         <button onClick={onClose} className="text-muted hover:text-coral">
@@ -248,7 +248,7 @@ function PickerPopover({
           )}
 
           {/* Seção: Digitar novo */}
-          <div className="border-t" style={{ borderColor: '#1F5949' }}>
+          <div className="border-t" style={{ borderColor: '#2A3650' }}>
             <div className="px-3 py-1.5 text-[9px] font-bold uppercase tracking-wider"
               style={{ color: '#22C55E', background: 'rgba(34,197,94,.05)' }}>
               Outro código
@@ -260,7 +260,7 @@ function PickerPopover({
                 placeholder="Ex: HJ-VAI-1"
                 maxLength={40}
                 className="flex-1 rounded border px-2 py-1 text-xs font-mono outline-none"
-                style={{ background: '#0E3A30', borderColor: '#1F5949', color: '#F8FAFC' }}
+                style={{ background: '#131C2A', borderColor: '#2A3650', color: '#F8FAFC' }}
                 onKeyDown={e => {
                   if (e.key === 'Enter' && customInput.trim()) onPick(customInput.trim())
                 }}
@@ -277,7 +277,7 @@ function PickerPopover({
           </div>
 
           {metas.length === 0 && histories.length === 0 && !loading && (
-            <p className="px-3 py-4 text-[11px] text-center" style={{ color: '#86EFAC' }}>
+            <p className="px-3 py-4 text-[11px] text-center" style={{ color: '#94A3B8' }}>
               Nenhuma sugestão — digite o código acima
             </p>
           )}

@@ -56,7 +56,7 @@ export function Topbar({
       // z-50 (acima da sidebar z-40) pra que dropdowns filhos (notifs, badge plano)
       // possam sobrepor a sidebar quando expandem pra esquerda.
       className="fixed right-0 top-0 z-50 flex h-16 items-center justify-between border-b px-4 sm:px-6 left-0 lg:left-60"
-      style={{ background: '#0E3A30', borderColor: '#1F5949' }}
+      style={{ background: '#131C2A', borderColor: '#2A3650' }}
     >
       {/* Slot esquerdo: hamburger no mobile */}
       <MobileNav hasFullAccess={hasFullAccess} allowedModules={allowedModules} isOwner={isOwner} />
@@ -83,13 +83,13 @@ export function Topbar({
         <div className="flex items-center gap-2.5">
           <div
             className="flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold"
-            style={{ background: 'linear-gradient(135deg, #22C55E, #22D3EE)', color: '#0E3A30' }}
+            style={{ background: 'linear-gradient(135deg, #22C55E, #22D3EE)', color: '#131C2A' }}
           >
             {initials}
           </div>
           <div className="hidden sm:block">
             <p className="text-sm font-medium text-text leading-none">{userName || userEmail}</p>
-            <p className="mt-0.5 text-xs leading-none" style={{ color: '#86EFAC' }}>{userEmail}</p>
+            <p className="mt-0.5 text-xs leading-none" style={{ color: '#94A3B8' }}>{userEmail}</p>
           </div>
         </div>
 
@@ -98,7 +98,7 @@ export function Topbar({
           onClick={handleSignOut}
           className="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium
             transition-colors hover:bg-card"
-          style={{ borderColor: '#1F5949', color: '#86EFAC' }}
+          style={{ borderColor: '#2A3650', color: '#94A3B8' }}
         >
           <LogOut className="h-3.5 w-3.5" />
           Sair

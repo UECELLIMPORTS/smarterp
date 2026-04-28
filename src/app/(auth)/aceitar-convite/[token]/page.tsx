@@ -45,7 +45,7 @@ function ConviteInvalido({ reason }: { reason: string }) {
           <AlertTriangle className="h-7 w-7" style={{ color: '#EF4444' }} />
         </div>
         <h1 className="text-xl font-bold mb-2" style={{ color: '#F8FAFC' }}>Convite indisponível</h1>
-        <p className="text-sm mb-6" style={{ color: '#86EFAC' }}>{reason}</p>
+        <p className="text-sm mb-6" style={{ color: '#94A3B8' }}>{reason}</p>
         <Link href="/login"
           className="inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold transition-opacity hover:opacity-90"
           style={{ background: '#22C55E', color: 'white' }}>

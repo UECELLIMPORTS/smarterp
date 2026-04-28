@@ -46,13 +46,13 @@ export function OnboardingWizard({ productCount, customerCount, hasChannels }: P
       }}>
       <button onClick={() => setDismissed(true)}
         className="absolute top-3 right-3 p-1 rounded hover:bg-white/5"
-        style={{ color: '#86EFAC' }}>
+        style={{ color: '#94A3B8' }}>
         <X className="h-4 w-4" />
       </button>
 
       <div className="flex items-start gap-4">
         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl"
-          style={{ background: 'linear-gradient(135deg, #22C55E, #10B981)', color: '#0E3A30' }}>
+          style={{ background: 'linear-gradient(135deg, #22C55E, #10B981)', color: '#131C2A' }}>
           <Sparkles className="h-6 w-6" />
         </div>
 
@@ -112,8 +112,8 @@ function StepItem({
   return (
     <div className="flex items-center gap-3 rounded-lg border p-3"
       style={{
-        background: done ? 'rgba(16,185,129,.06)' : '#0E3A30',
-        borderColor: done ? 'rgba(16,185,129,.3)' : '#1F5949',
+        background: done ? 'rgba(16,185,129,.06)' : '#131C2A',
+        borderColor: done ? 'rgba(16,185,129,.3)' : '#2A3650',
       }}>
       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
         style={done
@@ -133,7 +133,7 @@ function StepItem({
       {!done && (
         <Link href={link}
           className="shrink-0 rounded-lg px-3 py-2 text-[11px] font-bold transition-opacity hover:opacity-90"
-          style={{ background: '#22C55E', color: '#0E3A30' }}>
+          style={{ background: '#22C55E', color: '#131C2A' }}>
           {cta} →
         </Link>
       )}

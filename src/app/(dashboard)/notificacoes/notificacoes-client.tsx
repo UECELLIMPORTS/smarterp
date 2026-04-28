@@ -69,8 +69,8 @@ export function NotificacoesClient({ initialItems, initialUnread }: Props) {
   if (items.length === 0) {
     return (
       <div className="rounded-2xl border p-12 text-center"
-        style={{ background: '#0E3A30', borderColor: '#1F5949' }}>
-        <Inbox className="h-12 w-12 mx-auto mb-3" style={{ color: '#86EFAC' }} />
+        style={{ background: '#131C2A', borderColor: '#2A3650' }}>
+        <Inbox className="h-12 w-12 mx-auto mb-3" style={{ color: '#94A3B8' }} />
         <p className="text-sm font-bold" style={{ color: '#F8FAFC' }}>
           Você não tem notificações ainda
         </p>
@@ -97,12 +97,12 @@ export function NotificacoesClient({ initialItems, initialUnread }: Props) {
 
       {/* Lista */}
       <ul className="rounded-2xl border overflow-hidden"
-        style={{ background: '#0E3A30', borderColor: '#1F5949' }}>
+        style={{ background: '#131C2A', borderColor: '#2A3650' }}>
         {items.map(n => {
           const { icon: Icon, color } = ICONS[n.type] ?? ICONS.generic
           const isUnread = !n.readAt
           return (
-            <li key={n.id} className="border-b last:border-b-0" style={{ borderColor: '#1F5949' }}>
+            <li key={n.id} className="border-b last:border-b-0" style={{ borderColor: '#2A3650' }}>
               <button onClick={() => handleClick(n)}
                 className="w-full flex items-start gap-3 px-5 py-4 text-left transition-colors hover:bg-white/[0.03]"
                 style={{ background: isUnread ? 'rgba(34,197,94,.04)' : undefined }}>
@@ -122,7 +122,7 @@ export function NotificacoesClient({ initialItems, initialUnread }: Props) {
                   {n.body && (
                     <p className="text-xs mt-1" style={{ color: '#CBD5E1' }}>{n.body}</p>
                   )}
-                  <p className="text-[10px] mt-1.5" style={{ color: '#86EFAC' }}>
+                  <p className="text-[10px] mt-1.5" style={{ color: '#94A3B8' }}>
                     {timeAgo(n.createdAt)}
                   </p>
                 </div>

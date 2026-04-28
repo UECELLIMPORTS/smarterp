@@ -19,7 +19,7 @@ const COLORS: Record<string, string> = {
   google:             '#4285F4',
   facebook:           '#1877F2',
   outros:             '#8B5CF6',
-  __no__:             '#86EFAC',
+  __no__:             '#94A3B8',
 }
 
 const BRL = (c: number) =>
@@ -41,19 +41,19 @@ export function OriginDonut({ breakdown }: { breakdown: OriginItem[] }) {
   }
   const gradient = segments.length > 0
     ? `conic-gradient(${segments.join(', ')})`
-    : '#1F5949'
+    : '#2A3650'
 
   if (breakdown.length === 0 || total === 0) {
     return (
-      <div className="rounded-xl border p-6" style={{ background: '#15463A', borderColor: '#1F5949' }}>
+      <div className="rounded-xl border p-6" style={{ background: '#1B2638', borderColor: '#2A3650' }}>
         <div className="flex items-center gap-2 mb-4">
           <Megaphone className="h-4 w-4" style={{ color: '#E4405F' }} />
           <div>
             <h2 className="text-sm font-semibold text-text">Origem dos Clientes</h2>
-            <p className="text-[11px]" style={{ color: '#86EFAC' }}>Canais de aquisição no período</p>
+            <p className="text-[11px]" style={{ color: '#94A3B8' }}>Canais de aquisição no período</p>
           </div>
         </div>
-        <p className="py-8 text-center text-sm" style={{ color: '#86EFAC' }}>
+        <p className="py-8 text-center text-sm" style={{ color: '#94A3B8' }}>
           Sem transações com cliente cadastrado no período
         </p>
       </div>
@@ -61,13 +61,13 @@ export function OriginDonut({ breakdown }: { breakdown: OriginItem[] }) {
   }
 
   return (
-    <div className="rounded-xl border p-6" style={{ background: '#15463A', borderColor: '#1F5949' }}>
+    <div className="rounded-xl border p-6" style={{ background: '#1B2638', borderColor: '#2A3650' }}>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Megaphone className="h-4 w-4" style={{ color: '#E4405F' }} />
           <div>
             <h2 className="text-sm font-semibold text-text">Origem dos Clientes</h2>
-            <p className="text-[11px]" style={{ color: '#86EFAC' }}>Canais de aquisição no período</p>
+            <p className="text-[11px]" style={{ color: '#94A3B8' }}>Canais de aquisição no período</p>
           </div>
         </div>
         <a
@@ -92,12 +92,12 @@ export function OriginDonut({ breakdown }: { breakdown: OriginItem[] }) {
             className="absolute inset-0 m-auto flex flex-col items-center justify-center"
             style={{
               width: 110, height: 110, borderRadius: '50%',
-              background: '#15463A',
+              background: '#1B2638',
               top: '50%', left: '50%',
               transform: 'translate(-50%, -50%)',
             }}
           >
-            <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#86EFAC' }}>
+            <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#94A3B8' }}>
               Total
             </span>
             <span className="text-sm font-bold" style={{ color: '#F8FAFC', fontFamily: 'ui-monospace,monospace' }}>

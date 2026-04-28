@@ -68,7 +68,7 @@ function randKey() {
 
 const inputCls =
   'w-full rounded-lg border px-3.5 py-2.5 text-sm text-text outline-none transition-colors focus:border-accent/60 placeholder:text-muted'
-const inputStyle = { background: '#15463A', borderColor: '#1F5949' }
+const inputStyle = { background: '#1B2638', borderColor: '#2A3650' }
 
 // ── Component ──────────────────────────────────────────────────────────────────
 
@@ -369,7 +369,7 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
               <button
                 onClick={() => setShowManual(true)}
                 className="flex items-center gap-1.5 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors hover:bg-card text-accent whitespace-nowrap"
-                style={{ borderColor: '#1F5949' }}
+                style={{ borderColor: '#2A3650' }}
               >
                 <Plus className="h-4 w-4" />
                 Item / Serviço
@@ -380,7 +380,7 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
             {showDrop && (
               <div
                 className="absolute z-50 mt-1 w-full rounded-xl border shadow-xl overflow-hidden"
-                style={{ background: '#15463A', borderColor: '#1F5949' }}
+                style={{ background: '#1B2638', borderColor: '#2A3650' }}
               >
                 {results.map(p => (
                   <button
@@ -415,19 +415,19 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
           </div>
 
           {/* Cart */}
-          <div className="rounded-xl border overflow-hidden" style={{ background: '#15463A', borderColor: '#1F5949' }}>
+          <div className="rounded-xl border overflow-hidden" style={{ background: '#1B2638', borderColor: '#2A3650' }}>
             {cart.length === 0 ? (
               <div className="flex flex-col items-center justify-center gap-3 py-20">
-                <ShoppingBag className="h-10 w-10" style={{ color: '#5EC2A0' }} />
+                <ShoppingBag className="h-10 w-10" style={{ color: '#64748B' }} />
                 <p className="text-sm text-muted">Nenhum item adicionado</p>
-                <p className="text-xs" style={{ color: '#5EC2A0' }}>Busque um produto ou clique em "Item / Serviço"</p>
+                <p className="text-xs" style={{ color: '#64748B' }}>Busque um produto ou clique em "Item / Serviço"</p>
               </div>
             ) : (
               <>
                 {/* Cart header */}
                 <div
                   className="grid items-center gap-3 px-4 py-3 border-b text-xs font-medium uppercase tracking-wider text-muted"
-                  style={{ borderColor: '#1F5949', gridTemplateColumns: '1fr 88px 120px 100px 28px' }}
+                  style={{ borderColor: '#2A3650', gridTemplateColumns: '1fr 88px 120px 100px 28px' }}
                 >
                   <span>Produto</span>
                   <span className="text-center">Qtd</span>
@@ -441,7 +441,7 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
                   <div
                     key={item.key}
                     className="grid items-center gap-3 px-4 py-3 border-b"
-                    style={{ borderColor: '#1F5949', gridTemplateColumns: '1fr 88px 120px 100px 28px' }}
+                    style={{ borderColor: '#2A3650', gridTemplateColumns: '1fr 88px 120px 100px 28px' }}
                   >
                     <p className="text-sm font-medium text-text truncate">{item.name}</p>
 
@@ -450,13 +450,13 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
                       <button
                         onClick={() => setQty(item.key, item.quantity - 1)}
                         className="h-6 w-6 rounded border flex items-center justify-center text-xs text-muted hover:bg-card transition-colors"
-                        style={{ borderColor: '#1F5949' }}
+                        style={{ borderColor: '#2A3650' }}
                       >−</button>
                       <span className="w-6 text-center text-sm text-text">{item.quantity}</span>
                       <button
                         onClick={() => setQty(item.key, item.quantity + 1)}
                         className="h-6 w-6 rounded border flex items-center justify-center text-xs text-muted hover:bg-card transition-colors"
-                        style={{ borderColor: '#1F5949' }}
+                        style={{ borderColor: '#2A3650' }}
                       >+</button>
                     </div>
 
@@ -493,7 +493,7 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
         <div className="space-y-4">
 
           {/* ── Customer section ── */}
-          <div className="rounded-xl border p-5 space-y-4" style={{ background: '#15463A', borderColor: '#1F5949' }}>
+          <div className="rounded-xl border p-5 space-y-4" style={{ background: '#1B2638', borderColor: '#2A3650' }}>
             <h3 className="flex items-center gap-2 text-sm font-semibold text-text">
               <User className="h-4 w-4 text-accent" />
               Cliente
@@ -503,8 +503,8 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
             <div
               className="flex items-start justify-between rounded-lg border p-3"
               style={{
-                background: '#0E3A30',
-                borderColor: isDefault ? '#1F5949' : '#22C55E30',
+                background: '#131C2A',
+                borderColor: isDefault ? '#2A3650' : '#22C55E30',
               }}
             >
               <div className="flex items-start gap-2.5 min-w-0">
@@ -517,7 +517,7 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
                     <p className="text-sm font-semibold text-text truncate">{customer.full_name}</p>
                     {isDefault && (
                       <span className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold"
-                        style={{ background: '#86EFAC18', color: '#86EFAC' }}>
+                        style={{ background: '#94A3B818', color: '#94A3B8' }}>
                         Padrão
                       </span>
                     )}
@@ -549,9 +549,9 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
             {!isDefault && (
               customer.origin ? (
                 <div className="flex items-center justify-between rounded-lg border px-3 py-2"
-                  style={{ background: '#0E3A30', borderColor: '#1F5949' }}>
+                  style={{ background: '#131C2A', borderColor: '#2A3650' }}>
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider shrink-0" style={{ color: '#86EFAC' }}>
+                    <span className="text-[10px] font-semibold uppercase tracking-wider shrink-0" style={{ color: '#94A3B8' }}>
                       Origem
                     </span>
                     <span className="rounded-full px-2 py-0.5 text-[10px] font-bold truncate"
@@ -567,7 +567,7 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
                     title="Alterar origem"
                   >
                     {CUSTOMER_ORIGIN_OPTIONS.map(opt => (
-                      <option key={opt.value} value={opt.value} style={{ background: '#0E3A30' }}>
+                      <option key={opt.value} value={opt.value} style={{ background: '#131C2A' }}>
                         {opt.label}
                       </option>
                     ))}
@@ -598,8 +598,8 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
             {/* ── Código da campanha (só pra origens Meta) ── */}
             {!isDefault && customer.origin && (customer.origin === 'instagram_pago' || customer.origin === 'facebook') && (
               <div className="rounded-lg border px-3 py-2 flex items-center justify-between gap-2"
-                style={{ background: '#0E3A30', borderColor: '#1F5949' }}>
-                <span className="text-[10px] font-semibold uppercase tracking-wider shrink-0" style={{ color: '#86EFAC' }}>
+                style={{ background: '#131C2A', borderColor: '#2A3650' }}>
+                <span className="text-[10px] font-semibold uppercase tracking-wider shrink-0" style={{ color: '#94A3B8' }}>
                   Campanha
                 </span>
                 <CampaignCodePicker
@@ -628,7 +628,7 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
                     onClick={handleCustomerSearch}
                     disabled={searchingCustomer}
                     className="rounded-lg border px-3.5 py-2.5 text-sm font-medium text-accent hover:bg-card transition-colors disabled:opacity-60 shrink-0"
-                    style={{ borderColor: '#1F5949' }}
+                    style={{ borderColor: '#2A3650' }}
                   >
                     {searchingCustomer ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Buscar'}
                   </button>
@@ -648,7 +648,7 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
                   <button
                     onClick={resetToDefault}
                     className="w-full rounded-lg border py-2 text-xs font-medium text-muted hover:bg-card transition-colors"
-                    style={{ borderColor: '#1F5949' }}
+                    style={{ borderColor: '#2A3650' }}
                   >
                     ↩ Voltar ao Consumidor Final
                   </button>
@@ -658,13 +658,13 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
 
             {/* Multiple customer results */}
             {showCustomerDrop && customerResults.length > 0 && (
-              <div className="rounded-xl border overflow-hidden" style={{ background: '#0E3A30', borderColor: '#1F5949' }}>
+              <div className="rounded-xl border overflow-hidden" style={{ background: '#131C2A', borderColor: '#2A3650' }}>
                 {customerResults.map(c => (
                   <button
                     key={c.id}
                     onClick={() => selectCustomer(c)}
                     className="flex w-full items-start justify-between px-4 py-3 text-sm hover:bg-card transition-colors border-b last:border-0"
-                    style={{ borderColor: '#1F5949' }}
+                    style={{ borderColor: '#2A3650' }}
                   >
                     <div className="text-left">
                       <p className="font-medium text-text">{c.full_name}</p>
@@ -684,7 +684,7 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
 
             {/* ── New customer form (full, matching clientes module) ── */}
             {showForm && (
-              <div className="space-y-3 border-t pt-4" style={{ borderColor: '#1F5949' }}>
+              <div className="space-y-3 border-t pt-4" style={{ borderColor: '#2A3650' }}>
                 <p className="text-xs font-semibold uppercase tracking-wider text-amber">Cadastro rápido</p>
 
                 {/* Name */}
@@ -738,7 +738,7 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
                 />
 
                 {/* Address section */}
-                <div className="border-t pt-3 space-y-2" style={{ borderColor: '#1F5949' }}>
+                <div className="border-t pt-3 space-y-2" style={{ borderColor: '#2A3650' }}>
                   <p className="text-xs font-medium text-muted">Endereço (opcional)</p>
 
                   {/* CEP — optional, auto-fills others */}
@@ -798,7 +798,7 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
                 </div>
 
                 {/* Origem — obrigatório */}
-                <div className="flex flex-col gap-1 border-t pt-3" style={{ borderColor: '#1F5949' }}>
+                <div className="flex flex-col gap-1 border-t pt-3" style={{ borderColor: '#2A3650' }}>
                   <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#F59E0B' }}>
                     Como nos conheceu? *
                   </label>
@@ -820,7 +820,7 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
                   <button
                     onClick={() => { setShowForm(false); setSearchQuery('') }}
                     className="flex-1 rounded-lg border py-2.5 text-sm font-medium text-muted hover:bg-card transition-colors"
-                    style={{ borderColor: '#1F5949' }}
+                    style={{ borderColor: '#2A3650' }}
                   >
                     Cancelar
                   </button>
@@ -828,7 +828,7 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
                     onClick={handleSaveCustomer}
                     disabled={savingCustomer || !nc.name.trim() || !nc.origin}
                     className="flex-1 flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold transition-opacity disabled:opacity-60"
-                    style={{ background: 'linear-gradient(135deg, #22C55E, #10B981)', color: '#0E3A30' }}
+                    style={{ background: 'linear-gradient(135deg, #22C55E, #10B981)', color: '#131C2A' }}
                   >
                     {savingCustomer && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                     Salvar
@@ -839,7 +839,7 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
           </div>
 
           {/* Order summary */}
-          <div className="rounded-xl border p-5 space-y-3" style={{ background: '#15463A', borderColor: '#1F5949' }}>
+          <div className="rounded-xl border p-5 space-y-3" style={{ background: '#1B2638', borderColor: '#2A3650' }}>
             <h3 className="text-sm font-semibold text-text">Resumo do Pedido</h3>
 
             <div className="flex items-center justify-between text-sm">
@@ -869,14 +869,14 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
               />
             </div>
 
-            <div className="flex items-center justify-between border-t pt-3" style={{ borderColor: '#1F5949' }}>
+            <div className="flex items-center justify-between border-t pt-3" style={{ borderColor: '#2A3650' }}>
               <span className="text-sm font-bold text-text">TOTAL</span>
               <span className="text-xl font-bold text-green">{BRL(total)}</span>
             </div>
           </div>
 
           {/* Payment method */}
-          <div className="rounded-xl border p-5 space-y-3" style={{ background: '#15463A', borderColor: '#1F5949' }}>
+          <div className="rounded-xl border p-5 space-y-3" style={{ background: '#1B2638', borderColor: '#2A3650' }}>
             <h3 className="text-sm font-semibold text-text">Forma de Pagamento</h3>
 
             <div className="grid grid-cols-4 gap-2">
@@ -896,7 +896,7 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
                     className="rounded-lg border py-2 text-xs font-medium transition-all"
                     style={active
                       ? { background: `${color}18`, borderColor: color, color }
-                      : { borderColor: '#1F5949', color: '#86EFAC' }}
+                      : { borderColor: '#2A3650', color: '#94A3B8' }}
                   >
                     {label}
                   </button>
@@ -906,7 +906,7 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
 
             {/* Mixed breakdown */}
             {method === 'mixed' && (
-              <div className="space-y-2 border-t pt-3" style={{ borderColor: '#1F5949' }}>
+              <div className="space-y-2 border-t pt-3" style={{ borderColor: '#2A3650' }}>
                 {(
                   [
                     { label: 'Dinheiro', value: mxCash, set: setMxCash, color: '#10B981' },
@@ -943,8 +943,8 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
           </div>
 
           {/* ── Canal da venda + Entrega ── */}
-          <div className="rounded-xl border p-3 space-y-2" style={{ borderColor: '#1F5949', background: '#0E3A30' }}>
-            <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#86EFAC' }}>
+          <div className="rounded-xl border p-3 space-y-2" style={{ borderColor: '#2A3650', background: '#131C2A' }}>
+            <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#94A3B8' }}>
               Canal da venda
             </p>
             <select
@@ -976,7 +976,7 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
             onClick={handleFinalize}
             disabled={finalizing || cart.length === 0}
             className="w-full flex items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold transition-opacity disabled:opacity-50"
-            style={{ background: 'linear-gradient(135deg, #22C55E, #10B981)', color: '#0E3A30' }}
+            style={{ background: 'linear-gradient(135deg, #22C55E, #10B981)', color: '#131C2A' }}
           >
             {finalizing
               ? <><Loader2 className="h-4 w-4 animate-spin" /> Finalizando...</>
@@ -993,7 +993,7 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
           style={{ background: 'rgba(0,0,0,0.7)' }}
           onClick={e => { if (e.target === e.currentTarget) setShowManual(false) }}
         >
-          <div className="w-full max-w-sm rounded-2xl border p-6 space-y-4" style={{ background: '#15463A', borderColor: '#1F5949' }}>
+          <div className="w-full max-w-sm rounded-2xl border p-6 space-y-4" style={{ background: '#1B2638', borderColor: '#2A3650' }}>
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold text-text">Adicionar Item ou Serviço</h3>
               <button onClick={() => setShowManual(false)} className="text-muted hover:text-coral transition-colors">
@@ -1045,7 +1045,7 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
               <button
                 onClick={() => setShowManual(false)}
                 className="flex-1 rounded-lg border py-2.5 text-sm font-medium text-muted hover:bg-card transition-colors"
-                style={{ borderColor: '#1F5949' }}
+                style={{ borderColor: '#2A3650' }}
               >
                 Cancelar
               </button>
@@ -1053,7 +1053,7 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
                 onClick={addManual}
                 disabled={!mName.trim() || !mPrice}
                 className="flex-1 rounded-lg py-2.5 text-sm font-semibold transition-opacity disabled:opacity-60"
-                style={{ background: 'linear-gradient(135deg, #22C55E, #10B981)', color: '#0E3A30' }}
+                style={{ background: 'linear-gradient(135deg, #22C55E, #10B981)', color: '#131C2A' }}
               >
                 Adicionar
               </button>
@@ -1067,8 +1067,8 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
         <div
           className="lg:hidden fixed bottom-0 left-0 right-0 z-40 border-t p-3"
           style={{
-            background: '#0E3A30',
-            borderColor: '#1F5949',
+            background: '#131C2A',
+            borderColor: '#2A3650',
             boxShadow: '0 -4px 16px rgba(0,0,0,0.5)',
             paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))',
           }}
@@ -1084,7 +1084,7 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
               onClick={handleFinalize}
               disabled={finalizing || cart.length === 0}
               className="flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-bold transition-opacity disabled:opacity-50 shrink-0"
-              style={{ background: 'linear-gradient(135deg, #22C55E, #10B981)', color: '#0E3A30' }}
+              style={{ background: 'linear-gradient(135deg, #22C55E, #10B981)', color: '#131C2A' }}
             >
               {finalizing
                 ? <><Loader2 className="h-4 w-4 animate-spin" /> Finalizando...</>

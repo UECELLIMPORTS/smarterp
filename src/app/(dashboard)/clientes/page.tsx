@@ -87,7 +87,7 @@ export default async function ClientesPage({
           { label: 'OS no CheckSmart',  value: String(totalOs),       icon: Wrench, color: '#22C55E' },
           { label: 'Nesta página',      value: String(customers.length), icon: List, color: '#F59E0B' },
         ].map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="rounded-xl border p-5" style={{ background: '#15463A', borderColor: '#1F5949' }}>
+          <div key={label} className="rounded-xl border p-5" style={{ background: '#1B2638', borderColor: '#2A3650' }}>
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs font-medium uppercase tracking-wider text-muted">{label}</p>

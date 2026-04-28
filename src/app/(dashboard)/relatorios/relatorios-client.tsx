@@ -135,14 +135,14 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold" style={{ color: '#F8FAFC' }}>Relatórios</h1>
-          <p className="mt-1 text-sm" style={{ color: '#86EFAC' }}>
+          <p className="mt-1 text-sm" style={{ color: '#94A3B8' }}>
             {tab === 'geral'    && 'Análise consolidada por origem dos clientes'}
             {tab === 'vendas'   && 'Tabela detalhada de cada venda com filtros e export'}
             {tab === 'produtos' && 'Ranking de produtos: faturamento, lucro e margem'}
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex gap-1 rounded-xl p-1" style={{ background: '#15463A', border: '1px solid #1F5949' }}>
+          <div className="flex gap-1 rounded-xl p-1" style={{ background: '#1B2638', border: '1px solid #2A3650' }}>
             {periodOptions.map(p => (
               <button
                 key={p.v}
@@ -150,7 +150,7 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
                 className="rounded-lg px-4 py-1.5 text-xs font-bold transition-all"
                 style={period === p.v
                   ? { background: '#22C55E', color: '#000' }
-                  : { color: '#86EFAC' }
+                  : { color: '#94A3B8' }
                 }
               >
                 {p.label}
@@ -161,21 +161,21 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
               className="rounded-lg px-4 py-1.5 text-xs font-bold transition-all"
               style={period === 'custom' || customOpen
                 ? { background: '#22C55E', color: '#000' }
-                : { color: '#86EFAC' }
+                : { color: '#94A3B8' }
               }
             >
               Datas
             </button>
           </div>
           {customOpen && (
-            <div className="flex items-center gap-2 rounded-xl p-2" style={{ background: '#15463A', border: '1px solid #1F5949' }}>
+            <div className="flex items-center gap-2 rounded-xl p-2" style={{ background: '#1B2638', border: '1px solid #2A3650' }}>
               <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)}
                 className="rounded-lg border px-2 py-1 text-xs text-text outline-none"
-                style={{ background: '#0E3A30', borderColor: '#1F5949' }} />
-              <span className="text-xs" style={{ color: '#86EFAC' }}>até</span>
+                style={{ background: '#131C2A', borderColor: '#2A3650' }} />
+              <span className="text-xs" style={{ color: '#94A3B8' }}>até</span>
               <input type="date" value={toDate} onChange={e => setToDate(e.target.value)}
                 className="rounded-lg border px-2 py-1 text-xs text-text outline-none"
-                style={{ background: '#0E3A30', borderColor: '#1F5949' }} />
+                style={{ background: '#131C2A', borderColor: '#2A3650' }} />
               <button onClick={applyCustom} disabled={!fromDate || !toDate}
                 className="rounded-lg px-3 py-1 text-xs font-bold transition-opacity disabled:opacity-50"
                 style={{ background: '#10B981', color: '#000' }}>
@@ -188,7 +188,7 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
 
       {/* Tabs */}
       <div className="flex gap-1 rounded-xl p-1 w-fit"
-        style={{ background: '#0E3A30', border: '1px solid #1F5949' }}>
+        style={{ background: '#131C2A', border: '1px solid #2A3650' }}>
         {TABS.map(t => {
           const Icon = t.icon
           const active = tab === t.v
@@ -198,7 +198,7 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
               className="rounded-lg px-3 py-1.5 text-xs font-bold transition-all inline-flex items-center gap-1.5"
               style={active
                 ? { background: '#22C55E', color: '#000' }
-                : { color: '#86EFAC' }
+                : { color: '#94A3B8' }
               }>
               <Icon className="h-3.5 w-3.5" />
               {t.label}
@@ -230,13 +230,13 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
       <>
       <div className="flex flex-wrap items-center gap-3">
         {/* Sistema */}
-        <div className="flex gap-1 rounded-lg p-1" style={{ background: '#0E3A30', border: '1px solid #1F5949' }}>
+        <div className="flex gap-1 rounded-lg p-1" style={{ background: '#131C2A', border: '1px solid #2A3650' }}>
           {PERIODS.map(p => (
             <button
               key={p.v}
               onClick={() => updateQuery({ source: p.v })}
               className="rounded px-3 py-1 text-[11px] font-bold transition-all"
-              style={source === p.v ? { background: p.color, color: '#000' } : { color: '#86EFAC' }}
+              style={source === p.v ? { background: p.color, color: '#000' } : { color: '#94A3B8' }}
             >
               {p.label}
             </button>
@@ -248,7 +248,7 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
           value={origin}
           onChange={e => updateQuery({ origin: e.target.value })}
           className="rounded-lg border px-3 py-1.5 text-xs outline-none"
-          style={{ background: '#0E3A30', borderColor: '#1F5949', color: '#F8FAFC' }}
+          style={{ background: '#131C2A', borderColor: '#2A3650', color: '#F8FAFC' }}
         >
           <option value="all">Todas as origens</option>
           {CUSTOMER_ORIGIN_OPTIONS.map(opt => (
@@ -262,7 +262,7 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
           value={channel}
           onChange={e => updateQuery({ channel: e.target.value })}
           className="rounded-lg border px-3 py-1.5 text-xs outline-none"
-          style={{ background: '#0E3A30', borderColor: '#1F5949', color: '#F8FAFC' }}
+          style={{ background: '#131C2A', borderColor: '#2A3650', color: '#F8FAFC' }}
         >
           <option value="all">Todos os canais</option>
           {SALE_CHANNEL_OPTIONS_PICKABLE.map(opt => (
@@ -281,20 +281,20 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
       </div>
 
       {/* Relatório por Origem */}
-      <div className="rounded-2xl border" style={{ background: '#15463A', borderColor: '#1F5949' }}>
-        <div className="flex items-center justify-between border-b px-6 py-4" style={{ borderColor: '#1F5949' }}>
+      <div className="rounded-2xl border" style={{ background: '#1B2638', borderColor: '#2A3650' }}>
+        <div className="flex items-center justify-between border-b px-6 py-4" style={{ borderColor: '#2A3650' }}>
           <div className="flex items-center gap-2">
             <div className="h-4 w-1 rounded-full" style={{ background: '#E4405F' }} />
             <div>
               <p className="text-xs font-bold uppercase tracking-widest" style={{ color: '#CBD5E1' }}>Relatório por Origem</p>
-              <p className="text-[11px]" style={{ color: '#86EFAC' }}>Métricas completas por canal de aquisição</p>
+              <p className="text-[11px]" style={{ color: '#94A3B8' }}>Métricas completas por canal de aquisição</p>
             </div>
           </div>
           <button
             onClick={exportOriginsCsv}
             disabled={origins.length === 0}
             className="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-bold transition-all hover:bg-white/5 disabled:opacity-50"
-            style={{ borderColor: '#1F5949', color: '#10B981' }}
+            style={{ borderColor: '#2A3650', color: '#10B981' }}
           >
             <Download className="h-3.5 w-3.5" />
             Exportar CSV
@@ -302,15 +302,15 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
         </div>
         <div className="p-6 overflow-x-auto">
           {origins.length === 0 ? (
-            <p className="py-10 text-center text-sm" style={{ color: '#86EFAC' }}>
+            <p className="py-10 text-center text-sm" style={{ color: '#94A3B8' }}>
               Sem dados no período e filtros selecionados
             </p>
           ) : (
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b text-left" style={{ borderColor: '#1F5949' }}>
+                <tr className="border-b text-left" style={{ borderColor: '#2A3650' }}>
                   {['Origem', 'Clientes', 'Transações', 'Ticket Médio', 'Faturamento', 'Lucro', 'Margem'].map(h => (
-                    <th key={h} className="pb-3 pr-4 text-[10px] font-bold uppercase tracking-wider" style={{ color: '#86EFAC' }}>
+                    <th key={h} className="pb-3 pr-4 text-[10px] font-bold uppercase tracking-wider" style={{ color: '#94A3B8' }}>
                       {h}
                     </th>
                   ))}
@@ -325,12 +325,12 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
       </div>
 
       {/* Top 10 Clientes */}
-      <div className="rounded-2xl border" style={{ background: '#15463A', borderColor: '#1F5949' }}>
-        <div className="flex items-center gap-2 border-b px-6 py-4" style={{ borderColor: '#1F5949' }}>
+      <div className="rounded-2xl border" style={{ background: '#1B2638', borderColor: '#2A3650' }}>
+        <div className="flex items-center gap-2 border-b px-6 py-4" style={{ borderColor: '#2A3650' }}>
           <div className="h-4 w-1 rounded-full" style={{ background: '#22C55E' }} />
           <div>
             <p className="text-xs font-bold uppercase tracking-widest" style={{ color: '#CBD5E1' }}>Top 10 Clientes</p>
-            <p className="text-[11px]" style={{ color: '#86EFAC' }}>
+            <p className="text-[11px]" style={{ color: '#94A3B8' }}>
               No período, aplicando todos os filtros
               {origin !== 'all' && <> · <span style={{ color: '#22C55E' }}>origem: {origin === '__no_origin__' ? 'Não informado' : originLabel(origin)}</span></>}
               {channel !== 'all' && <> · <span style={{ color: '#22C55E' }}>canal: {channel === '__no_channel__' ? 'Não informado' : channelLabel(channel)}</span></>}
@@ -339,15 +339,15 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
         </div>
         <div className="p-6 overflow-x-auto">
           {topClients.length === 0 ? (
-            <p className="py-10 text-center text-sm" style={{ color: '#86EFAC' }}>
+            <p className="py-10 text-center text-sm" style={{ color: '#94A3B8' }}>
               Nenhum cliente no período
             </p>
           ) : (
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b text-left" style={{ borderColor: '#1F5949' }}>
+                <tr className="border-b text-left" style={{ borderColor: '#2A3650' }}>
                   {['Cliente', 'Contato', 'Origem', 'Transações', 'Faturamento', 'Lucro'].map(h => (
-                    <th key={h} className="pb-3 pr-4 text-[10px] font-bold uppercase tracking-wider" style={{ color: '#86EFAC' }}>
+                    <th key={h} className="pb-3 pr-4 text-[10px] font-bold uppercase tracking-wider" style={{ color: '#94A3B8' }}>
                       {h}
                     </th>
                   ))}
@@ -378,15 +378,15 @@ function SummaryCard({
   icon: React.ElementType
 }) {
   return (
-    <div className="rounded-2xl border p-5 relative overflow-hidden" style={{ background: '#15463A', borderColor: '#1F5949' }}>
+    <div className="rounded-2xl border p-5 relative overflow-hidden" style={{ background: '#1B2638', borderColor: '#2A3650' }}>
       <div className="absolute -right-4 -top-4 h-20 w-20 rounded-full opacity-20"
         style={{ background: `radial-gradient(circle, ${color}, transparent)` }} />
       <div className="mb-3 flex items-center justify-between">
-        <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: '#86EFAC' }}>{label}</span>
+        <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: '#94A3B8' }}>{label}</span>
         <Icon className="h-4 w-4" style={{ color }} />
       </div>
       <div className="text-2xl font-bold tracking-tight" style={{ color, fontFamily: 'ui-monospace,monospace' }}>{value}</div>
-      {sub && <div className="mt-0.5 text-[11px]" style={{ color: '#86EFAC' }}>{sub}</div>}
+      {sub && <div className="mt-0.5 text-[11px]" style={{ color: '#94A3B8' }}>{sub}</div>}
     </div>
   )
 }
@@ -394,7 +394,7 @@ function SummaryCard({
 // ── Origin row ────────────────────────────────────────────────────────────
 
 function OriginRow({ row }: { row: OriginReportRow }) {
-  const color = row.value ? (ORIGIN_COLORS[row.value] ?? '#8B5CF6') : '#86EFAC'
+  const color = row.value ? (ORIGIN_COLORS[row.value] ?? '#8B5CF6') : '#94A3B8'
   return (
     <tr className="border-b transition-colors hover:bg-white/[0.02]" style={{ borderColor: 'rgba(30,45,69,.5)' }}>
       <td className="py-3 pr-4">
@@ -425,7 +425,7 @@ function ClientRow({ c }: { c: TopClientRow }) {
     ? `https://wa.me/${waNum.startsWith('55') ? '' : '55'}${waNum}?text=${encodeURIComponent(`Olá ${c.name.split(' ')[0]}! Tudo bem?`)}`
     : ''
   const ori = c.origin ? originLabel(c.origin) : null
-  const oriColor = c.origin ? (ORIGIN_COLORS[c.origin] ?? '#8B5CF6') : '#86EFAC'
+  const oriColor = c.origin ? (ORIGIN_COLORS[c.origin] ?? '#8B5CF6') : '#94A3B8'
 
   return (
     <tr className="border-b transition-colors hover:bg-white/[0.02]" style={{ borderColor: 'rgba(30,45,69,.5)' }}>
@@ -458,7 +458,7 @@ function ClientRow({ c }: { c: TopClientRow }) {
             <span className="text-xs font-mono" style={{ color: '#CBD5E1' }}>{phoneDisplay}</span>
           </div>
         ) : (
-          <span className="text-xs" style={{ color: '#86EFAC' }}>—</span>
+          <span className="text-xs" style={{ color: '#94A3B8' }}>—</span>
         )}
       </td>
       <td className="py-3 pr-4">
@@ -469,7 +469,7 @@ function ClientRow({ c }: { c: TopClientRow }) {
             {ori}
           </span>
         ) : (
-          <span className="text-xs" style={{ color: '#86EFAC' }}>—</span>
+          <span className="text-xs" style={{ color: '#94A3B8' }}>—</span>
         )}
       </td>
       <td className="py-3 pr-4 font-mono font-semibold" style={{ color: '#F8FAFC' }}>{c.transactions}</td>
