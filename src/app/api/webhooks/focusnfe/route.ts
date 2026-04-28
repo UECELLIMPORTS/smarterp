@@ -13,7 +13,7 @@
 
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { applyFocusStatusUpdate } from '@/actions/fiscal-emit'
+import { applyFocusStatusUpdate } from '@/lib/fiscal-emit-core'
 
 export const dynamic = 'force-dynamic'
 

@@ -1,7 +1,9 @@
 'use server'
 
+import { after } from 'next/server'
 import { requireAuth } from '@/lib/supabase/server'
 import { getTenantId } from '@/lib/tenant'
+import { tryAutoEmitNfceForSale } from '@/lib/fiscal-emit-core'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -451,6 +453,12 @@ export async function createSale(input: CreateSaleInput): Promise<{ id: string }
     )
     if (movError) throw new Error(`Erro ao registrar saída de estoque: ${movError.message}`)
   }
+
+  // Modo automático de NFC-e: dispara emissão depois da resposta voltar pro
+  // cliente (after()). Se config.emission_mode !== 'automatic' ou !enabled,
+  // tryAutoEmitNfceForSale retorna sem fazer nada. Erros são logados, não
+  // jogados — venda já foi gravada e PDV não pode travar por falha fiscal.
+  after(() => tryAutoEmitNfceForSale(tenantId, sale.id))
 
   return sale as { id: string }
 }

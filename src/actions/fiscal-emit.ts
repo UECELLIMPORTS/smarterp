@@ -3,8 +3,9 @@
 /**
  * Server Actions de emissão fiscal — NFC-e, NF-e (futuro), NFS-e (futuro).
  *
- * Foco da Fase 2: emitir NFC-e a partir de uma venda existente. O ID da
- * `fiscal_emissions` row vira o `ref` enviado pra Focus NFe (idempotência).
+ * O core (sem 'use server') vive em src/lib/fiscal-emit-core.ts pra poder ser
+ * chamado de after() callbacks, route handlers e crons sem expor tenantId
+ * como input forjável de RPC.
  */
 
 import { revalidatePath } from 'next/cache'
@@ -12,296 +13,44 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { requireAuth } from '@/lib/supabase/server'
 import { getTenantId } from '@/lib/tenant'
 import {
-  emitirNfce, getEmissao, cancelarEmissao,
+  getEmissao, cancelarEmissao,
   FocusNfeError,
-  type FocusNfceItem, type Ambiente,
+  type Ambiente,
 } from '@/lib/focus-nfe'
+import {
+  emitNfceCore,
+  applyFocusStatusUpdate as applyFocusStatusUpdateCore,
+  type Result,
+  type EmitNfceResult,
+} from '@/lib/fiscal-emit-core'
 
-type Result<T = void> = { ok: true; data?: T } | { ok: false; error: string }
-
-// ──────────────────────────────────────────────────────────────────────────
-// Mapeia forma_pagamento do nosso schema pro código Focus/SEFAZ
-// 01 = Dinheiro · 02 = Cheque · 03 = Cartão Crédito · 04 = Cartão Débito
-// 05 = Crédito Loja · 10 = Vale Alimentação · 11 = Vale Refeição
-// 12 = Vale Presente · 13 = Vale Combustível · 15 = Boleto · 16 = Depósito
-// 17 = PIX · 18 = Transferência · 19 = Programa Fidelidade · 90 = Sem pagamento
-// 99 = Outros
-// ──────────────────────────────────────────────────────────────────────────
-
-function mapPaymentToFocus(method: string | null): string {
-  const m = (method ?? '').toLowerCase()
-  if (m === 'dinheiro' || m === 'cash') return '01'
-  if (m === 'pix')                       return '17'
-  if (m === 'credito' || m === 'credit') return '03'
-  if (m === 'debito'  || m === 'debit')  return '04'
-  if (m === 'boleto')                    return '15'
-  if (m === 'transferencia')             return '18'
-  return '99'
-}
-
-function onlyDigits(s: string | null | undefined): string {
-  return (s ?? '').replace(/\D/g, '')
-}
+// Re-export pra clientes que importam de '@/actions/fiscal-emit'
+export type { EmitNfceResult } from '@/lib/fiscal-emit-core'
 
 // ──────────────────────────────────────────────────────────────────────────
-// Emite NFC-e a partir de uma venda
+// Emite NFC-e a partir de uma venda (usuário logado)
 // ──────────────────────────────────────────────────────────────────────────
-
-export type EmitNfceResult = {
-  emissionId: string
-  status:     string
-  ref:        string
-  message?:   string
-}
 
 export async function emitNfceFromSale(saleId: string): Promise<Result<EmitNfceResult>> {
   const { user } = await requireAuth()
   const tenantId = getTenantId(user)
 
-  const admin = createAdminClient()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const sb = admin as any
-
-  // 1. Lê config fiscal — precisa estar enabled
-  const { data: config } = await sb
-    .from('fiscal_configs')
-    .select('*')
-    .eq('tenant_id', tenantId)
-    .maybeSingle()
-
-  if (!config) return { ok: false, error: 'Configuração fiscal não encontrada. Configure em /configuracoes/fiscal.' }
-  if (!config.enabled) return { ok: false, error: 'Emissão fiscal desabilitada. Habilite em /configuracoes/fiscal.' }
-
-  // 2. Lê venda + items + cliente + tenant
-  const { data: sale, error: saleErr } = await sb
-    .from('sales')
-    .select(`
-      id, customer_id, total_cents, subtotal_cents, discount_cents, shipping_cents,
-      payment_method, status, created_at,
-      customers ( full_name, cpf_cnpj, email ),
-      sale_items ( name, product_id, quantity, unit_price_cents, subtotal_cents )
-    `)
-    .eq('id', saleId)
-    .eq('tenant_id', tenantId)
-    .single()
-
-  if (saleErr || !sale) return { ok: false, error: 'Venda não encontrada.' }
-  if (sale.status === 'cancelled') return { ok: false, error: 'Não é possível emitir NFC-e pra venda cancelada.' }
-
-  // Carrega NCM dos produtos referenciados
-  const productIds = sale.sale_items
-    .map((i: { product_id: string | null }) => i.product_id)
-    .filter(Boolean) as string[]
-  type Prod = { id: string; ncm: string | null; cfop: string | null; cst_csosn: string | null; unidade: string | null; origem: string | null }
-  const productMap = new Map<string, Prod>()
-  if (productIds.length > 0) {
-    const { data: prods } = await sb
-      .from('products')
-      .select('id, ncm, cfop, cst_csosn, unidade, origem')
-      .in('id', productIds)
-    for (const p of (prods ?? []) as Prod[]) productMap.set(p.id, p)
+  const result = await emitNfceCore(tenantId, saleId)
+  if (result.ok) {
+    revalidatePath('/financeiro')
+    revalidatePath('/notas-fiscais')
   }
-
-  // 3. Lê CNPJ do tenant
-  const { data: tenant } = await sb
-    .from('tenants')
-    .select('cpf_cnpj')
-    .eq('id', tenantId)
-    .single()
-
-  const cnpjEmitente = onlyDigits(tenant?.cpf_cnpj)
-  if (cnpjEmitente.length !== 14) {
-    return { ok: false, error: 'CNPJ do emitente inválido. Atualize em Configurações > Empresa.' }
-  }
-
-  // 4. Verifica se já existe emissão pra essa venda (evita duplicata)
-  const { data: existing } = await sb
-    .from('fiscal_emissions')
-    .select('id, status')
-    .eq('sale_id', saleId)
-    .neq('status', 'rejected')
-    .maybeSingle()
-
-  if (existing && existing.status !== 'rejected') {
-    return { ok: false, error: `Já existe NFC-e ${existing.status} pra essa venda.` }
-  }
-
-  // 5. Cria row em fiscal_emissions com status 'draft'
-  type ItemRow = { name: string; product_id: string | null; quantity: number; unit_price_cents: number; subtotal_cents: number }
-  type CustomerRow = { full_name: string; cpf_cnpj: string | null; email: string | null }
-  const customer = sale.customers as CustomerRow | null
-  const items = sale.sale_items as ItemRow[]
-
-  const { data: emission, error: emErr } = await sb
-    .from('fiscal_emissions')
-    .insert({
-      tenant_id:              tenantId,
-      sale_id:                saleId,
-      type:                   'nfce',
-      status:                 'draft',
-      ambiente:               config.ambiente,
-      total_cents:            sale.total_cents,
-      destinatario_nome:      customer?.full_name,
-      destinatario_documento: customer?.cpf_cnpj ? onlyDigits(customer.cpf_cnpj) : null,
-      destinatario_email:     customer?.email,
-    })
-    .select('id')
-    .single()
-
-  if (emErr || !emission) return { ok: false, error: `Erro ao criar emissão: ${emErr?.message ?? 'desconhecido'}` }
-  const emissionId = emission.id as string
-  const ref        = `nfce-${emissionId}`
-
-  // 6. Monta payload Focus
-  const focusItems: FocusNfceItem[] = items.map((it, idx) => {
-    const prod = it.product_id ? productMap.get(it.product_id) : null
-    const ncm = prod?.ncm || '00000000'
-    const cfop = prod?.cfop || config.cfop_padrao || '5102'
-    const cstCsosn = prod?.cst_csosn || config.cst_csosn_padrao || '102'
-    const unidade  = prod?.unidade  || 'UN'
-    const origem   = prod?.origem   || '0'
-
-    const valorUnit = it.unit_price_cents / 100
-    const valorTotal = (it.subtotal_cents ?? it.unit_price_cents * it.quantity) / 100
-
-    return {
-      numero_item:                  idx + 1,
-      codigo_produto:               it.product_id ?? `manual-${idx + 1}`,
-      descricao:                    it.name,
-      cfop:                         cfop,
-      unidade_comercial:            unidade,
-      quantidade_comercial:         it.quantity,
-      valor_unitario_comercial:     valorUnit,
-      valor_bruto:                  valorTotal,
-      unidade_tributavel:           unidade,
-      quantidade_tributavel:        it.quantity,
-      valor_unitario_tributario:    valorUnit,
-      ncm:                          ncm,
-      origem_mercadoria:            origem,
-      icms_situacao_tributaria:     cstCsosn,
-      icms_origem:                  origem,
-    }
-  })
-
-  const valorTotal = sale.total_cents / 100
-
-  const payload = {
-    cnpj_emitente:        cnpjEmitente,
-    natureza_operacao:    'Venda de mercadoria',
-    data_emissao:         new Date(sale.created_at).toISOString(),
-    presenca_comprador:   1,                    // 1 = presencial
-    modalidade_frete:     9,                    // 9 = sem frete (NFC-e padrão)
-    local_destino:        1,                    // 1 = operação interna
-    nome_destinatario:    customer?.full_name,
-    cpf_destinatario:     customer?.cpf_cnpj && onlyDigits(customer.cpf_cnpj).length === 11 ? onlyDigits(customer.cpf_cnpj) : undefined,
-    cnpj_destinatario:    customer?.cpf_cnpj && onlyDigits(customer.cpf_cnpj).length === 14 ? onlyDigits(customer.cpf_cnpj) : undefined,
-    formas_pagamento:     [{
-      forma_pagamento: mapPaymentToFocus(sale.payment_method),
-      valor_pagamento: valorTotal,
-    }],
-    items:                focusItems,
-    valor_produtos:       valorTotal,
-    valor_total:          valorTotal,
-  }
-
-  // 7. Chama Focus
-  await sb.from('fiscal_emissions')
-    .update({ status: 'processing', focus_reference: ref, updated_at: new Date().toISOString() })
-    .eq('id', emissionId)
-
-  try {
-    const focusRes = await emitirNfce(ref, payload, config.ambiente as Ambiente)
-
-    // Focus retorna 'processando_autorizacao' inicialmente. Vamos consultar.
-    await sb.from('fiscal_emissions')
-      .update({
-        status:         'processing',
-        focus_response: focusRes,
-        updated_at:     new Date().toISOString(),
-      })
-      .eq('id', emissionId)
-
-    // Tenta consulta imediata (às vezes vem autorizada de cara)
-    try {
-      const status = await getEmissao('nfce', ref, config.ambiente as Ambiente)
-      await applyFocusStatusUpdate(emissionId, status)
-
-      revalidatePath('/financeiro')
-      revalidatePath('/notas-fiscais')
-
-      return {
-        ok: true,
-        data: {
-          emissionId,
-          status:  status.status,
-          ref,
-          message: status.mensagem_sefaz ?? undefined,
-        },
-      }
-    } catch {
-      // Consulta falhou — vamos confiar no webhook ou polling depois
-      revalidatePath('/financeiro')
-      revalidatePath('/notas-fiscais')
-      return {
-        ok: true,
-        data: {
-          emissionId,
-          status:  'processing',
-          ref,
-          message: 'Emissão enviada. Aguarde autorização da SEFAZ (~30-90s).',
-        },
-      }
-    }
-  } catch (e) {
-    const message = e instanceof FocusNfeError ? `Focus NFe: ${e.message}` : 'Erro ao chamar Focus NFe.'
-    await sb.from('fiscal_emissions')
-      .update({
-        status:            'rejected',
-        rejection_message: message,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        focus_response:    e instanceof FocusNfeError ? (e.payload as any) : null,
-        updated_at:        new Date().toISOString(),
-      })
-      .eq('id', emissionId)
-
-    return { ok: false, error: message }
-  }
+  return result
 }
 
 // ──────────────────────────────────────────────────────────────────────────
-// Atualiza fiscal_emissions row a partir da resposta do Focus
-// (usado tanto após emitir quanto pelo webhook)
+// Wrapper de Server Action pro webhook (que precisa importar de algum lugar
+// permitido). O webhook chama isso, mas internamente delega ao core.
 // ──────────────────────────────────────────────────────────────────────────
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function applyFocusStatusUpdate(emissionId: string, focusRes: any) {
-  const admin = createAdminClient()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const sb = admin as any
-
-  let status: string = 'processing'
-  switch (focusRes?.status) {
-    case 'autorizado':                 status = 'authorized'; break
-    case 'cancelado':                  status = 'cancelled';  break
-    case 'inutilizado':                status = 'inutilizada';break
-    case 'erro_autorizacao':
-    case 'denegado':                   status = 'rejected';   break
-    case 'processando_autorizacao':    status = 'processing'; break
-  }
-
-  const update = {
-    status,
-    focus_response:    focusRes,
-    chave_acesso:      focusRes.chave_nfe ?? undefined,
-    numero:            focusRes.numero ?? undefined,
-    serie:             focusRes.serie ?? undefined,
-    protocolo:         focusRes.protocolo ?? undefined,
-    rejection_message: status === 'rejected' ? (focusRes.mensagem_sefaz || focusRes.mensagem_status) : null,
-    emitted_at:        status === 'authorized' ? new Date().toISOString() : undefined,
-    updated_at:        new Date().toISOString(),
-  }
-
-  await sb.from('fiscal_emissions').update(update).eq('id', emissionId)
+  return applyFocusStatusUpdateCore(emissionId, focusRes)
 }
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -332,7 +81,7 @@ export async function refreshEmissionStatus(emissionId: string): Promise<Result<
       emission.focus_reference,
       emission.ambiente as Ambiente,
     )
-    await applyFocusStatusUpdate(emission.id, focusRes)
+    await applyFocusStatusUpdateCore(emission.id, focusRes)
     revalidatePath('/notas-fiscais')
     return { ok: true, data: { status: focusRes.status } }
   } catch (e) {
