@@ -113,7 +113,7 @@ function AutocompleteInput({ label, value, onChange, placeholder, suggestions }:
         />
         {open && filtered.length > 0 && (
           <div className="absolute top-full left-0 right-0 z-20 mt-1 max-h-48 overflow-y-auto rounded-lg border shadow-xl"
-            style={{ background: '#0D1521', borderColor: '#E2E8F0' }}>
+            style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
             {filtered.map(s => (
               <button key={s} type="button" onMouseDown={() => { onChange(s); setOpen(false) }}
                 className="block w-full px-3 py-2 text-left text-sm text-text hover:bg-white/5">{s}</button>
@@ -243,7 +243,7 @@ export function ProdutoModal({
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4"
       style={{ background: 'rgba(0,0,0,0.7)' }}>
       <div className="relative w-full max-w-2xl rounded-2xl border my-8"
-        style={{ background: '#0D1521', borderColor: '#E2E8F0' }}>
+        style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
 
         {/* Header */}
         <div className="flex items-center justify-between border-b px-6 py-4" style={{ borderColor: '#E2E8F0' }}>

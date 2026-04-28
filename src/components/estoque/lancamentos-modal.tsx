@@ -160,7 +160,7 @@ export function LancamentosModal({ product, onClose, onStockChanged }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4" style={{ background: 'rgba(0,0,0,0.75)' }}>
-      <div className="relative w-full max-w-4xl rounded-2xl border my-8" style={{ background: '#0D1521', borderColor: '#E2E8F0' }}>
+      <div className="relative w-full max-w-4xl rounded-2xl border my-8" style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
 
         {/* Header */}
         <div className="flex items-center justify-between border-b px-6 py-4" style={{ borderColor: '#E2E8F0' }}>
@@ -330,7 +330,7 @@ export function LancamentosModal({ product, onClose, onStockChanged }: Props) {
         {/* ── Modal Novo Lançamento ─────────────────────────────────────────── */}
         {novoOpen && (
           <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl" style={{ background: 'rgba(0,0,0,0.7)' }}>
-            <div className="w-full max-w-md rounded-2xl border p-6 space-y-5" style={{ background: '#0D1521', borderColor: '#E2E8F0' }}>
+            <div className="w-full max-w-md rounded-2xl border p-6 space-y-5" style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
               <div className="flex items-center justify-between">
                 <h3 className="text-base font-semibold text-white">Novo Lançamento</h3>
                 <button onClick={() => setNovoOpen(false)} className="text-[#64748B] hover:text-white">
@@ -352,14 +352,14 @@ export function LancamentosModal({ product, onClose, onStockChanged }: Props) {
                   <select
                     value={tipo}
                     onChange={e => setTipo(e.target.value as MovementType)}
-                    className="w-full appearance-none rounded-lg border bg-[#0D1521] px-3 py-2.5 text-sm font-medium focus:outline-none focus:ring-1"
+                    className="w-full appearance-none rounded-lg border bg-[#FFFFFF] px-3 py-2.5 text-sm font-medium focus:outline-none focus:ring-1"
                     style={{
                       borderColor: tipo === 'entrada' ? '#10B981' : '#EF4444',
                       color: tipo === 'entrada' ? '#10B981' : '#EF4444',
                     }}
                   >
-                    <option value="entrada" style={{ color: '#10B981', background: '#0D1521' }}>↓ Entrada</option>
-                    <option value="saida"   style={{ color: '#EF4444', background: '#0D1521' }}>↑ Saída</option>
+                    <option value="entrada" style={{ color: '#10B981', background: '#FFFFFF' }}>↓ Entrada</option>
+                    <option value="saida"   style={{ color: '#EF4444', background: '#FFFFFF' }}>↑ Saída</option>
                   </select>
                   <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#64748B]">▾</span>
                 </div>
@@ -428,7 +428,7 @@ export function LancamentosModal({ product, onClose, onStockChanged }: Props) {
         {/* ── Confirmar exclusão ─────────────────────────────────────────────── */}
         {deleteTarget && (
           <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl" style={{ background: 'rgba(0,0,0,0.7)' }}>
-            <div className="w-full max-w-sm rounded-2xl border p-6 space-y-4" style={{ background: '#0D1521', borderColor: '#E2E8F0' }}>
+            <div className="w-full max-w-sm rounded-2xl border p-6 space-y-4" style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
               <div className="flex h-12 w-12 items-center justify-center rounded-xl" style={{ background: '#EF444418' }}>
                 <AlertTriangle className="h-6 w-6 text-red-400" />
               </div>

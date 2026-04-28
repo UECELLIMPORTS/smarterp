@@ -1201,7 +1201,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
       {/* ── Modal Cancelar ────────────────────────────────────────────────────── */}
       {confirmCancel && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)' }}>
-          <div className="w-full max-w-sm rounded-2xl border p-6 space-y-4" style={{ background: '#0D1521', borderColor: '#E2E8F0' }}>
+          <div className="w-full max-w-sm rounded-2xl border p-6 space-y-4" style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
             <div className="flex h-12 w-12 items-center justify-center rounded-xl" style={{ background: '#EF444418' }}>
               <XCircle className="h-6 w-6" style={{ color: '#EF4444' }} />
             </div>
@@ -1229,7 +1229,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
       {/* ── Modal Reativar ────────────────────────────────────────────────────── */}
       {confirmReactivate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)' }}>
-          <div className="w-full max-w-sm rounded-2xl border p-6 space-y-4" style={{ background: '#0D1521', borderColor: '#E2E8F0' }}>
+          <div className="w-full max-w-sm rounded-2xl border p-6 space-y-4" style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
             <div className="flex h-12 w-12 items-center justify-center rounded-xl" style={{ background: '#10B98118' }}>
               <RefreshCw className="h-6 w-6" style={{ color: '#10B981' }} />
             </div>
@@ -1257,7 +1257,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
       {/* ── Modal Cancelar em Massa ──────────────────────────────────────────── */}
       {confirmBulkCancel && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)' }}>
-          <div className="w-full max-w-sm rounded-2xl border p-6 space-y-4" style={{ background: '#0D1521', borderColor: '#E2E8F0' }}>
+          <div className="w-full max-w-sm rounded-2xl border p-6 space-y-4" style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
             <div className="flex h-12 w-12 items-center justify-center rounded-xl" style={{ background: '#EF444418' }}>
               <XCircle className="h-6 w-6" style={{ color: '#EF4444' }} />
             </div>
@@ -1283,7 +1283,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
       {/* ── Modal Excluir em Massa ────────────────────────────────────────────── */}
       {confirmBulkDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)' }}>
-          <div className="w-full max-w-sm rounded-2xl border p-6 space-y-4" style={{ background: '#0D1521', borderColor: '#E2E8F0' }}>
+          <div className="w-full max-w-sm rounded-2xl border p-6 space-y-4" style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
             <div className="flex h-12 w-12 items-center justify-center rounded-xl" style={{ background: '#EF444418' }}>
               <Trash2 className="h-6 w-6" style={{ color: '#EF4444' }} />
             </div>
@@ -1308,7 +1308,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
       {/* ── Modal Editar Pagamento OS ─────────────────────────────────────────── */}
       {editPayRow && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)' }}>
-          <div className="w-full max-w-sm rounded-2xl border p-6 space-y-4" style={{ background: '#0D1521', borderColor: '#E2E8F0' }}>
+          <div className="w-full max-w-sm rounded-2xl border p-6 space-y-4" style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
             <div className="flex h-12 w-12 items-center justify-center rounded-xl" style={{ background: '#F59E0B18' }}>
               <CreditCard className="h-6 w-6" style={{ color: '#F59E0B' }} />
             </div>
@@ -1353,7 +1353,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
       {/* ── Modal Excluir ────────────────────────────────────────────────────── */}
       {confirmDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)' }}>
-          <div className="w-full max-w-sm rounded-2xl border p-6 space-y-4" style={{ background: '#0D1521', borderColor: '#E2E8F0' }}>
+          <div className="w-full max-w-sm rounded-2xl border p-6 space-y-4" style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
             <div className="flex h-12 w-12 items-center justify-center rounded-xl" style={{ background: '#EF444418' }}>
               <Trash2 className="h-6 w-6" style={{ color: '#EF4444' }} />
             </div>
@@ -1382,7 +1382,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
       {/* ── Modal Alterar Data ───────────────────────────────────────────────── */}
       {editDateRow && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)' }}>
-          <div className="w-full max-w-sm rounded-2xl border p-6 space-y-4" style={{ background: '#0D1521', borderColor: '#E2E8F0' }}>
+          <div className="w-full max-w-sm rounded-2xl border p-6 space-y-4" style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
             <div className="flex h-12 w-12 items-center justify-center rounded-xl" style={{ background: '#1D4ED818' }}>
               <CalendarDays className="h-6 w-6" style={{ color: '#1D4ED8' }} />
             </div>
@@ -1425,7 +1425,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
         const esTotal    = Math.max(0, esSubtotal - esDiscount)
         return (
           <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4" style={{ background: 'rgba(0,0,0,0.7)' }}>
-            <div className="relative w-full max-w-2xl rounded-2xl border my-8" style={{ background: '#0D1521', borderColor: '#E2E8F0' }}>
+            <div className="relative w-full max-w-2xl rounded-2xl border my-8" style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
               <div className="flex items-center justify-between border-b px-6 py-4" style={{ borderColor: '#E2E8F0' }}>
                 <div className="flex items-center gap-3">
                   <Pencil className="h-4 w-4" style={{ color: '#1D4ED8' }} />
@@ -1663,7 +1663,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
       {/* ── Modal Nova Venda ─────────────────────────────────────────────────── */}
       {novaVendaOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4" style={{ background: 'rgba(0,0,0,0.7)' }}>
-          <div className="relative w-full max-w-2xl rounded-2xl border my-8" style={{ background: '#0D1521', borderColor: '#E2E8F0' }}>
+          <div className="relative w-full max-w-2xl rounded-2xl border my-8" style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
 
             {/* Header */}
             <div className="flex items-center justify-between border-b px-6 py-4" style={{ borderColor: '#E2E8F0' }}>
@@ -2071,7 +2071,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4"
           style={{ background: 'rgba(0,0,0,0.75)' }}
           onClick={e => { if (e.target === e.currentTarget) setEosRow(null) }}>
-          <div className="relative w-full max-w-2xl rounded-2xl border my-8" style={{ background: '#0D1521', borderColor: '#E2E8F0' }}>
+          <div className="relative w-full max-w-2xl rounded-2xl border my-8" style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
             {/* Header */}
             <div className="flex items-center justify-between border-b px-6 py-4" style={{ borderColor: '#E2E8F0' }}>
               <div className="flex items-center gap-3">

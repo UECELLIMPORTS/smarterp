@@ -123,7 +123,7 @@ function RowMenu({ product, onCloneForm, onPrint }: {
           <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
           <div
             className="fixed z-40 w-44 rounded-lg border shadow-xl overflow-hidden"
-            style={{ background: '#0D1521', borderColor: '#E2E8F0', top: pos.top, right: pos.right }}
+            style={{ background: '#FFFFFF', borderColor: '#E2E8F0', top: pos.top, right: pos.right }}
           >
             <button
               onClick={() => { onCloneForm(product); setOpen(false) }}
@@ -619,7 +619,7 @@ export function EstoqueClient({ initialProducts, initialTotal, brands: initialBr
       {/* ── Modal Balanço ────────────────────────────────────────────────────── */}
       {balanceTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)' }}>
-          <div className="w-full max-w-sm rounded-2xl border p-6 space-y-4" style={{ background: '#0D1521', borderColor: '#E2E8F0' }}>
+          <div className="w-full max-w-sm rounded-2xl border p-6 space-y-4" style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl" style={{ background: '#F59E0B18' }}>
                 <ClipboardList className="h-5 w-5" style={{ color: '#F59E0B' }} />
@@ -655,7 +655,7 @@ export function EstoqueClient({ initialProducts, initialTotal, brands: initialBr
       {/* ── Modal CSV ────────────────────────────────────────────────────────── */}
       {importOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4" style={{ background: 'rgba(0,0,0,0.7)' }}>
-          <div className="relative w-full max-w-2xl rounded-2xl border my-8" style={{ background: '#0D1521', borderColor: '#E2E8F0' }}>
+          <div className="relative w-full max-w-2xl rounded-2xl border my-8" style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
             <div className="flex items-center justify-between border-b px-6 py-4" style={{ borderColor: '#E2E8F0' }}>
               <h2 className="text-base font-semibold text-text">Importar Produtos (CSV)</h2>
               <button onClick={() => setImportOpen(false)} className="text-muted hover:text-text"><X className="h-5 w-5" /></button>
@@ -732,7 +732,7 @@ export function EstoqueClient({ initialProducts, initialTotal, brands: initialBr
       {/* ── Modal Delete ─────────────────────────────────────────────────────── */}
       {deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)' }}>
-          <div className="w-full max-w-sm rounded-2xl border p-6 space-y-4" style={{ background: '#0D1521', borderColor: '#E2E8F0' }}>
+          <div className="w-full max-w-sm rounded-2xl border p-6 space-y-4" style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
             <div className="flex h-12 w-12 items-center justify-center rounded-xl" style={{ background: '#EF444418' }}>
               <Trash2 className="h-6 w-6" style={{ color: '#EF4444' }} />
             </div>

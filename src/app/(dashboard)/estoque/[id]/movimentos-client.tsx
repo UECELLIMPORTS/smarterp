@@ -169,7 +169,7 @@ function MovimentoModal({
     >
       <div
         className="w-full max-w-md rounded-2xl border shadow-2xl"
-        style={{ background: '#0D1521', borderColor: '#E2E8F0' }}
+        style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b px-5 py-4" style={{ borderColor: '#E2E8F0' }}>
@@ -201,12 +201,12 @@ function MovimentoModal({
               <select
                 value={form.type}
                 onChange={e => onChange({ type: e.target.value as TipoLancamento })}
-                className="w-full appearance-none rounded-lg border bg-[#0D1521] px-3 py-2.5 text-sm font-medium focus:outline-none focus:ring-1"
+                className="w-full appearance-none rounded-lg border bg-[#FFFFFF] px-3 py-2.5 text-sm font-medium focus:outline-none focus:ring-1"
                 style={{ borderColor: cor, color: cor }}
               >
-                <option value="entrada" style={{ color: '#10B981', background: '#0D1521' }}>↓ Entrada</option>
-                <option value="saida"   style={{ color: '#EF4444', background: '#0D1521' }}>↑ Saída</option>
-                <option value="balanco" style={{ color: '#F59E0B', background: '#0D1521' }}>⚖ Balanço</option>
+                <option value="entrada" style={{ color: '#10B981', background: '#FFFFFF' }}>↓ Entrada</option>
+                <option value="saida"   style={{ color: '#EF4444', background: '#FFFFFF' }}>↑ Saída</option>
+                <option value="balanco" style={{ color: '#F59E0B', background: '#FFFFFF' }}>⚖ Balanço</option>
               </select>
               <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted">▾</span>
             </div>
@@ -375,7 +375,7 @@ function DeleteConfirm({
     >
       <div
         className="w-full max-w-sm rounded-2xl border p-6 space-y-4 shadow-2xl"
-        style={{ background: '#0D1521', borderColor: '#E2E8F0' }}
+        style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}
       >
         <div className="flex h-11 w-11 items-center justify-center rounded-xl"
           style={{ background: '#EF444415' }}>
