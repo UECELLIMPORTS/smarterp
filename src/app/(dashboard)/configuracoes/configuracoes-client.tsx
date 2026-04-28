@@ -164,7 +164,7 @@ export function ConfiguracoesClient({ initialSettings, isOwner = false, initialE
                 {/* Radio indicator */}
                 <div
                   className="mt-0.5 h-4 w-4 shrink-0 rounded-full border-2 flex items-center justify-center"
-                  style={{ borderColor: active ? opt.color : '#374151' }}
+                  style={{ borderColor: active ? opt.color : '#CBD5E1' }}
                 >
                   {active && (
                     <div className="h-2 w-2 rounded-full" style={{ background: opt.color }} />
@@ -181,10 +181,10 @@ export function ConfiguracoesClient({ initialSettings, isOwner = false, initialE
 
                 {/* Text */}
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold" style={{ color: active ? opt.color : '#E2E8F0' }}>
+                  <p className="text-sm font-semibold" style={{ color: active ? opt.color : '#0F172A' }}>
                     {opt.label}
                   </p>
-                  <p className="mt-0.5 text-xs text-muted">{opt.description}</p>
+                  <p className="mt-0.5 text-xs" style={{ color: '#64748B' }}>{opt.description}</p>
                 </div>
               </button>
             )

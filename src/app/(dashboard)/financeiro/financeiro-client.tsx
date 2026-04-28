@@ -952,7 +952,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
         </div>
         {filteredRows.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 py-20">
-            <Receipt className="h-10 w-10" style={{ color: '#E2E8F0' }} />
+            <Receipt className="h-10 w-10" style={{ color: '#94A3B8' }} />
             <p className="text-sm text-muted">{rows.length === 0 ? 'Nenhuma transação registrada ainda' : 'Nenhum resultado para os filtros selecionados'}</p>
           </div>
         ) : (

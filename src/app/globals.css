@@ -7,7 +7,7 @@
 
 :root {
   /* Backgrounds & surfaces */
-  --bg:        #F1F5F9;       /* slate-100 — body (pouco mais cinza pra contraste vs cards) */
+  --bg:        #EEF2F7;       /* azulado-cinza pra dar vida ao body */
   --surface:   #FFFFFF;       /* cards, sidebars */
   --card:      #FFFFFF;
   --surface-2: #F8FAFC;       /* slate-50 — alternadas leves */

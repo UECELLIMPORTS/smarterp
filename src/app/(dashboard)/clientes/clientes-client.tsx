@@ -771,7 +771,7 @@ export function ClientesClient({
 
         {customers.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 py-16">
-            <Search className="h-8 w-8" style={{ color: '#E2E8F0' }} />
+            <Search className="h-8 w-8" style={{ color: '#94A3B8' }} />
             <p className="text-sm text-muted">
               {q ? `Nenhum cliente encontrado para "${q}"` : 'Nenhum cliente cadastrado ainda'}
             </p>

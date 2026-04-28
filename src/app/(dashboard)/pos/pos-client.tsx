@@ -418,9 +418,9 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
           <div className="rounded-xl border overflow-hidden" style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}>
             {cart.length === 0 ? (
               <div className="flex flex-col items-center justify-center gap-3 py-20">
-                <ShoppingBag className="h-10 w-10" style={{ color: '#E2E8F0' }} />
+                <ShoppingBag className="h-10 w-10" style={{ color: '#94A3B8' }} />
                 <p className="text-sm text-muted">Nenhum item adicionado</p>
-                <p className="text-xs" style={{ color: '#E2E8F0' }}>Busque um produto ou clique em "Item / Serviço"</p>
+                <p className="text-xs" style={{ color: '#94A3B8' }}>Busque um produto ou clique em "Item / Serviço"</p>
               </div>
             ) : (
               <>

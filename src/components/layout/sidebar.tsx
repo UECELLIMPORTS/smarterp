@@ -59,7 +59,10 @@ export function Sidebar({ hasFullAccess = true, allowedModules = [], isOwner = t
     <aside
       // Esconde no mobile (<lg). Mobile usa <MobileNav> dentro do Topbar.
       className="fixed inset-y-0 left-0 z-40 hidden w-60 flex-col border-r lg:flex"
-      style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}
+      style={{
+        background: 'linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%)',
+        borderColor: '#E2E8F0',
+      }}
     >
       {/* Logo */}
       <div className="flex h-16 items-center gap-3 border-b px-5" style={{ borderColor: '#E2E8F0' }}>
@@ -81,13 +84,17 @@ export function Sidebar({ hasFullAccess = true, allowedModules = [], isOwner = t
               <li key={href}>
                 <Link
                   href={href}
-                  className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all"
+                  className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-all hover:bg-slate-100"
                   style={active
-                    ? { background: '#1D4ED815', color: '#1D4ED8', borderLeft: '2px solid #1D4ED8' }
-                    : { color: '#64748B' }
+                    ? {
+                        background: 'linear-gradient(90deg, #DBEAFE 0%, #EFF6FF 100%)',
+                        color: '#1D4ED8',
+                        boxShadow: 'inset 3px 0 0 #1D4ED8',
+                      }
+                    : { color: '#475569' }
                   }
                 >
-                  <Icon className="h-4 w-4 flex-shrink-0" />
+                  <Icon className="h-4 w-4 flex-shrink-0" style={{ color: active ? '#1D4ED8' : '#64748B' }} />
                   {label}
                 </Link>
               </li>

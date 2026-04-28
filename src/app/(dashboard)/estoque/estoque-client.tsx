@@ -491,7 +491,7 @@ export function EstoqueClient({ initialProducts, initialTotal, brands: initialBr
 
         {products.length === 0 && !fetching ? (
           <div className="flex flex-col items-center justify-center gap-2 py-20">
-            <Package className="h-10 w-10" style={{ color: '#E2E8F0' }} />
+            <Package className="h-10 w-10" style={{ color: '#94A3B8' }} />
             <p className="text-sm text-muted">Nenhum produto encontrado</p>
           </div>
         ) : (

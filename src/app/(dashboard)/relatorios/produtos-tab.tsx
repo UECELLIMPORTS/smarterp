@@ -127,7 +127,7 @@ export function ProdutosTab({ data, category, buildUrl }: Props) {
 
         {sorted.length === 0 ? (
           <div className="py-16 text-center">
-            <Package className="mx-auto h-8 w-8 mb-3" style={{ color: '#E2E8F0' }} />
+            <Package className="mx-auto h-8 w-8 mb-3" style={{ color: '#94A3B8' }} />
             <p className="text-sm" style={{ color: '#64748B' }}>
               Nenhuma venda de produto no período.
             </p>

@@ -773,7 +773,7 @@ export function MovimentosClient({
 
         {rows.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-3 py-20">
-            <CalendarClock className="h-10 w-10" style={{ color: '#E2E8F0' }} />
+            <CalendarClock className="h-10 w-10" style={{ color: '#94A3B8' }} />
             <p className="text-sm text-muted">Nenhuma movimentação registrada</p>
             <button
               onClick={openAdd}

@@ -76,26 +76,33 @@ function periodLabel(period: Period, from?: string, to?: string): string {
 function KPICard({ title, value, subtitle, icon: Icon, color, trend }: KPICardProps) {
   return (
     <div
-      className="rounded-xl border p-5 transition-colors"
-      style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}
+      className="rounded-xl p-5 transition-all relative overflow-hidden"
+      style={{
+        background: 'white',
+        boxShadow: '0 1px 2px rgba(15,23,42,.06), 0 4px 12px rgba(15,23,42,.04)',
+        borderTop: `3px solid ${color}`,
+      }}
     >
-      <div className="flex items-start justify-between">
+      {/* Tint colorido sutil no canto */}
+      <div className="pointer-events-none absolute top-0 right-0 h-24 w-24 rounded-bl-full opacity-[0.06]"
+        style={{ background: color }} />
+      <div className="relative flex items-start justify-between">
         <div>
-          <p className="text-xs font-medium uppercase tracking-wider" style={{ color: '#64748B' }}>
+          <p className="text-xs font-bold uppercase tracking-wider" style={{ color: '#64748B' }}>
             {title}
           </p>
-          <p className="mt-2 text-2xl font-bold text-text">{value}</p>
+          <p className="mt-2 text-2xl font-bold tracking-tight" style={{ color: '#0F172A' }}>{value}</p>
           <p className="mt-1 text-xs" style={{ color: '#64748B' }}>{subtitle}</p>
         </div>
         <div
-          className="flex h-10 w-10 items-center justify-center rounded-xl"
-          style={{ background: `${color}18` }}
+          className="flex h-11 w-11 items-center justify-center rounded-xl shrink-0"
+          style={{ background: `${color}1A`, border: `1px solid ${color}33` }}
         >
           <Icon className="h-5 w-5" style={{ color }} />
         </div>
       </div>
       {trend && (
-        <div className="mt-3 flex items-center gap-1 text-xs font-medium">
+        <div className="relative mt-3 flex items-center gap-1 text-xs font-medium">
           {trend.positive
             ? <ArrowUpRight className="h-3.5 w-3.5" style={{ color: '#10B981' }} />
             : <ArrowDownRight className="h-3.5 w-3.5" style={{ color: '#EF4444' }} />
@@ -528,7 +535,7 @@ export default async function DashboardPage(props: { searchParams: Promise<Searc
 
         {activityItems.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 py-16">
-            <Receipt className="h-8 w-8" style={{ color: '#E2E8F0' }} />
+            <Receipt className="h-8 w-8" style={{ color: '#94A3B8' }} />
             <p className="text-sm" style={{ color: '#64748B' }}>Nenhuma atividade no período selecionado</p>
           </div>
         ) : (
