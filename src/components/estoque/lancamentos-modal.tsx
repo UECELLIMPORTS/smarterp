@@ -29,8 +29,8 @@ const fmtDate = (iso: string) =>
     hour: '2-digit', minute: '2-digit',
   })
 
-const INP = 'w-full rounded-lg border bg-transparent px-3 py-2 text-sm text-white placeholder:text-[#64748B] focus:outline-none focus:ring-1 focus:ring-[#10B981]'
-const INP_S = { borderColor: '#E2E8F0' }
+const INP = 'w-full rounded-lg border bg-transparent px-3 py-2 text-sm text-white placeholder:text-[#A78BFA] focus:outline-none focus:ring-1 focus:ring-[#10B981]'
+const INP_S = { borderColor: '#3D3656' }
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 
@@ -142,9 +142,9 @@ export function LancamentosModal({ product, onClose, onStockChanged }: Props) {
   function PriceField({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
     return (
       <div>
-        <label className="mb-1 block text-xs font-medium text-[#64748B]">{label}</label>
+        <label className="mb-1 block text-xs font-medium text-[#A78BFA]">{label}</label>
         <div className="relative">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-[#64748B]">R$</span>
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-[#A78BFA]">R$</span>
           <input
             type="text"
             inputMode="numeric"
@@ -160,13 +160,13 @@ export function LancamentosModal({ product, onClose, onStockChanged }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4" style={{ background: 'rgba(0,0,0,0.75)' }}>
-      <div className="relative w-full max-w-4xl rounded-2xl border my-8" style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
+      <div className="relative w-full max-w-4xl rounded-2xl border my-8" style={{ background: '#1E1B2E', borderColor: '#3D3656' }}>
 
         {/* Header */}
-        <div className="flex items-center justify-between border-b px-6 py-4" style={{ borderColor: '#E2E8F0' }}>
+        <div className="flex items-center justify-between border-b px-6 py-4" style={{ borderColor: '#3D3656' }}>
           <div>
             <h2 className="text-base font-semibold text-white">Lançamentos de Estoque</h2>
-            <p className="text-xs text-[#64748B] mt-0.5">{product.name} · Unidade: {product.unit}</p>
+            <p className="text-xs text-[#A78BFA] mt-0.5">{product.name} · Unidade: {product.unit}</p>
           </div>
           <div className="flex items-center gap-3">
             <button
@@ -177,7 +177,7 @@ export function LancamentosModal({ product, onClose, onStockChanged }: Props) {
               <Plus className="h-4 w-4" />
               Incluir Lançamento
             </button>
-            <button onClick={onClose} className="text-[#64748B] hover:text-white">
+            <button onClick={onClose} className="text-[#A78BFA] hover:text-white">
               <X className="h-5 w-5" />
             </button>
           </div>
@@ -188,8 +188,8 @@ export function LancamentosModal({ product, onClose, onStockChanged }: Props) {
           <div className="flex-1 min-w-0">
             {/* Cabeçalho da tabela */}
             <div
-              className="grid gap-3 px-5 py-3 text-xs font-medium uppercase tracking-wider text-[#64748B] border-b"
-              style={{ borderColor: '#E2E8F0', gridTemplateColumns: '140px 70px 70px 130px 130px 130px 1fr 40px' }}
+              className="grid gap-3 px-5 py-3 text-xs font-medium uppercase tracking-wider text-[#A78BFA] border-b"
+              style={{ borderColor: '#3D3656', gridTemplateColumns: '140px 70px 70px 130px 130px 130px 1fr 40px' }}
             >
               <span>Data</span>
               <span className="text-center">Entrada</span>
@@ -204,22 +204,22 @@ export function LancamentosModal({ product, onClose, onStockChanged }: Props) {
             {/* Linhas */}
             {loading ? (
               <div className="flex items-center justify-center py-16">
-                <Loader2 className="h-6 w-6 animate-spin text-[#64748B]" />
+                <Loader2 className="h-6 w-6 animate-spin text-[#A78BFA]" />
               </div>
             ) : movements.length === 0 ? (
               <div className="flex flex-col items-center justify-center gap-2 py-16">
-                <Package className="h-10 w-10 text-[#E2E8F0]" />
-                <p className="text-sm text-[#64748B]">Nenhum lançamento registrado</p>
+                <Package className="h-10 w-10 text-[#3D3656]" />
+                <p className="text-sm text-[#A78BFA]">Nenhum lançamento registrado</p>
               </div>
             ) : (
-              <div className="max-h-[420px] overflow-y-auto divide-y divide-[#E2E8F0]">
+              <div className="max-h-[420px] overflow-y-auto divide-y divide-[#3D3656]">
                 {movements.map(m => (
                   <div
                     key={m.id}
                     className="grid gap-3 px-5 py-3 items-center text-sm hover:bg-white/[0.02] transition-colors"
                     style={{ gridTemplateColumns: '140px 70px 70px 130px 130px 130px 1fr 40px' }}
                   >
-                    <span className="text-xs text-[#64748B]">{fmtDate(m.created_at)}</span>
+                    <span className="text-xs text-[#A78BFA]">{fmtDate(m.created_at)}</span>
 
                     <span className="text-center font-semibold" style={{ color: m.type === 'entrada' ? '#10B981' : 'transparent' }}>
                       {m.type === 'entrada' ? m.quantity.toString().replace('.', ',') : '-'}
@@ -231,18 +231,18 @@ export function LancamentosModal({ product, onClose, onStockChanged }: Props) {
                     <span className="text-right text-white">
                       {m.sale_price_cents > 0 ? BRL(m.sale_price_cents) : '-'}
                     </span>
-                    <span className="text-right text-[#64748B]">
+                    <span className="text-right text-[#A78BFA]">
                       {m.purchase_price_cents > 0 ? BRL(m.purchase_price_cents) : '-'}
                     </span>
-                    <span className="text-right text-[#64748B]">
+                    <span className="text-right text-[#A78BFA]">
                       {m.cost_price_cents > 0 ? BRL(m.cost_price_cents) : '-'}
                     </span>
 
-                    <span className="text-xs text-[#64748B] truncate">{m.notes ?? ''}</span>
+                    <span className="text-xs text-[#A78BFA] truncate">{m.notes ?? ''}</span>
 
                     <button
                       onClick={() => setDeleteTarget(m.id)}
-                      className="flex justify-center text-[#E2E8F0] hover:text-red-400 transition-colors"
+                      className="flex justify-center text-[#3D3656] hover:text-red-400 transition-colors"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
@@ -253,7 +253,7 @@ export function LancamentosModal({ product, onClose, onStockChanged }: Props) {
           </div>
 
           {/* Painel lateral de resumo */}
-          <div className="w-56 shrink-0 border-l p-5 space-y-4" style={{ borderColor: '#E2E8F0' }}>
+          <div className="w-56 shrink-0 border-l p-5 space-y-4" style={{ borderColor: '#3D3656' }}>
 
             {/* Entradas */}
             <div>
@@ -272,7 +272,7 @@ export function LancamentosModal({ product, onClose, onStockChanged }: Props) {
             </div>
 
             {/* Saídas */}
-            <div className="border-t pt-4" style={{ borderColor: '#E2E8F0' }}>
+            <div className="border-t pt-4" style={{ borderColor: '#3D3656' }}>
               <div className="flex items-center gap-2 mb-2">
                 <TrendingDown className="h-4 w-4 text-red-400" />
                 <p className="text-xs font-semibold uppercase tracking-wider text-red-400">Saídas</p>
@@ -288,30 +288,30 @@ export function LancamentosModal({ product, onClose, onStockChanged }: Props) {
             </div>
 
             {/* Saldo atual */}
-            <div className="border-t pt-4" style={{ borderColor: '#E2E8F0' }}>
-              <p className="text-xs font-semibold uppercase tracking-wider text-[#64748B] mb-1">Saldo atual</p>
+            <div className="border-t pt-4" style={{ borderColor: '#3D3656' }}>
+              <p className="text-xs font-semibold uppercase tracking-wider text-[#A78BFA] mb-1">Saldo atual</p>
               <p
                 className="text-2xl font-bold"
                 style={{ color: product.stock_qty <= 0 ? '#EF4444' : '#10B981' }}
               >
                 {product.stock_qty}
               </p>
-              <p className="text-xs text-[#64748B]">{product.unit}</p>
+              <p className="text-xs text-[#A78BFA]">{product.unit}</p>
             </div>
 
             {/* Saldos por depósito */}
-            <div className="border-t pt-4 overflow-x-auto" style={{ borderColor: '#E2E8F0' }}>
-              <p className="text-xs font-semibold uppercase tracking-wider text-[#64748B] mb-2">Saldos por depósito</p>
+            <div className="border-t pt-4 overflow-x-auto" style={{ borderColor: '#3D3656' }}>
+              <p className="text-xs font-semibold uppercase tracking-wider text-[#A78BFA] mb-2">Saldos por depósito</p>
               <table className="w-full text-xs min-w-[320px]">
                 <thead>
-                  <tr className="text-[#475569]">
+                  <tr className="text-[#CBD5E1]">
                     <th className="text-left font-medium pb-1">Depósito</th>
                     <th className="text-right font-medium pb-1">Saldo</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
-                    <td className="text-[#94A3B8] py-0.5">
+                    <td className="text-[#8B82A8] py-0.5">
                       {product.location ? product.location : 'Padrão'}
                     </td>
                     <td
@@ -330,10 +330,10 @@ export function LancamentosModal({ product, onClose, onStockChanged }: Props) {
         {/* ── Modal Novo Lançamento ─────────────────────────────────────────── */}
         {novoOpen && (
           <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl" style={{ background: 'rgba(0,0,0,0.7)' }}>
-            <div className="w-full max-w-md rounded-2xl border p-6 space-y-5" style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
+            <div className="w-full max-w-md rounded-2xl border p-6 space-y-5" style={{ background: '#1E1B2E', borderColor: '#3D3656' }}>
               <div className="flex items-center justify-between">
                 <h3 className="text-base font-semibold text-white">Novo Lançamento</h3>
-                <button onClick={() => setNovoOpen(false)} className="text-[#64748B] hover:text-white">
+                <button onClick={() => setNovoOpen(false)} className="text-[#A78BFA] hover:text-white">
                   <X className="h-4 w-4" />
                 </button>
               </div>
@@ -347,27 +347,27 @@ export function LancamentosModal({ product, onClose, onStockChanged }: Props) {
 
               {/* Tipo */}
               <div>
-                <label className="mb-1 block text-xs font-medium text-[#64748B]">Tipo *</label>
+                <label className="mb-1 block text-xs font-medium text-[#A78BFA]">Tipo *</label>
                 <div className="relative">
                   <select
                     value={tipo}
                     onChange={e => setTipo(e.target.value as MovementType)}
-                    className="w-full appearance-none rounded-lg border bg-[#FFFFFF] px-3 py-2.5 text-sm font-medium focus:outline-none focus:ring-1"
+                    className="w-full appearance-none rounded-lg border bg-[#1E1B2E] px-3 py-2.5 text-sm font-medium focus:outline-none focus:ring-1"
                     style={{
                       borderColor: tipo === 'entrada' ? '#10B981' : '#EF4444',
                       color: tipo === 'entrada' ? '#10B981' : '#EF4444',
                     }}
                   >
-                    <option value="entrada" style={{ color: '#10B981', background: '#FFFFFF' }}>↓ Entrada</option>
-                    <option value="saida"   style={{ color: '#EF4444', background: '#FFFFFF' }}>↑ Saída</option>
+                    <option value="entrada" style={{ color: '#10B981', background: '#1E1B2E' }}>↓ Entrada</option>
+                    <option value="saida"   style={{ color: '#EF4444', background: '#1E1B2E' }}>↑ Saída</option>
                   </select>
-                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#64748B]">▾</span>
+                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#A78BFA]">▾</span>
                 </div>
               </div>
 
               {/* Quantidade */}
               <div>
-                <label className="mb-1 block text-xs font-medium text-[#64748B]">Quantidade *</label>
+                <label className="mb-1 block text-xs font-medium text-[#A78BFA]">Quantidade *</label>
                 <input
                   type="text"
                   inputMode="decimal"
@@ -392,7 +392,7 @@ export function LancamentosModal({ product, onClose, onStockChanged }: Props) {
 
               {/* Observação */}
               <div>
-                <label className="mb-1 block text-xs font-medium text-[#64748B]">Observação</label>
+                <label className="mb-1 block text-xs font-medium text-[#A78BFA]">Observação</label>
                 <input
                   type="text"
                   value={observacao}
@@ -406,8 +406,8 @@ export function LancamentosModal({ product, onClose, onStockChanged }: Props) {
               <div className="flex gap-3 pt-1">
                 <button
                   onClick={() => setNovoOpen(false)}
-                  className="flex-1 rounded-lg border py-2.5 text-sm text-[#64748B] hover:text-white transition-colors"
-                  style={{ borderColor: '#E2E8F0' }}
+                  className="flex-1 rounded-lg border py-2.5 text-sm text-[#A78BFA] hover:text-white transition-colors"
+                  style={{ borderColor: '#3D3656' }}
                 >
                   Cancelar
                 </button>
@@ -428,16 +428,16 @@ export function LancamentosModal({ product, onClose, onStockChanged }: Props) {
         {/* ── Confirmar exclusão ─────────────────────────────────────────────── */}
         {deleteTarget && (
           <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl" style={{ background: 'rgba(0,0,0,0.7)' }}>
-            <div className="w-full max-w-sm rounded-2xl border p-6 space-y-4" style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
+            <div className="w-full max-w-sm rounded-2xl border p-6 space-y-4" style={{ background: '#1E1B2E', borderColor: '#3D3656' }}>
               <div className="flex h-12 w-12 items-center justify-center rounded-xl" style={{ background: '#EF444418' }}>
                 <AlertTriangle className="h-6 w-6 text-red-400" />
               </div>
               <div>
                 <h3 className="text-base font-semibold text-white">Excluir lançamento?</h3>
-                <p className="mt-1 text-sm text-[#64748B]">O estoque do produto <strong className="text-white">não será revertido</strong> automaticamente. Ajuste manualmente se necessário.</p>
+                <p className="mt-1 text-sm text-[#A78BFA]">O estoque do produto <strong className="text-white">não será revertido</strong> automaticamente. Ajuste manualmente se necessário.</p>
               </div>
               <div className="flex gap-3">
-                <button onClick={() => setDeleteTarget(null)} className="flex-1 rounded-lg border py-2 text-sm text-[#64748B] hover:text-white" style={{ borderColor: '#E2E8F0' }}>
+                <button onClick={() => setDeleteTarget(null)} className="flex-1 rounded-lg border py-2 text-sm text-[#A78BFA] hover:text-white" style={{ borderColor: '#3D3656' }}>
                   Cancelar
                 </button>
                 <button

@@ -121,25 +121,25 @@ export function DiagnosticoClient({
       {/* Header */}
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
-          <Link href="/erp-clientes" className="inline-flex items-center gap-1.5 text-xs hover:underline mb-2" style={{ color: '#64748B' }}>
+          <Link href="/erp-clientes" className="inline-flex items-center gap-1.5 text-xs hover:underline mb-2" style={{ color: '#A78BFA' }}>
             <ArrowLeft className="h-3.5 w-3.5" /> Voltar pra ERP Clientes
           </Link>
-          <h1 className="text-2xl font-bold flex items-center gap-2" style={{ color: '#0F172A' }}>
+          <h1 className="text-2xl font-bold flex items-center gap-2" style={{ color: '#F8FAFC' }}>
             <AlertTriangle className="h-5 w-5" style={{ color: '#F59E0B' }} />
             Diagnóstico de Lucro
           </h1>
-          <p className="mt-1 text-sm" style={{ color: '#64748B' }}>
+          <p className="mt-1 text-sm" style={{ color: '#A78BFA' }}>
             Identifica vendas e OSs onde o lucro está aparecendo igual à receita por falta de custo cadastrado.
           </p>
         </div>
-        <div className="flex gap-1 rounded-xl p-1" style={{ background: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+        <div className="flex gap-1 rounded-xl p-1" style={{ background: '#2A2440', border: '1px solid #3D3656' }}>
           {PERIODS.map(p => (
             <button key={p.v}
               onClick={() => router.push(`/erp-clientes/diagnostico-lucro?period=${p.v}`)}
               className="rounded-lg px-3 py-1.5 text-xs font-bold transition-all"
               style={diag.period === p.v
-                ? { background: '#1D4ED8', color: '#FFFFFF' }
-                : { color: '#64748B' }
+                ? { background: '#A855F7', color: '#1E1B2E' }
+                : { color: '#A78BFA' }
               }
             >
               {p.label}
@@ -158,26 +158,26 @@ export function DiagnosticoClient({
 
       {/* Banner de correção automática */}
       {diag.fixableSnapshotsCount > 0 && (
-        <div className="rounded-2xl border p-5" style={{ background: 'rgba(29,78,216,.04)', borderColor: 'rgba(29,78,216,.3)' }}>
+        <div className="rounded-2xl border p-5" style={{ background: 'rgba(168,85,247,.04)', borderColor: 'rgba(168,85,247,.3)' }}>
           <div className="flex items-start gap-3">
-            <CheckCircle2 className="h-5 w-5 mt-0.5 shrink-0" style={{ color: '#1D4ED8' }} />
+            <CheckCircle2 className="h-5 w-5 mt-0.5 shrink-0" style={{ color: '#A855F7' }} />
             <div className="flex-1">
-              <p className="text-sm font-bold" style={{ color: '#1D4ED8' }}>
+              <p className="text-sm font-bold" style={{ color: '#A855F7' }}>
                 Correção automática disponível pra {diag.fixableSnapshotsCount} item(s)
               </p>
-              <p className="text-xs mt-1" style={{ color: '#0F172A' }}>
-                Esses itens estão com <code style={{ color: '#475569' }}>cost_snapshot_cents</code> NULL/0,
-                mas o produto referenciado tem <code style={{ color: '#475569' }}>products.cost_cents</code> &gt; 0.
+              <p className="text-xs mt-1" style={{ color: '#F8FAFC' }}>
+                Esses itens estão com <code style={{ color: '#CBD5E1' }}>cost_snapshot_cents</code> NULL/0,
+                mas o produto referenciado tem <code style={{ color: '#CBD5E1' }}>products.cost_cents</code> &gt; 0.
                 Posso copiar esse custo atual pro snapshot — vai destravar o cálculo de lucro dessas vendas.
               </p>
-              <p className="text-[11px] mt-2" style={{ color: '#475569' }}>
+              <p className="text-[11px] mt-2" style={{ color: '#CBD5E1' }}>
                 ⚠️ Usa o custo <strong>atual</strong> do produto. Se o custo mudou desde a venda original, o lucro vai refletir o atual (não o histórico).
               </p>
               <button
                 onClick={onBackfill}
                 disabled={pending}
                 className="mt-3 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-bold transition-colors hover:opacity-90 disabled:opacity-50"
-                style={{ background: '#1D4ED8', color: '#FFFFFF' }}
+                style={{ background: '#A855F7', color: '#1E1B2E' }}
               >
                 {pending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                 {pending ? 'Aplicando…' : `Aplicar correção em ${diag.fixableSnapshotsCount} item(s)`}
@@ -197,24 +197,24 @@ export function DiagnosticoClient({
 
       {/* Itens órfãos (sem product_id) — CAUSA RAIZ MAIS COMUM */}
       {orphans.length > 0 && (
-        <div className="rounded-2xl border" style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}>
-          <div className="border-b px-6 py-4" style={{ borderColor: '#E2E8F0' }}>
+        <div className="rounded-2xl border" style={{ background: '#2A2440', borderColor: '#3D3656' }}>
+          <div className="border-b px-6 py-4" style={{ borderColor: '#3D3656' }}>
             <div className="flex items-start justify-between gap-3 flex-wrap">
               <div className="flex items-center gap-2">
                 <div className="h-4 w-1 rounded-full" style={{ background: '#EF4444' }} />
                 <div>
-                  <h2 className="text-xs font-bold uppercase tracking-widest flex items-center gap-1.5" style={{ color: '#475569' }}>
+                  <h2 className="text-xs font-bold uppercase tracking-widest flex items-center gap-1.5" style={{ color: '#CBD5E1' }}>
                     <Unlink className="h-3.5 w-3.5" />
                     Itens vendidos sem vínculo ao estoque ({orphans.length})
                   </h2>
-                  <p className="text-[11px] mt-0.5" style={{ color: '#64748B' }}>
+                  <p className="text-[11px] mt-0.5" style={{ color: '#A78BFA' }}>
                     Vendas onde o item foi adicionado como &quot;manual&quot; no POS — sem <code>product_id</code>, então sem como rastrear custo.
                     Procurei o produto correspondente por nome no estoque pra você revisar e vincular.
                   </p>
                   {orphans[0]?.catalogStats && (
-                    <p className="text-[10px] mt-1" style={{ color: '#64748B' }}>
-                      Estoque consultado: <strong style={{ color: '#475569' }}>{orphans[0].catalogStats.products}</strong> produto(s) ·{' '}
-                      <strong style={{ color: '#475569' }}>{orphans[0].catalogStats.parts}</strong> peça(s)
+                    <p className="text-[10px] mt-1" style={{ color: '#A78BFA' }}>
+                      Estoque consultado: <strong style={{ color: '#CBD5E1' }}>{orphans[0].catalogStats.products}</strong> produto(s) ·{' '}
+                      <strong style={{ color: '#CBD5E1' }}>{orphans[0].catalogStats.parts}</strong> peça(s)
                     </p>
                   )}
                 </div>
@@ -224,7 +224,7 @@ export function DiagnosticoClient({
                   onClick={onAutoLink}
                   disabled={pending}
                   className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-bold transition-colors hover:opacity-90 disabled:opacity-50"
-                  style={{ background: '#10B981', color: '#FFFFFF' }}
+                  style={{ background: '#10B981', color: '#1E1B2E' }}
                 >
                   {pending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                   <Link2 className="h-3.5 w-3.5" />
@@ -257,16 +257,16 @@ export function DiagnosticoClient({
 
       {/* Vendas com prejuízo (custo > receita) */}
       {losing.length > 0 && (
-        <div className="rounded-2xl border" style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}>
-          <div className="border-b px-6 py-4" style={{ borderColor: '#E2E8F0' }}>
+        <div className="rounded-2xl border" style={{ background: '#2A2440', borderColor: '#3D3656' }}>
+          <div className="border-b px-6 py-4" style={{ borderColor: '#3D3656' }}>
             <div className="flex items-center gap-2">
               <div className="h-4 w-1 rounded-full" style={{ background: '#EF4444' }} />
               <div className="flex-1">
-                <h2 className="text-xs font-bold uppercase tracking-widest flex items-center gap-1.5" style={{ color: '#475569' }}>
+                <h2 className="text-xs font-bold uppercase tracking-widest flex items-center gap-1.5" style={{ color: '#CBD5E1' }}>
                   <TrendingDown className="h-3.5 w-3.5" />
                   Vendas com prejuízo ({losing.length}) — total {BRL(totalLosingCents)}
                 </h2>
-                <p className="text-[11px] mt-0.5" style={{ color: '#64748B' }}>
+                <p className="text-[11px] mt-0.5" style={{ color: '#A78BFA' }}>
                   Vendas onde o custo somado dos itens ficou maior que o faturamento. Provável causa: custo errado no produto, ou item vinculado ao produto errado.
                 </p>
               </div>
@@ -278,25 +278,25 @@ export function DiagnosticoClient({
                 style={{ background: 'rgba(255,77,109,.04)', borderColor: 'rgba(255,77,109,.3)' }}>
                 <div className="flex items-start justify-between gap-3 flex-wrap">
                   <div>
-                    <p className="text-sm font-semibold" style={{ color: '#0F172A' }}>
+                    <p className="text-sm font-semibold" style={{ color: '#F8FAFC' }}>
                       {l.customerName ?? 'Sem cliente'}
                     </p>
-                    <p className="text-[11px]" style={{ color: '#64748B' }}>
+                    <p className="text-[11px]" style={{ color: '#A78BFA' }}>
                       {DT(l.saleDate)} · ID <code>{l.saleId.slice(0,8)}</code>
                     </p>
                   </div>
                   <div className="text-right">
                     <div className="grid grid-cols-3 gap-x-3 text-[11px]">
                       <div>
-                        <p style={{ color: '#64748B' }}>Receita</p>
-                        <p className="font-mono font-bold" style={{ color: '#0F172A' }}>{BRL(l.totalCents)}</p>
+                        <p style={{ color: '#A78BFA' }}>Receita</p>
+                        <p className="font-mono font-bold" style={{ color: '#F8FAFC' }}>{BRL(l.totalCents)}</p>
                       </div>
                       <div>
-                        <p style={{ color: '#64748B' }}>Custo</p>
+                        <p style={{ color: '#A78BFA' }}>Custo</p>
                         <p className="font-mono font-bold" style={{ color: '#F59E0B' }}>{BRL(l.totalCostCents)}</p>
                       </div>
                       <div>
-                        <p style={{ color: '#64748B' }}>Prejuízo</p>
+                        <p style={{ color: '#A78BFA' }}>Prejuízo</p>
                         <p className="font-mono font-bold" style={{ color: '#EF4444' }}>{BRL(l.profitCents)}</p>
                       </div>
                     </div>
@@ -306,7 +306,7 @@ export function DiagnosticoClient({
                 <div className="border-t pt-3 overflow-x-auto" style={{ borderColor: 'rgba(255,77,109,.3)' }}>
                   <table className="w-full text-[11px] min-w-[640px]">
                     <thead>
-                      <tr style={{ color: '#64748B' }}>
+                      <tr style={{ color: '#A78BFA' }}>
                         <th className="text-left py-1">Item</th>
                         <th className="text-right py-1">Qtd</th>
                         <th className="text-right py-1">Preço unit.</th>
@@ -320,17 +320,17 @@ export function DiagnosticoClient({
                         const unitCost = it.quantity > 0 ? Math.round(it.totalCostCents / it.quantity) : 0
                         return (
                           <tr key={it.saleItemId} className="border-t" style={{ borderColor: 'rgba(30,45,69,.5)' }}>
-                            <td className="py-1.5" style={{ color: '#0F172A' }}>
+                            <td className="py-1.5" style={{ color: '#F8FAFC' }}>
                               {it.name}
                               {it.productName && it.productName !== it.name && (
-                                <span className="ml-1 text-[10px]" style={{ color: '#64748B' }}>
+                                <span className="ml-1 text-[10px]" style={{ color: '#A78BFA' }}>
                                   → vinculado a &quot;{it.productName}&quot;
                                 </span>
                               )}
                             </td>
-                            <td className="text-right font-mono" style={{ color: '#475569' }}>{it.quantity}</td>
-                            <td className="text-right font-mono" style={{ color: '#475569' }}>{BRL(it.unitPriceCents)}</td>
-                            <td className="text-right font-mono" style={{ color: unitCost > it.unitPriceCents ? '#EF4444' : '#475569' }}>
+                            <td className="text-right font-mono" style={{ color: '#CBD5E1' }}>{it.quantity}</td>
+                            <td className="text-right font-mono" style={{ color: '#CBD5E1' }}>{BRL(it.unitPriceCents)}</td>
+                            <td className="text-right font-mono" style={{ color: unitCost > it.unitPriceCents ? '#EF4444' : '#CBD5E1' }}>
                               {it.snapshotCents == null ? 'NULL' : BRL(unitCost)}
                             </td>
                             <td className="text-right font-mono font-semibold" style={{ color: it.itemProfitCents < 0 ? '#EF4444' : '#10B981' }}>
@@ -342,7 +342,7 @@ export function DiagnosticoClient({
                                   <Link
                                     href={`/estoque/${it.productId}`}
                                     className="text-[10px] font-bold px-2 py-1 rounded hover:opacity-80"
-                                    style={{ background: 'rgba(29,78,216,.15)', color: '#1D4ED8' }}
+                                    style={{ background: 'rgba(168,85,247,.15)', color: '#A855F7' }}
                                     title="Editar custo do produto no estoque"
                                   >
                                     Editar custo
@@ -382,13 +382,13 @@ export function DiagnosticoClient({
         empty="Nenhuma venda suspeita no período. Lucro das vendas está sendo calculado corretamente."
       >
         {diag.suspiciousSales.map(s => (
-          <div key={s.id} className="rounded-xl border p-4 space-y-2" style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
+          <div key={s.id} className="rounded-xl border p-4 space-y-2" style={{ background: '#1E1B2E', borderColor: '#3D3656' }}>
             <div className="flex items-start justify-between gap-3 flex-wrap">
               <div>
-                <p className="text-sm font-semibold" style={{ color: '#0F172A' }}>
+                <p className="text-sm font-semibold" style={{ color: '#F8FAFC' }}>
                   {s.customerName ?? 'Sem cliente'}
                 </p>
-                <p className="text-[11px]" style={{ color: '#64748B' }}>
+                <p className="text-[11px]" style={{ color: '#A78BFA' }}>
                   {DT(s.createdAt)} · {s.itemsCount} item(s) · ID <code>{s.id.slice(0,8)}</code>
                 </p>
               </div>
@@ -399,10 +399,10 @@ export function DiagnosticoClient({
             </div>
 
             {s.items.length > 0 && (
-              <div className="border-t pt-2 overflow-x-auto" style={{ borderColor: '#E2E8F0' }}>
+              <div className="border-t pt-2 overflow-x-auto" style={{ borderColor: '#3D3656' }}>
                 <table className="w-full text-[11px] min-w-[640px]">
                   <thead>
-                    <tr style={{ color: '#64748B' }}>
+                    <tr style={{ color: '#A78BFA' }}>
                       <th className="text-left py-1">Item</th>
                       <th className="text-right py-1">Qtd</th>
                       <th className="text-right py-1">Snapshot</th>
@@ -412,26 +412,26 @@ export function DiagnosticoClient({
                   </thead>
                   <tbody>
                     {s.items.map((it, idx) => (
-                      <tr key={idx} className="border-t" style={{ borderColor: 'rgba(30,45,69,.5)', color: '#0F172A' }}>
+                      <tr key={idx} className="border-t" style={{ borderColor: 'rgba(30,45,69,.5)', color: '#F8FAFC' }}>
                         <td className="py-1.5">
                           {it.name}
                           {it.productName && it.productName !== it.name && (
-                            <span className="ml-1" style={{ color: '#64748B' }}>({it.productName})</span>
+                            <span className="ml-1" style={{ color: '#A78BFA' }}>({it.productName})</span>
                           )}
                           {!it.productId && (
                             <span className="ml-1 text-[10px]" style={{ color: '#EF4444' }}>sem product_id</span>
                           )}
                         </td>
-                        <td className="text-right font-mono" style={{ color: '#475569' }}>{it.quantity}</td>
-                        <td className="text-right font-mono" style={{ color: it.snapshotCents == null ? '#EF4444' : '#475569' }}>
+                        <td className="text-right font-mono" style={{ color: '#CBD5E1' }}>{it.quantity}</td>
+                        <td className="text-right font-mono" style={{ color: it.snapshotCents == null ? '#EF4444' : '#CBD5E1' }}>
                           {it.snapshotCents == null ? 'NULL' : BRL(it.snapshotCents)}
                         </td>
-                        <td className="text-right font-mono" style={{ color: it.productCostCents != null && it.productCostCents > 0 ? '#1D4ED8' : '#EF4444' }}>
+                        <td className="text-right font-mono" style={{ color: it.productCostCents != null && it.productCostCents > 0 ? '#A855F7' : '#EF4444' }}>
                           {it.productCostCents == null ? '—' : BRL(it.productCostCents)}
                         </td>
                         <td className="text-right">
                           {it.fixable
-                            ? <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ background: 'rgba(29,78,216,.15)', color: '#1D4ED8' }}>Corrigível</span>
+                            ? <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ background: 'rgba(168,85,247,.15)', color: '#A855F7' }}>Corrigível</span>
                             : <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ background: 'rgba(255,77,109,.15)', color: '#EF4444' }}>Sem custo</span>
                           }
                         </td>
@@ -455,19 +455,19 @@ export function DiagnosticoClient({
       >
         {diag.suspiciousOs.map(o => (
           <div key={o.id} className="rounded-xl border p-4 flex items-start justify-between gap-3 flex-wrap"
-            style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
+            style={{ background: '#1E1B2E', borderColor: '#3D3656' }}>
             <div>
-              <p className="text-sm font-semibold" style={{ color: '#0F172A' }}>
+              <p className="text-sm font-semibold" style={{ color: '#F8FAFC' }}>
                 {o.customerName ?? 'Sem cliente'}
               </p>
-              <p className="text-[11px]" style={{ color: '#64748B' }}>
+              <p className="text-[11px]" style={{ color: '#A78BFA' }}>
                 {DT(o.receivedAt)} · ID <code>{o.id.slice(0,8)}</code>
               </p>
               <div className="mt-2 grid grid-cols-2 gap-x-4 text-[11px]">
-                <span style={{ color: '#475569' }}>Serviço: <span className="font-mono">{BRL(o.servicePriceCents)}</span></span>
-                <span style={{ color: '#475569' }}>Peças vendidas: <span className="font-mono" style={{ color: '#F59E0B' }}>{BRL(o.partsSaleCents)}</span></span>
-                <span style={{ color: '#475569' }}>Total: <span className="font-mono">{BRL(o.totalPriceCents)}</span></span>
-                <span style={{ color: '#475569' }}>Custo das peças: <span className="font-mono" style={{ color: '#EF4444' }}>{o.partsCostCents == null ? 'NULL' : BRL(o.partsCostCents)}</span></span>
+                <span style={{ color: '#CBD5E1' }}>Serviço: <span className="font-mono">{BRL(o.servicePriceCents)}</span></span>
+                <span style={{ color: '#CBD5E1' }}>Peças vendidas: <span className="font-mono" style={{ color: '#F59E0B' }}>{BRL(o.partsSaleCents)}</span></span>
+                <span style={{ color: '#CBD5E1' }}>Total: <span className="font-mono">{BRL(o.totalPriceCents)}</span></span>
+                <span style={{ color: '#CBD5E1' }}>Custo das peças: <span className="font-mono" style={{ color: '#EF4444' }}>{o.partsCostCents == null ? 'NULL' : BRL(o.partsCostCents)}</span></span>
               </div>
             </div>
             <div className="text-right">
@@ -475,7 +475,7 @@ export function DiagnosticoClient({
               <span className="inline-block mt-1 text-[10px] font-bold px-2 py-0.5 rounded" style={{ background: 'rgba(255,77,109,.15)', color: '#EF4444' }}>
                 Peça sem custo
               </span>
-              <p className="mt-2 text-[10px]" style={{ color: '#475569' }}>
+              <p className="mt-2 text-[10px]" style={{ color: '#CBD5E1' }}>
                 Edite a OS no CheckSmart e preencha o custo das peças.
               </p>
             </div>
@@ -491,22 +491,22 @@ export function DiagnosticoClient({
         count={diag.orphanProductsCount}
         empty="Todos os produtos vendidos no período têm cost_cents > 0."
       >
-        <div className="rounded-xl border overflow-x-auto" style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
+        <div className="rounded-xl border overflow-x-auto" style={{ background: '#1E1B2E', borderColor: '#3D3656' }}>
           <table className="w-full text-sm min-w-[480px]">
             <thead>
-              <tr className="border-b text-left" style={{ borderColor: '#E2E8F0' }}>
-                <th className="px-4 py-2 text-[10px] font-bold uppercase tracking-wider" style={{ color: '#64748B' }}>Produto</th>
-                <th className="px-4 py-2 text-[10px] font-bold uppercase tracking-wider" style={{ color: '#64748B' }}>Apareceu em</th>
-                <th className="px-4 py-2 text-[10px] font-bold uppercase tracking-wider" style={{ color: '#64748B' }}>Ação</th>
+              <tr className="border-b text-left" style={{ borderColor: '#3D3656' }}>
+                <th className="px-4 py-2 text-[10px] font-bold uppercase tracking-wider" style={{ color: '#A78BFA' }}>Produto</th>
+                <th className="px-4 py-2 text-[10px] font-bold uppercase tracking-wider" style={{ color: '#A78BFA' }}>Apareceu em</th>
+                <th className="px-4 py-2 text-[10px] font-bold uppercase tracking-wider" style={{ color: '#A78BFA' }}>Ação</th>
               </tr>
             </thead>
             <tbody>
               {diag.orphanProducts.map(p => (
                 <tr key={p.id} className="border-b" style={{ borderColor: 'rgba(30,45,69,.5)' }}>
-                  <td className="px-4 py-2" style={{ color: '#0F172A' }}>{p.name}</td>
-                  <td className="px-4 py-2 font-mono text-xs" style={{ color: '#475569' }}>{p.appearedInSales} venda(s)</td>
+                  <td className="px-4 py-2" style={{ color: '#F8FAFC' }}>{p.name}</td>
+                  <td className="px-4 py-2 font-mono text-xs" style={{ color: '#CBD5E1' }}>{p.appearedInSales} venda(s)</td>
                   <td className="px-4 py-2">
-                    <Link href={`/estoque/${p.id}`} className="text-xs font-semibold hover:underline" style={{ color: '#1D4ED8' }}>
+                    <Link href={`/estoque/${p.id}`} className="text-xs font-semibold hover:underline" style={{ color: '#A855F7' }}>
                       Editar produto →
                     </Link>
                   </td>
@@ -542,12 +542,12 @@ function OrphanCard({
   const selectedItem = catalog.find(c => c.id === selectedId)
 
   return (
-    <div className="rounded-xl border p-4" style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
+    <div className="rounded-xl border p-4" style={{ background: '#1E1B2E', borderColor: '#3D3656' }}>
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold" style={{ color: '#0F172A' }}>{orphan.itemName}</p>
-          <p className="text-[11px]" style={{ color: '#64748B' }}>
-            Cliente: <span style={{ color: '#475569' }}>{orphan.customerName ?? 'Sem cliente'}</span> ·
+          <p className="text-sm font-semibold" style={{ color: '#F8FAFC' }}>{orphan.itemName}</p>
+          <p className="text-[11px]" style={{ color: '#A78BFA' }}>
+            Cliente: <span style={{ color: '#CBD5E1' }}>{orphan.customerName ?? 'Sem cliente'}</span> ·
             {' '}Venda <code>{orphan.saleId.slice(0,8)}</code> ·
             {' '}{DT(orphan.saleDate)} · qtd {orphan.quantity} · {BRL(orphan.unitPriceCents)}/un
           </p>
@@ -567,7 +567,7 @@ function OrphanCard({
       {/* Sugestões automáticas */}
       {orphan.matches.length > 0 && (
         <div className="mt-3 space-y-1.5">
-          <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#64748B' }}>
+          <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#A78BFA' }}>
             Sugestões ({orphan.matches.length})
           </p>
           {orphan.matches.map(m => {
@@ -585,10 +585,10 @@ function OrphanCard({
                       style={{ background: matchStyle.badgeBg, color: matchStyle.badgeColor }}>
                       {matchStyle.label} {m.matchType !== 'exact' && `· ${Math.round(m.score * 100)}%`}
                     </span>
-                    <span className="text-xs font-medium truncate" style={{ color: '#0F172A' }}>{m.productName}</span>
-                    <span className="text-[10px]" style={{ color: '#64748B' }}>({m.source})</span>
+                    <span className="text-xs font-medium truncate" style={{ color: '#F8FAFC' }}>{m.productName}</span>
+                    <span className="text-[10px]" style={{ color: '#A78BFA' }}>({m.source})</span>
                   </div>
-                  <p className="text-[11px] mt-0.5" style={{ color: '#475569' }}>
+                  <p className="text-[11px] mt-0.5" style={{ color: '#CBD5E1' }}>
                     Custo cadastrado: <span className="font-mono" style={{ color: m.costCents > 0 ? '#10B981' : '#EF4444' }}>
                       {m.costCents > 0 ? BRL(m.costCents) : 'sem custo'}
                     </span>
@@ -598,7 +598,7 @@ function OrphanCard({
                   onClick={() => onLinkOne(orphan.saleItemId, m.productId, m.productName)}
                   disabled={linkPending === orphan.saleItemId || pending}
                   className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-bold transition-colors hover:opacity-90 disabled:opacity-50 shrink-0"
-                  style={{ background: '#1D4ED8', color: '#FFFFFF' }}
+                  style={{ background: '#A855F7', color: '#1E1B2E' }}
                 >
                   {linkPending === orphan.saleItemId ? <Loader2 className="h-3 w-3 animate-spin" /> : <Link2 className="h-3 w-3" />}
                   Vincular
@@ -610,8 +610,8 @@ function OrphanCard({
       )}
 
       {/* Seleção manual — sempre disponível */}
-      <div className="mt-3 pt-3 border-t" style={{ borderColor: '#E2E8F0' }}>
-        <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: '#64748B' }}>
+      <div className="mt-3 pt-3 border-t" style={{ borderColor: '#3D3656' }}>
+        <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: '#A78BFA' }}>
           Buscar produto manualmente ({catalog.length} no catálogo)
         </p>
         <div className="flex flex-col sm:flex-row gap-2">
@@ -621,13 +621,13 @@ function OrphanCard({
             onChange={e => { setSearch(e.target.value); setSelectedId('') }}
             placeholder="Digite parte do nome do produto…"
             className="flex-1 rounded-lg border px-3 py-2 text-sm"
-            style={{ background: '#F8FAFC', borderColor: '#E2E8F0', color: '#0F172A' }}
+            style={{ background: '#2A2440', borderColor: '#3D3656', color: '#F8FAFC' }}
           />
           <select
             value={selectedId}
             onChange={e => setSelectedId(e.target.value)}
             className="flex-1 rounded-lg border px-3 py-2 text-sm"
-            style={{ background: '#F8FAFC', borderColor: '#E2E8F0', color: '#0F172A' }}
+            style={{ background: '#2A2440', borderColor: '#3D3656', color: '#F8FAFC' }}
           >
             <option value="">— Selecione ({filtered.length} encontrado{filtered.length !== 1 ? 's' : ''}) —</option>
             {filteredTop.map(c => (
@@ -643,15 +643,15 @@ function OrphanCard({
             onClick={() => selectedItem && onLinkOne(orphan.saleItemId, selectedItem.id, selectedItem.name)}
             disabled={!selectedItem || linkPending === orphan.saleItemId || pending}
             className="inline-flex items-center justify-center gap-1 rounded-lg px-4 py-2 text-xs font-bold transition-colors hover:opacity-90 disabled:opacity-30"
-            style={{ background: '#10B981', color: '#FFFFFF' }}
+            style={{ background: '#10B981', color: '#1E1B2E' }}
           >
             {linkPending === orphan.saleItemId ? <Loader2 className="h-3 w-3 animate-spin" /> : <Link2 className="h-3 w-3" />}
             Vincular escolhido
           </button>
         </div>
         {selectedItem && (
-          <p className="text-[11px] mt-2" style={{ color: '#475569' }}>
-            Vai vincular ao produto <strong style={{ color: '#0F172A' }}>{selectedItem.name}</strong>
+          <p className="text-[11px] mt-2" style={{ color: '#CBD5E1' }}>
+            Vai vincular ao produto <strong style={{ color: '#F8FAFC' }}>{selectedItem.name}</strong>
             {selectedItem.costCents > 0
               ? <> com custo <span className="font-mono" style={{ color: '#10B981' }}>{BRL(selectedItem.costCents)}</span></>
               : <> <span style={{ color: '#EF4444' }}>(sem custo cadastrado — o lucro vai continuar inflado até você cadastrar)</span></>
@@ -665,8 +665,8 @@ function OrphanCard({
 
 function Stat({ label, value, color }: { label: string; value: string; color: string }) {
   return (
-    <div className="rounded-2xl border p-4" style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}>
-      <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: '#64748B' }}>{label}</p>
+    <div className="rounded-2xl border p-4" style={{ background: '#2A2440', borderColor: '#3D3656' }}>
+      <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: '#A78BFA' }}>{label}</p>
       <p className="text-2xl font-bold font-mono mt-1" style={{ color }}>{value}</p>
     </div>
   )
@@ -679,18 +679,18 @@ function Section({
   count: number; empty: string; children: React.ReactNode
 }) {
   return (
-    <div className="rounded-2xl border" style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}>
-      <div className="border-b px-6 py-4" style={{ borderColor: '#E2E8F0' }}>
+    <div className="rounded-2xl border" style={{ background: '#2A2440', borderColor: '#3D3656' }}>
+      <div className="border-b px-6 py-4" style={{ borderColor: '#3D3656' }}>
         <div className="flex items-center gap-2">
           <div className="h-4 w-1 rounded-full" style={{ background: color }} />
-          <h2 className="text-xs font-bold uppercase tracking-widest flex items-center gap-1.5" style={{ color: '#475569' }}>
+          <h2 className="text-xs font-bold uppercase tracking-widest flex items-center gap-1.5" style={{ color: '#CBD5E1' }}>
             <Icon className="h-3.5 w-3.5" />
             {title} ({count})
           </h2>
         </div>
       </div>
       {count === 0 ? (
-        <p className="p-8 text-center text-sm" style={{ color: '#64748B' }}>{empty}</p>
+        <p className="p-8 text-center text-sm" style={{ color: '#A78BFA' }}>{empty}</p>
       ) : (
         <div className="p-6 space-y-3">{children}</div>
       )}
@@ -700,7 +700,7 @@ function Section({
 
 function DiagnosisBadge({ diagnosis }: { diagnosis: 'fixable' | 'product_missing_cost' | 'no_items' }) {
   const map = {
-    fixable:              { color: '#1D4ED8', bg: 'rgba(29,78,216,.15)', label: 'Corrigível automaticamente' },
+    fixable:              { color: '#A855F7', bg: 'rgba(168,85,247,.15)', label: 'Corrigível automaticamente' },
     product_missing_cost: { color: '#EF4444', bg: 'rgba(255,77,109,.15)', label: 'Produto sem custo' },
     no_items:             { color: '#F59E0B', bg: 'rgba(255,170,0,.15)', label: 'Sem itens registrados' },
   }

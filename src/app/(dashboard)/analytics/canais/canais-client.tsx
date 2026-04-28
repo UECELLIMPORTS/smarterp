@@ -58,23 +58,23 @@ export function CanaisClient({ data, origins, inferredOrigins, originChannelMatr
       {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2" style={{ color: '#0F172A' }}>
-            <Store className="h-5 w-5" style={{ color: '#1D4ED8' }} />
+          <h1 className="text-2xl font-bold flex items-center gap-2" style={{ color: '#F8FAFC' }}>
+            <Store className="h-5 w-5" style={{ color: '#A855F7' }} />
             Canais de venda
           </h1>
-          <p className="mt-1 text-sm" style={{ color: '#64748B' }}>
+          <p className="mt-1 text-sm" style={{ color: '#A78BFA' }}>
             Análise cruzada de vendas online (WhatsApp, Instagram, Delivery) vs loja física (Balcão, Retirada)
           </p>
         </div>
-        <div className="flex gap-1 rounded-xl p-1" style={{ background: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+        <div className="flex gap-1 rounded-xl p-1" style={{ background: '#2A2440', border: '1px solid #3D3656' }}>
           {PERIOD_OPTIONS.map(p => (
             <button
               key={p.v}
               onClick={() => router.push(`/analytics/canais?period=${p.v}`)}
               className="rounded-lg px-3 py-1.5 text-xs font-bold transition-all"
               style={data.period === p.v
-                ? { background: '#1D4ED8', color: '#FFFFFF' }
-                : { color: '#64748B' }
+                ? { background: '#A855F7', color: '#1E1B2E' }
+                : { color: '#A78BFA' }
               }
             >
               {p.label}
@@ -98,14 +98,14 @@ export function CanaisClient({ data, origins, inferredOrigins, originChannelMatr
           label="Faturamento total"
           value={BRL(data.totalCents)}
           sub={`${data.totalTxCount} transações no período`}
-          color="#0F172A"
+          color="#F8FAFC"
           icon={DollarSign}
         />
         <KpiCard
           label="Online"
           value={BRL(data.onlineCents)}
           sub={PCT(data.pctOnline)}
-          color="#1D4ED8"
+          color="#A855F7"
           icon={Globe}
         />
         <KpiCard
@@ -173,7 +173,7 @@ function NaoInformadoBanner({ count, total, cents }: { count: number; total: num
         <p className="text-sm font-semibold" style={{ color: '#F59E0B' }}>
           {count} transação(ões) sem canal informado ({PCT(pct)} do total)
         </p>
-        <p className="text-xs mt-1" style={{ color: '#475569' }}>
+        <p className="text-xs mt-1" style={{ color: '#CBD5E1' }}>
           {BRL(cents)} em vendas não foram classificadas. Marque o canal ao finalizar a venda no POS ou Financeiro — quanto mais dados, mais preciso fica o relatório.
         </p>
       </div>
@@ -189,16 +189,16 @@ function OnlineVsFisicaCard({ data }: { data: ChannelAnalytics }) {
   const total = onlineCents + fisicaCents + outroCents
 
   return (
-    <div className="rounded-2xl border p-6" style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}>
+    <div className="rounded-2xl border p-6" style={{ background: '#2A2440', borderColor: '#3D3656' }}>
       <div className="flex items-center gap-2 mb-4">
-        <div className="h-4 w-1 rounded-full" style={{ background: '#1D4ED8' }} />
-        <h2 className="text-xs font-bold uppercase tracking-widest" style={{ color: '#475569' }}>
+        <div className="h-4 w-1 rounded-full" style={{ background: '#A855F7' }} />
+        <h2 className="text-xs font-bold uppercase tracking-widest" style={{ color: '#CBD5E1' }}>
           Online vs Física
         </h2>
       </div>
 
       {total === 0 ? (
-        <p className="py-10 text-center text-sm" style={{ color: '#64748B' }}>
+        <p className="py-10 text-center text-sm" style={{ color: '#A78BFA' }}>
           Sem vendas classificadas no período
         </p>
       ) : (
@@ -207,25 +207,25 @@ function OnlineVsFisicaCard({ data }: { data: ChannelAnalytics }) {
             className="h-40 w-40 rounded-full shrink-0 relative"
             style={{
               background: `conic-gradient(
-                #1D4ED8 0deg ${onlineDeg}deg,
+                #A855F7 0deg ${onlineDeg}deg,
                 #F59E0B ${onlineDeg}deg ${onlineDeg + fisicaDeg}deg,
-                #64748B ${onlineDeg + fisicaDeg}deg ${onlineDeg + fisicaDeg + outroDeg}deg
+                #A78BFA ${onlineDeg + fisicaDeg}deg ${onlineDeg + fisicaDeg + outroDeg}deg
               )`,
             }}
           >
             <div className="absolute inset-5 rounded-full flex flex-col items-center justify-center"
-              style={{ background: '#F8FAFC' }}>
-              <span className="text-3xl font-bold font-mono" style={{ color: '#1D4ED8' }}>
+              style={{ background: '#2A2440' }}>
+              <span className="text-3xl font-bold font-mono" style={{ color: '#A855F7' }}>
                 {PCT(pctOnline)}
               </span>
-              <span className="text-[10px] uppercase tracking-wider mt-1" style={{ color: '#64748B' }}>Online</span>
+              <span className="text-[10px] uppercase tracking-wider mt-1" style={{ color: '#A78BFA' }}>Online</span>
             </div>
           </div>
           <div className="flex-1 min-w-[200px] space-y-2">
-            <LegendRow color="#1D4ED8" label="Online" value={BRL(onlineCents)} pct={PCT(pctOnline)} />
+            <LegendRow color="#A855F7" label="Online" value={BRL(onlineCents)} pct={PCT(pctOnline)} />
             <LegendRow color="#F59E0B" label="Física" value={BRL(fisicaCents)} pct={PCT(pctFisica)} />
             {outroCents > 0 && (
-              <LegendRow color="#64748B" label="Outro" value={BRL(outroCents)} pct={PCT(pctOutro)} />
+              <LegendRow color="#A78BFA" label="Outro" value={BRL(outroCents)} pct={PCT(pctOutro)} />
             )}
           </div>
         </div>
@@ -239,11 +239,11 @@ function LegendRow({ color, label, value, pct }: { color: string; label: string;
     <div className="flex items-center justify-between text-xs">
       <div className="flex items-center gap-2 min-w-0">
         <span className="h-3 w-3 rounded shrink-0" style={{ background: color }} />
-        <span style={{ color: '#0F172A' }}>{label}</span>
+        <span style={{ color: '#F8FAFC' }}>{label}</span>
       </div>
       <div className="text-right">
         <span className="font-mono font-semibold" style={{ color }}>{value}</span>
-        <span className="ml-2" style={{ color: '#64748B' }}>{pct}</span>
+        <span className="ml-2" style={{ color: '#A78BFA' }}>{pct}</span>
       </div>
     </div>
   )
@@ -254,21 +254,21 @@ function SustentoCard({ data }: { data: ChannelAnalytics }) {
   const total = fisicaBalcaoCents + fisicaRetiradaCents
 
   return (
-    <div className="rounded-2xl border p-6" style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}>
+    <div className="rounded-2xl border p-6" style={{ background: '#2A2440', borderColor: '#3D3656' }}>
       <div className="flex items-center gap-2 mb-4">
         <div className="h-4 w-1 rounded-full" style={{ background: '#8B5CF6' }} />
         <div>
-          <h2 className="text-xs font-bold uppercase tracking-widest" style={{ color: '#475569' }}>
+          <h2 className="text-xs font-bold uppercase tracking-widest" style={{ color: '#CBD5E1' }}>
             Efeito Sustento
           </h2>
-          <p className="text-[11px] mt-0.5" style={{ color: '#64748B' }}>
+          <p className="text-[11px] mt-0.5" style={{ color: '#A78BFA' }}>
             Quanto da &quot;física&quot; é na verdade retirada de venda online
           </p>
         </div>
       </div>
 
       {total === 0 ? (
-        <p className="py-10 text-center text-sm" style={{ color: '#64748B' }}>
+        <p className="py-10 text-center text-sm" style={{ color: '#A78BFA' }}>
           Sem vendas físicas no período
         </p>
       ) : (
@@ -276,13 +276,13 @@ function SustentoCard({ data }: { data: ChannelAnalytics }) {
           <div className="space-y-3">
             <div>
               <div className="flex items-center justify-between text-[11px] mb-1">
-                <span style={{ color: '#475569' }}>
+                <span style={{ color: '#CBD5E1' }}>
                   <ShoppingBag className="h-3 w-3 inline mr-1" />
                   Balcão (física pura)
                 </span>
                 <span className="font-mono font-bold" style={{ color: '#F59E0B' }}>{BRL(fisicaBalcaoCents)}</span>
               </div>
-              <div className="h-3 rounded-md overflow-hidden" style={{ background: '#FFFFFF' }}>
+              <div className="h-3 rounded-md overflow-hidden" style={{ background: '#1E1B2E' }}>
                 <div className="h-full" style={{
                   width: `${(fisicaBalcaoCents / total) * 100}%`,
                   background: 'linear-gradient(90deg, #F59E0B66, #F59E0B)',
@@ -292,13 +292,13 @@ function SustentoCard({ data }: { data: ChannelAnalytics }) {
 
             <div>
               <div className="flex items-center justify-between text-[11px] mb-1">
-                <span style={{ color: '#475569' }}>
+                <span style={{ color: '#CBD5E1' }}>
                   <Package className="h-3 w-3 inline mr-1" />
                   Retirada (veio de venda online)
                 </span>
                 <span className="font-mono font-bold" style={{ color: '#8B5CF6' }}>{BRL(fisicaRetiradaCents)}</span>
               </div>
-              <div className="h-3 rounded-md overflow-hidden" style={{ background: '#FFFFFF' }}>
+              <div className="h-3 rounded-md overflow-hidden" style={{ background: '#1E1B2E' }}>
                 <div className="h-full" style={{
                   width: `${(fisicaRetiradaCents / total) * 100}%`,
                   background: 'linear-gradient(90deg, #8B5CF666, #8B5CF6)',
@@ -307,14 +307,14 @@ function SustentoCard({ data }: { data: ChannelAnalytics }) {
             </div>
           </div>
 
-          <div className="mt-4 pt-4 border-t text-center" style={{ borderColor: '#E2E8F0' }}>
-            <p className="text-[10px] uppercase tracking-wider" style={{ color: '#64748B' }}>
+          <div className="mt-4 pt-4 border-t text-center" style={{ borderColor: '#3D3656' }}>
+            <p className="text-[10px] uppercase tracking-wider" style={{ color: '#A78BFA' }}>
               Do movimento da loja física
             </p>
             <p className="text-2xl font-bold font-mono mt-1" style={{ color: '#8B5CF6' }}>
               {PCT(pctSustento)}
             </p>
-            <p className="text-[11px] mt-1" style={{ color: '#475569' }}>
+            <p className="text-[11px] mt-1" style={{ color: '#CBD5E1' }}>
               {pctSustento >= 0.3
                 ? 'é movimento que o online gerou — a física depende do online'
                 : 'é movimento que o online gerou — a física ainda tem vida própria'}
@@ -350,48 +350,48 @@ function DeliveryBreakdownCard({ data }: { data: ChannelAnalytics }) {
   const COLORS: Record<string, string> = {
     counter:       '#F59E0B',  // balcão (igual à física)
     pickup:        '#8B5CF6',  // retirada
-    shipping:      '#1D4ED8',  // delivery (igual à online)
-    nao_informado: '#64748B',
+    shipping:      '#A855F7',  // delivery (igual à online)
+    nao_informado: '#A78BFA',
   }
 
   return (
-    <div className="rounded-2xl border p-6" style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}>
+    <div className="rounded-2xl border p-6" style={{ background: '#2A2440', borderColor: '#3D3656' }}>
       <div className="flex items-center gap-2 mb-4">
-        <div className="h-4 w-1 rounded-full" style={{ background: '#1D4ED8' }} />
+        <div className="h-4 w-1 rounded-full" style={{ background: '#A855F7' }} />
         <div>
-          <h2 className="text-xs font-bold uppercase tracking-widest flex items-center gap-1.5" style={{ color: '#475569' }}>
+          <h2 className="text-xs font-bold uppercase tracking-widest flex items-center gap-1.5" style={{ color: '#CBD5E1' }}>
             <Package className="h-3.5 w-3.5" />
             Modalidade de Entrega
           </h2>
-          <p className="text-[11px] mt-0.5" style={{ color: '#64748B' }}>
+          <p className="text-[11px] mt-0.5" style={{ color: '#A78BFA' }}>
             Como o produto/aparelho chegou ao cliente (independente do canal de fechamento)
           </p>
         </div>
       </div>
 
       {visible.length === 0 ? (
-        <p className="py-6 text-center text-sm" style={{ color: '#64748B' }}>
+        <p className="py-6 text-center text-sm" style={{ color: '#A78BFA' }}>
           Sem modalidade de entrega registrada no período
         </p>
       ) : (
         <div className="space-y-3">
           {visible.map(d => {
             const pct   = total > 0 ? d.cents / total : 0
-            const color = COLORS[d.delivery] ?? '#475569'
+            const color = COLORS[d.delivery] ?? '#CBD5E1'
             return (
               <div key={d.delivery}>
                 <div className="flex items-center justify-between text-[11px] mb-1.5">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="h-3 w-3 rounded shrink-0" style={{ background: color }} />
-                    <span className="font-medium truncate" style={{ color: '#0F172A' }}>{d.label}</span>
-                    <span className="font-mono shrink-0" style={{ color: '#64748B' }}>{PCT(pct)}</span>
+                    <span className="font-medium truncate" style={{ color: '#F8FAFC' }}>{d.label}</span>
+                    <span className="font-mono shrink-0" style={{ color: '#A78BFA' }}>{PCT(pct)}</span>
                   </div>
                   <div className="flex items-center gap-3 shrink-0 ml-2">
-                    <span className="font-mono" style={{ color: '#475569' }}>{NUM(d.count)} tx</span>
+                    <span className="font-mono" style={{ color: '#CBD5E1' }}>{NUM(d.count)} tx</span>
                     <span className="font-mono font-bold" style={{ color }}>{BRL(d.cents)}</span>
                   </div>
                 </div>
-                <div className="h-2 rounded-md overflow-hidden" style={{ background: '#FFFFFF' }}>
+                <div className="h-2 rounded-md overflow-hidden" style={{ background: '#1E1B2E' }}>
                   <div className="h-full transition-all" style={{
                     width: `${pct * 100}%`,
                     background: `linear-gradient(90deg, ${color}55, ${color})`,
@@ -418,20 +418,20 @@ function BreakEvenSection({
   // Não configurado → CTA
   if (fixedCostMonthlyCents == null) {
     return (
-      <div className="rounded-2xl border p-6" style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}>
+      <div className="rounded-2xl border p-6" style={{ background: '#2A2440', borderColor: '#3D3656' }}>
         <div className="flex items-center gap-2 mb-4">
           <div className="h-4 w-1 rounded-full" style={{ background: '#F59E0B' }} />
-          <h2 className="text-xs font-bold uppercase tracking-widest" style={{ color: '#475569' }}>
+          <h2 className="text-xs font-bold uppercase tracking-widest" style={{ color: '#CBD5E1' }}>
             Break-even da loja física
           </h2>
         </div>
         <div className="rounded-xl border p-6 text-center"
-          style={{ background: '#FFFFFF', borderColor: 'rgba(255,170,0,.25)' }}>
+          style={{ background: '#1E1B2E', borderColor: 'rgba(255,170,0,.25)' }}>
           <Calculator className="h-8 w-8 mx-auto mb-3" style={{ color: '#F59E0B', opacity: 0.6 }} />
-          <p className="text-sm font-semibold" style={{ color: '#0F172A' }}>
+          <p className="text-sm font-semibold" style={{ color: '#F8FAFC' }}>
             Configure o custo fixo mensal da loja física
           </p>
-          <p className="text-xs mt-2 max-w-md mx-auto" style={{ color: '#475569' }}>
+          <p className="text-xs mt-2 max-w-md mx-auto" style={{ color: '#CBD5E1' }}>
             Pra descobrir quanto a loja física se paga (ou não) e quanto o online sustenta, precisamos do custo fixo mensal (aluguel + salários + contas).
           </p>
           <Link
@@ -451,14 +451,14 @@ function BreakEvenSection({
   const days = periodDays(data.period)
   if (days === null) {
     return (
-      <div className="rounded-2xl border p-6" style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}>
+      <div className="rounded-2xl border p-6" style={{ background: '#2A2440', borderColor: '#3D3656' }}>
         <div className="flex items-center gap-2 mb-4">
           <div className="h-4 w-1 rounded-full" style={{ background: '#F59E0B' }} />
-          <h2 className="text-xs font-bold uppercase tracking-widest" style={{ color: '#475569' }}>
+          <h2 className="text-xs font-bold uppercase tracking-widest" style={{ color: '#CBD5E1' }}>
             Break-even da loja física
           </h2>
         </div>
-        <p className="text-xs text-center py-6" style={{ color: '#64748B' }}>
+        <p className="text-xs text-center py-6" style={{ color: '#A78BFA' }}>
           Escolha um período específico (7d, 30d, 90d…) pra calcular o break-even.
         </p>
       </div>
@@ -511,16 +511,16 @@ function BreakEvenSection({
     : (metric === 'profit' ? 'o lucro do balcão cobre o custo fixo'    : 'a física cobre o próprio custo')
 
   return (
-    <div className="rounded-2xl border p-6 space-y-4" style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}>
+    <div className="rounded-2xl border p-6 space-y-4" style={{ background: '#2A2440', borderColor: '#3D3656' }}>
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2">
           <div className="h-4 w-1 rounded-full" style={{ background: isLoja ? '#EF4444' : '#10B981' }} />
           <div>
-            <h2 className="text-xs font-bold uppercase tracking-widest flex items-center gap-1.5" style={{ color: '#475569' }}>
+            <h2 className="text-xs font-bold uppercase tracking-widest flex items-center gap-1.5" style={{ color: '#CBD5E1' }}>
               <Calculator className="h-3.5 w-3.5" />
               Break-even da loja física
             </h2>
-            <p className="text-[11px] mt-0.5" style={{ color: '#64748B' }}>
+            <p className="text-[11px] mt-0.5" style={{ color: '#A78BFA' }}>
               {metric === 'profit'
                 ? `Quanto o ${metricLabel} do balcão cobre do custo fixo nos ${periodoTxt}`
                 : `Quanto o online está sustentando a física nos ${periodoTxt}`}
@@ -530,7 +530,7 @@ function BreakEvenSection({
         <Link
           href="/configuracoes"
           className="text-[11px] font-bold transition-colors hover:underline"
-          style={{ color: '#64748B' }}
+          style={{ color: '#A78BFA' }}
           title="Editar custo fixo"
         >
           <Settings className="h-3 w-3 inline mr-1" />
@@ -559,14 +559,14 @@ function BreakEvenSection({
           ]}
           value={source}
           onChange={setSource}
-          activeColor="#1D4ED8"
+          activeColor="#A855F7"
         />
       </div>
 
       {/* Aviso pequeno se algumas vendas usaram custo atual no fallback */}
       {metric === 'profit' && data.salesItemsWithFallbackCount > 0 && (source === 'all' || source === 'sales') && (
         <div className="rounded-lg border px-3 py-2 text-[11px] flex items-start gap-2"
-          style={{ background: 'rgba(255,170,0,.05)', borderColor: 'rgba(255,170,0,.25)', color: '#475569' }}>
+          style={{ background: 'rgba(255,170,0,.05)', borderColor: 'rgba(255,170,0,.25)', color: '#CBD5E1' }}>
           <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" style={{ color: '#F59E0B' }} />
           <span>
             <strong style={{ color: '#F59E0B' }}>{NUM(data.salesItemsWithFallbackCount)}</strong> item(s) de venda sem custo gravado na época —
@@ -577,26 +577,26 @@ function BreakEvenSection({
 
       {/* 3 cards horizontais: custo, balcão (lucro/fat), déficit/superávit */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="rounded-xl border p-4" style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
-          <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#64748B' }}>
+        <div className="rounded-xl border p-4" style={{ background: '#1E1B2E', borderColor: '#3D3656' }}>
+          <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#A78BFA' }}>
             Custo fixo do período
           </p>
           <p className="text-xl font-bold font-mono mt-1" style={{ color: '#F59E0B' }}>
             {BRL(custoPeriodoCents)}
           </p>
-          <p className="text-[10px] mt-1" style={{ color: '#475569' }}>
+          <p className="text-[10px] mt-1" style={{ color: '#CBD5E1' }}>
             {BRL(fixedCostMonthlyCents)}/mês × ({days}/30)
           </p>
         </div>
 
-        <div className="rounded-xl border p-4" style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
-          <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#64748B' }}>
+        <div className="rounded-xl border p-4" style={{ background: '#1E1B2E', borderColor: '#3D3656' }}>
+          <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#A78BFA' }}>
             {balcaoCardLabel}
           </p>
-          <p className="text-xl font-bold font-mono mt-1" style={{ color: metric === 'profit' ? '#10B981' : '#0F172A' }}>
+          <p className="text-xl font-bold font-mono mt-1" style={{ color: metric === 'profit' ? '#10B981' : '#F8FAFC' }}>
             {BRL(fisicaPuraCents)}
           </p>
-          <p className="text-[10px] mt-1" style={{ color: '#475569' }}>
+          <p className="text-[10px] mt-1" style={{ color: '#CBD5E1' }}>
             {balcaoCardSub}
           </p>
         </div>
@@ -606,13 +606,13 @@ function BreakEvenSection({
             background: isLoja ? 'rgba(255,77,109,.08)' : 'rgba(16,185,129,.06)',
             borderColor: isLoja ? 'rgba(255,77,109,.3)' : 'rgba(16,185,129,.3)',
           }}>
-          <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#64748B' }}>
+          <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#A78BFA' }}>
             {deficitCardLabel}
           </p>
           <p className="text-xl font-bold font-mono mt-1" style={{ color: isLoja ? '#EF4444' : '#10B981' }}>
             {isLoja ? '-' : '+'} {BRL(Math.abs(deficitCents))}
           </p>
-          <p className="text-[10px] mt-1" style={{ color: '#475569' }}>
+          <p className="text-[10px] mt-1" style={{ color: '#CBD5E1' }}>
             {deficitCardSub}
           </p>
         </div>
@@ -632,27 +632,27 @@ function BreakEvenSection({
                     ? `${metricLabelCap} do online não é suficiente pra cobrir a física`
                     : `O ${metricLabel} do online está sustentando a loja física`}
               </p>
-              <p className="text-xs mt-1" style={{ color: '#0F172A' }}>
+              <p className="text-xs mt-1" style={{ color: '#F8FAFC' }}>
                 Nos {periodoTxt}, o balcão gerou <strong>{BRL(fisicaPuraCents)}</strong> de {metricLabel} ({sourceLabel}),
                 mas o custo fixo da loja foi <strong>{BRL(custoPeriodoCents)}</strong>.
                 {onlineCents <= 0
                   ? <> Mude a fonte ou métrica pra ver outras combinações.</>
                   : onlineCents < deficitCents
-                    ? <> O <strong style={{ color: '#1D4ED8' }}>{metricLabel} online ({BRL(onlineCents)})</strong> cobre parte do déficit, mas ainda faltam <strong style={{ color: '#EF4444' }}>{BRL(deficitCents - onlineCents)}</strong>.</>
-                    : <> O <strong style={{ color: '#1D4ED8' }}>{metricLabel} online (incluindo retiradas) está cobrindo {BRL(deficitCents)}</strong> de déficit.</>
+                    ? <> O <strong style={{ color: '#A855F7' }}>{metricLabel} online ({BRL(onlineCents)})</strong> cobre parte do déficit, mas ainda faltam <strong style={{ color: '#EF4444' }}>{BRL(deficitCents - onlineCents)}</strong>.</>
+                    : <> O <strong style={{ color: '#A855F7' }}>{metricLabel} online (incluindo retiradas) está cobrindo {BRL(deficitCents)}</strong> de déficit.</>
                 }
               </p>
               {onlineCents >= deficitCents && onlineCents > 0 && (
                 <div className="mt-3 space-y-2">
                   <div className="flex items-center justify-between text-[11px]">
-                    <span style={{ color: '#475569' }}>
+                    <span style={{ color: '#CBD5E1' }}>
                       Sobra do {metricLabel} online após pagar o déficit da física
                     </span>
                     <span className="font-mono font-bold" style={{ color: sobraOnlineCents >= 0 ? '#10B981' : '#EF4444' }}>
                       {BRL(sobraOnlineCents)}
                     </span>
                   </div>
-                  <div className="h-3 rounded-md overflow-hidden flex" style={{ background: '#FFFFFF' }}>
+                  <div className="h-3 rounded-md overflow-hidden flex" style={{ background: '#1E1B2E' }}>
                     <div className="h-full" style={{
                       width: `${pctOnlineCobriuDeficit * 100}%`,
                       background: 'linear-gradient(90deg, #EF444466, #EF4444)',
@@ -662,7 +662,7 @@ function BreakEvenSection({
                       background: 'linear-gradient(90deg, #10B98166, #10B981)',
                     }} title="Sobra do online" />
                   </div>
-                  <div className="flex items-center justify-between text-[10px]" style={{ color: '#64748B' }}>
+                  <div className="flex items-center justify-between text-[10px]" style={{ color: '#A78BFA' }}>
                     <span>Cobre o déficit da física ({PCT(pctOnlineCobriuDeficit)})</span>
                     <span>Sobra livre ({PCT(1 - pctOnlineCobriuDeficit)})</span>
                   </div>
@@ -682,7 +682,7 @@ function BreakEvenSection({
                   ? 'O lucro do balcão cobre o custo fixo da loja'
                   : 'A loja física cobre o próprio custo'}
               </p>
-              <p className="text-xs mt-1" style={{ color: '#0F172A' }}>
+              <p className="text-xs mt-1" style={{ color: '#F8FAFC' }}>
                 Nos {periodoTxt}, o balcão gerou {BRL(fisicaPuraCents)} de {metricLabel} ({sourceLabel}) contra {BRL(custoPeriodoCents)} de custo fixo —
                 sobram <strong style={{ color: '#10B981' }}>{BRL(Math.abs(deficitCents))}</strong> só da física.
                 O {metricLabel} online ({BRL(onlineCents)}) é {metric === 'profit' ? 'lucro líquido' : 'faturamento'} em cima disso.
@@ -706,10 +706,10 @@ function ToggleGroup<T extends string>({
 }) {
   return (
     <div className="flex items-center gap-2">
-      <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: '#64748B' }}>
+      <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: '#A78BFA' }}>
         {label}
       </span>
-      <div className="flex gap-1 rounded-xl p-1" style={{ background: '#FFFFFF', border: '1px solid #E2E8F0' }}>
+      <div className="flex gap-1 rounded-xl p-1" style={{ background: '#1E1B2E', border: '1px solid #3D3656' }}>
         {options.map(o => {
           const active = o.v === value
           return (
@@ -718,8 +718,8 @@ function ToggleGroup<T extends string>({
               onClick={() => onChange(o.v)}
               className="rounded-lg px-3 py-1 text-[11px] font-bold transition-all"
               style={active
-                ? { background: activeColor, color: '#FFFFFF' }
-                : { color: '#475569' }
+                ? { background: activeColor, color: '#1E1B2E' }
+                : { color: '#CBD5E1' }
               }
             >
               {o.label}
@@ -733,11 +733,11 @@ function ToggleGroup<T extends string>({
 
 function ChannelTableSection({ channels }: { channels: ChannelMetric[] }) {
   return (
-    <div className="rounded-2xl border" style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}>
-      <div className="border-b px-6 py-4" style={{ borderColor: '#E2E8F0' }}>
+    <div className="rounded-2xl border" style={{ background: '#2A2440', borderColor: '#3D3656' }}>
+      <div className="border-b px-6 py-4" style={{ borderColor: '#3D3656' }}>
         <div className="flex items-center gap-2">
           <div className="h-4 w-1 rounded-full" style={{ background: '#E4405F' }} />
-          <h2 className="text-xs font-bold uppercase tracking-widest" style={{ color: '#475569' }}>
+          <h2 className="text-xs font-bold uppercase tracking-widest" style={{ color: '#CBD5E1' }}>
             Performance por canal
           </h2>
         </div>
@@ -745,15 +745,15 @@ function ChannelTableSection({ channels }: { channels: ChannelMetric[] }) {
 
       <div className="overflow-x-auto">
         {channels.length === 0 ? (
-          <p className="p-10 text-center text-sm" style={{ color: '#64748B' }}>
+          <p className="p-10 text-center text-sm" style={{ color: '#A78BFA' }}>
             Sem dados de canais no período
           </p>
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b text-left" style={{ borderColor: '#E2E8F0' }}>
+              <tr className="border-b text-left" style={{ borderColor: '#3D3656' }}>
                 {['Canal', 'Grupo', 'Vendas', 'OS', 'Faturamento', 'Lucro', 'Margem', 'Ticket médio'].map(h => (
-                  <th key={h} className="px-5 py-3 text-[10px] font-bold uppercase tracking-wider" style={{ color: '#64748B' }}>
+                  <th key={h} className="px-5 py-3 text-[10px] font-bold uppercase tracking-wider" style={{ color: '#A78BFA' }}>
                     {h}
                   </th>
                 ))}
@@ -765,35 +765,35 @@ function ChannelTableSection({ channels }: { channels: ChannelMetric[] }) {
                 .map(c => {
                   const margin = c.totalCents > 0 ? c.totalProfitCents / c.totalCents : 0
                   const profitColor = c.totalProfitCents < 0 ? '#EF4444'
-                                    : c.totalProfitCents === 0 ? '#64748B'
+                                    : c.totalProfitCents === 0 ? '#A78BFA'
                                     : '#10B981'
                   const marginColor = margin < 0    ? '#EF4444'
                                     : margin < 0.15 ? '#F59E0B'
-                                    : margin < 0.30 ? '#0F172A'
+                                    : margin < 0.30 ? '#F8FAFC'
                                     : '#10B981'
                   return (
                     <tr key={c.channel} className="border-b hover:bg-white/[0.02] transition-colors" style={{ borderColor: 'rgba(30,45,69,.5)' }}>
                       <td className="px-5 py-3">
                         <div className="flex items-center gap-2">
                           <span className="h-2 w-2 rounded-full shrink-0" style={{ background: c.color }} />
-                          <span className="font-medium" style={{ color: '#0F172A' }}>{c.label}</span>
+                          <span className="font-medium" style={{ color: '#F8FAFC' }}>{c.label}</span>
                         </div>
                       </td>
                       <td className="px-5 py-3">
                         <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded"
                           style={{
-                            background: c.group === 'online' ? 'rgba(29,78,216,.1)'
+                            background: c.group === 'online' ? 'rgba(168,85,247,.1)'
                                       : c.group === 'fisica' ? 'rgba(255,170,0,.1)'
                                       : 'rgba(138,168,200,.1)',
-                            color: c.group === 'online' ? '#1D4ED8'
+                            color: c.group === 'online' ? '#A855F7'
                                  : c.group === 'fisica' ? '#F59E0B'
-                                 : '#475569',
+                                 : '#CBD5E1',
                           }}>
                           {c.group}
                         </span>
                       </td>
-                      <td className="px-5 py-3 font-mono" style={{ color: '#475569' }}>{NUM(c.salesCount)}</td>
-                      <td className="px-5 py-3 font-mono" style={{ color: '#475569' }}>{NUM(c.osCount)}</td>
+                      <td className="px-5 py-3 font-mono" style={{ color: '#CBD5E1' }}>{NUM(c.salesCount)}</td>
+                      <td className="px-5 py-3 font-mono" style={{ color: '#CBD5E1' }}>{NUM(c.osCount)}</td>
                       <td className="px-5 py-3 font-mono font-semibold" style={{ color: c.color }}>
                         {BRL(c.totalCents)}
                       </td>
@@ -803,7 +803,7 @@ function ChannelTableSection({ channels }: { channels: ChannelMetric[] }) {
                       <td className="px-5 py-3 font-mono" style={{ color: marginColor }}>
                         {c.totalCents > 0 ? PCT(margin) : '—'}
                       </td>
-                      <td className="px-5 py-3 font-mono" style={{ color: '#475569' }}>
+                      <td className="px-5 py-3 font-mono" style={{ color: '#CBD5E1' }}>
                         {c.avgTicketCents > 0 ? BRL(c.avgTicketCents) : '—'}
                       </td>
                     </tr>
@@ -825,16 +825,16 @@ function OriginSection({ origins }: { origins: OriginMetric[] }) {
   const maxCents   = sorted[0]?.totalCents ?? 0
 
   return (
-    <div className="rounded-2xl border" style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}>
-      <div className="border-b px-6 py-4" style={{ borderColor: '#E2E8F0' }}>
+    <div className="rounded-2xl border" style={{ background: '#2A2440', borderColor: '#3D3656' }}>
+      <div className="border-b px-6 py-4" style={{ borderColor: '#3D3656' }}>
         <div className="flex items-center gap-2">
           <div className="h-4 w-1 rounded-full" style={{ background: '#E4405F' }} />
           <div>
-            <h2 className="text-xs font-bold uppercase tracking-widest flex items-center gap-1.5" style={{ color: '#475569' }}>
+            <h2 className="text-xs font-bold uppercase tracking-widest flex items-center gap-1.5" style={{ color: '#CBD5E1' }}>
               <Megaphone className="h-3.5 w-3.5" />
               Origem dos clientes
             </h2>
-            <p className="text-[11px] mt-0.5" style={{ color: '#64748B' }}>
+            <p className="text-[11px] mt-0.5" style={{ color: '#A78BFA' }}>
               De onde vieram os clientes que compraram no período (canal de aquisição, não onde fecharam)
             </p>
           </div>
@@ -842,23 +842,23 @@ function OriginSection({ origins }: { origins: OriginMetric[] }) {
       </div>
 
       {sorted.length === 0 ? (
-        <p className="p-10 text-center text-sm" style={{ color: '#64748B' }}>
+        <p className="p-10 text-center text-sm" style={{ color: '#A78BFA' }}>
           Sem clientes com origem registrada no período. Marque a origem ao cadastrar o cliente em /erp-clientes.
         </p>
       ) : (
         <div className="p-6 space-y-5">
           {/* Resumo */}
           <div className="grid grid-cols-3 gap-3">
-            <div className="rounded-xl border p-3" style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
-              <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#64748B' }}>Faturamento</p>
-              <p className="text-lg font-bold font-mono mt-1" style={{ color: '#0F172A' }}>{BRL(totalCents)}</p>
+            <div className="rounded-xl border p-3" style={{ background: '#1E1B2E', borderColor: '#3D3656' }}>
+              <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#A78BFA' }}>Faturamento</p>
+              <p className="text-lg font-bold font-mono mt-1" style={{ color: '#F8FAFC' }}>{BRL(totalCents)}</p>
             </div>
-            <div className="rounded-xl border p-3" style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
-              <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#64748B' }}>Clientes únicos</p>
-              <p className="text-lg font-bold font-mono mt-1" style={{ color: '#1D4ED8' }}>{NUM(totalCust)}</p>
+            <div className="rounded-xl border p-3" style={{ background: '#1E1B2E', borderColor: '#3D3656' }}>
+              <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#A78BFA' }}>Clientes únicos</p>
+              <p className="text-lg font-bold font-mono mt-1" style={{ color: '#A855F7' }}>{NUM(totalCust)}</p>
             </div>
-            <div className="rounded-xl border p-3" style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
-              <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#64748B' }}>Transações</p>
+            <div className="rounded-xl border p-3" style={{ background: '#1E1B2E', borderColor: '#3D3656' }}>
+              <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#A78BFA' }}>Transações</p>
               <p className="text-lg font-bold font-mono mt-1" style={{ color: '#8B5CF6' }}>{NUM(totalTx)}</p>
             </div>
           </div>
@@ -873,27 +873,27 @@ function OriginSection({ origins }: { origins: OriginMetric[] }) {
                   <div className="flex items-center justify-between text-[11px] mb-1.5">
                     <div className="flex items-center gap-2 min-w-0">
                       <span className="h-3 w-3 rounded shrink-0" style={{ background: o.color }} />
-                      <span className="font-medium truncate" style={{ color: '#0F172A' }}>{o.label}</span>
-                      <span className="font-mono shrink-0" style={{ color: '#64748B' }}>{PCT(pct)}</span>
+                      <span className="font-medium truncate" style={{ color: '#F8FAFC' }}>{o.label}</span>
+                      <span className="font-mono shrink-0" style={{ color: '#A78BFA' }}>{PCT(pct)}</span>
                     </div>
                     <span className="font-mono font-bold shrink-0 ml-2" style={{ color: o.color }}>
                       {BRL(o.totalCents)}
                     </span>
                   </div>
-                  <div className="h-2.5 rounded-md overflow-hidden" style={{ background: '#FFFFFF' }}>
+                  <div className="h-2.5 rounded-md overflow-hidden" style={{ background: '#1E1B2E' }}>
                     <div className="h-full transition-all" style={{
                       width: `${barW}%`,
                       background: `linear-gradient(90deg, ${o.color}55, ${o.color})`,
                     }} />
                   </div>
-                  <div className="flex items-center justify-between text-[10px] mt-1" style={{ color: '#64748B' }}>
+                  <div className="flex items-center justify-between text-[10px] mt-1" style={{ color: '#A78BFA' }}>
                     <span>
-                      <span className="font-mono" style={{ color: '#475569' }}>{NUM(o.customers)}</span> cliente(s)
+                      <span className="font-mono" style={{ color: '#CBD5E1' }}>{NUM(o.customers)}</span> cliente(s)
                       {' · '}
-                      <span className="font-mono" style={{ color: '#475569' }}>{NUM(o.transactions)}</span> transação(ões)
+                      <span className="font-mono" style={{ color: '#CBD5E1' }}>{NUM(o.transactions)}</span> transação(ões)
                     </span>
                     <span>
-                      ticket médio <span className="font-mono" style={{ color: '#475569' }}>{o.avgTicketCents > 0 ? BRL(o.avgTicketCents) : '—'}</span>
+                      ticket médio <span className="font-mono" style={{ color: '#CBD5E1' }}>{o.avgTicketCents > 0 ? BRL(o.avgTicketCents) : '—'}</span>
                     </span>
                   </div>
                 </div>
@@ -913,16 +913,16 @@ function InferredOriginSection({ inferredOrigins }: { inferredOrigins: InferredO
   const maxCents   = sorted[0]?.totalCents ?? 0
 
   return (
-    <div className="rounded-2xl border" style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}>
-      <div className="border-b px-6 py-4" style={{ borderColor: '#E2E8F0' }}>
+    <div className="rounded-2xl border" style={{ background: '#2A2440', borderColor: '#3D3656' }}>
+      <div className="border-b px-6 py-4" style={{ borderColor: '#3D3656' }}>
         <div className="flex items-center gap-2">
           <div className="h-4 w-1 rounded-full" style={{ background: '#8B5CF6' }} />
           <div>
-            <h2 className="text-xs font-bold uppercase tracking-widest flex items-center gap-1.5" style={{ color: '#475569' }}>
+            <h2 className="text-xs font-bold uppercase tracking-widest flex items-center gap-1.5" style={{ color: '#CBD5E1' }}>
               <Megaphone className="h-3.5 w-3.5" />
               Origem inferida (vendas sem cadastro)
             </h2>
-            <p className="text-[11px] mt-0.5" style={{ color: '#64748B' }}>
+            <p className="text-[11px] mt-0.5" style={{ color: '#A78BFA' }}>
               Vendas pra Consumidor Final ou clientes sem origem cadastrada — usamos o canal de venda como aproximação. Não é tão preciso quanto a seção acima, mas ajuda a entender de onde vem o tráfego anônimo.
             </p>
           </div>
@@ -930,19 +930,19 @@ function InferredOriginSection({ inferredOrigins }: { inferredOrigins: InferredO
       </div>
 
       {sorted.length === 0 ? (
-        <p className="p-10 text-center text-sm" style={{ color: '#64748B' }}>
+        <p className="p-10 text-center text-sm" style={{ color: '#A78BFA' }}>
           Sem vendas anônimas no período (todos os clientes têm origem cadastrada).
         </p>
       ) : (
         <div className="p-6 space-y-5">
           {/* Resumo */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-xl border p-3" style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
-              <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#64748B' }}>Faturamento anônimo</p>
-              <p className="text-lg font-bold font-mono mt-1" style={{ color: '#0F172A' }}>{BRL(totalCents)}</p>
+            <div className="rounded-xl border p-3" style={{ background: '#1E1B2E', borderColor: '#3D3656' }}>
+              <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#A78BFA' }}>Faturamento anônimo</p>
+              <p className="text-lg font-bold font-mono mt-1" style={{ color: '#F8FAFC' }}>{BRL(totalCents)}</p>
             </div>
-            <div className="rounded-xl border p-3" style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
-              <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#64748B' }}>Transações anônimas</p>
+            <div className="rounded-xl border p-3" style={{ background: '#1E1B2E', borderColor: '#3D3656' }}>
+              <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#A78BFA' }}>Transações anônimas</p>
               <p className="text-lg font-bold font-mono mt-1" style={{ color: '#8B5CF6' }}>{NUM(totalTx)}</p>
             </div>
           </div>
@@ -957,29 +957,29 @@ function InferredOriginSection({ inferredOrigins }: { inferredOrigins: InferredO
                   <div className="flex items-center justify-between text-[11px] mb-1.5">
                     <div className="flex items-center gap-2 min-w-0">
                       <span className="h-3 w-3 rounded shrink-0" style={{ background: o.color }} />
-                      <span className="font-medium truncate" style={{ color: '#0F172A' }}>{o.label}</span>
+                      <span className="font-medium truncate" style={{ color: '#F8FAFC' }}>{o.label}</span>
                       <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded shrink-0"
                         style={{ background: 'rgba(155,109,255,.15)', color: '#8B5CF6' }}>
                         inferido
                       </span>
-                      <span className="font-mono shrink-0" style={{ color: '#64748B' }}>{PCT(pct)}</span>
+                      <span className="font-mono shrink-0" style={{ color: '#A78BFA' }}>{PCT(pct)}</span>
                     </div>
                     <span className="font-mono font-bold shrink-0 ml-2" style={{ color: o.color }}>
                       {BRL(o.totalCents)}
                     </span>
                   </div>
-                  <div className="h-2.5 rounded-md overflow-hidden" style={{ background: '#FFFFFF' }}>
+                  <div className="h-2.5 rounded-md overflow-hidden" style={{ background: '#1E1B2E' }}>
                     <div className="h-full transition-all" style={{
                       width: `${barW}%`,
                       background: `linear-gradient(90deg, ${o.color}55, ${o.color})`,
                     }} />
                   </div>
-                  <div className="flex items-center justify-between text-[10px] mt-1" style={{ color: '#64748B' }}>
+                  <div className="flex items-center justify-between text-[10px] mt-1" style={{ color: '#A78BFA' }}>
                     <span>
-                      <span className="font-mono" style={{ color: '#475569' }}>{NUM(o.transactions)}</span> transação(ões)
+                      <span className="font-mono" style={{ color: '#CBD5E1' }}>{NUM(o.transactions)}</span> transação(ões)
                     </span>
                     <span>
-                      ticket médio <span className="font-mono" style={{ color: '#475569' }}>{o.avgTicketCents > 0 ? BRL(o.avgTicketCents) : '—'}</span>
+                      ticket médio <span className="font-mono" style={{ color: '#CBD5E1' }}>{o.avgTicketCents > 0 ? BRL(o.avgTicketCents) : '—'}</span>
                     </span>
                   </div>
                 </div>
@@ -990,7 +990,7 @@ function InferredOriginSection({ inferredOrigins }: { inferredOrigins: InferredO
           <div className="rounded-lg border p-3 flex items-start gap-2 text-[11px]"
             style={{ background: 'rgba(255,170,0,.04)', borderColor: 'rgba(255,170,0,.2)' }}>
             <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" style={{ color: '#F59E0B' }} />
-            <span style={{ color: '#475569' }}>
+            <span style={{ color: '#CBD5E1' }}>
               <strong style={{ color: '#F59E0B' }}>Atenção:</strong> a origem aqui é <em>inferida</em> pelo canal de fechamento.
               Um cliente que viu seu Instagram pago e foi até o balcão, por exemplo, vai aparecer aqui como
               &quot;Passou na porta&quot;. Pra atribuição precisa, cadastre o cliente e marque a origem real.
@@ -1008,16 +1008,16 @@ function OriginChannelMatrixSection({ matrix }: { matrix: OriginChannelMatrix })
 
   if (grandTotal === 0 || origins.length === 0 || channels.length === 0) {
     return (
-      <div className="rounded-2xl border" style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}>
-        <div className="border-b px-6 py-4" style={{ borderColor: '#E2E8F0' }}>
+      <div className="rounded-2xl border" style={{ background: '#2A2440', borderColor: '#3D3656' }}>
+        <div className="border-b px-6 py-4" style={{ borderColor: '#3D3656' }}>
           <div className="flex items-center gap-2">
             <div className="h-4 w-1 rounded-full" style={{ background: '#8B5CF6' }} />
-            <h2 className="text-xs font-bold uppercase tracking-widest" style={{ color: '#475569' }}>
+            <h2 className="text-xs font-bold uppercase tracking-widest" style={{ color: '#CBD5E1' }}>
               Origem × Canal
             </h2>
           </div>
         </div>
-        <p className="p-10 text-center text-sm" style={{ color: '#64748B' }}>
+        <p className="p-10 text-center text-sm" style={{ color: '#A78BFA' }}>
           Sem dados pra cruzar origem e canal no período
         </p>
       </div>
@@ -1040,15 +1040,15 @@ function OriginChannelMatrixSection({ matrix }: { matrix: OriginChannelMatrix })
   }
 
   return (
-    <div className="rounded-2xl border" style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}>
-      <div className="border-b px-6 py-4 flex items-start justify-between gap-3 flex-wrap" style={{ borderColor: '#E2E8F0' }}>
+    <div className="rounded-2xl border" style={{ background: '#2A2440', borderColor: '#3D3656' }}>
+      <div className="border-b px-6 py-4 flex items-start justify-between gap-3 flex-wrap" style={{ borderColor: '#3D3656' }}>
         <div className="flex items-center gap-2">
           <div className="h-4 w-1 rounded-full" style={{ background: '#8B5CF6' }} />
           <div>
-            <h2 className="text-xs font-bold uppercase tracking-widest" style={{ color: '#475569' }}>
+            <h2 className="text-xs font-bold uppercase tracking-widest" style={{ color: '#CBD5E1' }}>
               Origem × Canal
             </h2>
-            <p className="text-[11px] mt-0.5" style={{ color: '#64748B' }}>
+            <p className="text-[11px] mt-0.5" style={{ color: '#A78BFA' }}>
               De onde vem o cliente (linhas) × onde fechou a venda (colunas)
             </p>
           </div>
@@ -1069,7 +1069,7 @@ function OriginChannelMatrixSection({ matrix }: { matrix: OriginChannelMatrix })
         <table className="w-full text-xs border-separate" style={{ borderSpacing: '4px' }}>
           <thead>
             <tr>
-              <th className="px-2 py-2 text-left text-[10px] font-bold uppercase tracking-wider" style={{ color: '#64748B' }}>
+              <th className="px-2 py-2 text-left text-[10px] font-bold uppercase tracking-wider" style={{ color: '#A78BFA' }}>
                 Origem ↓ / Canal →
               </th>
               {channels.map(ch => (
@@ -1080,7 +1080,7 @@ function OriginChannelMatrixSection({ matrix }: { matrix: OriginChannelMatrix })
                   </div>
                 </th>
               ))}
-              <th className="px-2 py-2 text-right text-[10px] font-bold uppercase tracking-wider" style={{ color: '#475569' }}>
+              <th className="px-2 py-2 text-right text-[10px] font-bold uppercase tracking-wider" style={{ color: '#CBD5E1' }}>
                 Total
               </th>
             </tr>
@@ -1093,7 +1093,7 @@ function OriginChannelMatrixSection({ matrix }: { matrix: OriginChannelMatrix })
                   <td className="px-2 py-1 whitespace-nowrap">
                     <div className="flex items-center gap-1.5">
                       <span className="h-2 w-2 rounded-full" style={{ background: or.color }} />
-                      <span style={{ color: '#0F172A' }}>{or.label}</span>
+                      <span style={{ color: '#F8FAFC' }}>{or.label}</span>
                     </div>
                   </td>
                   {channels.map(ch => {
@@ -1105,7 +1105,7 @@ function OriginChannelMatrixSection({ matrix }: { matrix: OriginChannelMatrix })
                     if (value === 0) {
                       return (
                         <td key={ch.key} className="px-2 py-2 text-center font-mono text-[10px]"
-                          style={{ background: '#FFFFFF', borderRadius: 6, color: '#3A4A60' }}>
+                          style={{ background: '#1E1B2E', borderRadius: 6, color: '#3A4A60' }}>
                           —
                         </td>
                       )
@@ -1115,21 +1115,21 @@ function OriginChannelMatrixSection({ matrix }: { matrix: OriginChannelMatrix })
                         className="px-2 py-2 text-center font-mono"
                         style={{
                           background: hexWithAlpha(ch.color, 0.12 + inten * 0.55),
-                          color: inten > 0.5 ? '#0F172A' : '#475569',
+                          color: inten > 0.5 ? '#F8FAFC' : '#CBD5E1',
                           borderRadius: 6,
                         }}
                         title={`${or.label} × ${ch.label} — ${BRL(value)} em ${tx} transação(ões) (${PCT(pctRow)} dessa origem)`}
                       >
-                        <div className="text-[11px] font-semibold" style={{ color: '#0F172A' }}>
+                        <div className="text-[11px] font-semibold" style={{ color: '#F8FAFC' }}>
                           {mode === 'pct_row' ? PCT(pctRow) : BRL(value)}
                         </div>
-                        <div className="text-[9px]" style={{ color: '#475569' }}>
+                        <div className="text-[9px]" style={{ color: '#CBD5E1' }}>
                           {NUM(tx)} tx
                         </div>
                       </td>
                     )
                   })}
-                  <td className="px-2 py-2 text-right font-mono text-[11px] font-bold" style={{ color: '#0F172A' }}>
+                  <td className="px-2 py-2 text-right font-mono text-[11px] font-bold" style={{ color: '#F8FAFC' }}>
                     {BRL(rowTotal)}
                   </td>
                 </tr>
@@ -1137,7 +1137,7 @@ function OriginChannelMatrixSection({ matrix }: { matrix: OriginChannelMatrix })
             })}
             {/* Linha de totais por canal */}
             <tr>
-              <td className="px-2 py-2 text-[10px] font-bold uppercase tracking-wider" style={{ color: '#64748B' }}>
+              <td className="px-2 py-2 text-[10px] font-bold uppercase tracking-wider" style={{ color: '#A78BFA' }}>
                 Total
               </td>
               {channels.map(ch => (
@@ -1151,7 +1151,7 @@ function OriginChannelMatrixSection({ matrix }: { matrix: OriginChannelMatrix })
             </tr>
           </tbody>
         </table>
-        <p className="text-[10px] mt-3" style={{ color: '#64748B' }}>
+        <p className="text-[10px] mt-3" style={{ color: '#A78BFA' }}>
           {mode === 'pct_row'
             ? 'Cada célula mostra que % do faturamento daquela origem fechou em cada canal.'
             : 'Cada célula mostra o faturamento — cor mais forte = maior valor.'}
@@ -1164,17 +1164,17 @@ function OriginChannelMatrixSection({ matrix }: { matrix: OriginChannelMatrix })
 function CacByChannelSection({ cac }: { cac: CacByChannel }) {
   if (!cac.available) {
     return (
-      <div className="rounded-2xl border" style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}>
-        <div className="border-b px-6 py-4" style={{ borderColor: '#E2E8F0' }}>
+      <div className="rounded-2xl border" style={{ background: '#2A2440', borderColor: '#3D3656' }}>
+        <div className="border-b px-6 py-4" style={{ borderColor: '#3D3656' }}>
           <div className="flex items-center gap-2">
             <div className="h-4 w-1 rounded-full" style={{ background: '#1877F2' }} />
-            <h2 className="text-xs font-bold uppercase tracking-widest flex items-center gap-1.5" style={{ color: '#475569' }}>
+            <h2 className="text-xs font-bold uppercase tracking-widest flex items-center gap-1.5" style={{ color: '#CBD5E1' }}>
               <Target className="h-3.5 w-3.5" />
               CAC por canal (Meta Ads)
             </h2>
           </div>
         </div>
-        <p className="p-8 text-center text-sm" style={{ color: '#475569' }}>
+        <p className="p-8 text-center text-sm" style={{ color: '#CBD5E1' }}>
           {cac.unavailableReason ?? 'Dados de Meta Ads indisponíveis no período.'}
         </p>
       </div>
@@ -1184,17 +1184,17 @@ function CacByChannelSection({ cac }: { cac: CacByChannel }) {
   const noAttribution = cac.metaCustomerCount === 0
 
   return (
-    <div className="rounded-2xl border" style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}>
-      <div className="border-b px-6 py-4" style={{ borderColor: '#E2E8F0' }}>
+    <div className="rounded-2xl border" style={{ background: '#2A2440', borderColor: '#3D3656' }}>
+      <div className="border-b px-6 py-4" style={{ borderColor: '#3D3656' }}>
         <div className="flex items-center gap-2">
           <div className="h-4 w-1 rounded-full" style={{ background: '#1877F2' }} />
           <div>
-            <h2 className="text-xs font-bold uppercase tracking-widest flex items-center gap-1.5" style={{ color: '#475569' }}>
+            <h2 className="text-xs font-bold uppercase tracking-widest flex items-center gap-1.5" style={{ color: '#CBD5E1' }}>
               <Target className="h-3.5 w-3.5" />
               CAC e ROAS por canal (Meta Ads)
             </h2>
-            <p className="text-[11px] mt-0.5" style={{ color: '#64748B' }}>
-              Cruza gasto Meta com clientes que tinham <code style={{ color: '#475569' }}>campaign_code</code> preenchido — mostra onde os clientes pagos fecharam.
+            <p className="text-[11px] mt-0.5" style={{ color: '#A78BFA' }}>
+              Cruza gasto Meta com clientes que tinham <code style={{ color: '#CBD5E1' }}>campaign_code</code> preenchido — mostra onde os clientes pagos fecharam.
             </p>
           </div>
         </div>
@@ -1202,33 +1202,33 @@ function CacByChannelSection({ cac }: { cac: CacByChannel }) {
 
       {/* KPIs do topo */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 p-6 pb-3">
-        <div className="rounded-xl border p-4" style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
-          <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#64748B' }}>
+        <div className="rounded-xl border p-4" style={{ background: '#1E1B2E', borderColor: '#3D3656' }}>
+          <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#A78BFA' }}>
             Gasto Meta no período
           </p>
           <p className="text-xl font-bold font-mono mt-1" style={{ color: '#E4405F' }}>
             {BRL(cac.spendCents)}
           </p>
         </div>
-        <div className="rounded-xl border p-4" style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
-          <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#64748B' }}>
+        <div className="rounded-xl border p-4" style={{ background: '#1E1B2E', borderColor: '#3D3656' }}>
+          <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#A78BFA' }}>
             Clientes Meta atribuídos
           </p>
-          <p className="text-xl font-bold font-mono mt-1" style={{ color: '#1D4ED8' }}>
+          <p className="text-xl font-bold font-mono mt-1" style={{ color: '#A855F7' }}>
             {NUM(cac.metaCustomerCount)}
           </p>
-          <p className="text-[10px] mt-1" style={{ color: '#475569' }}>
+          <p className="text-[10px] mt-1" style={{ color: '#CBD5E1' }}>
             com campaign_code que fecharam venda/OS
           </p>
         </div>
-        <div className="rounded-xl border p-4" style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
-          <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#64748B' }}>
+        <div className="rounded-xl border p-4" style={{ background: '#1E1B2E', borderColor: '#3D3656' }}>
+          <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#A78BFA' }}>
             CAC Meta global
           </p>
           <p className="text-xl font-bold font-mono mt-1" style={{ color: '#F59E0B' }}>
             {noAttribution ? '—' : BRL(cac.cacCents)}
           </p>
-          <p className="text-[10px] mt-1" style={{ color: '#475569' }}>
+          <p className="text-[10px] mt-1" style={{ color: '#CBD5E1' }}>
             gasto ÷ clientes atribuídos
           </p>
         </div>
@@ -1237,13 +1237,13 @@ function CacByChannelSection({ cac }: { cac: CacByChannel }) {
             background: cac.globalRoas >= 1 ? 'rgba(16,185,129,.06)' : 'rgba(255,77,109,.08)',
             borderColor: cac.globalRoas >= 1 ? 'rgba(16,185,129,.3)' : 'rgba(255,77,109,.3)',
           }}>
-          <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#64748B' }}>
+          <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#A78BFA' }}>
             ROAS global
           </p>
           <p className="text-xl font-bold font-mono mt-1" style={{ color: cac.globalRoas >= 1 ? '#10B981' : '#EF4444' }}>
             {noAttribution ? '—' : `${cac.globalRoas.toFixed(2)}×`}
           </p>
-          <p className="text-[10px] mt-1" style={{ color: '#475569' }}>
+          <p className="text-[10px] mt-1" style={{ color: '#CBD5E1' }}>
             {BRL(cac.totalAttributedRevenueCents)} de receita atribuída
           </p>
         </div>
@@ -1252,7 +1252,7 @@ function CacByChannelSection({ cac }: { cac: CacByChannel }) {
       {/* Aviso se não tem atribuição */}
       {noAttribution && (
         <div className="mx-6 mb-4 rounded-lg border p-3 flex items-start gap-2 text-[11px]"
-          style={{ background: 'rgba(255,170,0,.05)', borderColor: 'rgba(255,170,0,.25)', color: '#475569' }}>
+          style={{ background: 'rgba(255,170,0,.05)', borderColor: 'rgba(255,170,0,.25)', color: '#CBD5E1' }}>
           <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" style={{ color: '#F59E0B' }} />
           <span>
             Nenhuma venda/OS atribuída a Meta no período. Verifique se o atendente está preenchendo
@@ -1266,9 +1266,9 @@ function CacByChannelSection({ cac }: { cac: CacByChannel }) {
         <div className="overflow-x-auto px-6 pb-6">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b text-left" style={{ borderColor: '#E2E8F0' }}>
+              <tr className="border-b text-left" style={{ borderColor: '#3D3656' }}>
                 {['Canal', 'Clientes Meta', '% do Meta', 'Receita atribuída', 'ROAS canal'].map(h => (
-                  <th key={h} className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider" style={{ color: '#64748B' }}>
+                  <th key={h} className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider" style={{ color: '#A78BFA' }}>
                     {h}
                   </th>
                 ))}
@@ -1280,19 +1280,19 @@ function CacByChannelSection({ cac }: { cac: CacByChannel }) {
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <span className="h-2 w-2 rounded-full shrink-0" style={{ background: c.color }} />
-                      <span className="font-medium" style={{ color: '#0F172A' }}>{c.label}</span>
+                      <span className="font-medium" style={{ color: '#F8FAFC' }}>{c.label}</span>
                     </div>
                   </td>
-                  <td className="px-4 py-3 font-mono" style={{ color: '#475569' }}>{NUM(c.customers)}</td>
+                  <td className="px-4 py-3 font-mono" style={{ color: '#CBD5E1' }}>{NUM(c.customers)}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <div className="flex-1 h-2 rounded overflow-hidden max-w-[120px]" style={{ background: '#FFFFFF' }}>
+                      <div className="flex-1 h-2 rounded overflow-hidden max-w-[120px]" style={{ background: '#1E1B2E' }}>
                         <div className="h-full" style={{
                           width: `${c.pctCustomers * 100}%`,
                           background: `linear-gradient(90deg, ${c.color}66, ${c.color})`,
                         }} />
                       </div>
-                      <span className="text-[11px] font-mono" style={{ color: '#475569' }}>{PCT(c.pctCustomers)}</span>
+                      <span className="text-[11px] font-mono" style={{ color: '#CBD5E1' }}>{PCT(c.pctCustomers)}</span>
                     </div>
                   </td>
                   <td className="px-4 py-3 font-mono font-semibold" style={{ color: c.color }}>
@@ -1305,7 +1305,7 @@ function CacByChannelSection({ cac }: { cac: CacByChannel }) {
               ))}
             </tbody>
           </table>
-          <p className="text-[10px] mt-3" style={{ color: '#64748B' }}>
+          <p className="text-[10px] mt-3" style={{ color: '#A78BFA' }}>
             ROAS canal = receita atribuída do canal ÷ gasto Meta total. Soma dos ROAS dos canais = ROAS global.
           </p>
         </div>
@@ -1366,11 +1366,11 @@ function DailyChartSection({
   const metricLabel = metric === 'profit' ? 'Lucro' : 'Faturamento'
 
   return (
-    <div className="rounded-2xl border p-6 space-y-3" style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}>
+    <div className="rounded-2xl border p-6 space-y-3" style={{ background: '#2A2440', borderColor: '#3D3656' }}>
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2">
           <div className="h-4 w-1 rounded-full" style={{ background: '#10B981' }} />
-          <h2 className="text-xs font-bold uppercase tracking-widest" style={{ color: '#475569' }}>
+          <h2 className="text-xs font-bold uppercase tracking-widest" style={{ color: '#CBD5E1' }}>
             Evolução diária — Online vs Física ({metricLabel.toLowerCase()})
           </h2>
         </div>
@@ -1385,18 +1385,18 @@ function DailyChartSection({
           activeColor="#10B981"
         />
       </div>
-      <div className="rounded-xl border p-4" style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
+      <div className="rounded-xl border p-4" style={{ background: '#1E1B2E', borderColor: '#3D3656' }}>
         <svg viewBox={`0 0 ${width} ${height}`} className="w-full" preserveAspectRatio="xMidYMid meet">
           {yTicks.map(t => (
             <line key={t.y}
               x1={padL} y1={t.y} x2={width - padR} y2={t.y}
-              stroke="#E2E8F0" strokeWidth="1" strokeDasharray="2 3"
+              stroke="#3D3656" strokeWidth="1" strokeDasharray="2 3"
             />
           ))}
           {/* Linha do zero destacada quando há valores negativos */}
           {minVal < 0 && (
             <line x1={padL} y1={yZero} x2={width - padR} y2={yZero}
-              stroke="#64748B" strokeWidth="1" />
+              stroke="#A78BFA" strokeWidth="1" />
           )}
 
           {series.map((d, i) => {
@@ -1414,7 +1414,7 @@ function DailyChartSection({
                   y={yOnTop}
                   width={barW}
                   height={Math.max(1, hOnline)}
-                  fill={d.online < 0 ? '#EF4444' : '#1D4ED8'}
+                  fill={d.online < 0 ? '#EF4444' : '#A855F7'}
                   opacity="0.85"
                 >
                   <title>{`${d.date}: Online ${metricLabel} ${BRL(d.online)}`}</title>
@@ -1436,7 +1436,7 @@ function DailyChartSection({
           {yTicks.map(t => (
             <text key={`ylbl-${t.y}`}
               x={padL - 8} y={t.y + 3}
-              textAnchor="end" fontSize="10" fill="#64748B" fontFamily="ui-monospace,monospace"
+              textAnchor="end" fontSize="10" fill="#A78BFA" fontFamily="ui-monospace,monospace"
             >
               {BRL(Math.round(t.value))}
             </text>
@@ -1445,21 +1445,21 @@ function DailyChartSection({
           {series.map((d, i) => (i % xStep === 0 || i === series.length - 1) && (
             <text key={`xlbl-${i}`}
               x={xBase(i) + barGroupW / 2} y={height - 15}
-              textAnchor="middle" fontSize="10" fill="#64748B" fontFamily="ui-monospace,monospace"
+              textAnchor="middle" fontSize="10" fill="#A78BFA" fontFamily="ui-monospace,monospace"
             >
               {fmtShortDate(d.date)}
             </text>
           ))}
         </svg>
         <div className="mt-2 flex items-center justify-center gap-4 text-[11px]">
-          <span className="inline-flex items-center gap-1.5" style={{ color: '#475569' }}>
-            <span className="h-2.5 w-2.5 rounded" style={{ background: '#1D4ED8' }} /> Online
+          <span className="inline-flex items-center gap-1.5" style={{ color: '#CBD5E1' }}>
+            <span className="h-2.5 w-2.5 rounded" style={{ background: '#A855F7' }} /> Online
           </span>
-          <span className="inline-flex items-center gap-1.5" style={{ color: '#475569' }}>
+          <span className="inline-flex items-center gap-1.5" style={{ color: '#CBD5E1' }}>
             <span className="h-2.5 w-2.5 rounded" style={{ background: '#F59E0B' }} /> Física
           </span>
           {minVal < 0 && (
-            <span className="inline-flex items-center gap-1.5" style={{ color: '#475569' }}>
+            <span className="inline-flex items-center gap-1.5" style={{ color: '#CBD5E1' }}>
               <span className="h-2.5 w-2.5 rounded" style={{ background: '#EF4444' }} /> Lucro negativo (prejuízo)
             </span>
           )}
@@ -1476,15 +1476,15 @@ function KpiCard({
   color: string; icon: React.ElementType
 }) {
   return (
-    <div className="rounded-2xl border p-5 relative overflow-hidden" style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}>
+    <div className="rounded-2xl border p-5 relative overflow-hidden" style={{ background: '#2A2440', borderColor: '#3D3656' }}>
       <div className="absolute -right-4 -top-4 h-20 w-20 rounded-full opacity-15"
         style={{ background: `radial-gradient(circle, ${color}, transparent)` }} />
       <div className="mb-3 flex items-center justify-between">
-        <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: '#64748B' }}>{label}</span>
+        <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: '#A78BFA' }}>{label}</span>
         <Icon className="h-4 w-4" style={{ color }} />
       </div>
       <div className="text-2xl font-bold tracking-tight" style={{ color, fontFamily: 'ui-monospace,monospace' }}>{value}</div>
-      <div className="mt-1 text-[11px]" style={{ color: '#64748B' }}>{sub}</div>
+      <div className="mt-1 text-[11px]" style={{ color: '#A78BFA' }}>{sub}</div>
     </div>
   )
 }

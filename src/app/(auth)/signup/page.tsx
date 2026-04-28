@@ -48,15 +48,15 @@ export default function SignupPage() {
   return (
     <AuthShell>
       <div className="mb-8">
-        <h1 className="text-2xl font-bold tracking-tight" style={{ color: '#0F172A' }}>
+        <h1 className="text-2xl font-bold tracking-tight" style={{ color: '#F8FAFC' }}>
           Comece agora — 7 dias grátis
         </h1>
-        <p className="mt-1 text-sm" style={{ color: '#64748B' }}>
+        <p className="mt-1 text-sm" style={{ color: '#A78BFA' }}>
           Sem cartão de crédito. Cancele quando quiser.
         </p>
       </div>
 
-      <ul className="mb-6 space-y-2 text-xs" style={{ color: '#475569' }}>
+      <ul className="mb-6 space-y-2 text-xs" style={{ color: '#CBD5E1' }}>
         <li className="flex items-center gap-2">
           <Check className="h-3.5 w-3.5 shrink-0" style={{ color: '#10B981' }} />
           Todos os recursos do plano Premium liberados no trial
@@ -95,7 +95,7 @@ export default function SignupPage() {
             <button type="button" onClick={() => setShowPass(v => !v)}
               className="absolute right-3 top-1/2 -translate-y-1/2"
               tabIndex={-1} aria-label="Mostrar/esconder senha"
-              style={{ color: '#94A3B8' }}>
+              style={{ color: '#8B82A8' }}>
               {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
           </div>
@@ -115,22 +115,22 @@ export default function SignupPage() {
         </button>
       </form>
 
-      <p className="mt-4 text-center text-[11px]" style={{ color: '#94A3B8' }}>
+      <p className="mt-4 text-center text-[11px]" style={{ color: '#8B82A8' }}>
         Ao criar a conta você concorda com nossos{' '}
         <a href="https://gestaosmarterp.online/termos"
           target="_blank" rel="noopener noreferrer"
           className="underline transition-opacity hover:opacity-80"
-          style={{ color: '#1D4ED8' }}>Termos de Uso</a>
+          style={{ color: '#A855F7' }}>Termos de Uso</a>
         {' '}e{' '}
         <a href="https://gestaosmarterp.online/privacidade"
           target="_blank" rel="noopener noreferrer"
           className="underline transition-opacity hover:opacity-80"
-          style={{ color: '#1D4ED8' }}>Política de Privacidade</a>.
+          style={{ color: '#A855F7' }}>Política de Privacidade</a>.
       </p>
 
-      <p className="mt-8 text-center text-sm" style={{ color: '#64748B' }}>
+      <p className="mt-8 text-center text-sm" style={{ color: '#A78BFA' }}>
         Já tem conta?{' '}
-        <Link href="/login" className="font-semibold hover:underline" style={{ color: '#1D4ED8' }}>
+        <Link href="/login" className="font-semibold hover:underline" style={{ color: '#A855F7' }}>
           Fazer login
         </Link>
       </p>
@@ -141,7 +141,7 @@ export default function SignupPage() {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
-      <label className="text-xs font-medium uppercase tracking-wider" style={{ color: '#64748B' }}>
+      <label className="text-xs font-medium uppercase tracking-wider" style={{ color: '#A78BFA' }}>
         {label}
       </label>
       {children}

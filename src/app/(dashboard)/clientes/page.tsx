@@ -84,10 +84,10 @@ export default async function ClientesPage({
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-3">
         {[
           { label: 'Total de Clientes', value: String(totalClientes), icon: Users, color: '#10B981' },
-          { label: 'OS no CheckSmart',  value: String(totalOs),       icon: Wrench, color: '#1D4ED8' },
+          { label: 'OS no CheckSmart',  value: String(totalOs),       icon: Wrench, color: '#A855F7' },
           { label: 'Nesta página',      value: String(customers.length), icon: List, color: '#F59E0B' },
         ].map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="rounded-xl border p-5" style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}>
+          <div key={label} className="rounded-xl border p-5" style={{ background: '#2A2440', borderColor: '#3D3656' }}>
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs font-medium uppercase tracking-wider text-muted">{label}</p>

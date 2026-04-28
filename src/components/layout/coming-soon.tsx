@@ -11,11 +11,11 @@ export function ComingSoon({ title, subtitle }: Props) {
       </div>
       <div
         className="flex flex-col items-center justify-center rounded-xl border gap-4 py-32"
-        style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}
+        style={{ background: '#2A2440', borderColor: '#3D3656' }}
       >
         <div
           className="flex h-16 w-16 items-center justify-center rounded-2xl"
-          style={{ background: '#1D4ED812', border: '1px solid #1D4ED830' }}
+          style={{ background: '#A855F712', border: '1px solid #A855F730' }}
         >
           <Construction className="h-8 w-8 text-accent" />
         </div>

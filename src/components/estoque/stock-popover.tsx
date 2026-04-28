@@ -46,10 +46,10 @@ function Row({
 }: { label: string; value: string; accent?: string; dim?: boolean }) {
   return (
     <div className="flex items-center justify-between">
-      <span className="text-xs" style={{ color: '#64748B' }}>{label}</span>
+      <span className="text-xs" style={{ color: '#A78BFA' }}>{label}</span>
       <span
         className="text-xs font-semibold tabular-nums"
-        style={{ color: accent ?? (dim ? '#475569' : '#CBD5E1') }}
+        style={{ color: accent ?? (dim ? '#CBD5E1' : '#4C4470') }}
       >
         {value}
       </span>
@@ -58,14 +58,14 @@ function Row({
 }
 
 function Divider() {
-  return <div className="my-2 border-t" style={{ borderColor: '#E2E8F0' }} />
+  return <div className="my-2 border-t" style={{ borderColor: '#3D3656' }} />
 }
 
 function SkeletonRow() {
   return (
     <div className="flex items-center justify-between animate-pulse">
-      <div className="h-2.5 rounded-full" style={{ background: '#E2E8F0', width: '45%' }} />
-      <div className="h-2.5 rounded-full" style={{ background: '#E2E8F0', width: '25%' }} />
+      <div className="h-2.5 rounded-full" style={{ background: '#3D3656', width: '45%' }} />
+      <div className="h-2.5 rounded-full" style={{ background: '#3D3656', width: '25%' }} />
     </div>
   )
 }
@@ -156,11 +156,11 @@ export function StockPopover({ product: p }: { product: ProductRow }) {
         <span className="text-sm font-bold" style={color ? { color } : {}}>
           {p.stock_qty}
         </span>
-        <span className="text-xs" style={{ color: '#64748B' }}>{p.unit}</span>
+        <span className="text-xs" style={{ color: '#A78BFA' }}>{p.unit}</span>
         {/* Indicador de interatividade */}
         <span
           className="text-[10px] transition-opacity duration-100"
-          style={{ color: '#64748B', opacity: 0 }}
+          style={{ color: '#A78BFA', opacity: 0 }}
           aria-hidden
           ref={el => {
             // Usa o grupo para mostrar via CSS sem re-render
@@ -178,7 +178,7 @@ export function StockPopover({ product: p }: { product: ProductRow }) {
             left:        pos.left,
             width:       POPOVER_W,
             background:  '#0A1628',
-            borderColor: '#E2E8F0',
+            borderColor: '#3D3656',
             animation,
           }}
           onMouseEnter={onEnter}
@@ -187,10 +187,10 @@ export function StockPopover({ product: p }: { product: ProductRow }) {
           {/* Cabeçalho */}
           <div
             className="flex items-center gap-2 px-3.5 py-2.5 border-b"
-            style={{ borderColor: '#E2E8F0' }}
+            style={{ borderColor: '#3D3656' }}
           >
             <Warehouse className="h-3.5 w-3.5 shrink-0" style={{ color: '#10B981' }} />
-            <span className="text-xs font-semibold" style={{ color: '#F1F5F9' }}>
+            <span className="text-xs font-semibold" style={{ color: '#2A2440' }}>
               Estoque Detalhado
             </span>
           </div>
@@ -200,8 +200,8 @@ export function StockPopover({ product: p }: { product: ProductRow }) {
 
             {/* Depósito */}
             <div className="flex items-center gap-1.5 mb-1">
-              <Package className="h-3 w-3 shrink-0" style={{ color: '#475569' }} />
-              <span className="text-[10px] font-medium uppercase tracking-wider" style={{ color: '#475569' }}>
+              <Package className="h-3 w-3 shrink-0" style={{ color: '#CBD5E1' }} />
+              <span className="text-[10px] font-medium uppercase tracking-wider" style={{ color: '#CBD5E1' }}>
                 {depot}
               </span>
             </div>
@@ -222,7 +222,7 @@ export function StockPopover({ product: p }: { product: ProductRow }) {
             )}
 
             {loadState === 'error' && (
-              <div className="flex items-center gap-1.5 text-xs py-1" style={{ color: '#64748B' }}>
+              <div className="flex items-center gap-1.5 text-xs py-1" style={{ color: '#A78BFA' }}>
                 <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
                 Erro ao carregar movimentações
               </div>
@@ -231,20 +231,20 @@ export function StockPopover({ product: p }: { product: ProductRow }) {
             {loadState === 'ready' && summary && (
               <>
                 <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-1.5 text-xs" style={{ color: '#64748B' }}>
+                  <span className="flex items-center gap-1.5 text-xs" style={{ color: '#A78BFA' }}>
                     <TrendingDown className="h-3 w-3 shrink-0" style={{ color: '#10B981' }} />
                     Total entradas
                   </span>
-                  <span className="text-xs font-semibold tabular-nums" style={{ color: '#CBD5E1' }}>
+                  <span className="text-xs font-semibold tabular-nums" style={{ color: '#4C4470' }}>
                     {summary.total_entrada} {p.unit}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-1.5 text-xs" style={{ color: '#64748B' }}>
+                  <span className="flex items-center gap-1.5 text-xs" style={{ color: '#A78BFA' }}>
                     <TrendingUp className="h-3 w-3 shrink-0" style={{ color: '#EF4444' }} />
                     Total saídas
                   </span>
-                  <span className="text-xs font-semibold tabular-nums" style={{ color: '#CBD5E1' }}>
+                  <span className="text-xs font-semibold tabular-nums" style={{ color: '#4C4470' }}>
                     {summary.total_saida} {p.unit}
                   </span>
                 </div>
@@ -253,8 +253,8 @@ export function StockPopover({ product: p }: { product: ProductRow }) {
 
             {loadState === 'idle' && (
               <div className="flex items-center justify-center gap-1.5 py-1">
-                <Loader2 className="h-3 w-3 animate-spin" style={{ color: '#475569' }} />
-                <span className="text-xs" style={{ color: '#475569' }}>carregando…</span>
+                <Loader2 className="h-3 w-3 animate-spin" style={{ color: '#CBD5E1' }} />
+                <span className="text-xs" style={{ color: '#CBD5E1' }}>carregando…</span>
               </div>
             )}
           </div>
@@ -262,9 +262,9 @@ export function StockPopover({ product: p }: { product: ProductRow }) {
           {/* Rodapé — Saldo Disponível */}
           <div
             className="flex items-center justify-between px-3.5 py-2.5 border-t rounded-b-xl"
-            style={{ borderColor: '#E2E8F0', background: 'rgba(255,255,255,0.03)' }}
+            style={{ borderColor: '#3D3656', background: 'rgba(255,255,255,0.03)' }}
           >
-            <span className="text-xs font-semibold" style={{ color: '#64748B' }}>
+            <span className="text-xs font-semibold" style={{ color: '#A78BFA' }}>
               Saldo Disponível
             </span>
             <div className="flex items-center gap-1.5">

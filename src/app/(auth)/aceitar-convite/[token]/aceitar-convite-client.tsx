@@ -52,21 +52,21 @@ export function AceitarConviteClient({ token, email, role, tenantName }: Props) 
           style={{ background: '#ECFDF5', border: '1px solid #A7F3D0' }}>
           <Users className="h-6 w-6" style={{ color: '#10B981' }} />
         </div>
-        <h1 className="text-2xl font-bold mb-1 tracking-tight" style={{ color: '#0F172A' }}>
+        <h1 className="text-2xl font-bold mb-1 tracking-tight" style={{ color: '#F8FAFC' }}>
           Você foi convidado!
         </h1>
-        <p className="text-sm" style={{ color: '#64748B' }}>
-          Junte-se à equipe de <strong style={{ color: '#0F172A' }}>{tenantName}</strong> como{' '}
-          <span className="inline-flex items-center gap-1 font-bold" style={{ color: '#1D4ED8' }}>
+        <p className="text-sm" style={{ color: '#A78BFA' }}>
+          Junte-se à equipe de <strong style={{ color: '#F8FAFC' }}>{tenantName}</strong> como{' '}
+          <span className="inline-flex items-center gap-1 font-bold" style={{ color: '#A855F7' }}>
             {role === 'manager' ? <><Crown className="h-3 w-3" /> manager</> : role}
           </span>
         </p>
       </div>
 
       <div className="rounded-lg border p-3 mb-5 flex items-center gap-2"
-        style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}>
-        <Mail className="h-4 w-4 shrink-0" style={{ color: '#64748B' }} />
-        <span className="text-sm" style={{ color: '#0F172A' }}>{email}</span>
+        style={{ background: '#2A2440', borderColor: '#3D3656' }}>
+        <Mail className="h-4 w-4 shrink-0" style={{ color: '#A78BFA' }} />
+        <span className="text-sm" style={{ color: '#F8FAFC' }}>{email}</span>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -84,7 +84,7 @@ export function AceitarConviteClient({ token, email, role, tenantName }: Props) 
               className="auth-input pr-10" />
             <button type="button" onClick={() => setShowPass(v => !v)}
               className="absolute right-3 top-1/2 -translate-y-1/2"
-              tabIndex={-1} style={{ color: '#94A3B8' }}>
+              tabIndex={-1} style={{ color: '#8B82A8' }}>
               {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
           </div>
@@ -110,7 +110,7 @@ export function AceitarConviteClient({ token, email, role, tenantName }: Props) 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
-      <label className="text-xs font-medium uppercase tracking-wider" style={{ color: '#64748B' }}>
+      <label className="text-xs font-medium uppercase tracking-wider" style={{ color: '#A78BFA' }}>
         {label}
       </label>
       {children}

@@ -22,8 +22,8 @@ const ICONS: Record<NotificationType, { icon: React.ElementType; color: string }
   meta_ads_alert:          { icon: TrendingUp,    color: '#E4405F' },
   customer_at_risk:        { icon: Users,         color: '#EF4444' },
   os_pending:              { icon: Wrench,        color: '#F59E0B' },
-  team_invite_accepted:    { icon: MailCheck,     color: '#1D4ED8' },
-  generic:                 { icon: Bell,          color: '#475569' },
+  team_invite_accepted:    { icon: MailCheck,     color: '#A855F7' },
+  generic:                 { icon: Bell,          color: '#CBD5E1' },
 }
 
 function timeAgo(date: Date): string {
@@ -125,7 +125,7 @@ export function NotificationsBell() {
       <button
         onClick={toggleOpen}
         className="relative flex h-9 w-9 items-center justify-center rounded-lg border transition-colors hover:bg-card"
-        style={{ borderColor: '#E2E8F0', color: '#64748B' }}
+        style={{ borderColor: '#3D3656', color: '#A78BFA' }}
         aria-label={`Notificações${unread > 0 ? ` (${unread} não lidas)` : ''}`}
       >
         <Bell className="h-4 w-4" />
@@ -143,17 +143,17 @@ export function NotificationsBell() {
         <div
           className="absolute right-0 top-12 z-50 w-80 sm:w-96 rounded-xl border overflow-hidden"
           style={{
-            background: '#F1F5F9',
-            borderColor: '#CBD5E1',
+            background: '#2A2440',
+            borderColor: '#4C4470',
             boxShadow: '0 12px 36px rgba(0,0,0,0.65)',
           }}
         >
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b"
-            style={{ borderColor: '#E2E8F0' }}>
-            <p className="text-sm font-bold" style={{ color: '#0F172A' }}>
+            style={{ borderColor: '#3D3656' }}>
+            <p className="text-sm font-bold" style={{ color: '#F8FAFC' }}>
               Notificações {unread > 0 && (
-                <span className="text-xs font-normal" style={{ color: '#475569' }}>
+                <span className="text-xs font-normal" style={{ color: '#CBD5E1' }}>
                   · {unread} não lida{unread !== 1 ? 's' : ''}
                 </span>
               )}
@@ -161,7 +161,7 @@ export function NotificationsBell() {
             {unread > 0 && (
               <button onClick={handleMarkAllRead}
                 className="inline-flex items-center gap-1 text-[11px] font-semibold hover:underline"
-                style={{ color: '#1D4ED8' }}>
+                style={{ color: '#A855F7' }}>
                 <Check className="h-3 w-3" /> Marcar todas
               </button>
             )}
@@ -170,11 +170,11 @@ export function NotificationsBell() {
           {/* Lista */}
           <div className="max-h-96 overflow-y-auto">
             {loading && items.length === 0 ? (
-              <div className="flex items-center justify-center py-12" style={{ color: '#64748B' }}>
+              <div className="flex items-center justify-center py-12" style={{ color: '#A78BFA' }}>
                 <Loader2 className="h-5 w-5 animate-spin" />
               </div>
             ) : items.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center px-6" style={{ color: '#64748B' }}>
+              <div className="flex flex-col items-center justify-center py-12 text-center px-6" style={{ color: '#A78BFA' }}>
                 <Inbox className="h-8 w-8 mb-2" />
                 <p className="text-sm">Você não tem notificações ainda.</p>
                 <p className="text-xs mt-1">Avisos importantes vão aparecer aqui.</p>
@@ -190,8 +190,8 @@ export function NotificationsBell() {
                         onClick={() => handleClick(n)}
                         className="w-full flex items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-white/[0.03] border-b"
                         style={{
-                          borderColor: '#E2E8F0',
-                          background: isUnread ? 'rgba(29,78,216,.04)' : undefined,
+                          borderColor: '#3D3656',
+                          background: isUnread ? 'rgba(168,85,247,.04)' : undefined,
                         }}
                       >
                         <div className="flex h-9 w-9 items-center justify-center rounded-lg shrink-0 border"
@@ -200,17 +200,17 @@ export function NotificationsBell() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <p className="text-sm font-semibold truncate" style={{ color: '#0F172A' }}>
+                            <p className="text-sm font-semibold truncate" style={{ color: '#F8FAFC' }}>
                               {n.title}
                             </p>
                             {isUnread && (
-                              <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: '#1D4ED8' }} />
+                              <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: '#A855F7' }} />
                             )}
                           </div>
                           {n.body && (
-                            <p className="text-xs mt-0.5" style={{ color: '#475569' }}>{n.body}</p>
+                            <p className="text-xs mt-0.5" style={{ color: '#CBD5E1' }}>{n.body}</p>
                           )}
-                          <p className="text-[10px] mt-1" style={{ color: '#64748B' }}>
+                          <p className="text-[10px] mt-1" style={{ color: '#A78BFA' }}>
                             {timeAgo(n.createdAt)}
                           </p>
                         </div>
@@ -224,9 +224,9 @@ export function NotificationsBell() {
 
           {/* Footer */}
           {items.length > 0 && (
-            <div className="border-t px-4 py-2 text-center" style={{ borderColor: '#E2E8F0' }}>
+            <div className="border-t px-4 py-2 text-center" style={{ borderColor: '#3D3656' }}>
               <Link href="/notificacoes" onClick={() => setOpen(false)}
-                className="text-xs font-semibold hover:underline" style={{ color: '#1D4ED8' }}>
+                className="text-xs font-semibold hover:underline" style={{ color: '#A855F7' }}>
                 Ver todas
               </Link>
             </div>

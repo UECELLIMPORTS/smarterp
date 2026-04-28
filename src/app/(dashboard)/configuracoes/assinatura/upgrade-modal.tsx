@@ -152,20 +152,20 @@ export function UpgradeModal({ open, onClose, product, productLabel, currentPlan
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
         style={{ background: 'rgba(0,0,0,0.7)' }} onClick={onClose}>
         <div className="rounded-2xl border w-full max-w-md max-h-[95vh] overflow-y-auto"
-          style={{ background: '#F1F5F9', borderColor: '#CBD5E1' }}
+          style={{ background: '#2A2440', borderColor: '#4C4470' }}
           onClick={e => e.stopPropagation()}>
           <div className="flex items-center justify-between px-6 py-4 border-b"
-            style={{ borderColor: '#E2E8F0' }}>
-            <h3 className="text-lg font-bold flex items-center gap-2" style={{ color: '#0F172A' }}>
+            style={{ borderColor: '#3D3656' }}>
+            <h3 className="text-lg font-bold flex items-center gap-2" style={{ color: '#F8FAFC' }}>
               <QrCode className="h-5 w-5" style={{ color: '#10B981' }} />
               Pagar diferença do upgrade
             </h3>
             <button onClick={onClose} className="p-1 rounded hover:bg-white/5"
-              style={{ color: '#64748B' }}><X className="h-5 w-5" /></button>
+              style={{ color: '#A78BFA' }}><X className="h-5 w-5" /></button>
           </div>
           <div className="p-6 space-y-4">
             <div className="text-center">
-              <p className="text-xs" style={{ color: '#475569' }}>Total proporcional a pagar</p>
+              <p className="text-xs" style={{ color: '#CBD5E1' }}>Total proporcional a pagar</p>
               <p className="text-3xl font-bold font-mono mt-1" style={{ color: '#10B981' }}>
                 {fmtBRL(chargeValue)}
               </p>
@@ -175,26 +175,26 @@ export function UpgradeModal({ open, onClose, product, productLabel, currentPlan
               <img src={`data:image/png;base64,${pixQr.encodedImage}`}
                 alt="QR Code PIX" className="w-56 h-56" />
             </div>
-            <p className="text-xs text-center" style={{ color: '#475569' }}>
+            <p className="text-xs text-center" style={{ color: '#CBD5E1' }}>
               Escaneie o QR Code com o app do seu banco
             </p>
             <div>
               <label className="text-[11px] font-bold uppercase tracking-widest mb-2 block"
-                style={{ color: '#64748B' }}>Ou copie o código</label>
+                style={{ color: '#A78BFA' }}>Ou copie o código</label>
               <div className="rounded-lg border p-3 flex items-center gap-2"
-                style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
+                style={{ background: '#1E1B2E', borderColor: '#3D3656' }}>
                 <code className="text-[10px] flex-1 truncate font-mono"
-                  style={{ color: '#0F172A' }}>{pixQr.payload}</code>
+                  style={{ color: '#F8FAFC' }}>{pixQr.payload}</code>
                 <button onClick={handleCopyPix}
                   className="shrink-0 p-2 rounded hover:bg-white/5 transition-colors"
-                  style={{ color: copied ? '#10B981' : '#1D4ED8' }}>
+                  style={{ color: copied ? '#10B981' : '#A855F7' }}>
                   {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                 </button>
               </div>
             </div>
             <button onClick={onClose}
               className="w-full rounded-lg py-3 text-sm font-bold border transition-colors hover:bg-white/5"
-              style={{ borderColor: '#E2E8F0', color: '#0F172A' }}>Fechar</button>
+              style={{ borderColor: '#3D3656', color: '#F8FAFC' }}>Fechar</button>
           </div>
         </div>
       </div>
@@ -207,7 +207,7 @@ export function UpgradeModal({ open, onClose, product, productLabel, currentPlan
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
         style={{ background: 'rgba(0,0,0,0.7)' }} onClick={onClose}>
         <div className="rounded-2xl border w-full max-w-md"
-          style={{ background: '#F1F5F9', borderColor: '#CBD5E1' }}
+          style={{ background: '#2A2440', borderColor: '#4C4470' }}
           onClick={e => e.stopPropagation()}>
           <div className="p-8 text-center space-y-5">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full"
@@ -215,12 +215,12 @@ export function UpgradeModal({ open, onClose, product, productLabel, currentPlan
               <CheckCircle2 className="h-8 w-8" style={{ color: '#10B981' }} />
             </div>
             <div>
-              <h3 className="text-xl font-bold" style={{ color: '#0F172A' }}>{successTitle}</h3>
-              <p className="text-sm mt-2" style={{ color: '#475569' }}>{successMsg}</p>
+              <h3 className="text-xl font-bold" style={{ color: '#F8FAFC' }}>{successTitle}</h3>
+              <p className="text-sm mt-2" style={{ color: '#CBD5E1' }}>{successMsg}</p>
             </div>
             <button onClick={() => { onClose(); window.location.reload() }}
               className="w-full rounded-lg py-3 text-sm font-bold transition-opacity hover:opacity-90"
-              style={{ background: 'linear-gradient(135deg, #1D4ED8, #10B981)', color: '#FFFFFF' }}>
+              style={{ background: 'linear-gradient(135deg, #A855F7, #10B981)', color: '#1E1B2E' }}>
               Continuar
             </button>
           </div>
@@ -240,24 +240,24 @@ export function UpgradeModal({ open, onClose, product, productLabel, currentPlan
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
         style={{ background: 'rgba(0,0,0,0.7)' }} onClick={onClose}>
         <div className="rounded-2xl border w-full max-w-md max-h-[95vh] overflow-y-auto"
-          style={{ background: '#F1F5F9', borderColor: '#CBD5E1' }}
+          style={{ background: '#2A2440', borderColor: '#4C4470' }}
           onClick={e => e.stopPropagation()}>
           <div className="flex items-center justify-between px-6 py-4 border-b sticky top-0 z-10"
-            style={{ background: '#F1F5F9', borderColor: '#E2E8F0' }}>
-            <h3 className="text-lg font-bold flex items-center gap-2" style={{ color: '#0F172A' }}>
+            style={{ background: '#2A2440', borderColor: '#3D3656' }}>
+            <h3 className="text-lg font-bold flex items-center gap-2" style={{ color: '#F8FAFC' }}>
               {isUpgrade
                 ? <ArrowUp className="h-5 w-5" style={{ color: '#10B981' }} />
                 : <ArrowDown className="h-5 w-5" style={{ color: '#F59E0B' }} />}
               Confirmar {isUpgrade ? 'upgrade' : 'downgrade'}
             </h3>
             <button onClick={onClose} className="p-1 rounded hover:bg-white/5"
-              style={{ color: '#64748B' }}><X className="h-5 w-5" /></button>
+              style={{ color: '#A78BFA' }}><X className="h-5 w-5" /></button>
           </div>
 
           <div className="p-6 space-y-4">
             {/* Resumo */}
             <div className="rounded-lg border p-4 space-y-2"
-              style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
+              style={{ background: '#1E1B2E', borderColor: '#3D3656' }}>
               {isUpgrade ? (
                 <>
                   {(() => {
@@ -265,20 +265,20 @@ export function UpgradeModal({ open, onClose, product, productLabel, currentPlan
                     return (
                       <>
                         <Row label="Plano atual">
-                          <span className="capitalize" style={{ color: '#0F172A' }}>{u.currentPlan}</span>
-                          <span className="text-xs ml-2" style={{ color: '#475569' }}>({fmtBRL(u.currentPriceCents)}/mês)</span>
+                          <span className="capitalize" style={{ color: '#F8FAFC' }}>{u.currentPlan}</span>
+                          <span className="text-xs ml-2" style={{ color: '#CBD5E1' }}>({fmtBRL(u.currentPriceCents)}/mês)</span>
                         </Row>
                         <Row label="Novo plano">
                           <span className="capitalize font-bold" style={{ color: '#10B981' }}>{u.newPlan}</span>
-                          <span className="text-xs ml-2" style={{ color: '#475569' }}>({fmtBRL(u.newPriceCents)}/mês)</span>
+                          <span className="text-xs ml-2" style={{ color: '#CBD5E1' }}>({fmtBRL(u.newPriceCents)}/mês)</span>
                         </Row>
-                        <div className="border-t pt-2" style={{ borderColor: '#E2E8F0' }} />
-                        <Row label="Dias usados"><span style={{ color: '#0F172A' }}>{u.daysUsed} de 30</span></Row>
+                        <div className="border-t pt-2" style={{ borderColor: '#3D3656' }} />
+                        <Row label="Dias usados"><span style={{ color: '#F8FAFC' }}>{u.daysUsed} de 30</span></Row>
                         <Row label="Crédito proporcional">
                           <span className="font-mono" style={{ color: '#10B981' }}>-{fmtBRL(u.creditCents)}</span>
                         </Row>
                         <Row label="Próxima cobrança">
-                          <span className="font-mono text-xs" style={{ color: '#475569' }}>{formatDate(u.nextDueDate)}</span>
+                          <span className="font-mono text-xs" style={{ color: '#CBD5E1' }}>{formatDate(u.nextDueDate)}</span>
                         </Row>
                       </>
                     )
@@ -291,14 +291,14 @@ export function UpgradeModal({ open, onClose, product, productLabel, currentPlan
                     return (
                       <>
                         <Row label="Plano atual">
-                          <span className="capitalize" style={{ color: '#0F172A' }}>{d.currentPlan}</span>
-                          <span className="text-xs ml-2" style={{ color: '#475569' }}>({fmtBRL(d.currentPriceCents)}/mês)</span>
+                          <span className="capitalize" style={{ color: '#F8FAFC' }}>{d.currentPlan}</span>
+                          <span className="text-xs ml-2" style={{ color: '#CBD5E1' }}>({fmtBRL(d.currentPriceCents)}/mês)</span>
                         </Row>
                         <Row label="Novo plano">
                           <span className="capitalize font-bold" style={{ color: '#F59E0B' }}>{d.newPlan}</span>
-                          <span className="text-xs ml-2" style={{ color: '#475569' }}>({fmtBRL(d.newPriceCents)}/mês)</span>
+                          <span className="text-xs ml-2" style={{ color: '#CBD5E1' }}>({fmtBRL(d.newPriceCents)}/mês)</span>
                         </Row>
-                        <div className="border-t pt-2" style={{ borderColor: '#E2E8F0' }} />
+                        <div className="border-t pt-2" style={{ borderColor: '#3D3656' }} />
                         <Row label="Vale a partir de">
                           <span className="font-mono text-xs flex items-center gap-1" style={{ color: '#F59E0B' }}>
                             <Calendar className="h-3 w-3" /> {formatDate(d.effectiveDate)}
@@ -315,7 +315,7 @@ export function UpgradeModal({ open, onClose, product, productLabel, currentPlan
             {isUpgrade ? (
               <div className="rounded-lg border p-4 flex justify-between items-center"
                 style={{ background: 'rgba(16,185,129,.06)', borderColor: 'rgba(16,185,129,.3)' }}>
-                <span className="text-sm font-bold" style={{ color: '#0F172A' }}>Total a pagar agora</span>
+                <span className="text-sm font-bold" style={{ color: '#F8FAFC' }}>Total a pagar agora</span>
                 <span className="text-2xl font-bold font-mono" style={{ color: '#10B981' }}>
                   {fmtBRL((prev.data as UpgradePreviewOK).proratedChargeCents)}
                 </span>
@@ -339,7 +339,7 @@ export function UpgradeModal({ open, onClose, product, productLabel, currentPlan
                 </p>
                 <ul className="space-y-1">
                   {lostFeatures.map(f => (
-                    <li key={f} className="text-[11px] flex items-start gap-1.5" style={{ color: '#0F172A' }}>
+                    <li key={f} className="text-[11px] flex items-start gap-1.5" style={{ color: '#F8FAFC' }}>
                       <span style={{ color: '#EF4444' }}>×</span> {f}
                     </li>
                   ))}
@@ -350,13 +350,13 @@ export function UpgradeModal({ open, onClose, product, productLabel, currentPlan
             <div className="flex gap-2">
               <button onClick={() => setStep('choose')}
                 className="flex-1 rounded-lg py-3 text-sm font-bold border transition-colors hover:bg-white/5"
-                style={{ borderColor: '#E2E8F0', color: '#475569' }}>Voltar</button>
+                style={{ borderColor: '#3D3656', color: '#CBD5E1' }}>Voltar</button>
               <button onClick={handleExecute} disabled={executing}
                 className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg py-3 text-sm font-bold transition-opacity hover:opacity-90 disabled:opacity-50"
                 style={{ background: isUpgrade
-                  ? 'linear-gradient(135deg, #1D4ED8, #10B981)'
+                  ? 'linear-gradient(135deg, #A855F7, #10B981)'
                   : 'linear-gradient(135deg, #F59E0B, #FF8800)',
-                  color: '#FFFFFF' }}>
+                  color: '#1E1B2E' }}>
                 {executing
                   ? <><Loader2 className="h-4 w-4 animate-spin" /> Processando…</>
                   : isUpgrade ? 'Confirmar upgrade' : 'Confirmar downgrade'}
@@ -375,25 +375,25 @@ export function UpgradeModal({ open, onClose, product, productLabel, currentPlan
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: 'rgba(0,0,0,0.7)' }} onClick={onClose}>
       <div className="rounded-2xl border w-full max-w-2xl max-h-[95vh] overflow-y-auto"
-        style={{ background: '#F1F5F9', borderColor: '#CBD5E1' }}
+        style={{ background: '#2A2440', borderColor: '#4C4470' }}
         onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between px-6 py-4 border-b sticky top-0 z-10"
-          style={{ background: '#F1F5F9', borderColor: '#E2E8F0' }}>
-          <h3 className="text-lg font-bold" style={{ color: '#0F172A' }}>
+          style={{ background: '#2A2440', borderColor: '#3D3656' }}>
+          <h3 className="text-lg font-bold" style={{ color: '#F8FAFC' }}>
             Mudar plano — {productLabel}
           </h3>
           <button onClick={onClose} className="p-1 rounded hover:bg-white/5"
-            style={{ color: '#64748B' }}><X className="h-5 w-5" /></button>
+            style={{ color: '#A78BFA' }}><X className="h-5 w-5" /></button>
         </div>
 
         <div className="p-6">
-          <p className="text-xs mb-4" style={{ color: '#475569' }}>
-            Você está atualmente no plano <strong className="capitalize" style={{ color: '#1D4ED8' }}>{currentPlan}</strong>.
+          <p className="text-xs mb-4" style={{ color: '#CBD5E1' }}>
+            Você está atualmente no plano <strong className="capitalize" style={{ color: '#A855F7' }}>{currentPlan}</strong>.
             Escolha o novo plano abaixo:
           </p>
 
           {loadingPreviews ? (
-            <div className="flex items-center justify-center py-12" style={{ color: '#64748B' }}>
+            <div className="flex items-center justify-center py-12" style={{ color: '#A78BFA' }}>
               <Loader2 className="h-6 w-6 animate-spin" />
             </div>
           ) : (
@@ -414,11 +414,11 @@ export function UpgradeModal({ open, onClose, product, productLabel, currentPlan
                     disabled={hasError}
                     onClick={() => { setSelectedPlan(plan.plan); setStep('confirm') }}
                     className="w-full rounded-lg border p-4 text-left transition-colors hover:bg-white/[0.02] disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
+                    style={{ background: '#1E1B2E', borderColor: '#3D3656' }}>
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 flex-wrap mb-1">
-                          <p className="text-base font-bold capitalize" style={{ color: '#0F172A' }}>
+                          <p className="text-base font-bold capitalize" style={{ color: '#F8FAFC' }}>
                             {plan.plan}
                           </p>
                           {!hasError && (
@@ -431,7 +431,7 @@ export function UpgradeModal({ open, onClose, product, productLabel, currentPlan
                             </span>
                           )}
                         </div>
-                        <p className="text-sm font-mono" style={{ color: '#475569' }}>
+                        <p className="text-sm font-mono" style={{ color: '#CBD5E1' }}>
                           {fmtBRL(plan.priceCents)}/mês
                         </p>
                       </div>
@@ -439,14 +439,14 @@ export function UpgradeModal({ open, onClose, product, productLabel, currentPlan
                         <div className="text-right shrink-0 ml-3">
                           {isUpgrade ? (
                             <>
-                              <p className="text-[10px]" style={{ color: '#64748B' }}>Você paga agora</p>
+                              <p className="text-[10px]" style={{ color: '#A78BFA' }}>Você paga agora</p>
                               <p className="text-lg font-bold font-mono" style={{ color: '#10B981' }}>
                                 {fmtBRL((prev.data as UpgradePreviewOK).proratedChargeCents)}
                               </p>
                             </>
                           ) : (
                             <>
-                              <p className="text-[10px]" style={{ color: '#64748B' }}>Vale em</p>
+                              <p className="text-[10px]" style={{ color: '#A78BFA' }}>Vale em</p>
                               <p className="text-xs font-mono" style={{ color: '#F59E0B' }}>
                                 {formatDate((prev.data as DowngradePreviewOK).effectiveDate)}
                               </p>
@@ -458,18 +458,18 @@ export function UpgradeModal({ open, onClose, product, productLabel, currentPlan
 
                     {/* Features */}
                     {features.length > 0 && (
-                      <div className="border-t pt-3" style={{ borderColor: '#E2E8F0' }}>
+                      <div className="border-t pt-3" style={{ borderColor: '#3D3656' }}>
                         <p className="text-[10px] font-bold uppercase tracking-widest mb-2"
-                          style={{ color: '#64748B' }}>Recursos inclusos</p>
+                          style={{ color: '#A78BFA' }}>Recursos inclusos</p>
                         <ul className="space-y-1">
                           {features.slice(0, 4).map(f => (
-                            <li key={f} className="text-[11px] flex items-start gap-1.5" style={{ color: '#0F172A' }}>
+                            <li key={f} className="text-[11px] flex items-start gap-1.5" style={{ color: '#F8FAFC' }}>
                               <Check className="h-3 w-3 mt-0.5 shrink-0" style={{ color: '#10B981' }} />
                               {f}
                             </li>
                           ))}
                           {features.length > 4 && (
-                            <li className="text-[10px] italic" style={{ color: '#64748B' }}>
+                            <li className="text-[10px] italic" style={{ color: '#A78BFA' }}>
                               + {features.length - 4} outros recursos
                             </li>
                           )}
@@ -496,7 +496,7 @@ export function UpgradeModal({ open, onClose, product, productLabel, currentPlan
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between text-xs">
-      <span style={{ color: '#475569' }}>{label}</span>
+      <span style={{ color: '#CBD5E1' }}>{label}</span>
       <span>{children}</span>
     </div>
   )

@@ -123,7 +123,7 @@ function RowMenu({ product, onCloneForm, onPrint }: {
           <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
           <div
             className="fixed z-40 w-44 rounded-lg border shadow-xl overflow-hidden"
-            style={{ background: '#FFFFFF', borderColor: '#E2E8F0', top: pos.top, right: pos.right }}
+            style={{ background: '#1E1B2E', borderColor: '#3D3656', top: pos.top, right: pos.right }}
           >
             <button
               onClick={() => { onCloneForm(product); setOpen(false) }}
@@ -431,14 +431,14 @@ export function EstoqueClient({ initialProducts, initialTotal, brands: initialBr
           <button onClick={handleRemoveDuplicates} disabled={deduping}
             title="Remove duplicados mantendo o mais antigo"
             className="flex shrink-0 items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium text-muted hover:text-red-400 transition-colors disabled:opacity-50"
-            style={{ borderColor: '#E2E8F0' }}>
+            style={{ borderColor: '#3D3656' }}>
             {deduping ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
             {deduping ? 'Limpando…' : dedupResult !== null ? `${dedupResult} removidos` : 'Limpar duplicatas'}
           </button>
           <button
             onClick={() => { setImportOpen(true); setImportParsed(false); setImportRows([]); setImportResult(null); setImportError('') }}
             className="flex shrink-0 items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium text-muted hover:text-text transition-colors"
-            style={{ borderColor: '#E2E8F0' }}>
+            style={{ borderColor: '#3D3656' }}>
             <FileUp className="h-4 w-4" /> Importar CSV
           </button>
           <button onClick={() => { setEditing(null); setModalOpen(true) }}
@@ -456,23 +456,23 @@ export function EstoqueClient({ initialProducts, initialTotal, brands: initialBr
           <input value={search} onChange={e => { setSearch(e.target.value); setPage(0) }}
             placeholder="Buscar por nome, SKU ou marca…"
             className="w-full rounded-lg border bg-transparent py-2 text-sm text-text placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-accent"
-            style={{ borderColor: '#E2E8F0', paddingLeft: '2.25rem', paddingRight: '0.75rem' }} />
+            style={{ borderColor: '#3D3656', paddingLeft: '2.25rem', paddingRight: '0.75rem' }} />
         </div>
         <select value={filterBrand} onChange={e => { setFilterBrand(e.target.value); setPage(0) }}
           className="rounded-lg border bg-transparent px-3 py-2 text-sm text-text"
-          style={{ borderColor: '#E2E8F0', minWidth: '150px' }}>
+          style={{ borderColor: '#3D3656', minWidth: '150px' }}>
           <option value="">Todas as marcas</option>
           {brands.map(b => <option key={b} value={b}>{b}</option>)}
         </select>
         <select value={filterCategory} onChange={e => { setFilterCategory(e.target.value); setPage(0) }}
           className="rounded-lg border bg-transparent px-3 py-2 text-sm text-text"
-          style={{ borderColor: '#E2E8F0', minWidth: '160px' }}>
+          style={{ borderColor: '#3D3656', minWidth: '160px' }}>
           <option value="">Todas as categorias</option>
           {categories.map(c => <option key={c} value={c}>{c}</option>)}
         </select>
         <select value={filterActive} onChange={e => { setFilterActive(e.target.value as typeof filterActive); setPage(0) }}
           className="rounded-lg border bg-transparent px-3 py-2 text-sm text-text"
-          style={{ borderColor: '#E2E8F0' }}>
+          style={{ borderColor: '#3D3656' }}>
           <option value="all">Todos</option>
           <option value="active">Ativos</option>
           <option value="inactive">Inativos</option>
@@ -480,8 +480,8 @@ export function EstoqueClient({ initialProducts, initialTotal, brands: initialBr
       </div>
 
       {/* Table */}
-      <div className="rounded-xl border overflow-hidden" style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}>
-        <div className="flex items-center justify-between border-b px-5 py-4" style={{ borderColor: '#E2E8F0' }}>
+      <div className="rounded-xl border overflow-hidden" style={{ background: '#2A2440', borderColor: '#3D3656' }}>
+        <div className="flex items-center justify-between border-b px-5 py-4" style={{ borderColor: '#3D3656' }}>
           <h2 className="text-sm font-semibold text-text">Produtos</h2>
           <div className="flex items-center gap-3">
             {fetching && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted" />}
@@ -491,13 +491,13 @@ export function EstoqueClient({ initialProducts, initialTotal, brands: initialBr
 
         {products.length === 0 && !fetching ? (
           <div className="flex flex-col items-center justify-center gap-2 py-20">
-            <Package className="h-10 w-10" style={{ color: '#94A3B8' }} />
+            <Package className="h-10 w-10" style={{ color: '#8B82A8' }} />
             <p className="text-sm text-muted">Nenhum produto encontrado</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <div className="grid gap-3 px-5 py-3 border-b text-xs font-medium uppercase tracking-wider text-muted"
-              style={{ borderColor: '#E2E8F0', gridTemplateColumns: 'minmax(280px, 2fr) 100px 120px 110px 120px 80px 90px 152px', minWidth: '1100px' }}>
+              style={{ borderColor: '#3D3656', gridTemplateColumns: 'minmax(280px, 2fr) 100px 120px 110px 120px 80px 90px 152px', minWidth: '1100px' }}>
               <span>Nome</span><span>SKU</span><span>Marca</span>
               <span className="text-right">Pr. Custo</span>
               <span className="text-right">Pr. Venda</span>
@@ -509,15 +509,15 @@ export function EstoqueClient({ initialProducts, initialTotal, brands: initialBr
             {products.map(p => (
               <div key={p.id}
                 className="grid gap-3 px-5 py-3.5 border-b items-center last:border-0 hover:bg-white/[0.02] transition-colors"
-                style={{ borderColor: '#E2E8F0', gridTemplateColumns: 'minmax(280px, 2fr) 100px 120px 110px 120px 80px 90px 152px', minWidth: '1100px' }}>
+                style={{ borderColor: '#3D3656', gridTemplateColumns: 'minmax(280px, 2fr) 100px 120px 110px 120px 80px 90px 152px', minWidth: '1100px' }}>
 
                 {/* Nome + imagem */}
                 <div className="flex items-center gap-3 min-w-0">
                   {p.image_urls?.[0] ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={p.image_urls[0]} alt={p.name} className="h-9 w-9 rounded-lg object-cover shrink-0" style={{ border: '1px solid #E2E8F0' }} />
+                    <img src={p.image_urls[0]} alt={p.name} className="h-9 w-9 rounded-lg object-cover shrink-0" style={{ border: '1px solid #3D3656' }} />
                   ) : (
-                    <div className="h-9 w-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: '#E2E8F0' }}>
+                    <div className="h-9 w-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: '#3D3656' }}>
                       <Package className="h-4 w-4 text-muted" />
                     </div>
                   )}
@@ -575,7 +575,7 @@ export function EstoqueClient({ initialProducts, initialTotal, brands: initialBr
 
         {/* ── Paginação ──────────────────────────────────────────────────────── */}
         {total > PAGE_SIZE && (
-          <div className="flex items-center justify-between border-t px-5 py-4" style={{ borderColor: '#E2E8F0' }}>
+          <div className="flex items-center justify-between border-t px-5 py-4" style={{ borderColor: '#3D3656' }}>
             <span className="text-xs text-muted">
               Exibindo {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, total)} de {total} produtos
             </span>
@@ -584,7 +584,7 @@ export function EstoqueClient({ initialProducts, initialTotal, brands: initialBr
                 onClick={() => setPage(p => p - 1)}
                 disabled={page === 0 || fetching}
                 className="rounded-lg border px-3 py-1.5 text-sm text-muted hover:text-text disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                style={{ borderColor: '#E2E8F0' }}>
+                style={{ borderColor: '#3D3656' }}>
                 ← Anterior
               </button>
               <span className="text-xs text-muted">
@@ -594,7 +594,7 @@ export function EstoqueClient({ initialProducts, initialTotal, brands: initialBr
                 onClick={() => setPage(p => p + 1)}
                 disabled={(page + 1) * PAGE_SIZE >= total || fetching}
                 className="rounded-lg border px-3 py-1.5 text-sm text-muted hover:text-text disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                style={{ borderColor: '#E2E8F0' }}>
+                style={{ borderColor: '#3D3656' }}>
                 Próxima →
               </button>
             </div>
@@ -619,7 +619,7 @@ export function EstoqueClient({ initialProducts, initialTotal, brands: initialBr
       {/* ── Modal Balanço ────────────────────────────────────────────────────── */}
       {balanceTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)' }}>
-          <div className="w-full max-w-sm rounded-2xl border p-6 space-y-4" style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
+          <div className="w-full max-w-sm rounded-2xl border p-6 space-y-4" style={{ background: '#1E1B2E', borderColor: '#3D3656' }}>
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl" style={{ background: '#F59E0B18' }}>
                 <ClipboardList className="h-5 w-5" style={{ color: '#F59E0B' }} />
@@ -629,7 +629,7 @@ export function EstoqueClient({ initialProducts, initialTotal, brands: initialBr
                 <p className="text-xs text-muted truncate">{balanceTarget.name}</p>
               </div>
             </div>
-            <div className="rounded-lg border px-4 py-3 flex items-center justify-between" style={{ borderColor: '#E2E8F0' }}>
+            <div className="rounded-lg border px-4 py-3 flex items-center justify-between" style={{ borderColor: '#3D3656' }}>
               <span className="text-xs text-muted">Estoque atual</span>
               <span className="text-sm font-bold text-text">{balanceTarget.stock_qty} {balanceTarget.unit}</span>
             </div>
@@ -637,11 +637,11 @@ export function EstoqueClient({ initialProducts, initialTotal, brands: initialBr
               <label className="mb-1 block text-xs font-medium text-muted">Nova quantidade</label>
               <input type="number" min={0} value={balanceQty} onChange={e => setBalanceQty(e.target.value)}
                 className="w-full rounded-lg border bg-transparent px-3 py-2.5 text-sm text-text focus:outline-none focus:ring-1 focus:ring-accent"
-                style={{ borderColor: '#E2E8F0' }} autoFocus />
+                style={{ borderColor: '#3D3656' }} autoFocus />
             </div>
             {balanceError && <p className="text-xs" style={{ color: '#EF4444' }}>{balanceError}</p>}
             <div className="flex gap-3">
-              <button onClick={() => setBalanceTarget(null)} className="flex-1 rounded-lg border py-2 text-sm text-muted hover:text-text" style={{ borderColor: '#E2E8F0' }}>Cancelar</button>
+              <button onClick={() => setBalanceTarget(null)} className="flex-1 rounded-lg border py-2 text-sm text-muted hover:text-text" style={{ borderColor: '#3D3656' }}>Cancelar</button>
               <button onClick={handleBalance} disabled={balancing || balanceQty === ''}
                 className="flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-sm font-semibold text-black disabled:opacity-50"
                 style={{ background: '#F59E0B' }}>
@@ -655,15 +655,15 @@ export function EstoqueClient({ initialProducts, initialTotal, brands: initialBr
       {/* ── Modal CSV ────────────────────────────────────────────────────────── */}
       {importOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4" style={{ background: 'rgba(0,0,0,0.7)' }}>
-          <div className="relative w-full max-w-2xl rounded-2xl border my-8" style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
-            <div className="flex items-center justify-between border-b px-6 py-4" style={{ borderColor: '#E2E8F0' }}>
+          <div className="relative w-full max-w-2xl rounded-2xl border my-8" style={{ background: '#1E1B2E', borderColor: '#3D3656' }}>
+            <div className="flex items-center justify-between border-b px-6 py-4" style={{ borderColor: '#3D3656' }}>
               <h2 className="text-base font-semibold text-text">Importar Produtos (CSV)</h2>
               <button onClick={() => setImportOpen(false)} className="text-muted hover:text-text"><X className="h-5 w-5" /></button>
             </div>
             <div className="space-y-4 px-6 py-5">
               {!importParsed ? (
                 <>
-                  <div className="rounded-lg border p-4 space-y-2" style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}>
+                  <div className="rounded-lg border p-4 space-y-2" style={{ background: '#2A2440', borderColor: '#3D3656' }}>
                     <p className="text-xs font-semibold text-muted uppercase tracking-wider">Colunas reconhecidas (exportação Bling)</p>
                     <div className="flex flex-wrap gap-1.5">
                       {['Código', 'Nome', 'Marca', 'Categoria', 'GTIN', 'Preço de Venda', 'Preço de Custo', 'Estoque', 'Unidade', 'Fornecedor'].map(c => (
@@ -673,7 +673,7 @@ export function EstoqueClient({ initialProducts, initialTotal, brands: initialBr
                   </div>
                   <button onClick={() => importFileRef.current?.click()}
                     className="w-full flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed py-10 transition-colors hover:border-accent"
-                    style={{ borderColor: '#E2E8F0' }}>
+                    style={{ borderColor: '#3D3656' }}>
                     <FileUp className="h-8 w-8 text-muted" />
                     <p className="text-sm font-medium text-text">Clique para selecionar o CSV</p>
                     <p className="text-xs text-muted">Exportação do Bling ou qualquer CSV com cabeçalho</p>
@@ -692,12 +692,12 @@ export function EstoqueClient({ initialProducts, initialTotal, brands: initialBr
                 </div>
               ) : (
                 <>
-                  <div className="rounded-lg border overflow-hidden" style={{ borderColor: '#E2E8F0' }}>
-                    <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: '#E2E8F0', background: '#F8FAFC' }}>
+                  <div className="rounded-lg border overflow-hidden" style={{ borderColor: '#3D3656' }}>
+                    <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: '#3D3656', background: '#2A2440' }}>
                       <p className="text-sm font-medium text-text">{importRows.length} produtos encontrados</p>
                       <button onClick={() => { setImportParsed(false); setImportRows([]) }} className="text-xs text-muted hover:text-text">Trocar arquivo</button>
                     </div>
-                    <div className="max-h-64 overflow-y-auto divide-y divide-[#E2E8F0]">
+                    <div className="max-h-64 overflow-y-auto divide-y divide-[#3D3656]">
                       {importRows.slice(0, 50).map((r, i) => (
                         <div key={i} className="flex items-center justify-between px-4 py-2.5 text-sm">
                           <div className="min-w-0">
@@ -714,7 +714,7 @@ export function EstoqueClient({ initialProducts, initialTotal, brands: initialBr
                   </div>
                   {importError && <p className="text-xs" style={{ color: '#EF4444' }}>{importError}</p>}
                   <div className="flex gap-3">
-                    <button onClick={() => setImportOpen(false)} className="flex-1 rounded-lg border py-2.5 text-sm text-muted hover:text-text" style={{ borderColor: '#E2E8F0' }}>Cancelar</button>
+                    <button onClick={() => setImportOpen(false)} className="flex-1 rounded-lg border py-2.5 text-sm text-muted hover:text-text" style={{ borderColor: '#3D3656' }}>Cancelar</button>
                     <button onClick={handleImport} disabled={importing}
                       className="flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold text-black"
                       style={{ background: '#10B981' }}>
@@ -732,7 +732,7 @@ export function EstoqueClient({ initialProducts, initialTotal, brands: initialBr
       {/* ── Modal Delete ─────────────────────────────────────────────────────── */}
       {deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)' }}>
-          <div className="w-full max-w-sm rounded-2xl border p-6 space-y-4" style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
+          <div className="w-full max-w-sm rounded-2xl border p-6 space-y-4" style={{ background: '#1E1B2E', borderColor: '#3D3656' }}>
             <div className="flex h-12 w-12 items-center justify-center rounded-xl" style={{ background: '#EF444418' }}>
               <Trash2 className="h-6 w-6" style={{ color: '#EF4444' }} />
             </div>
@@ -742,7 +742,7 @@ export function EstoqueClient({ initialProducts, initialTotal, brands: initialBr
             </div>
             {deleteError && <p className="text-xs" style={{ color: '#EF4444' }}>{deleteError}</p>}
             <div className="flex gap-3">
-              <button onClick={() => setDeleteTarget(null)} className="flex-1 rounded-lg border py-2 text-sm text-muted hover:text-text" style={{ borderColor: '#E2E8F0' }}>Cancelar</button>
+              <button onClick={() => setDeleteTarget(null)} className="flex-1 rounded-lg border py-2 text-sm text-muted hover:text-text" style={{ borderColor: '#3D3656' }}>Cancelar</button>
               <button onClick={handleDelete} disabled={deleting}
                 className="flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-sm font-semibold text-white"
                 style={{ background: '#EF4444' }}>

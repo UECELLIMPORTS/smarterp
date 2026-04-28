@@ -1,53 +1,59 @@
 @import "tailwindcss";
 
 /* ============================================================================
- * SmartERP — Premium light theme com identidade tipográfica
- * Sem branco puro · DM Sans display · Inter body · JetBrains Mono pra números
- * Inspiração: Stripe + Mercury + Linear (light)
+ * SmartERP — Premium DARK roxo Latana-style
+ * Background gradient profundo (purple-black) · DM Sans · Inter · Mono
+ * Inspiração: Latana, Linear, Vercel
  * ============================================================================ */
 
 :root {
-  /* Backgrounds — off-white azulado (não branco puro!) */
-  --bg:        #E8ECF1;       /* slate-200 azulado, mais cor que cinza padrão */
-  --bg-2:      #DEE3EB;       /* mais marcado pra alternâncias */
-  --surface:   #FFFFFF;       /* cards principais */
-  --surface-2: #F7F9FC;       /* surfaces secundárias (table head, hover) */
+  /* Background — gradient roxo profundo aplicado via body */
+  --bg:        #0F0A1F;       /* fallback solid */
+  --bg-2:      #1A0B2E;
+  --bg-3:      #2D1B4E;
 
-  /* Borders */
-  --border:    #D4DBE4;       /* mais marcado que slate-200 padrão */
-  --border-2:  #BCC5D1;
+  /* Surfaces (cards, sidebars) */
+  --surface:   #1E1B2E;       /* dark purple-slate */
+  --surface-2: #2A2440;       /* alt surfaces, table heads */
+  --card:      #1E1B2E;
 
-  /* Text — slate com peso */
-  --text:      #0B1220;       /* quase preto azulado, não preto puro */
-  --text-2:    #2D3748;
-  --muted:     #5A6B82;       /* slate-500 mais escuro */
-  --muted-2:   #94A3B8;
+  /* Borders — sutis com tint roxo */
+  --border:    #3D3656;
+  --border-2:  #4C4470;
 
-  /* Brand — azul Conta Azul */
-  --accent:         #1D4ED8;
-  --accent-hover:   #1E40AF;
-  --accent-dark:    #1E3A8A;
-  --accent-light:   #DBEAFE;
-  --accent-lighter: #EFF6FF;
+  /* Text — branco/violet */
+  --text:      #F8FAFC;       /* off-white */
+  --text-2:    #E2D9F0;       /* levemente roxo */
+  --muted:     #A78BFA;       /* violet-300 — identidade Latana */
+  --muted-2:   #8B82A8;
 
-  /* Semantic */
-  --green:        #059669;    /* emerald-600 mais profundo */
-  --green-light:  #D1FAE5;
-  --amber:        #D97706;    /* amber-600 mais profundo */
-  --amber-light:  #FEF3C7;
-  --coral:        #DC2626;    /* red-600 */
-  --coral-light:  #FEE2E2;
+  /* Brand — Latana purple/violet com pink accent */
+  --accent:         #A855F7;       /* violet-500 — primary */
+  --accent-hover:   #9333EA;       /* violet-600 */
+  --accent-dark:    #7E22CE;       /* violet-700 */
+  --accent-light:   rgba(168, 85, 247, .15);
+  --accent-lighter: rgba(168, 85, 247, .08);
+
+  --accent-pink:    #EC4899;       /* pink-500 — accent secundário */
+  --accent-fuchsia: #D946EF;
+
+  /* Semantic — versões mais claras pra fundo dark */
+  --green:        #34D399;    /* emerald-400 */
+  --green-light:  rgba(52, 211, 153, .12);
+  --amber:        #FBBF24;    /* amber-400 */
+  --amber-light:  rgba(251, 191, 36, .12);
+  --coral:        #F87171;    /* red-400 */
+  --coral-light:  rgba(248, 113, 113, .12);
 
   /* Compat */
-  --gold:   #D97706;
-  --danger: #DC2626;
-  --card:   #FFFFFF;
+  --gold:   #FBBF24;
+  --danger: #F87171;
 
-  /* Sombras (multi-layer, Stripe-style) */
-  --shadow-sm: 0 1px 2px rgba(11,18,32,.05), 0 1px 1px rgba(11,18,32,.04);
-  --shadow:    0 1px 3px rgba(11,18,32,.06), 0 4px 12px rgba(11,18,32,.04);
-  --shadow-md: 0 4px 6px rgba(11,18,32,.04), 0 12px 24px rgba(11,18,32,.06);
-  --shadow-lg: 0 10px 15px rgba(11,18,32,.05), 0 24px 48px rgba(11,18,32,.08);
+  /* Sombras dark — glow violet ao invés de drop shadow */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.4), 0 1px 3px rgba(0,0,0,.2);
+  --shadow:    0 4px 12px rgba(0,0,0,.35), 0 0 0 1px rgba(168,85,247,.05);
+  --shadow-md: 0 12px 24px rgba(0,0,0,.4), 0 0 0 1px rgba(168,85,247,.08);
+  --shadow-lg: 0 24px 48px rgba(0,0,0,.5), 0 0 60px rgba(168,85,247,.12);
 }
 
 @theme inline {
@@ -71,7 +77,12 @@
 html, body { height: 100%; }
 
 body {
-  background: var(--bg);
+  background:
+    radial-gradient(ellipse at 0% 0%,   rgba(168, 85, 247, .15) 0px, transparent 40%),
+    radial-gradient(ellipse at 100% 0%, rgba(236, 72, 153, .10) 0px, transparent 50%),
+    radial-gradient(ellipse at 50% 100%, rgba(124, 58, 237, .12) 0px, transparent 50%),
+    linear-gradient(135deg, #0F0A1F 0%, #1A0B2E 50%, #2D1B4E 100%);
+  background-attachment: fixed;
   color: var(--text);
   font-family: var(--font-inter), 'Inter', system-ui, -apple-system, sans-serif;
   font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11', 'ss01';
@@ -80,7 +91,7 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* Display headings — DM Sans com tracking apertado */
+/* Display headings — DM Sans */
 h1, h2, h3, h4, h5, h6,
 .display, .font-display {
   font-family: var(--font-display), 'DM Sans', system-ui, sans-serif;
@@ -88,25 +99,27 @@ h1, h2, h3, h4, h5, h6,
   font-feature-settings: 'ss01';
 }
 
-/* Mono — números, códigos, valores monetários */
+/* Mono */
 .font-mono, code, kbd {
   font-family: var(--font-mono), 'JetBrains Mono', ui-monospace, monospace;
 }
 
-/* Scrollbar premium */
+/* Scrollbar dark */
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: var(--border-2);
+  background: var(--border);
   border-radius: 5px;
-  border: 2px solid var(--bg);
+  border: 2px solid transparent;
+  background-clip: padding-box;
 }
-::-webkit-scrollbar-thumb:hover { background: var(--muted-2); }
+::-webkit-scrollbar-thumb:hover { background: var(--border-2); background-clip: padding-box; }
 
-input[type="datetime-local"] { color-scheme: light; }
+input[type="datetime-local"] { color-scheme: dark; }
 input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   cursor: pointer;
-  opacity: 0.5;
+  filter: invert(1) brightness(0.8);
+  opacity: 0.7;
 }
 input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
 
@@ -119,13 +132,21 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover { opacity:
   to   { opacity: 1; transform: translateY(0)   scale(1);    }
 }
 
+/* Glassmorphism utility — cards com leve transparência sobre o gradient */
+.glass {
+  background: rgba(30, 27, 46, .7);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid var(--border);
+}
+
 /* ─────────────────────────────────────────────────────────────────────────
- * Auth pages — light com identidade premium
+ * Auth — dark roxo Latana-style
  * ───────────────────────────────────────────────────────────────────────── */
 
 .auth-input {
   width: 100%;
-  background: white;
+  background: rgba(30, 27, 46, .6);
   border: 1px solid var(--border);
   border-radius: 0.625rem;
   padding: 0.7rem 1rem;
@@ -136,7 +157,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover { opacity:
 }
 .auth-input:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(29, 78, 216, .12);
+  box-shadow: 0 0 0 3px rgba(168, 85, 247, .15);
 }
 .auth-input::placeholder { color: var(--muted-2); }
 
@@ -147,7 +168,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover { opacity:
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  background: var(--accent);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-pink) 100%);
   color: white;
   border-radius: 0.625rem;
   padding: 0.7rem 0;
@@ -155,11 +176,10 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover { opacity:
   font-weight: 600;
   letter-spacing: -0.01em;
   transition: opacity .15s, box-shadow .15s, transform .1s;
-  box-shadow: var(--shadow-sm), 0 4px 12px rgba(29, 78, 216, .18);
+  box-shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(168, 85, 247, .35);
 }
 .auth-btn-primary:hover:not(:disabled) {
-  background: var(--accent-hover);
-  box-shadow: var(--shadow), 0 6px 20px rgba(29, 78, 216, .28);
+  box-shadow: 0 1px 3px rgba(0,0,0,.4), 0 12px 32px rgba(168, 85, 247, .45);
   transform: translateY(-1px);
 }
 .auth-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -169,7 +189,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover { opacity:
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  background: white;
+  background: rgba(30, 27, 46, .5);
   color: var(--text);
   border: 1px solid var(--border);
   border-radius: 0.625rem;
@@ -179,34 +199,26 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover { opacity:
   transition: background .15s, border-color .15s;
 }
 .auth-btn-secondary:hover {
-  background: var(--surface-2);
+  background: rgba(30, 27, 46, .8);
   border-color: var(--border-2);
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
- * App utilities — cards premium com sombras múltiplas
+ * App utilities
  * ───────────────────────────────────────────────────────────────────────── */
 
 .app-card {
-  background: white;
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 0.875rem;
   box-shadow: var(--shadow-sm);
-  transition: border-color .2s, box-shadow .2s, transform .15s;
+  transition: border-color .2s, box-shadow .2s;
 }
 .app-card:hover {
-  border-color: var(--border-2);
-  box-shadow: var(--shadow);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px rgba(168, 85, 247, .2), 0 8px 24px rgba(168, 85, 247, .08);
 }
 
-.app-card-elevated {
-  background: white;
-  border: 1px solid var(--border);
-  border-radius: 1rem;
-  box-shadow: var(--shadow);
-}
-
-/* Page header com hierarquia clara */
 .page-title {
   font-family: var(--font-display), 'DM Sans', sans-serif;
   font-size: 1.875rem;

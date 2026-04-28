@@ -88,11 +88,11 @@ function KPICard({ title, value, subtitle, icon: Icon, color, trend }: KPICardPr
         style={{ background: color }} />
       <div className="relative flex items-start justify-between">
         <div>
-          <p className="text-xs font-bold uppercase tracking-wider" style={{ color: '#64748B' }}>
+          <p className="text-xs font-bold uppercase tracking-wider" style={{ color: '#A78BFA' }}>
             {title}
           </p>
-          <p className="mt-2 text-2xl font-bold tracking-tight" style={{ color: '#0F172A' }}>{value}</p>
-          <p className="mt-1 text-xs" style={{ color: '#64748B' }}>{subtitle}</p>
+          <p className="mt-2 text-2xl font-bold tracking-tight" style={{ color: '#F8FAFC' }}>{value}</p>
+          <p className="mt-1 text-xs" style={{ color: '#A78BFA' }}>{subtitle}</p>
         </div>
         <div
           className="flex h-11 w-11 items-center justify-center rounded-xl shrink-0"
@@ -108,7 +108,7 @@ function KPICard({ title, value, subtitle, icon: Icon, color, trend }: KPICardPr
             : <ArrowDownRight className="h-3.5 w-3.5" style={{ color: '#EF4444' }} />
           }
           <span style={{ color: trend.positive ? '#10B981' : '#EF4444' }}>{trend.value}</span>
-          <span style={{ color: '#64748B' }}>vs. período anterior</span>
+          <span style={{ color: '#A78BFA' }}>vs. período anterior</span>
         </div>
       )}
     </div>
@@ -441,7 +441,7 @@ export default async function DashboardPage(props: { searchParams: Promise<Searc
       desc:   `OS — ${o.customers?.full_name ?? 'Sem cliente'}`,
       value:  BRL(o.total_price_cents ?? 0),
       time:   new Date(o.received_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' }),
-      color:  '#1D4ED8',
+      color:  '#A855F7',
       source: 'CheckSmart' as const,
       date:   new Date(o.received_at),
     })),
@@ -468,7 +468,7 @@ export default async function DashboardPage(props: { searchParams: Promise<Searc
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-text">Dashboard</h1>
-          <p className="mt-1 text-sm capitalize" style={{ color: '#64748B' }}>{today}</p>
+          <p className="mt-1 text-sm capitalize" style={{ color: '#A78BFA' }}>{today}</p>
         </div>
         {showFiltros && <DashboardFilters />}
       </div>
@@ -488,7 +488,7 @@ export default async function DashboardPage(props: { searchParams: Promise<Searc
           value={BRL(fatMonth)}
           subtitle={new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric', timeZone: 'America/Sao_Paulo' })}
           icon={TrendingUp}
-          color="#1D4ED8"
+          color="#A855F7"
         />
         <KPICard
           title="Vendas (ERP)"
@@ -502,7 +502,7 @@ export default async function DashboardPage(props: { searchParams: Promise<Searc
           value={BRL(ticketMedio)}
           subtitle={periodLabel(period, fromDate, toDate)}
           icon={Receipt}
-          color="#1D4ED8"
+          color="#A855F7"
         />
         <KPICard
           title="Clientes Ativos"
@@ -527,19 +527,19 @@ export default async function DashboardPage(props: { searchParams: Promise<Searc
 
       {/* Atividade recente */}
       {showReports && (
-      <div className="rounded-xl border" style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}>
-        <div className="flex items-center justify-between border-b px-5 py-4" style={{ borderColor: '#E2E8F0' }}>
+      <div className="rounded-xl border" style={{ background: '#2A2440', borderColor: '#3D3656' }}>
+        <div className="flex items-center justify-between border-b px-5 py-4" style={{ borderColor: '#3D3656' }}>
           <h2 className="text-sm font-semibold text-text">Atividade Recente</h2>
-          <span className="text-xs" style={{ color: '#64748B' }}>{activityItems.length} registros</span>
+          <span className="text-xs" style={{ color: '#A78BFA' }}>{activityItems.length} registros</span>
         </div>
 
         {activityItems.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 py-16">
-            <Receipt className="h-8 w-8" style={{ color: '#94A3B8' }} />
-            <p className="text-sm" style={{ color: '#64748B' }}>Nenhuma atividade no período selecionado</p>
+            <Receipt className="h-8 w-8" style={{ color: '#8B82A8' }} />
+            <p className="text-sm" style={{ color: '#A78BFA' }}>Nenhuma atividade no período selecionado</p>
           </div>
         ) : (
-          <ul className="divide-y" style={{ borderColor: '#E2E8F0' }}>
+          <ul className="divide-y" style={{ borderColor: '#3D3656' }}>
             {activityItems.map((item) => (
               <li key={item.id} className="flex items-center justify-between px-5 py-3.5">
                 <div className="flex items-center gap-3 min-w-0">
@@ -556,7 +556,7 @@ export default async function DashboardPage(props: { searchParams: Promise<Searc
                 </div>
                 <div className="text-right flex-shrink-0 ml-4">
                   <p className="text-sm font-semibold" style={{ color: item.color }}>{item.value}</p>
-                  <p className="text-xs" style={{ color: '#64748B' }}>{item.time}</p>
+                  <p className="text-xs" style={{ color: '#A78BFA' }}>{item.time}</p>
                 </div>
               </li>
             ))}
@@ -568,8 +568,8 @@ export default async function DashboardPage(props: { searchParams: Promise<Searc
       {/* Mensagem se nenhum bloco está liberado */}
       {!showKpis && !showCharts && !showReports && (
         <div className="rounded-xl border p-12 text-center"
-          style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}>
-          <p className="text-sm" style={{ color: '#475569' }}>
+          style={{ background: '#2A2440', borderColor: '#3D3656' }}>
+          <p className="text-sm" style={{ color: '#CBD5E1' }}>
             Você tem acesso ao Dashboard mas nenhum bloco foi liberado pelo dono.
           </p>
         </div>

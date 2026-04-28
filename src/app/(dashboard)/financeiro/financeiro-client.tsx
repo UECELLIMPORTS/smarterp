@@ -81,7 +81,7 @@ function MenuItem({
       className="flex w-full items-center gap-3 px-5 py-4 text-sm font-semibold
                  border-l-4 border-transparent transition-all cursor-pointer
                  hover:bg-white/[0.03]"
-      style={{ color: labelColor ?? '#0F172A' }}
+      style={{ color: labelColor ?? '#F8FAFC' }}
       onMouseEnter={e => {
         e.currentTarget.style.borderLeftColor = accentColor
         e.currentTarget.style.background = `${accentColor}14`
@@ -148,8 +148,8 @@ const METHOD_LABEL: Record<string, string> = {
   credit_card: 'Crédito', debit_card: 'Débito', transfer: 'Transferência', pending: 'Pendente',
 }
 const METHOD_COLOR: Record<string, string> = {
-  cash: '#10B981', pix: '#1D4ED8', card: '#F59E0B', mixed: '#EF4444',
-  credit_card: '#F59E0B', debit_card: '#F59E0B', transfer: '#1D4ED8', pending: '#EF4444',
+  cash: '#10B981', pix: '#A855F7', card: '#F59E0B', mixed: '#EF4444',
+  credit_card: '#F59E0B', debit_card: '#F59E0B', transfer: '#A855F7', pending: '#EF4444',
 }
 const OS_STATUS_LABEL: Record<string, string> = {
   open: 'Aberta', in_progress: 'Em andamento', ready: 'Pronta',
@@ -157,7 +157,7 @@ const OS_STATUS_LABEL: Record<string, string> = {
 }
 
 const INP = 'w-full rounded-lg border bg-transparent px-3 py-2 text-sm text-text placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-accent'
-const INP_S: React.CSSProperties = { borderColor: '#E2E8F0' }
+const INP_S: React.CSSProperties = { borderColor: '#3D3656' }
 
 const EMPTY_NC = {
   name: '', tradeName: '', personType: 'fisica',
@@ -845,11 +845,11 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
         {[
           { label: 'Total Faturado', value: BRL(totalFaturado), icon: TrendingUp,   color: '#10B981' },
-          { label: 'Vendas ERP',     value: String(totalVendas), icon: ShoppingCart, color: '#1D4ED8' },
+          { label: 'Vendas ERP',     value: String(totalVendas), icon: ShoppingCart, color: '#A855F7' },
           { label: 'OS CheckSmart',  value: String(totalOS),    icon: Wrench,       color: '#F59E0B' },
-          { label: 'Ticket Médio',   value: BRL(ticketMedio),   icon: CreditCard,   color: '#1D4ED8' },
+          { label: 'Ticket Médio',   value: BRL(ticketMedio),   icon: CreditCard,   color: '#A855F7' },
         ].map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="rounded-xl border p-5" style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}>
+          <div key={label} className="rounded-xl border p-5" style={{ background: '#2A2440', borderColor: '#3D3656' }}>
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs font-medium uppercase tracking-wider text-muted">{label}</p>
@@ -864,7 +864,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
       </div>
 
       {totalDesconto > 0 && (
-        <div className="flex items-center gap-3 rounded-xl border px-5 py-3" style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}>
+        <div className="flex items-center gap-3 rounded-xl border px-5 py-3" style={{ background: '#2A2440', borderColor: '#3D3656' }}>
           <Receipt className="h-4 w-4 shrink-0 pointer-events-none" style={{ color: '#EF4444' }} />
           <p className="text-sm text-muted">
             Total de descontos: <span className="font-semibold" style={{ color: '#EF4444' }}>{BRL(totalDesconto)}</span>
@@ -873,7 +873,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
       )}
 
       {/* Filter bar */}
-      <div className="rounded-xl border p-4 space-y-3" style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}>
+      <div className="rounded-xl border p-4 space-y-3" style={{ background: '#2A2440', borderColor: '#3D3656' }}>
         <div className="flex flex-wrap items-center gap-2">
           <Filter className="h-4 w-4 shrink-0 text-muted" />
           {([
@@ -887,7 +887,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
               className="rounded-lg border px-3 py-1.5 text-xs font-medium transition-all"
               style={period === p.key
                 ? { background: '#10B98118', borderColor: '#10B981', color: '#10B981' }
-                : { borderColor: '#E2E8F0', color: '#64748B' }}>
+                : { borderColor: '#3D3656', color: '#A78BFA' }}>
               {p.label}
             </button>
           ))}
@@ -926,8 +926,8 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
 
       {/* Table — sem overflow-hidden no wrapper pra não cortar o dropdown
            do menu de 3 pontinhos quando ele abre pra baixo da última row. */}
-      <div className="rounded-xl border" style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}>
-        <div className="flex items-center justify-between border-b px-5 py-4 rounded-t-xl" style={{ borderColor: '#E2E8F0' }}>
+      <div className="rounded-xl border" style={{ background: '#2A2440', borderColor: '#3D3656' }}>
+        <div className="flex items-center justify-between border-b px-5 py-4 rounded-t-xl" style={{ borderColor: '#3D3656' }}>
           <h2 className="text-sm font-semibold text-text">Todas as Transações</h2>
           <div className="flex items-center gap-3">
             {someSelected && (
@@ -940,7 +940,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                 </button>
                 <button onClick={() => setConfirmBulkDelete(true)} disabled={bulkDeleting || !canBulkDelete}
                   className="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-40"
-                  style={canBulkDelete ? { borderColor: '#EF4444', background: '#EF444418', color: '#EF4444' } : { borderColor: '#E2E8F0', color: '#64748B' }}
+                  style={canBulkDelete ? { borderColor: '#EF4444', background: '#EF444418', color: '#EF4444' } : { borderColor: '#3D3656', color: '#A78BFA' }}
                   title={!canBulkDelete ? 'Selecione apenas registros já cancelados' : ''}>
                   <Trash2 className="h-3.5 w-3.5" /> Excluir seleção
                 </button>
@@ -952,14 +952,14 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
         </div>
         {filteredRows.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 py-20">
-            <Receipt className="h-10 w-10" style={{ color: '#94A3B8' }} />
+            <Receipt className="h-10 w-10" style={{ color: '#8B82A8' }} />
             <p className="text-sm text-muted">{rows.length === 0 ? 'Nenhuma transação registrada ainda' : 'Nenhum resultado para os filtros selecionados'}</p>
           </div>
         ) : (
           <>
             {/* Header: só desktop (mobile usa cards) */}
             <div className="hidden md:grid gap-4 px-5 py-3 border-b text-xs font-medium uppercase tracking-wider text-muted"
-              style={{ borderColor: '#E2E8F0', gridTemplateColumns: '32px 90px 1fr 150px 110px 100px 110px 40px' }}>
+              style={{ borderColor: '#3D3656', gridTemplateColumns: '32px 90px 1fr 150px 110px 100px 110px 40px' }}>
               <input type="checkbox" checked={allSelected} onChange={toggleAll}
                 className="h-4 w-4 rounded accent-accent cursor-pointer" />
               <span>Origem</span><span>Cliente / Descrição</span><span>Data</span>
@@ -967,7 +967,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
               <span className="text-right">Total</span><span />
             </div>
             {/* Mobile: header simples com seleção em massa */}
-            <div className="md:hidden flex items-center gap-3 px-4 py-3 border-b" style={{ borderColor: '#E2E8F0' }}>
+            <div className="md:hidden flex items-center gap-3 px-4 py-3 border-b" style={{ borderColor: '#3D3656' }}>
               <input type="checkbox" checked={allSelected} onChange={toggleAll}
                 className="h-4 w-4 rounded accent-accent cursor-pointer" />
               <span className="text-xs font-medium uppercase tracking-wider text-muted">
@@ -976,13 +976,13 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
             </div>
             {filteredRows.map(row => {
               const isERP    = row.source === 'erp'
-              const srcColor = row.cancelled ? '#64748B' : isERP ? '#10B981' : '#1D4ED8'
-              const pmColor  = row.payment ? (METHOD_COLOR[row.payment] ?? '#64748B') : '#64748B'
+              const srcColor = row.cancelled ? '#A78BFA' : isERP ? '#10B981' : '#A855F7'
+              const pmColor  = row.payment ? (METHOD_COLOR[row.payment] ?? '#A78BFA') : '#A78BFA'
               return (
                 <div key={row.id}
                   ref={openMenu === row.id ? menuRef : undefined}
                   className="relative border-b last:border-0"
-                  style={{ borderColor: '#E2E8F0' }}>
+                  style={{ borderColor: '#3D3656' }}>
 
                   {/* ── Mobile card view ── (opacity aplicada AQUI, não no wrapper externo,
                        pra não atingir o popup do menu — vide BUG-020 em _docs/bugs.md) */}
@@ -1032,7 +1032,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                           </span>
                         ) : row.osStatus ? (
                           <span className="inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-medium"
-                            style={{ background: '#64748B18', color: '#64748B' }}>
+                            style={{ background: '#A78BFA18', color: '#A78BFA' }}>
                             {OS_STATUS_LABEL[row.osStatus] ?? row.osStatus}
                           </span>
                         ) : null}
@@ -1086,11 +1086,11 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                     </span>
                   ) : row.osStatus ? (
                     <span className="inline-flex w-fit items-center rounded-md px-2 py-1 text-xs font-medium"
-                      style={{ background: '#64748B18', color: '#64748B' }}>
+                      style={{ background: '#A78BFA18', color: '#A78BFA' }}>
                       {OS_STATUS_LABEL[row.osStatus] ?? row.osStatus}
                     </span>
                   ) : <span className="text-xs text-muted">—</span>}
-                  <p className="text-sm text-right" style={{ color: row.discount > 0 ? '#EF4444' : '#64748B' }}>
+                  <p className="text-sm text-right" style={{ color: row.discount > 0 ? '#EF4444' : '#A78BFA' }}>
                     {row.discount > 0 ? `- ${BRL(row.discount)}` : '—'}
                   </p>
                   <p className={`text-sm font-bold text-right ${row.cancelled ? 'line-through text-muted' : 'text-green'}`}>{BRL(row.total)}</p>
@@ -1109,27 +1109,27 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                     <div
                       className="absolute right-2 top-12 md:right-5 md:top-14 z-[60] w-60 rounded-xl border overflow-hidden"
                       style={{
-                        background: '#F1F5F9',
-                        borderColor: '#CBD5E1',
-                        boxShadow: '0 12px 36px rgba(0,0,0,0.65), 0 0 0 1px rgba(29,78,216,0.08)',
+                        background: '#2A2440',
+                        borderColor: '#4C4470',
+                        boxShadow: '0 12px 36px rgba(0,0,0,0.65), 0 0 0 1px rgba(168,85,247,0.08)',
                         backdropFilter: 'none',
                       }}
                       onClick={e => e.stopPropagation()}>
                         {/* Editar venda — ERP (qualquer status) */}
                         {row.source === 'erp' && (
                           <MenuItem
-                            icon={<Pencil className="h-5 w-5 shrink-0 pointer-events-none" style={{ color: '#1D4ED8' }} />}
+                            icon={<Pencil className="h-5 w-5 shrink-0 pointer-events-none" style={{ color: '#A855F7' }} />}
                             label="Editar venda"
-                            accentColor="#1D4ED8"
+                            accentColor="#A855F7"
                             onClick={() => { setOpenMenu(null); openEditSale(row) }}
                           />
                         )}
                         {/* Alterar data — só ERP ativo */}
                         {row.source === 'erp' && !row.cancelled && (
                           <MenuItem
-                            icon={<CalendarDays className="h-5 w-5 shrink-0 pointer-events-none" style={{ color: '#1D4ED8' }} />}
+                            icon={<CalendarDays className="h-5 w-5 shrink-0 pointer-events-none" style={{ color: '#A855F7' }} />}
                             label="Alterar data"
-                            accentColor="#1D4ED8"
+                            accentColor="#A855F7"
                             onClick={() => { setOpenMenu(null); openEditDate(row) }}
                           />
                         )}
@@ -1145,18 +1145,18 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                         {/* Editar OS — CheckSmart (não-cancelada) */}
                         {row.source === 'checksmart' && !row.cancelled && (
                           <MenuItem
-                            icon={<Pencil className="h-5 w-5 shrink-0 pointer-events-none" style={{ color: '#1D4ED8' }} />}
+                            icon={<Pencil className="h-5 w-5 shrink-0 pointer-events-none" style={{ color: '#A855F7' }} />}
                             label="Editar OS"
-                            accentColor="#1D4ED8"
+                            accentColor="#A855F7"
                             onClick={() => { setOpenMenu(null); openEditOS(row) }}
                           />
                         )}
                         {/* Reclassificar canal — OS CheckSmart */}
                         {row.source === 'checksmart' && (
                           <MenuItem
-                            icon={<Pencil className="h-5 w-5 shrink-0 pointer-events-none" style={{ color: '#1D4ED8' }} />}
+                            icon={<Pencil className="h-5 w-5 shrink-0 pointer-events-none" style={{ color: '#A855F7' }} />}
                             label="Reclassificar canal"
-                            accentColor="#1D4ED8"
+                            accentColor="#A855F7"
                             onClick={() => { setOpenMenu(null); openReclassify(row) }}
                           />
                         )}
@@ -1179,7 +1179,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                         {/* Excluir — só ERP cancelado */}
                         {row.source === 'erp' && row.cancelled && (
                           <>
-                            <div className="mx-3 h-px" style={{ background: '#CBD5E1' }} />
+                            <div className="mx-3 h-px" style={{ background: '#4C4470' }} />
                             <MenuItem
                               icon={<Trash2 className="h-5 w-5 shrink-0 pointer-events-none" style={{ color: '#EF4444' }} />}
                               label="Excluir venda"
@@ -1201,7 +1201,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
       {/* ── Modal Cancelar ────────────────────────────────────────────────────── */}
       {confirmCancel && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)' }}>
-          <div className="w-full max-w-sm rounded-2xl border p-6 space-y-4" style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
+          <div className="w-full max-w-sm rounded-2xl border p-6 space-y-4" style={{ background: '#1E1B2E', borderColor: '#3D3656' }}>
             <div className="flex h-12 w-12 items-center justify-center rounded-xl" style={{ background: '#EF444418' }}>
               <XCircle className="h-6 w-6" style={{ color: '#EF4444' }} />
             </div>
@@ -1229,7 +1229,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
       {/* ── Modal Reativar ────────────────────────────────────────────────────── */}
       {confirmReactivate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)' }}>
-          <div className="w-full max-w-sm rounded-2xl border p-6 space-y-4" style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
+          <div className="w-full max-w-sm rounded-2xl border p-6 space-y-4" style={{ background: '#1E1B2E', borderColor: '#3D3656' }}>
             <div className="flex h-12 w-12 items-center justify-center rounded-xl" style={{ background: '#10B98118' }}>
               <RefreshCw className="h-6 w-6" style={{ color: '#10B981' }} />
             </div>
@@ -1257,7 +1257,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
       {/* ── Modal Cancelar em Massa ──────────────────────────────────────────── */}
       {confirmBulkCancel && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)' }}>
-          <div className="w-full max-w-sm rounded-2xl border p-6 space-y-4" style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
+          <div className="w-full max-w-sm rounded-2xl border p-6 space-y-4" style={{ background: '#1E1B2E', borderColor: '#3D3656' }}>
             <div className="flex h-12 w-12 items-center justify-center rounded-xl" style={{ background: '#EF444418' }}>
               <XCircle className="h-6 w-6" style={{ color: '#EF4444' }} />
             </div>
@@ -1283,7 +1283,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
       {/* ── Modal Excluir em Massa ────────────────────────────────────────────── */}
       {confirmBulkDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)' }}>
-          <div className="w-full max-w-sm rounded-2xl border p-6 space-y-4" style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
+          <div className="w-full max-w-sm rounded-2xl border p-6 space-y-4" style={{ background: '#1E1B2E', borderColor: '#3D3656' }}>
             <div className="flex h-12 w-12 items-center justify-center rounded-xl" style={{ background: '#EF444418' }}>
               <Trash2 className="h-6 w-6" style={{ color: '#EF4444' }} />
             </div>
@@ -1308,7 +1308,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
       {/* ── Modal Editar Pagamento OS ─────────────────────────────────────────── */}
       {editPayRow && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)' }}>
-          <div className="w-full max-w-sm rounded-2xl border p-6 space-y-4" style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
+          <div className="w-full max-w-sm rounded-2xl border p-6 space-y-4" style={{ background: '#1E1B2E', borderColor: '#3D3656' }}>
             <div className="flex h-12 w-12 items-center justify-center rounded-xl" style={{ background: '#F59E0B18' }}>
               <CreditCard className="h-6 w-6" style={{ color: '#F59E0B' }} />
             </div>
@@ -1331,7 +1331,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                   className="rounded-lg border py-2.5 text-sm font-medium transition-all"
                   style={editPayVal === opt.value
                     ? { background: '#F59E0B18', borderColor: '#F59E0B', color: '#F59E0B' }
-                    : { borderColor: '#E2E8F0', color: '#64748B' }}>
+                    : { borderColor: '#3D3656', color: '#A78BFA' }}>
                   {opt.label}
                 </button>
               ))}
@@ -1353,7 +1353,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
       {/* ── Modal Excluir ────────────────────────────────────────────────────── */}
       {confirmDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)' }}>
-          <div className="w-full max-w-sm rounded-2xl border p-6 space-y-4" style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
+          <div className="w-full max-w-sm rounded-2xl border p-6 space-y-4" style={{ background: '#1E1B2E', borderColor: '#3D3656' }}>
             <div className="flex h-12 w-12 items-center justify-center rounded-xl" style={{ background: '#EF444418' }}>
               <Trash2 className="h-6 w-6" style={{ color: '#EF4444' }} />
             </div>
@@ -1382,9 +1382,9 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
       {/* ── Modal Alterar Data ───────────────────────────────────────────────── */}
       {editDateRow && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)' }}>
-          <div className="w-full max-w-sm rounded-2xl border p-6 space-y-4" style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl" style={{ background: '#1D4ED818' }}>
-              <CalendarDays className="h-6 w-6" style={{ color: '#1D4ED8' }} />
+          <div className="w-full max-w-sm rounded-2xl border p-6 space-y-4" style={{ background: '#1E1B2E', borderColor: '#3D3656' }}>
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl" style={{ background: '#A855F718' }}>
+              <CalendarDays className="h-6 w-6" style={{ color: '#A855F7' }} />
             </div>
             <div>
               <h3 className="text-base font-semibold text-text">Alterar data da venda</h3>
@@ -1410,7 +1410,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
               </button>
               <button onClick={doEditDate} disabled={savingDate || !editDateVal}
                 className="flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-sm font-semibold text-black disabled:opacity-50"
-                style={{ background: '#1D4ED8' }}>
+                style={{ background: '#A855F7' }}>
                 {savingDate && <Loader2 className="h-4 w-4 animate-spin" />} Confirmar
               </button>
             </div>
@@ -1425,10 +1425,10 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
         const esTotal    = Math.max(0, esSubtotal - esDiscount)
         return (
           <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4" style={{ background: 'rgba(0,0,0,0.7)' }}>
-            <div className="relative w-full max-w-2xl rounded-2xl border my-8" style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
-              <div className="flex items-center justify-between border-b px-6 py-4" style={{ borderColor: '#E2E8F0' }}>
+            <div className="relative w-full max-w-2xl rounded-2xl border my-8" style={{ background: '#1E1B2E', borderColor: '#3D3656' }}>
+              <div className="flex items-center justify-between border-b px-6 py-4" style={{ borderColor: '#3D3656' }}>
                 <div className="flex items-center gap-3">
-                  <Pencil className="h-4 w-4" style={{ color: '#1D4ED8' }} />
+                  <Pencil className="h-4 w-4" style={{ color: '#A855F7' }} />
                   <h2 className="text-base font-semibold text-text">{esRow.cancelled ? 'Editar Venda Cancelada' : 'Editar Venda'}</h2>
                 </div>
                 <button onClick={() => setEsRow(null)} className="text-muted hover:text-text"><X className="h-5 w-5" /></button>
@@ -1446,10 +1446,10 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                 </div>
 
                 {/* Cliente */}
-                <div className="rounded-xl border p-4 space-y-3" style={{ borderColor: '#E2E8F0' }}>
+                <div className="rounded-xl border p-4 space-y-3" style={{ borderColor: '#3D3656' }}>
                   <p className="text-xs font-semibold uppercase tracking-wider text-muted">Cliente (opcional)</p>
                   {esCustomerName ? (
-                    <div className="flex items-center justify-between rounded-lg border px-3 py-2.5" style={{ borderColor: '#1D4ED830', background: '#1D4ED808' }}>
+                    <div className="flex items-center justify-between rounded-lg border px-3 py-2.5" style={{ borderColor: '#A855F730', background: '#A855F708' }}>
                       <p className="text-sm font-medium text-text">{esCustomerName}</p>
                       <button onClick={() => { setEsCustomerId(null); setEsCustomerName('') }} className="text-muted hover:text-text">
                         <X className="h-4 w-4" />
@@ -1468,10 +1468,10 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                         </button>
                       </div>
                       {esCustDrop && esCustResults.length > 0 && (
-                        <div className="rounded-lg border overflow-hidden" style={{ ...INP_S, background: '#F8FAFC' }}>
+                        <div className="rounded-lg border overflow-hidden" style={{ ...INP_S, background: '#2A2440' }}>
                           {esCustResults.map(c => (
                             <button key={c.id} onClick={() => { setEsCustomerId(c.id); setEsCustomerName(c.full_name); setEsCustDrop(false); setEsCustQuery('') }}
-                              className="flex w-full items-center justify-between px-3 py-2 text-sm hover:bg-white/5 border-b last:border-0" style={{ borderColor: '#E2E8F0' }}>
+                              className="flex w-full items-center justify-between px-3 py-2 text-sm hover:bg-white/5 border-b last:border-0" style={{ borderColor: '#3D3656' }}>
                               <span className="text-text">{c.full_name}</span>
                               {c.whatsapp && <span className="text-xs text-muted">{c.whatsapp}</span>}
                             </button>
@@ -1483,7 +1483,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                 </div>
 
                 {/* Itens */}
-                <div className="rounded-xl border p-4 space-y-3" style={{ borderColor: '#E2E8F0' }}>
+                <div className="rounded-xl border p-4 space-y-3" style={{ borderColor: '#3D3656' }}>
                   <p className="text-xs font-semibold uppercase tracking-wider text-muted">Itens do pedido *</p>
                   <div ref={esRef} className="relative">
                     <div className="flex gap-2">
@@ -1500,15 +1500,15 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                       </button>
                     </div>
                     {esPDrop && esPResults.length > 0 && (
-                      <div className="absolute z-10 mt-1 w-full rounded-xl border shadow-xl overflow-hidden" style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}>
+                      <div className="absolute z-10 mt-1 w-full rounded-xl border shadow-xl overflow-hidden" style={{ background: '#2A2440', borderColor: '#3D3656' }}>
                         {esPResults.map(p => (
                           <button key={`${p.source}-${p.id}`} onMouseDown={() => addEsProduct(p)}
-                            className="flex w-full items-center justify-between px-4 py-3 text-sm hover:bg-white/5 transition-colors border-b last:border-0" style={{ borderColor: '#E2E8F0' }}>
+                            className="flex w-full items-center justify-between px-4 py-3 text-sm hover:bg-white/5 transition-colors border-b last:border-0" style={{ borderColor: '#3D3656' }}>
                             <div className="text-left">
                               <div className="flex items-center gap-2">
                                 <p className="font-medium text-text">{p.name}</p>
                                 <span className="rounded px-1.5 py-0.5 text-[10px] font-semibold"
-                                  style={p.source === 'parts_catalog' ? { background: '#F59E0B18', color: '#F59E0B' } : { background: '#1D4ED818', color: '#1D4ED8' }}>
+                                  style={p.source === 'parts_catalog' ? { background: '#F59E0B18', color: '#F59E0B' } : { background: '#A855F718', color: '#A855F7' }}>
                                   {p.source === 'parts_catalog' ? 'Peça' : 'Produto'}
                                 </span>
                               </div>
@@ -1521,7 +1521,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                   </div>
 
                   {esShowManual && (
-                    <div className="rounded-lg border p-3 space-y-2" style={{ borderColor: '#E2E8F0', background: '#F8FAFC' }}>
+                    <div className="rounded-lg border p-3 space-y-2" style={{ borderColor: '#3D3656', background: '#2A2440' }}>
                       <input value={esMName} onChange={e => setEsMName(e.target.value)} placeholder="Descrição do item / serviço *"
                         className={INP} style={INP_S} autoFocus onKeyDown={e => e.key === 'Enter' && addEsManualItem()} />
                       <div className="grid grid-cols-3 gap-2">
@@ -1545,7 +1545,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                   {esCart.length > 0 ? (
                     <div className="space-y-1">
                       {esCart.map(item => (
-                        <div key={item.key} className="flex items-center gap-3 rounded-lg border px-3 py-2" style={{ borderColor: '#E2E8F0', background: '#F8FAFC' }}>
+                        <div key={item.key} className="flex items-center gap-3 rounded-lg border px-3 py-2" style={{ borderColor: '#3D3656', background: '#2A2440' }}>
                           <p className="flex-1 text-sm text-text truncate">{item.name}</p>
                           <div className="flex items-center gap-1 shrink-0">
                             <button onClick={() => setEsItemQty(item.key, item.quantity - 1)}
@@ -1572,13 +1572,13 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                     <label className="mb-1 block text-xs font-medium text-muted">Forma de Pagamento</label>
                     <div className="grid grid-cols-4 gap-2">
                       {(['cash','pix','card','mixed'] as const).map(m => {
-                        const colors = { cash:'#10B981', pix:'#1D4ED8', card:'#F59E0B', mixed:'#EF4444' }
+                        const colors = { cash:'#10B981', pix:'#A855F7', card:'#F59E0B', mixed:'#EF4444' }
                         const labels = { cash:'Dinheiro', pix:'PIX', card:'Cartão', mixed:'Misto' }
                         const active = esPayMethod === m; const c = colors[m]
                         return (
                           <button key={m} onClick={() => setEsPayMethod(m)}
                             className="rounded-lg border py-2 text-xs font-medium transition-all"
-                            style={active ? { background:`${c}18`, borderColor:c, color:c } : { borderColor:'#E2E8F0', color:'#64748B' }}>
+                            style={active ? { background:`${c}18`, borderColor:c, color:c } : { borderColor:'#3D3656', color:'#A78BFA' }}>
                             {labels[m]}
                           </button>
                         )
@@ -1627,7 +1627,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                 </div>
 
                 {esCart.length > 0 && (
-                  <div className="rounded-lg border px-4 py-3 space-y-1" style={{ ...INP_S, background: '#F8FAFC' }}>
+                  <div className="rounded-lg border px-4 py-3 space-y-1" style={{ ...INP_S, background: '#2A2440' }}>
                     <div className="flex items-center justify-between text-xs text-muted">
                       <span>Subtotal</span><span>{BRL(esSubtotal)}</span>
                     </div>
@@ -1636,7 +1636,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                         <span>Desconto</span><span>- {BRL(esDiscount)}</span>
                       </div>
                     )}
-                    <div className="flex items-center justify-between font-bold border-t pt-1" style={{ borderColor: '#E2E8F0' }}>
+                    <div className="flex items-center justify-between font-bold border-t pt-1" style={{ borderColor: '#3D3656' }}>
                       <span className="text-sm text-text">Total</span>
                       <span className="text-base" style={{ color: '#10B981' }}>{BRL(esTotal)}</span>
                     </div>
@@ -1644,13 +1644,13 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                 )}
               </div>
 
-              <div className="flex items-center justify-end gap-3 border-t px-6 py-4" style={{ borderColor: '#E2E8F0' }}>
+              <div className="flex items-center justify-end gap-3 border-t px-6 py-4" style={{ borderColor: '#3D3656' }}>
                 <button onClick={() => setEsRow(null)} className="rounded-lg border px-4 py-2 text-sm text-muted hover:text-text" style={INP_S}>
                   Cancelar
                 </button>
                 <button onClick={doEditSale} disabled={savingEs || !esDate}
                   className="flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-semibold text-black disabled:opacity-50"
-                  style={{ background: '#1D4ED8' }}>
+                  style={{ background: '#A855F7' }}>
                   {savingEs && <Loader2 className="h-4 w-4 animate-spin" />}
                   {savingEs ? 'Salvando…' : 'Salvar Venda'}
                 </button>
@@ -1663,10 +1663,10 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
       {/* ── Modal Nova Venda ─────────────────────────────────────────────────── */}
       {novaVendaOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4" style={{ background: 'rgba(0,0,0,0.7)' }}>
-          <div className="relative w-full max-w-2xl rounded-2xl border my-8" style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
+          <div className="relative w-full max-w-2xl rounded-2xl border my-8" style={{ background: '#1E1B2E', borderColor: '#3D3656' }}>
 
             {/* Header */}
-            <div className="flex items-center justify-between border-b px-6 py-4" style={{ borderColor: '#E2E8F0' }}>
+            <div className="flex items-center justify-between border-b px-6 py-4" style={{ borderColor: '#3D3656' }}>
               <h2 className="text-base font-semibold text-text">Registrar Venda</h2>
               <button onClick={() => setNovaVendaOpen(false)} className="text-muted hover:text-text"><X className="h-5 w-5" /></button>
             </div>
@@ -1689,12 +1689,12 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
               </div>
 
               {/* ── Cliente ─────────────────────────────────────────────────── */}
-              <div className="rounded-xl border p-4 space-y-3" style={{ borderColor: '#E2E8F0' }}>
+              <div className="rounded-xl border p-4 space-y-3" style={{ borderColor: '#3D3656' }}>
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted">Cliente (opcional)</p>
 
                 {customer ? (
                   <>
-                    <div className="flex items-center justify-between rounded-lg border px-3 py-2.5" style={{ borderColor: '#1D4ED830', background: '#1D4ED808' }}>
+                    <div className="flex items-center justify-between rounded-lg border px-3 py-2.5" style={{ borderColor: '#A855F730', background: '#A855F708' }}>
                       <div>
                         <p className="text-sm font-medium text-text">{customer.full_name}</p>
                         {customer.whatsapp && <p className="text-xs text-muted">{customer.whatsapp}</p>}
@@ -1707,13 +1707,13 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                     {/* ── Origem (Como nos conheceu?) ── */}
                     {customer.origin ? (
                       <div className="flex items-center justify-between rounded-lg border px-3 py-2"
-                        style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
+                        style={{ background: '#1E1B2E', borderColor: '#3D3656' }}>
                         <div className="flex items-center gap-2 min-w-0">
-                          <span className="text-[10px] font-semibold uppercase tracking-wider shrink-0" style={{ color: '#64748B' }}>
+                          <span className="text-[10px] font-semibold uppercase tracking-wider shrink-0" style={{ color: '#A78BFA' }}>
                             Origem
                           </span>
                           <span className="rounded-full px-2 py-0.5 text-[10px] font-bold truncate"
-                            style={{ background: 'rgba(29,78,216,.12)', color: '#1D4ED8' }}>
+                            style={{ background: 'rgba(168,85,247,.12)', color: '#A855F7' }}>
                             {originLabel(customer.origin)}
                           </span>
                         </div>
@@ -1725,7 +1725,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                           title="Alterar origem"
                         >
                           {CUSTOMER_ORIGIN_OPTIONS.map(opt => (
-                            <option key={opt.value} value={opt.value} style={{ background: '#FFFFFF' }}>
+                            <option key={opt.value} value={opt.value} style={{ background: '#1E1B2E' }}>
                               {opt.label}
                             </option>
                           ))}
@@ -1755,8 +1755,8 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                     {/* ── Código da campanha (origens Meta) ── */}
                     {customer.origin && (customer.origin === 'instagram_pago' || customer.origin === 'facebook') && (
                       <div className="rounded-lg border px-3 py-2 flex items-center justify-between gap-2"
-                        style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
-                        <span className="text-[10px] font-semibold uppercase tracking-wider shrink-0" style={{ color: '#64748B' }}>
+                        style={{ background: '#1E1B2E', borderColor: '#3D3656' }}>
+                        <span className="text-[10px] font-semibold uppercase tracking-wider shrink-0" style={{ color: '#A78BFA' }}>
                           Campanha
                         </span>
                         <CampaignCodePicker
@@ -1785,14 +1785,14 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                         </div>
                         <button onClick={() => setShowCustForm(true)}
                           className="flex items-center gap-2 text-xs font-medium transition-colors hover:text-accent"
-                          style={{ color: '#1D4ED8' }}>
+                          style={{ color: '#A855F7' }}>
                           <UserPlus className="h-3.5 w-3.5" /> Cadastrar novo cliente
                         </button>
                         {custDrop && custResults.length > 0 && (
-                          <div className="rounded-lg border overflow-hidden" style={{ ...INP_S, background: '#F8FAFC' }}>
+                          <div className="rounded-lg border overflow-hidden" style={{ ...INP_S, background: '#2A2440' }}>
                             {custResults.map(c => (
                               <button key={c.id} onClick={() => { setCustomer(c); setCustDrop(false); setCustQuery('') }}
-                                className="flex w-full items-center justify-between px-3 py-2 text-sm hover:bg-white/5 border-b last:border-0" style={{ borderColor: '#E2E8F0' }}>
+                                className="flex w-full items-center justify-between px-3 py-2 text-sm hover:bg-white/5 border-b last:border-0" style={{ borderColor: '#3D3656' }}>
                                 <span className="text-text">{c.full_name}</span>
                                 {c.whatsapp && <span className="text-xs text-muted">{c.whatsapp}</span>}
                               </button>
@@ -1803,7 +1803,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                     )}
 
                     {showCustForm && (
-                      <div className="space-y-3 border-t pt-3" style={{ borderColor: '#E2E8F0' }}>
+                      <div className="space-y-3 border-t pt-3" style={{ borderColor: '#3D3656' }}>
                         <div className="flex items-center justify-between">
                           <p className="text-xs font-semibold text-amber uppercase tracking-wider">Cadastro de cliente</p>
                           <button onClick={() => setShowCustForm(false)} className="text-xs text-muted hover:text-text">Cancelar</button>
@@ -1853,7 +1853,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
               </div>
 
               {/* ── Produtos ─────────────────────────────────────────────────── */}
-              <div className="rounded-xl border p-4 space-y-3" style={{ borderColor: '#E2E8F0' }}>
+              <div className="rounded-xl border p-4 space-y-3" style={{ borderColor: '#3D3656' }}>
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted">Produtos / Serviços *</p>
 
                 {/* Search */}
@@ -1878,7 +1878,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                   </div>
 
                   {pDrop && pQuery.trim().length >= 2 && (
-                    <div className="absolute z-30 mt-1 w-full rounded-xl border shadow-xl overflow-hidden" style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}>
+                    <div className="absolute z-30 mt-1 w-full rounded-xl border shadow-xl overflow-hidden" style={{ background: '#2A2440', borderColor: '#3D3656' }}>
                       {pSearching && pResults.length === 0 && (
                         <div className="flex items-center gap-2 px-4 py-3 text-sm text-muted">
                           <Loader2 className="h-4 w-4 animate-spin" />
@@ -1900,12 +1900,12 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
 
                       {pResults.map(p => (
                         <button key={`${p.source}-${p.id}`} onMouseDown={() => addProduct(p)}
-                          className="flex w-full items-center justify-between px-4 py-3 text-sm hover:bg-white/5 transition-colors border-b last:border-0" style={{ borderColor: '#E2E8F0' }}>
+                          className="flex w-full items-center justify-between px-4 py-3 text-sm hover:bg-white/5 transition-colors border-b last:border-0" style={{ borderColor: '#3D3656' }}>
                           <div className="text-left">
                             <div className="flex items-center gap-2">
                               <p className="font-medium text-text">{p.name}</p>
                               <span className="rounded px-1.5 py-0.5 text-[10px] font-semibold"
-                                style={p.source === 'parts_catalog' ? { background: '#F59E0B18', color: '#F59E0B' } : { background: '#1D4ED818', color: '#1D4ED8' }}>
+                                style={p.source === 'parts_catalog' ? { background: '#F59E0B18', color: '#F59E0B' } : { background: '#A855F718', color: '#A855F7' }}>
                                 {p.source === 'parts_catalog' ? 'Peça' : 'Produto'}
                               </span>
                             </div>
@@ -1923,7 +1923,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
 
                 {/* Item manual inline */}
                 {showManual && (
-                  <div className="rounded-lg border p-3 space-y-2" style={{ borderColor: '#E2E8F0', background: '#F8FAFC' }}>
+                  <div className="rounded-lg border p-3 space-y-2" style={{ borderColor: '#3D3656', background: '#2A2440' }}>
                     <input value={mName} onChange={e => setMName(e.target.value)} placeholder="Descrição do item / serviço *"
                       className={INP} style={INP_S} autoFocus onKeyDown={e => e.key === 'Enter' && addManualItem()} />
                     <div className="grid grid-cols-3 gap-2">
@@ -1948,7 +1948,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                 {cart.length > 0 && (
                   <div className="space-y-1">
                     {cart.map(item => (
-                      <div key={item.key} className="flex items-center gap-3 rounded-lg border px-3 py-2" style={{ borderColor: '#E2E8F0', background: '#F8FAFC' }}>
+                      <div key={item.key} className="flex items-center gap-3 rounded-lg border px-3 py-2" style={{ borderColor: '#3D3656', background: '#2A2440' }}>
                         <p className="flex-1 text-sm text-text truncate">{item.name}</p>
                         <div className="flex items-center gap-1 shrink-0">
                           <button onClick={() => setItemQty(item.key, item.quantity - 1)}
@@ -1977,13 +1977,13 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                   <label className="mb-1 block text-xs font-medium text-muted">Forma de Pagamento</label>
                   <div className="grid grid-cols-4 gap-2">
                     {(['cash','pix','card','mixed'] as const).map(m => {
-                      const colors = { cash:'#10B981', pix:'#1D4ED8', card:'#F59E0B', mixed:'#EF4444' }
+                      const colors = { cash:'#10B981', pix:'#A855F7', card:'#F59E0B', mixed:'#EF4444' }
                       const labels = { cash:'Dinheiro', pix:'PIX', card:'Cartão', mixed:'Misto' }
                       const active = payMethod === m; const c = colors[m]
                       return (
                         <button key={m} onClick={() => setPayMethod(m)}
                           className="rounded-lg border py-2 text-xs font-medium transition-all"
-                          style={active ? { background:`${c}18`, borderColor:c, color:c } : { borderColor:'#E2E8F0', color:'#64748B' }}>
+                          style={active ? { background:`${c}18`, borderColor:c, color:c } : { borderColor:'#3D3656', color:'#A78BFA' }}>
                           {labels[m]}
                         </button>
                       )
@@ -2033,7 +2033,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
 
               {/* Total preview */}
               {cart.length > 0 && (
-                <div className="rounded-lg border px-4 py-3 space-y-1" style={{ ...INP_S, background: '#F8FAFC' }}>
+                <div className="rounded-lg border px-4 py-3 space-y-1" style={{ ...INP_S, background: '#2A2440' }}>
                   <div className="flex items-center justify-between text-xs text-muted">
                     <span>Subtotal</span><span>{BRL(subtotal)}</span>
                   </div>
@@ -2042,7 +2042,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                       <span>Desconto</span><span>- {BRL(discount)}</span>
                     </div>
                   )}
-                  <div className="flex items-center justify-between font-bold border-t pt-1" style={{ borderColor: '#E2E8F0' }}>
+                  <div className="flex items-center justify-between font-bold border-t pt-1" style={{ borderColor: '#3D3656' }}>
                     <span className="text-sm text-text">Total</span>
                     <span className="text-base" style={{ color: '#10B981' }}>{BRL(total)}</span>
                   </div>
@@ -2051,7 +2051,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-end gap-3 border-t px-6 py-4" style={{ borderColor: '#E2E8F0' }}>
+            <div className="flex items-center justify-end gap-3 border-t px-6 py-4" style={{ borderColor: '#3D3656' }}>
               <button onClick={() => setNovaVendaOpen(false)} className="rounded-lg border px-4 py-2 text-sm text-muted hover:text-text" style={INP_S}>
                 Cancelar
               </button>
@@ -2071,12 +2071,12 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4"
           style={{ background: 'rgba(0,0,0,0.75)' }}
           onClick={e => { if (e.target === e.currentTarget) setEosRow(null) }}>
-          <div className="relative w-full max-w-2xl rounded-2xl border my-8" style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
+          <div className="relative w-full max-w-2xl rounded-2xl border my-8" style={{ background: '#1E1B2E', borderColor: '#3D3656' }}>
             {/* Header */}
-            <div className="flex items-center justify-between border-b px-6 py-4" style={{ borderColor: '#E2E8F0' }}>
+            <div className="flex items-center justify-between border-b px-6 py-4" style={{ borderColor: '#3D3656' }}>
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl" style={{ background: '#1D4ED818' }}>
-                  <Pencil className="h-5 w-5" style={{ color: '#1D4ED8' }} />
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl" style={{ background: '#A855F718' }}>
+                  <Pencil className="h-5 w-5" style={{ color: '#A855F7' }} />
                 </div>
                 <div>
                   <h3 className="text-base font-semibold text-text">Editar OS</h3>
@@ -2102,7 +2102,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                 />
                 {eosShowCustDrop && eosCustQuery.trim().length >= 2 && (
                   <div className="absolute left-0 right-0 top-full mt-1 z-10 rounded-lg border max-h-60 overflow-y-auto"
-                    style={{ background: '#F1F5F9', borderColor: '#CBD5E1' }}>
+                    style={{ background: '#2A2440', borderColor: '#4C4470' }}>
                     {eosCustSearching && (
                       <div className="p-3 text-xs text-muted flex items-center gap-2">
                         <Loader2 className="h-3 w-3 animate-spin" /> Buscando...
@@ -2120,7 +2120,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                           setEosShowCustDrop(false)
                         }}
                         className="w-full text-left px-3 py-2 hover:bg-white/5 text-sm border-b last:border-b-0"
-                        style={{ borderColor: '#E2E8F0', color: '#0F172A' }}>
+                        style={{ borderColor: '#3D3656', color: '#F8FAFC' }}>
                         {c.full_name}
                         {c.whatsapp && <span className="ml-2 text-[11px] text-muted">{c.whatsapp}</span>}
                       </button>
@@ -2169,13 +2169,13 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
               </div>
 
               {/* Peças (read-only) */}
-              <div className="rounded-xl border p-4" style={{ background: '#F1F5F9', borderColor: '#E2E8F0' }}>
+              <div className="rounded-xl border p-4" style={{ background: '#2A2440', borderColor: '#3D3656' }}>
                 <div className="flex items-center justify-between mb-3">
-                  <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#475569' }}>
+                  <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#CBD5E1' }}>
                     Peças da OS ({eosParts.length})
                   </p>
                   <a href="https://checksmart-grok.vercel.app/orders" target="_blank" rel="noopener noreferrer"
-                    className="text-xs font-semibold hover:underline" style={{ color: '#1D4ED8' }}>
+                    className="text-xs font-semibold hover:underline" style={{ color: '#A855F7' }}>
                     Editar peças no CheckSmart →
                   </a>
                 </div>
@@ -2200,22 +2200,22 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                     ))}
                   </div>
                 )}
-                <p className="text-[10px] mt-2" style={{ color: '#64748B' }}>
+                <p className="text-[10px] mt-2" style={{ color: '#A78BFA' }}>
                   Pra adicionar, remover ou alterar peças, use o CheckSmart (modelo de dados diferente entre os 2 sistemas).
                 </p>
               </div>
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-end gap-2 border-t px-6 py-4" style={{ borderColor: '#E2E8F0' }}>
+            <div className="flex items-center justify-end gap-2 border-t px-6 py-4" style={{ borderColor: '#3D3656' }}>
               <button onClick={() => setEosRow(null)}
                 className="rounded-lg border px-4 py-2 text-sm text-muted hover:text-text"
-                style={{ borderColor: '#E2E8F0' }}>
+                style={{ borderColor: '#3D3656' }}>
                 Cancelar
               </button>
               <button onClick={doSaveEditOS} disabled={eosSaving || !eosDate}
                 className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold disabled:opacity-50"
-                style={{ background: '#1D4ED8', color: '#FFFFFF' }}>
+                style={{ background: '#A855F7', color: '#1E1B2E' }}>
                 {eosSaving && <Loader2 className="h-4 w-4 animate-spin" />}
                 {eosSaving ? 'Salvando...' : 'Salvar Alterações'}
               </button>
@@ -2230,10 +2230,10 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
           style={{ background: 'rgba(0,0,0,0.75)' }}
           onClick={e => { if (e.target === e.currentTarget) setRcRow(null) }}>
           <div className="w-full max-w-md rounded-2xl border p-6 space-y-4"
-            style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
+            style={{ background: '#1E1B2E', borderColor: '#3D3656' }}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Pencil className="h-4 w-4" style={{ color: '#1D4ED8' }} />
+                <Pencil className="h-4 w-4" style={{ color: '#A855F7' }} />
                 <h3 className="text-base font-semibold text-text">Reclassificar canal</h3>
               </div>
               <button onClick={() => setRcRow(null)} className="text-muted hover:text-coral transition-colors">
@@ -2241,18 +2241,18 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
               </button>
             </div>
 
-            <div className="rounded-lg border px-3 py-2" style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}>
-              <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#64748B' }}>
+            <div className="rounded-lg border px-3 py-2" style={{ background: '#2A2440', borderColor: '#3D3656' }}>
+              <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#A78BFA' }}>
                 {rcRow.source === 'erp' ? 'Venda' : 'Ordem de Serviço'}
               </p>
-              <p className="text-sm mt-1" style={{ color: '#0F172A' }}>{rcRow.customerName}</p>
-              <p className="text-xs mt-0.5 font-mono" style={{ color: '#475569' }}>
+              <p className="text-sm mt-1" style={{ color: '#F8FAFC' }}>{rcRow.customerName}</p>
+              <p className="text-xs mt-0.5 font-mono" style={{ color: '#CBD5E1' }}>
                 {rcRow.dateStr} · {BRL(rcRow.total)}
               </p>
             </div>
 
             <div>
-              <label className="block text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#64748B' }}>
+              <label className="block text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#A78BFA' }}>
                 Canal da venda
               </label>
               <select
@@ -2268,7 +2268,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
             </div>
 
             <div>
-              <label className="block text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#64748B' }}>
+              <label className="block text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#A78BFA' }}>
                 Entrega
               </label>
               <select

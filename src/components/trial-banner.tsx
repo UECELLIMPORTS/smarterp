@@ -14,7 +14,7 @@ export function TrialBanner({ daysLeft }: { daysLeft: number }) {
   return (
     <div className="border-b" style={{ background: bg, borderColor: `${color}40` }}>
       <div className="px-4 sm:px-6 py-2.5 flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-2 text-sm" style={{ color: '#0F172A' }}>
+        <div className="flex items-center gap-2 text-sm" style={{ color: '#F8FAFC' }}>
           <Sparkles className="h-4 w-4 shrink-0" style={{ color }} />
           <span>
             <strong style={{ color }}>
@@ -25,7 +25,7 @@ export function TrialBanner({ daysLeft }: { daysLeft: number }) {
                   : `Faltam ${daysLeft} dias do seu trial`
               }
             </strong>
-            <span className="hidden sm:inline" style={{ color: '#475569' }}>
+            <span className="hidden sm:inline" style={{ color: '#CBD5E1' }}>
               {' '}— assine agora pra continuar usando todos os recursos
             </span>
           </span>
@@ -33,7 +33,7 @@ export function TrialBanner({ daysLeft }: { daysLeft: number }) {
         <Link
           href="/configuracoes/assinatura"
           className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-opacity hover:opacity-90 shrink-0"
-          style={{ background: color, color: '#FFFFFF' }}
+          style={{ background: color, color: '#1E1B2E' }}
         >
           Assinar agora <ArrowRight className="h-3 w-3" />
         </Link>

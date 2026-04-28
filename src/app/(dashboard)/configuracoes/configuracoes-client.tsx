@@ -28,7 +28,7 @@ const STOCK_OPTIONS: {
     label: 'Desativado',
     description: 'Sem controle de estoque. Qualquer produto pode ser vendido independente da quantidade disponível.',
     icon: <CheckCircle className="h-5 w-5" />,
-    color: '#64748B',
+    color: '#A78BFA',
   },
   {
     value: 'warn',
@@ -100,7 +100,7 @@ export function ConfiguracoesClient({ initialSettings, isOwner = false, initialE
         <div className="space-y-3">
           <Link href="/configuracoes/assinatura"
             className="block rounded-xl border p-4 transition-all hover:border-cyan-400/40"
-            style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}>
+            style={{ background: '#2A2440', borderColor: '#3D3656' }}>
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg shrink-0"
                 style={{ background: 'rgba(255,184,0,.15)' }}>
@@ -112,13 +112,13 @@ export function ConfiguracoesClient({ initialSettings, isOwner = false, initialE
                   Veja seu plano, mude de plano ou contrate outros produtos
                 </p>
               </div>
-              <ChevronRight className="h-5 w-5 shrink-0" style={{ color: '#64748B' }} />
+              <ChevronRight className="h-5 w-5 shrink-0" style={{ color: '#A78BFA' }} />
             </div>
           </Link>
 
           <Link href="/configuracoes/equipe"
             className="block rounded-xl border p-4 transition-all hover:border-green-400/40"
-            style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}>
+            style={{ background: '#2A2440', borderColor: '#3D3656' }}>
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg shrink-0"
                 style={{ background: 'rgba(16,185,129,.15)' }}>
@@ -130,15 +130,15 @@ export function ConfiguracoesClient({ initialSettings, isOwner = false, initialE
                   Convide membros pra trabalhar com você na mesma conta
                 </p>
               </div>
-              <ChevronRight className="h-5 w-5 shrink-0" style={{ color: '#64748B' }} />
+              <ChevronRight className="h-5 w-5 shrink-0" style={{ color: '#A78BFA' }} />
             </div>
           </Link>
         </div>
       )}
 
       {/* Estoque section */}
-      <div className="rounded-xl border overflow-hidden" style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}>
-        <div className="flex items-center gap-3 border-b px-5 py-4" style={{ borderColor: '#E2E8F0' }}>
+      <div className="rounded-xl border overflow-hidden" style={{ background: '#2A2440', borderColor: '#3D3656' }}>
+        <div className="flex items-center gap-3 border-b px-5 py-4" style={{ borderColor: '#3D3656' }}>
           <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: '#10B98118' }}>
             <Package className="h-4 w-4" style={{ color: '#10B981' }} />
           </div>
@@ -158,13 +158,13 @@ export function ConfiguracoesClient({ initialSettings, isOwner = false, initialE
                 className="w-full flex items-start gap-4 rounded-xl border p-4 text-left transition-all"
                 style={active
                   ? { borderColor: opt.color, background: `${opt.color}0D` }
-                  : { borderColor: '#E2E8F0', background: 'transparent' }
+                  : { borderColor: '#3D3656', background: 'transparent' }
                 }
               >
                 {/* Radio indicator */}
                 <div
                   className="mt-0.5 h-4 w-4 shrink-0 rounded-full border-2 flex items-center justify-center"
-                  style={{ borderColor: active ? opt.color : '#CBD5E1' }}
+                  style={{ borderColor: active ? opt.color : '#4C4470' }}
                 >
                   {active && (
                     <div className="h-2 w-2 rounded-full" style={{ background: opt.color }} />
@@ -174,17 +174,17 @@ export function ConfiguracoesClient({ initialSettings, isOwner = false, initialE
                 {/* Icon */}
                 <div
                   className="mt-0.5 shrink-0"
-                  style={{ color: active ? opt.color : '#64748B' }}
+                  style={{ color: active ? opt.color : '#A78BFA' }}
                 >
                   {opt.icon}
                 </div>
 
                 {/* Text */}
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold" style={{ color: active ? opt.color : '#0F172A' }}>
+                  <p className="text-sm font-semibold" style={{ color: active ? opt.color : '#F8FAFC' }}>
                     {opt.label}
                   </p>
-                  <p className="mt-0.5 text-xs" style={{ color: '#64748B' }}>{opt.description}</p>
+                  <p className="mt-0.5 text-xs" style={{ color: '#A78BFA' }}>{opt.description}</p>
                 </div>
               </button>
             )

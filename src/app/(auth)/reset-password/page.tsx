@@ -52,13 +52,13 @@ export default function ResetPasswordPage() {
             style={{ background: '#FEF2F2' }}>
             <AlertTriangle className="h-7 w-7" style={{ color: '#EF4444' }} />
           </div>
-          <h1 className="text-xl font-bold mb-2" style={{ color: '#0F172A' }}>Link expirado ou inválido</h1>
-          <p className="text-sm mb-4" style={{ color: '#64748B' }}>
+          <h1 className="text-xl font-bold mb-2" style={{ color: '#F8FAFC' }}>Link expirado ou inválido</h1>
+          <p className="text-sm mb-4" style={{ color: '#A78BFA' }}>
             Este link não é mais válido (links de recuperação expiram em 1 hora).
           </p>
           <Link href="/forgot-password"
             className="inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold transition-opacity hover:opacity-90"
-            style={{ background: '#1D4ED8', color: 'white' }}>
+            style={{ background: '#A855F7', color: 'white' }}>
             Solicitar novo link
           </Link>
         </div>
@@ -68,18 +68,18 @@ export default function ResetPasswordPage() {
             style={{ background: '#ECFDF5' }}>
             <CheckCircle className="h-7 w-7" style={{ color: '#10B981' }} />
           </div>
-          <h1 className="text-xl font-bold mb-2" style={{ color: '#0F172A' }}>Senha atualizada!</h1>
-          <p className="text-sm" style={{ color: '#64748B' }}>
+          <h1 className="text-xl font-bold mb-2" style={{ color: '#F8FAFC' }}>Senha atualizada!</h1>
+          <p className="text-sm" style={{ color: '#A78BFA' }}>
             Redirecionando pro dashboard…
           </p>
         </div>
       ) : (
         <>
           <div className="mb-8">
-            <h1 className="text-2xl font-bold tracking-tight" style={{ color: '#0F172A' }}>
+            <h1 className="text-2xl font-bold tracking-tight" style={{ color: '#F8FAFC' }}>
               Criar nova senha
             </h1>
-            <p className="mt-1 text-sm" style={{ color: '#64748B' }}>
+            <p className="mt-1 text-sm" style={{ color: '#A78BFA' }}>
               Defina sua nova senha de acesso.
             </p>
           </div>
@@ -93,7 +93,7 @@ export default function ResetPasswordPage() {
                   className="auth-input pr-10" />
                 <button type="button" onClick={() => setShowPass(v => !v)}
                   className="absolute right-3 top-1/2 -translate-y-1/2"
-                  tabIndex={-1} style={{ color: '#94A3B8' }}>
+                  tabIndex={-1} style={{ color: '#8B82A8' }}>
                   {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
@@ -128,7 +128,7 @@ export default function ResetPasswordPage() {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
-      <label className="text-xs font-medium uppercase tracking-wider" style={{ color: '#64748B' }}>
+      <label className="text-xs font-medium uppercase tracking-wider" style={{ color: '#A78BFA' }}>
         {label}
       </label>
       {children}
