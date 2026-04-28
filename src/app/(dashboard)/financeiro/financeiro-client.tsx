@@ -257,11 +257,19 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
   function doSaveEditOS() {
     if (!eosRow) return
     const row = eosRow
+
+    // Guard: valida data antes de chamar toISOString (evita RangeError)
+    const dateObj = new Date(eosDate)
+    if (!eosDate || isNaN(dateObj.getTime())) {
+      toast.error('Data inválida. Confira o campo Data/Hora.')
+      return
+    }
+
     startEosSave(async () => {
       try {
         await updateServiceOrder(row.rawId, {
           customer_id:         eosCustomerId,
-          received_at:         new Date(eosDate).toISOString(),
+          received_at:         dateObj.toISOString(),
           service_price_cents: eosServicePrice ? parseCents(eosServicePrice) : undefined,
           discount_cents:      parseCents(eosDiscount),
           payment_method:      eosPayMethod || null,
@@ -274,7 +282,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
           ...r,
           customerId:   eosCustomerId,
           customerName: eosCustomerName,
-          date:         new Date(eosDate),
+          date:         dateObj,
           discount:     parseCents(eosDiscount),
           payment:      eosPayMethod || null,
         } : r))
