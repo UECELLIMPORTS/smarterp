@@ -134,9 +134,15 @@ export async function sendComprovanteEmail(input: {
     ? `Olá ${escapeHtml(data.customer.name.split(' ')[0])},`
     : 'Olá!'
 
+  // Gera/recupera token público pra link sempre-atualizado no email.
+  // Cliente que abrir o link depois recebe o PDF com os dados atuais (se a
+  // venda for editada, reflete automaticamente).
+  const tokenRes = await getOrCreateShareTokenAdmin(tenantId, input.saleId)
+  const publicUrl = tokenRes.ok ? tokenRes.data?.url : undefined
+
   // Timestamp do envio gerado server-side — operador não consegue alterar
   const sentAt = new Date()
-  const html = await buildComprovanteEmailHtml(data, greeting, input.observation, sentAt)
+  const html = await buildComprovanteEmailHtml(data, greeting, input.observation, sentAt, publicUrl)
 
   const result = await sendEmailWithAttachment({
     to:      email,
@@ -147,6 +153,34 @@ export async function sendComprovanteEmail(input: {
 
   if (!result.ok) return { ok: false, error: result.error || 'Falha ao enviar e-mail.' }
   return { ok: true }
+}
+
+// Versão admin (sem requireAuth) — usada internamente pelo sendComprovanteEmail
+async function getOrCreateShareTokenAdmin(tenantId: string, saleId: string): Promise<Result<{ url: string }>> {
+  const admin = createAdminClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = admin as any
+
+  const nowIso = new Date().toISOString()
+  const { data: existing } = await sb
+    .from('sale_share_tokens')
+    .select('token, expires_at')
+    .eq('sale_id', saleId)
+    .gt('expires_at', nowIso)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (existing?.token) {
+    return { ok: true, data: { url: `${appUrl()}/api/comprovante-publico/${existing.token}` } }
+  }
+
+  const token = crypto.randomBytes(24).toString('base64url')
+  const { error } = await sb.from('sale_share_tokens').insert({
+    token, sale_id: saleId, tenant_id: tenantId,
+  })
+  if (error) return { ok: false, error: error.message }
+  return { ok: true, data: { url: `${appUrl()}/api/comprovante-publico/${token}` } }
 }
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -287,7 +321,7 @@ export async function removeTenantLogo(): Promise<Result> {
 // ──────────────────────────────────────────────────────────────────────────
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function buildComprovanteEmailHtml(data: any, greeting: string, observation: string | undefined, sentAt: Date): Promise<string> {
+async function buildComprovanteEmailHtml(data: any, greeting: string, observation: string | undefined, sentAt: Date, publicUrl?: string): Promise<string> {
   const t = data.tenant
   const totalBRL = (data.totalCents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
@@ -352,6 +386,20 @@ async function buildComprovanteEmailHtml(data: any, greeting: string, observatio
               <td align="right" style="padding:14px 18px;color:#059669;font-size:22px;font-weight:bold;">${totalBRL}</td>
             </tr>
           </table>
+
+          ${publicUrl ? `
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F1F5F9;border:1px solid #CBD5E1;border-radius:8px;margin:0 0 16px;">
+              <tr><td style="padding:14px 18px;">
+                <div style="font-size:11px;font-weight:bold;color:#475569;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Versão online · sempre atualizada</div>
+                <div style="font-size:13px;color:#334155;line-height:1.45;margin-bottom:10px;">
+                  Se houver qualquer correção na compra, o link abaixo sempre traz a versão mais recente do comprovante:
+                </div>
+                <a href="${escapeHtml(publicUrl)}" style="display:inline-block;padding:9px 16px;background:#0F172A;color:#FFFFFF;border-radius:6px;text-decoration:none;font-size:13px;font-weight:600;">
+                  Abrir comprovante online
+                </a>
+                <div style="font-size:11px;color:#64748B;margin-top:8px;word-break:break-all;">${escapeHtml(publicUrl)}</div>
+              </td></tr>
+            </table>` : ''}
 
           ${observation ? `
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#FEF9C3;border-left:3px solid #EAB308;border-radius:4px;margin:0 0 16px;">

@@ -5,7 +5,7 @@ import {
   Receipt, TrendingUp, ShoppingCart, CreditCard, Wrench,
   XCircle, RefreshCw, Plus, Loader2, X, AlertTriangle, Search,
   Trash2, UserPlus, Calendar, CalendarDays, MoreVertical, Filter, Pencil, FileText,
-  Download, Mail, MessageCircle,
+  Download, Mail, MessageCircle, Copy, Link as LinkIcon,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -465,10 +465,36 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
   const [waObs, setWaObs]               = useState('')
   const [waLoadingLink, setWaLoadingLink] = useState(false)
 
+  // Link público compartilhável (gerado quando abre modal email/whatsapp)
+  const [shareUrl, setShareUrl]           = useState<string>('')
+  const [loadingShareUrl, setLoadingShareUrl] = useState(false)
+
+  async function fetchShareUrl(saleId: string) {
+    setLoadingShareUrl(true)
+    setShareUrl('')
+    try {
+      const res = await getOrCreateShareToken(saleId)
+      if (res.ok) setShareUrl(res.data?.url ?? '')
+    } finally {
+      setLoadingShareUrl(false)
+    }
+  }
+
+  async function copyShareUrl() {
+    if (!shareUrl) return
+    try {
+      await navigator.clipboard.writeText(shareUrl)
+      toast.success('Link copiado!')
+    } catch {
+      toast.error('Não consegui copiar — selecione e copie manualmente.')
+    }
+  }
+
   async function openEmailModal(row: FinanceiroRow) {
     setEmailRow(row)
     setEmailObs('')
     setEmailTo('')
+    fetchShareUrl(row.rawId)
     const res = await getSaleContact(row.rawId)
     if (res.ok) setEmailTo(res.data?.email ?? '')
   }
@@ -477,6 +503,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
     setWaRow(row)
     setWaObs('')
     setWaTo('')
+    fetchShareUrl(row.rawId)
     const res = await getSaleContact(row.rawId)
     if (res.ok) setWaTo(res.data?.whatsapp ?? '')
   }
@@ -511,14 +538,20 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
     }
     setWaLoadingLink(true)
     try {
-      const res = await getOrCreateShareToken(waRow.rawId)
-      if (!res.ok) { toast.error(res.error); return }
+      // Reusa shareUrl se já carregou; senão busca agora
+      let url = shareUrl
+      if (!url) {
+        const res = await getOrCreateShareToken(waRow.rawId)
+        if (!res.ok) { toast.error(res.error); return }
+        url = res.data?.url ?? ''
+        setShareUrl(url)
+      }
       const phone = digits.startsWith('55') ? digits : `55${digits}`
       const customer = waRow.customerName?.split(' ')[0] || 'cliente'
       const obsLine = waObs.trim() ? `\n\n${waObs.trim()}` : ''
-      const msg = `Olá ${customer}, segue o comprovante da sua compra com termo de garantia:\n${res.data?.url ?? ''}${obsLine}`
-      const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`
-      window.open(url, '_blank', 'noopener,noreferrer')
+      const msg = `Olá ${customer}, segue o comprovante da sua compra com termo de garantia:\n${url}${obsLine}`
+      const wa = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`
+      window.open(wa, '_blank', 'noopener,noreferrer')
       toast.success('WhatsApp aberto com o link do comprovante.')
       setWaRow(null)
     } finally {
@@ -2576,6 +2609,29 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
             />
             <p className="mb-4 text-right text-[10px]" style={{ color: '#64748B' }}>{emailObs.length}/500</p>
 
+            <label className="mb-1 flex items-center gap-1 text-xs font-medium" style={{ color: '#CBD5E1' }}>
+              <LinkIcon className="h-3.5 w-3.5" /> Link público (sempre atualizado)
+            </label>
+            <div className="mb-4 flex gap-2">
+              <input
+                readOnly
+                value={loadingShareUrl ? 'Gerando link…' : shareUrl}
+                className="flex-1 rounded-lg px-3 py-2 text-xs"
+                style={{ background: '#0F172A', border: '1px solid #3A4868', color: '#94A3B8' }}
+                onFocus={e => e.target.select()}
+              />
+              <button
+                onClick={copyShareUrl}
+                disabled={!shareUrl || loadingShareUrl}
+                className="flex items-center gap-1 rounded-lg px-3 py-2 text-xs font-semibold disabled:opacity-50"
+                style={{ background: '#475569', color: '#F1F5F9' }}
+                title="Copiar link"
+              >
+                <Copy className="h-3.5 w-3.5" />
+                Copiar
+              </button>
+            </div>
+
             <div className="flex gap-2">
               <button
                 onClick={() => setEmailRow(null)}
@@ -2633,8 +2689,31 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
             />
             <p className="mb-3 text-right text-[10px]" style={{ color: '#64748B' }}>{waObs.length}/300</p>
 
+            <label className="mb-1 flex items-center gap-1 text-xs font-medium" style={{ color: '#CBD5E1' }}>
+              <LinkIcon className="h-3.5 w-3.5" /> Link público (sempre atualizado)
+            </label>
+            <div className="mb-3 flex gap-2">
+              <input
+                readOnly
+                value={loadingShareUrl ? 'Gerando link…' : shareUrl}
+                className="flex-1 rounded-lg px-3 py-2 text-xs"
+                style={{ background: '#0F172A', border: '1px solid #3A4868', color: '#94A3B8' }}
+                onFocus={e => e.target.select()}
+              />
+              <button
+                onClick={copyShareUrl}
+                disabled={!shareUrl || loadingShareUrl}
+                className="flex items-center gap-1 rounded-lg px-3 py-2 text-xs font-semibold disabled:opacity-50"
+                style={{ background: '#475569', color: '#F1F5F9' }}
+                title="Copiar link"
+              >
+                <Copy className="h-3.5 w-3.5" />
+                Copiar
+              </button>
+            </div>
+
             <p className="mb-4 rounded-lg p-2 text-[11px]" style={{ background: '#0F172A', color: '#94A3B8' }}>
-              💡 Vai abrir o WhatsApp Web ou app com o link do comprovante. O cliente clica e baixa o PDF — link válido por 30 dias.
+              💡 Vai abrir o WhatsApp Web ou app com mensagem pré-preenchida + esse link. O cliente clica e baixa o PDF — link válido por 30 dias e <strong>sempre reflete a versão atual</strong> da venda (se você editar, atualiza automaticamente).
             </p>
 
             <div className="flex gap-2">

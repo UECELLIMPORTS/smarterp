@@ -76,7 +76,11 @@ function brl(cents: number): string {
 }
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+  return new Date(iso).toLocaleString('pt-BR', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+    timeZone:  'America/Sao_Paulo',
+  })
 }
 
 function formatCnpj(d: string | null | undefined): string {
@@ -441,7 +445,7 @@ function ComprovanteDoc({ data }: { data: ComprovanteData }) {
               <View key={idx} style={styles.tableRow}>
                 <Text style={styles.colDescr}>{it.name}</Text>
                 <Text style={styles.colWarr}>{it.warrantyDays} dias</Text>
-                <Text style={styles.colWarr}>{validUntil.toLocaleDateString('pt-BR')}</Text>
+                <Text style={styles.colWarr}>{validUntil.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</Text>
               </View>
             )
           })}
