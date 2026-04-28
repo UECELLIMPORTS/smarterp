@@ -92,7 +92,7 @@ export function OnboardingWizard({ productCount, customerCount, hasChannels }: P
               title="Configure seus canais de venda"
               desc="Defina os canais (Loja física, Instagram, WhatsApp, etc) pra rastrear origem das vendas"
               done={hasChannels}
-              link="/canais"
+              link="/analytics/canais"
               cta="Ir pra Canais"
               icon={Megaphone}
             />
