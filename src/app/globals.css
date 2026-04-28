@@ -67,3 +67,73 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
   from { opacity: 0; transform: translateY(6px) scale(0.97); }
   to   { opacity: 1; transform: translateY(0)   scale(1);    }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * AUTH PAGES — light theme local (login, signup, forgot, reset, aceitar-convite)
+ * Sistema interno continua dark; só auth muda pra light pra reduzir fricção
+ * visual no momento de entrada.
+ * ───────────────────────────────────────────────────────────────────────── */
+
+.auth-input {
+  width: 100%;
+  background: white;
+  border: 1px solid #E2E8F0;
+  border-radius: 0.5rem;
+  padding: 0.625rem 0.875rem;
+  font-size: 0.875rem;
+  color: #0F172A;
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+.auth-input:focus {
+  border-color: #4F46E5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, .12);
+}
+.auth-input::placeholder {
+  color: #94A3B8;
+}
+
+.auth-btn-primary {
+  margin-top: 0.5rem;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: #4F46E5;
+  color: white;
+  border-radius: 0.5rem;
+  padding: 0.625rem 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: opacity .15s, box-shadow .15s, transform .1s;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .08), 0 4px 12px rgba(79, 70, 229, .15);
+}
+.auth-btn-primary:hover:not(:disabled) {
+  background: #4338CA;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, .1), 0 6px 20px rgba(79, 70, 229, .25);
+  transform: translateY(-1px);
+}
+.auth-btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.auth-btn-secondary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: white;
+  color: #0F172A;
+  border: 1px solid #E2E8F0;
+  border-radius: 0.5rem;
+  padding: 0.625rem 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: background .15s, border-color .15s;
+}
+.auth-btn-secondary:hover {
+  background: #F8FAFC;
+  border-color: #CBD5E1;
+}
