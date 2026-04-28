@@ -25,7 +25,7 @@ const CONDITIONS: { value: ProductCondition; label: string }[] = [
   { value: 'recondicionado',  label: 'Recondicionado' },
 ]
 
-const TABS = ['Dados Básicos', 'Características', 'Imagens', 'Estoque'] as const
+const TABS = ['Dados Básicos', 'Características', 'Imagens', 'Estoque', 'Fiscal'] as const
 type Tab = typeof TABS[number]
 
 const EMPTY_FORM: ProductInput = {
@@ -35,6 +35,7 @@ const EMPTY_FORM: ProductInput = {
   purchasePriceCents: 0, costCents: 0, priceCents: 0,
   unit: 'Un', stockQty: 0, stockMin: 0, stockMax: 0,
   location: '', supplier: '', imageUrls: [], description: '', active: true,
+  ncm: '', cfop: '5102', cstCsosn: '102', origem: '0',
 }
 
 const INP   = 'w-full rounded-lg border bg-transparent px-3 py-2 text-sm text-text placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-accent'
@@ -173,6 +174,11 @@ export function ProdutoModal({
       imageUrls:          cloneFrom ? [] : (source.image_urls ?? []),
       description:        source.description ?? '',
       active:             cloneFrom ? false : source.active,
+      // Campos fiscais
+      ncm:                source.ncm      ?? '',
+      cfop:               source.cfop     ?? '5102',
+      cstCsosn:           source.cst_csosn ?? '102',
+      origem:             source.origem   ?? '0',
     }
   }
 
@@ -555,6 +561,61 @@ export function ProdutoModal({
                   Estoque acima do máximo configurado ({form.stockMax} unidades).
                 </div>
               )}
+            </>
+          )}
+
+          {/* ── Fiscal (NF-e/NFC-e) ────────────────────────────────────── */}
+          {tab === 'Fiscal' && (
+            <>
+              <div className="rounded-lg p-3 mb-3 text-xs flex items-start gap-2"
+                style={{ background: 'rgba(59,130,246,.08)', border: '1px solid rgba(59,130,246,.3)', color: '#CBD5E1' }}>
+                <span style={{ color: '#3B82F6', fontSize: '1rem' }}>ℹ</span>
+                <span>
+                  Esses campos são usados ao emitir NFC-e/NF-e. Se vazios, o sistema usa os
+                  valores padrão da configuração fiscal do tenant. <strong>NCM é obrigatório
+                  pra emissão real</strong> — você consulta no <a href="https://portalunico.siscomex.gov.br/classif/" target="_blank" rel="noopener noreferrer" className="underline" style={{ color: '#3B82F6' }}>Siscomex</a>.
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-muted">NCM <span style={{ color: '#F87171' }}>*</span></label>
+                  <input value={form.ncm ?? ''} onChange={e => set('ncm', e.target.value.replace(/\D/g, '').slice(0, 8))}
+                    placeholder="8 dígitos (ex: 85171231 = celular)"
+                    className={INP} style={INP_S} maxLength={8} />
+                  <p className="mt-1 text-xs text-muted">Código de classificação fiscal</p>
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-muted">CFOP</label>
+                  <input value={form.cfop ?? ''} onChange={e => set('cfop', e.target.value.replace(/\D/g, '').slice(0, 4))}
+                    placeholder="5102" className={INP} style={INP_S} maxLength={4} />
+                  <p className="mt-1 text-xs text-muted">5102 = venda merc. dentro do estado</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-muted">CSOSN / CST</label>
+                  <input value={form.cstCsosn ?? ''} onChange={e => set('cstCsosn', e.target.value.replace(/\D/g, '').slice(0, 4))}
+                    placeholder="102" className={INP} style={INP_S} maxLength={4} />
+                  <p className="mt-1 text-xs text-muted">102 = Simples sem permissão de crédito</p>
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-muted">Origem</label>
+                  <select value={form.origem ?? '0'} onChange={e => set('origem', e.target.value)}
+                    className={INP} style={INP_S}>
+                    <option value="0">0 — Nacional</option>
+                    <option value="1">1 — Importação direta</option>
+                    <option value="2">2 — Importação adquirida no mercado interno</option>
+                    <option value="3">3 — Nacional com conteúdo importação 40-70%</option>
+                    <option value="4">4 — Nacional com processo produtivo básico (PPB)</option>
+                    <option value="5">5 — Nacional com conteúdo importação ≤40%</option>
+                    <option value="6">6 — Importação direta (similar nacional)</option>
+                    <option value="7">7 — Importação adquirida (similar nacional)</option>
+                    <option value="8">8 — Nacional com conteúdo importação &gt;70%</option>
+                  </select>
+                </div>
+              </div>
             </>
           )}
 

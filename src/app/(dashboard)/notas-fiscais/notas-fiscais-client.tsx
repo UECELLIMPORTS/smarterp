@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
   FileText, RefreshCw, X, Loader2, CheckCircle2, XCircle, Clock,
-  AlertCircle, Eye, Settings,
+  AlertCircle, Eye, Settings, Download, Code,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -225,6 +225,26 @@ export function NotasFiscaisClient({ initial, configEnabled }: Props) {
                     <Td>{fmtDate(e.emittedAt ?? e.createdAt)}</Td>
                     <Td align="right">
                       <div className="flex items-center justify-end gap-1">
+                        {(e.status === 'authorized' || e.status === 'cancelled') && (
+                          <>
+                            <a
+                              href={`/api/fiscal/danfe/${e.id}`}
+                              target="_blank" rel="noopener noreferrer"
+                              title="Baixar DANFE PDF"
+                              className="flex h-7 w-7 items-center justify-center rounded-lg border transition-colors hover:bg-white/5"
+                              style={{ borderColor: '#2A3650', color: '#3B82F6' }}>
+                              <Download className="h-3 w-3" />
+                            </a>
+                            <a
+                              href={`/api/fiscal/xml/${e.id}`}
+                              target="_blank" rel="noopener noreferrer"
+                              title="Baixar XML"
+                              className="flex h-7 w-7 items-center justify-center rounded-lg border transition-colors hover:bg-white/5"
+                              style={{ borderColor: '#2A3650', color: '#94A3B8' }}>
+                              <Code className="h-3 w-3" />
+                            </a>
+                          </>
+                        )}
                         {e.status === 'processing' && (
                           <button
                             type="button"

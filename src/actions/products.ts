@@ -35,6 +35,12 @@ export type ProductRow = {
   image_urls: string[]
   description: string | null
   active: boolean
+  // Fiscais
+  ncm: string | null
+  cfop: string | null
+  cst_csosn: string | null
+  origem: string | null
+  unidade?: string | null
   created_at: string
   updated_at: string
 }
@@ -64,6 +70,11 @@ export type ProductInput = {
   imageUrls: string[]
   description: string
   active: boolean
+  // Campos fiscais (NF-e/NFC-e)
+  ncm?: string         // 8 dígitos (ex: 85171231 = celular)
+  cfop?: string        // 4 dígitos (ex: 5102 venda merc.)
+  cstCsosn?: string    // CSOSN (Simples) ou CST (Normal)
+  origem?: string      // 0=nacional, 1=importação direta, etc
 }
 
 // Colunas para a listagem (tabela) — sem campos pesados que só o modal usa
@@ -77,7 +88,9 @@ const SELECT_COLS = `id, code, name, brand, category, format, condition, gtin,
   weight_g, gross_weight_g, height_cm, width_cm, depth_cm,
   purchase_price_cents, cost_cents, price_cents, unit,
   stock_qty, stock_min, stock_max, location,
-  supplier, image_urls, description, active, created_at, updated_at`
+  supplier, image_urls, description, active,
+  ncm, cfop, cst_csosn, origem,
+  created_at, updated_at`
 
 // ── Params for paginated list ─────────────────────────────────────────────────
 
@@ -244,6 +257,11 @@ function toPayload(input: ProductInput, tenantId?: string) {
     image_urls:           input.imageUrls,
     description:          input.description.trim() || null,
     active:               input.active,
+    // Campos fiscais (Fase 2.2 NF-e)
+    ncm:                  input.ncm?.replace(/\D/g, '') || null,
+    cfop:                 input.cfop?.replace(/\D/g, '') || null,
+    cst_csosn:            input.cstCsosn?.trim() || null,
+    origem:               input.origem || '0',
     updated_at:           new Date().toISOString(),
   }
   if (tenantId) return { ...base, tenant_id: tenantId }
