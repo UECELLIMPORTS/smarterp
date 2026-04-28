@@ -4,7 +4,7 @@ import { useState, useMemo, useTransition, useEffect, useRef } from 'react'
 import {
   Receipt, TrendingUp, ShoppingCart, CreditCard, Wrench,
   XCircle, RefreshCw, Plus, Loader2, X, AlertTriangle, Search,
-  Trash2, UserPlus, Calendar, CalendarDays, MoreVertical, Filter, Pencil,
+  Trash2, UserPlus, Calendar, CalendarDays, MoreVertical, Filter, Pencil, FileText,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -27,6 +27,7 @@ import { CUSTOMER_ORIGIN_OPTIONS, originLabel } from '@/lib/customer-origin'
 import { CampaignCodePicker } from '@/components/meta-ads/campaign-code-picker'
 import { SALE_CHANNEL_OPTIONS_PICKABLE, DELIVERY_TYPE_OPTIONS, type SaleChannel, type DeliveryType } from '@/lib/sale-channels'
 import { updateServiceOrderChannel, updateSaleChannel } from '@/actions/sales-channels'
+import { emitNfceFromSale } from '@/actions/fiscal-emit'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -598,6 +599,28 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
     })
   }
 
+  // ── Emitir NFC-e (a partir de venda ERP) ──────────────────────────────────
+  function handleEmitNfce(row: FinanceiroRow) {
+    if (row.source !== 'erp') {
+      toast.error('Emissão de NFC-e disponível apenas pra vendas do ERP.')
+      return
+    }
+    if (row.cancelled) {
+      toast.error('Não é possível emitir NFC-e pra venda cancelada.')
+      return
+    }
+    if (!confirm(`Emitir NFC-e pra venda de ${row.customerName}? (${row.dateStr})`)) return
+
+    startAction(async () => {
+      const res = await emitNfceFromSale(row.rawId)
+      if (!res.ok) { toast.error(res.error); return }
+      const status = res.data?.status
+      if (status === 'authorized') toast.success('NFC-e autorizada!')
+      else if (status === 'processing') toast.success(res.data?.message ?? 'NFC-e em processamento. Veja em /notas-fiscais.')
+      else toast.success(`NFC-e: ${status}`)
+    })
+  }
+
   // ── Edit OS payment ───────────────────────────────────────────────────────
   function doEditPay() {
     if (!editPayRow || !editPayVal) return
@@ -1123,6 +1146,15 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                         backdropFilter: 'none',
                       }}
                       onClick={e => e.stopPropagation()}>
+                        {/* Emitir NFC-e — só ERP ativo */}
+                        {row.source === 'erp' && !row.cancelled && (
+                          <MenuItem
+                            icon={<FileText className="h-5 w-5 shrink-0 pointer-events-none" style={{ color: '#3B82F6' }} />}
+                            label="Emitir NFC-e"
+                            accentColor="#3B82F6"
+                            onClick={() => { setOpenMenu(null); handleEmitNfce(row) }}
+                          />
+                        )}
                         {/* Editar venda — ERP (qualquer status) */}
                         {row.source === 'erp' && (
                           <MenuItem

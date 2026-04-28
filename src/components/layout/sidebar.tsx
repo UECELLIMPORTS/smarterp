@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, ShoppingCart, Package, DollarSign,
-  Users, BarChart2, Target, TrendingUp, Settings, Zap, PieChart, Store,
+  Users, BarChart2, Target, TrendingUp, Settings, Zap, PieChart, Store, FileText,
 } from 'lucide-react'
 import type { ModuleKey } from '@/lib/permissions-shared'
 
@@ -27,6 +27,7 @@ export const NAV: {
   { href: '/relatorios',        icon: BarChart2,       label: 'Relatórios',      moduleKey: 'relatorios' },
   { href: '/crm',               icon: Target,          label: 'CRM',             moduleKey: 'crm' },
   { href: '/meta-ads',          icon: TrendingUp,      label: 'Meta Ads',        moduleKey: 'meta_ads' },
+  { href: '/notas-fiscais',     icon: FileText,        label: 'Notas Fiscais',   moduleKey: 'notas_fiscais' },
   { href: '/configuracoes',     icon: Settings,        label: 'Configurações' },           // owner-only (gate na page)
 ]
 
