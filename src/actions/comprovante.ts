@@ -15,7 +15,7 @@ import { getTenantId } from '@/lib/tenant'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getComprovanteData } from '@/lib/comprovante-data'
 import { renderComprovantePdf } from '@/lib/comprovante-pdf'
-import { sendEmailWithAttachment, htmlShell, escapeHtml } from '@/lib/email'
+import { sendEmailWithAttachment, escapeHtml } from '@/lib/email'
 
 type Result<T = void> = { ok: true; data?: T } | { ok: false; error: string }
 
@@ -134,23 +134,7 @@ export async function sendComprovanteEmail(input: {
     ? `Olá ${escapeHtml(data.customer.name.split(' ')[0])},`
     : 'Olá!'
 
-  const html = htmlShell({
-    title: `Comprovante de Compra · ${data.saleNumber}`,
-    body: `
-      <p>${greeting}</p>
-      <p>Segue em anexo o <strong>comprovante</strong> da sua compra na
-      <strong>${escapeHtml(data.tenant.name)}</strong>, junto com o
-      <strong>termo de garantia</strong> dos produtos.</p>
-      ${input.observation ? `<p style="margin-top: 16px; padding: 12px; background: #FEF9C3; border-left: 3px solid #EAB308;">
-        <strong>Observação:</strong><br>${escapeHtml(input.observation)}
-      </p>` : ''}
-      <p style="margin-top: 24px;">Em caso de dúvidas sobre garantia, basta responder este e-mail
-      ou entrar em contato com a loja.</p>
-      <p style="color: #64748B; font-size: 13px;">Total da compra: <strong>${
-        (data.totalCents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-      }</strong></p>
-    `,
-  })
+  const html = await buildComprovanteEmailHtml(data, greeting, input.observation)
 
   const result = await sendEmailWithAttachment({
     to:      email,
@@ -171,6 +155,9 @@ export type BrandingSettings = {
   logoUrl:           string | null
   warrantyDays:      number
   warrantyTerms:     string | null
+  businessPhone:     string | null
+  businessEmail:     string | null
+  instagramHandle:   string | null
 }
 
 export async function getBrandingSettings(): Promise<BrandingSettings> {
@@ -183,20 +170,26 @@ export async function getBrandingSettings(): Promise<BrandingSettings> {
 
   const { data } = await sb
     .from('tenants')
-    .select('logo_url, warranty_days, warranty_terms')
+    .select('logo_url, warranty_days, warranty_terms, business_phone, business_email, instagram_handle')
     .eq('id', tenantId)
     .maybeSingle()
 
   return {
-    logoUrl:       data?.logo_url ?? null,
-    warrantyDays:  data?.warranty_days ?? 90,
-    warrantyTerms: data?.warranty_terms ?? null,
+    logoUrl:         data?.logo_url ?? null,
+    warrantyDays:    data?.warranty_days ?? 90,
+    warrantyTerms:   data?.warranty_terms ?? null,
+    businessPhone:   data?.business_phone ?? null,
+    businessEmail:   data?.business_email ?? null,
+    instagramHandle: data?.instagram_handle ?? null,
   }
 }
 
 export async function saveBrandingSettings(input: {
-  warrantyDays:  number
-  warrantyTerms: string | null
+  warrantyDays:    number
+  warrantyTerms:   string | null
+  businessPhone:   string | null
+  businessEmail:   string | null
+  instagramHandle: string | null
 }): Promise<Result> {
   const { user } = await requireAuth()
   const tenantId = getTenantId(user)
@@ -205,6 +198,13 @@ export async function saveBrandingSettings(input: {
     return { ok: false, error: 'Garantia padrão deve ser entre 0 e 3650 dias.' }
   }
 
+  const phoneDigits  = input.businessPhone?.replace(/\D/g, '') || null
+  const emailTrim    = input.businessEmail?.trim() || null
+  if (emailTrim && !/.+@.+\..+/.test(emailTrim)) {
+    return { ok: false, error: 'E-mail institucional inválido.' }
+  }
+  const instagram    = input.instagramHandle?.trim().replace(/^@/, '').replace(/\s+/g, '') || null
+
   const admin = createAdminClient()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = admin as any
@@ -212,8 +212,11 @@ export async function saveBrandingSettings(input: {
   const { error } = await sb
     .from('tenants')
     .update({
-      warranty_days:   Math.round(input.warrantyDays),
-      warranty_terms:  input.warrantyTerms?.trim() || null,
+      warranty_days:    Math.round(input.warrantyDays),
+      warranty_terms:   input.warrantyTerms?.trim() || null,
+      business_phone:   phoneDigits,
+      business_email:   emailTrim,
+      instagram_handle: instagram,
     })
     .eq('id', tenantId)
 
@@ -275,4 +278,95 @@ export async function removeTenantLogo(): Promise<Result> {
 
   revalidatePath('/configuracoes')
   return { ok: true }
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// Template de email do comprovante (helper local, não exportado).
+// ──────────────────────────────────────────────────────────────────────────
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function buildComprovanteEmailHtml(data: any, greeting: string, observation?: string): Promise<string> {
+  const t = data.tenant
+  const totalBRL = (data.totalCents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+
+  const phoneFmt = t.phone
+    ? t.phone.replace(/\D/g, '').replace(/^(\d{2})(\d{5})(\d{4})$/, '($1) $2-$3').replace(/^(\d{2})(\d{4})(\d{4})$/, '($1) $2-$3')
+    : null
+  const insta = t.instagram ? `@${(t.instagram as string).replace(/^@/, '')}` : null
+
+  const cnpjFmt = t.cnpj
+    ? (t.cnpj as string).replace(/\D/g, '').replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5')
+    : null
+
+  const addrLine1 = [
+    [t.addressStreet, t.addressNumber].filter(Boolean).join(', '),
+    t.addressDistrict,
+  ].filter(Boolean).join(' - ')
+  const addrLine2 = [
+    [t.addressCity, t.addressState].filter(Boolean).join('/'),
+    t.addressZip ? `CEP ${t.addressZip}` : null,
+  ].filter(Boolean).join(' · ')
+
+  const footerLines: string[] = []
+  if (cnpjFmt) footerLines.push(`CNPJ ${cnpjFmt}`)
+  if (addrLine1) footerLines.push(addrLine1)
+  if (addrLine2) footerLines.push(addrLine2)
+  const footerContact = [phoneFmt, t.email, insta].filter(Boolean).join(' · ')
+  if (footerContact) footerLines.push(footerContact)
+
+  return `
+<!doctype html>
+<html><body style="margin:0;padding:0;background:#F8FAFC;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color:#0F172A;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F8FAFC;padding:32px 16px;">
+    <tr><td align="center">
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background:#FFFFFF;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(15,23,42,0.06);max-width:600px;width:100%;">
+        <!-- Header -->
+        <tr><td style="background:linear-gradient(135deg,#059669,#10B981);padding:32px 32px 24px;text-align:center;">
+          ${t.logoUrl ? `<img src="${escapeHtml(t.logoUrl)}" alt="Logo" style="max-height:64px;border-radius:8px;background:#FFFFFF;padding:6px;margin-bottom:12px;" />` : ''}
+          <div style="color:#FFFFFF;font-size:18px;font-weight:bold;letter-spacing:.5px;">${escapeHtml(t.tradeName || t.name)}</div>
+          <div style="color:rgba(255,255,255,.85);font-size:12px;margin-top:4px;">Comprovante de Compra · ${escapeHtml(data.saleNumber)}</div>
+        </td></tr>
+
+        <!-- Body -->
+        <tr><td style="padding:28px 32px;">
+          <p style="margin:0 0 12px;font-size:16px;">${greeting}</p>
+          <p style="margin:0 0 16px;line-height:1.55;color:#334155;">
+            Segue em anexo o <strong>comprovante</strong> da sua compra na
+            <strong>${escapeHtml(t.tradeName || t.name)}</strong>, junto com o
+            <strong>termo de garantia</strong> dos produtos.
+          </p>
+
+          <!-- Total destacado -->
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#ECFDF5;border:1px solid #A7F3D0;border-radius:8px;margin:20px 0;">
+            <tr>
+              <td style="padding:14px 18px;color:#065F46;font-size:13px;">Total da compra</td>
+              <td align="right" style="padding:14px 18px;color:#059669;font-size:22px;font-weight:bold;">${totalBRL}</td>
+            </tr>
+          </table>
+
+          ${observation ? `
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#FEF9C3;border-left:3px solid #EAB308;border-radius:4px;margin:0 0 16px;">
+              <tr><td style="padding:12px 14px;">
+                <div style="font-size:11px;font-weight:bold;color:#854D0E;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Observação</div>
+                <div style="font-size:14px;color:#422006;">${escapeHtml(observation)}</div>
+              </td></tr>
+            </table>` : ''}
+
+          <p style="margin:18px 0 0;font-size:13px;color:#64748B;line-height:1.5;">
+            Em caso de dúvidas sobre garantia, basta responder este e-mail ou entrar em contato com a loja pelos canais abaixo.
+          </p>
+        </td></tr>
+
+        <!-- Footer com dados da loja -->
+        <tr><td style="border-top:1px solid #E2E8F0;padding:20px 32px;background:#F8FAFC;text-align:center;">
+          ${footerLines.map(l => `<div style="font-size:11px;color:#64748B;line-height:1.6;">${escapeHtml(l)}</div>`).join('')}
+        </td></tr>
+      </table>
+
+      <p style="margin:16px 0 0;font-size:11px;color:#94A3B8;text-align:center;">
+        Este comprovante não substitui documento fiscal (NF-e/NFC-e).
+      </p>
+    </td></tr>
+  </table>
+</body></html>`
 }

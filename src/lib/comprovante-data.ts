@@ -9,11 +9,14 @@ import type { ComprovanteData, ComprovanteItem } from '@/lib/comprovante-pdf'
 
 type SaleRow = {
   id: string
+  user_id: string | null
   total_cents: number
   subtotal_cents: number
   discount_cents: number
   shipping_cents: number
   payment_method: string | null
+  sale_channel: string | null
+  delivery_type: string | null
   created_at: string
   customers: { full_name: string; cpf_cnpj: string | null; whatsapp: string | null; email: string | null } | null
   sale_items: { name: string; product_id: string | null; quantity: number; unit_price_cents: number; subtotal_cents: number }[]
@@ -26,6 +29,9 @@ type TenantRow = {
   warranty_days: number | null
   logo_url: string | null
   warranty_terms: string | null
+  business_phone: string | null
+  business_email: string | null
+  instagram_handle: string | null
 }
 
 type FiscalCfgRow = {
@@ -50,8 +56,8 @@ export async function getComprovanteData(
   const [saleRes, tenantRes, fiscalRes] = await Promise.all([
     sb.from('sales')
       .select(`
-        id, total_cents, subtotal_cents, discount_cents, shipping_cents,
-        payment_method, created_at,
+        id, user_id, total_cents, subtotal_cents, discount_cents, shipping_cents,
+        payment_method, sale_channel, delivery_type, created_at,
         customers ( full_name, cpf_cnpj, whatsapp, email ),
         sale_items ( name, product_id, quantity, unit_price_cents, subtotal_cents )
       `)
@@ -59,7 +65,7 @@ export async function getComprovanteData(
       .eq('tenant_id', tenantId)
       .single(),
     sb.from('tenants')
-      .select('id, name, cpf_cnpj, warranty_days, logo_url, warranty_terms')
+      .select('id, name, cpf_cnpj, warranty_days, logo_url, warranty_terms, business_phone, business_email, instagram_handle')
       .eq('id', tenantId)
       .single(),
     sb.from('fiscal_configs')
@@ -86,6 +92,17 @@ export async function getComprovanteData(
     }
   }
 
+  // Vendedor: busca user_metadata.full_name de quem operou a venda
+  let sellerName: string | null = null
+  if (sale.user_id) {
+    try {
+      const { data: userRes } = await sb.auth.admin.getUserById(sale.user_id)
+      const u = userRes?.user
+      sellerName = (u?.user_metadata?.full_name as string | undefined)
+                ?? (u?.email ? u.email.split('@')[0] : null)
+    } catch { /* swallow — vendedor é opcional */ }
+  }
+
   const defaultWarranty = tenant.warranty_days ?? 90
 
   const items: ComprovanteItem[] = sale.sale_items.map(it => ({
@@ -98,27 +115,37 @@ export async function getComprovanteData(
 
   const saleNumber = `VND-${sale.id.slice(0, 8).toUpperCase()}`
 
+  // CEP formatado: 49000000 → 49000-000
+  const cepFmt = fiscal?.endereco_cep
+    ? fiscal.endereco_cep.replace(/^(\d{5})(\d{3})$/, '$1-$2')
+    : null
+
   return {
     saleId:         sale.id,
     saleNumber,
     saleDate:       sale.created_at,
     paymentMethod:  sale.payment_method,
+    saleChannel:    sale.sale_channel,
+    deliveryType:   sale.delivery_type,
+    sellerName,
     observation,
 
     tenant: {
-      name:           tenant.name,
-      tradeName:      null,
-      cnpj:           tenant.cpf_cnpj,
-      ie:             fiscal?.inscricao_estadual,
-      addressStreet:  [fiscal?.endereco_logradouro, fiscal?.endereco_bairro].filter(Boolean).join(' - ') || null,
-      addressNumber:  fiscal?.endereco_numero,
-      addressCity:    fiscal?.endereco_cidade,
-      addressState:   fiscal?.endereco_uf,
-      addressZip:     fiscal?.endereco_cep,
-      phone:          null,
-      email:          null,
-      logoUrl:        tenant.logo_url,
-      warrantyTerms:  tenant.warranty_terms,
+      name:             tenant.name,
+      tradeName:        null,
+      cnpj:             tenant.cpf_cnpj,
+      ie:               fiscal?.inscricao_estadual,
+      addressStreet:    fiscal?.endereco_logradouro,
+      addressNumber:    fiscal?.endereco_numero,
+      addressDistrict:  fiscal?.endereco_bairro,
+      addressCity:      fiscal?.endereco_cidade,
+      addressState:     fiscal?.endereco_uf,
+      addressZip:       cepFmt,
+      phone:            tenant.business_phone,
+      email:            tenant.business_email,
+      instagram:        tenant.instagram_handle,
+      logoUrl:          tenant.logo_url,
+      warrantyTerms:    tenant.warranty_terms,
     },
 
     customer: {

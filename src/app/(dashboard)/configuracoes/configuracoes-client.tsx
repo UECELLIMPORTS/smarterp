@@ -64,17 +64,26 @@ export function ConfiguracoesClient({ initialSettings, isOwner = false, initialE
   const [saved, setSaved]       = useState(false)
   const [error, setError]       = useState('')
 
-  // ── Branding (logo + garantia padrão + termo) ─────────────────────────
+  // ── Branding (logo + garantia padrão + termo + contatos) ──────────────
   const [logoUrl, setLogoUrl]                 = useState<string | null>(initialBranding.logoUrl)
   const [warrantyDays, setWarrantyDays]       = useState<number>(initialBranding.warrantyDays)
   const [warrantyTerms, setWarrantyTerms]     = useState<string>(initialBranding.warrantyTerms ?? '')
+  const [businessPhone, setBusinessPhone]     = useState<string>(initialBranding.businessPhone ?? '')
+  const [businessEmail, setBusinessEmail]     = useState<string>(initialBranding.businessEmail ?? '')
+  const [instagramHandle, setInstagramHandle] = useState<string>(initialBranding.instagramHandle ?? '')
   const [savingBranding, startSaveBranding]   = useTransition()
   const [uploadingLogo, setUploadingLogo]     = useState(false)
   const fileInputRef                          = useRef<HTMLInputElement>(null)
 
   function handleSaveBranding() {
     startSaveBranding(async () => {
-      const res = await saveBrandingSettings({ warrantyDays, warrantyTerms: warrantyTerms || null })
+      const res = await saveBrandingSettings({
+        warrantyDays,
+        warrantyTerms:    warrantyTerms || null,
+        businessPhone:    businessPhone || null,
+        businessEmail:    businessEmail || null,
+        instagramHandle:  instagramHandle || null,
+      })
       if (res.ok) toast.success('Branding salvo.')
       else toast.error(res.error)
     })
@@ -318,6 +327,46 @@ export function ConfiguracoesClient({ initialSettings, isOwner = false, initialE
                     if (f) handleUploadLogo(f)
                     e.target.value = ''
                   }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Contatos da empresa */}
+          <div>
+            <p className="mb-2 text-xs font-medium text-muted">Contatos institucionais (aparecem no PDF e no e-mail)</p>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+              <div>
+                <label className="mb-1 block text-[11px] uppercase tracking-wide" style={{ color: '#94A3B8' }}>Telefone / WhatsApp</label>
+                <input
+                  type="tel"
+                  value={businessPhone}
+                  onChange={e => setBusinessPhone(e.target.value)}
+                  placeholder="(79) 99999-9999"
+                  className="w-full rounded-lg border bg-transparent px-3 py-2 text-sm text-text"
+                  style={{ borderColor: '#2A3650' }}
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-[11px] uppercase tracking-wide" style={{ color: '#94A3B8' }}>E-mail institucional</label>
+                <input
+                  type="email"
+                  value={businessEmail}
+                  onChange={e => setBusinessEmail(e.target.value)}
+                  placeholder="contato@uecellimports.com"
+                  className="w-full rounded-lg border bg-transparent px-3 py-2 text-sm text-text"
+                  style={{ borderColor: '#2A3650' }}
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-[11px] uppercase tracking-wide" style={{ color: '#94A3B8' }}>Instagram</label>
+                <input
+                  type="text"
+                  value={instagramHandle}
+                  onChange={e => setInstagramHandle(e.target.value.replace(/^@/, ''))}
+                  placeholder="uecellimports"
+                  className="w-full rounded-lg border bg-transparent px-3 py-2 text-sm text-text"
+                  style={{ borderColor: '#2A3650' }}
                 />
               </div>
             </div>

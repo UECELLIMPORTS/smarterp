@@ -29,21 +29,26 @@ export type ComprovanteData = {
   saleDate:        string         // ISO
   paymentMethod:   string | null
   observation?:    string         // observação manual do operador
+  saleChannel?:    string | null  // whatsapp, fisica_balcao, etc
+  deliveryType?:   string | null  // counter, pickup, shipping
+  sellerName?:     string | null  // user_metadata.full_name de quem operou
 
   tenant: {
-    name:           string
-    tradeName?:     string | null
-    cnpj:           string | null
-    ie?:            string | null
-    addressStreet?: string | null
-    addressNumber?: string | null
-    addressCity?:   string | null
-    addressState?:  string | null
-    addressZip?:    string | null
-    phone?:         string | null
-    email?:         string | null
-    logoUrl?:       string | null
-    warrantyTerms?: string | null
+    name:              string
+    tradeName?:        string | null
+    cnpj:              string | null
+    ie?:               string | null
+    addressStreet?:    string | null
+    addressNumber?:    string | null
+    addressDistrict?:  string | null
+    addressCity?:      string | null
+    addressState?:     string | null
+    addressZip?:       string | null
+    phone?:            string | null
+    email?:            string | null
+    instagram?:        string | null
+    logoUrl?:          string | null
+    warrantyTerms?:    string | null
   }
 
   customer: {
@@ -105,6 +110,33 @@ function paymentLabel(method: string | null): string {
   }
 }
 
+function channelLabel(c: string | null | undefined): string | null {
+  switch ((c ?? '').toLowerCase()) {
+    case 'whatsapp':         return 'WhatsApp'
+    case 'instagram_dm':     return 'Instagram'
+    case 'fisica_balcao':    return 'Loja Física (balcão)'
+    case 'fisica_retirada':  return 'Loja Física (retirada)'
+    case 'delivery_online':  return 'Delivery / Online'
+    case 'outro':            return 'Outro'
+    case '':
+    case null:
+    case undefined:          return null
+    default:                 return c || null
+  }
+}
+
+function deliveryLabel(d: string | null | undefined): string | null {
+  switch ((d ?? '').toLowerCase()) {
+    case 'counter':   return 'Retirada no balcão'
+    case 'pickup':    return 'Retirada agendada'
+    case 'shipping':  return 'Envio / entrega'
+    case '':
+    case null:
+    case undefined:   return null
+    default:          return d || null
+  }
+}
+
 const DEFAULT_WARRANTY_TERMS = `O presente termo regulamenta a garantia dos produtos adquiridos conforme Lei nº 8.078/90 (Código de Defesa do Consumidor).
 
 1. PRAZO DE GARANTIA
@@ -163,6 +195,8 @@ const styles = StyleSheet.create({
   // Sections
   section:     { marginBottom: 14 },
   sectionTitle:{ fontSize: 10, fontWeight: 'bold', color: '#059669', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
+  twoCol:      { flexDirection: 'row', gap: 10, marginBottom: 14 },
+  colHalf:     { flex: 1 },
   row:         { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 2 },
   label:       { color: '#64748B', fontSize: 9 },
   value:       { fontSize: 9, fontWeight: 'bold' },
@@ -188,7 +222,7 @@ const styles = StyleSheet.create({
   obsLabel:    { fontSize: 8, fontWeight: 'bold', color: '#854D0E', marginBottom: 2, textTransform: 'uppercase' },
   obsText:     { fontSize: 9, color: '#422006' },
   // Footer
-  footer:      { position: 'absolute', bottom: 24, left: 32, right: 32, fontSize: 7, color: '#94A3B8', textAlign: 'center', borderTop: '0.5pt solid #E2E8F0', paddingTop: 6 },
+  footer:      { position: 'absolute', bottom: 24, left: 32, right: 32, borderTop: '0.5pt solid #E2E8F0', paddingTop: 6 },
   // Termo de garantia (page 2)
   termsTitle:  { fontSize: 18, fontWeight: 'bold', color: '#064E3B', textAlign: 'center', marginBottom: 4 },
   termsSub:    { fontSize: 9, color: '#475569', textAlign: 'center', marginBottom: 18 },
@@ -207,9 +241,22 @@ const styles = StyleSheet.create({
 function ComprovanteDoc({ data }: { data: ComprovanteData }) {
   const t = data.tenant
   const c = data.customer
-  const fullAddress = [t.addressStreet, t.addressNumber].filter(Boolean).join(', ')
+
+  // Linha 1 do endereço: rua, número - bairro
+  const addrLine1 = [
+    [t.addressStreet, t.addressNumber].filter(Boolean).join(', '),
+    t.addressDistrict,
+  ].filter(Boolean).join(' - ')
+  // Linha 2 do endereço: cidade/UF · CEP
   const cityState = [t.addressCity, t.addressState].filter(Boolean).join('/')
-  const tenantContact = [t.phone && formatPhone(t.phone), t.email].filter(Boolean).join(' · ')
+  const addrLine2 = [cityState, t.addressZip ? `CEP ${t.addressZip}` : null].filter(Boolean).join(' · ')
+
+  const phoneFmt    = t.phone ? formatPhone(t.phone) : null
+  const instagramFmt = t.instagram ? `@${t.instagram.replace(/^@/, '')}` : null
+  const tenantContact = [phoneFmt, t.email, instagramFmt].filter(Boolean).join(' · ')
+
+  const channel  = channelLabel(data.saleChannel)
+  const delivery = deliveryLabel(data.deliveryType)
 
   const warrantyTerms = (t.warrantyTerms?.trim() || DEFAULT_WARRANTY_TERMS)
 
@@ -228,8 +275,8 @@ function ComprovanteDoc({ data }: { data: ComprovanteData }) {
               <Text style={styles.tenantName}>{t.tradeName || t.name}</Text>
               {t.cnpj         ? <Text style={styles.tenantInfo}>CNPJ: {formatCnpj(t.cnpj)}</Text> : null}
               {t.ie           ? <Text style={styles.tenantInfo}>IE: {t.ie}</Text> : null}
-              {fullAddress    ? <Text style={styles.tenantInfo}>{fullAddress}</Text> : null}
-              {cityState      ? <Text style={styles.tenantInfo}>{cityState}</Text> : null}
+              {addrLine1      ? <Text style={styles.tenantInfo}>{addrLine1}</Text> : null}
+              {addrLine2      ? <Text style={styles.tenantInfo}>{addrLine2}</Text> : null}
               {tenantContact  ? <Text style={styles.tenantInfo}>{tenantContact}</Text> : null}
             </View>
           </View>
@@ -240,31 +287,67 @@ function ComprovanteDoc({ data }: { data: ComprovanteData }) {
           </View>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Cliente</Text>
-          <View style={styles.box}>
-            <View style={styles.row}>
-              <Text style={styles.label}>Nome:</Text>
-              <Text style={styles.value}>{c.name}</Text>
+        <View style={styles.twoCol}>
+          {/* Detalhes da venda */}
+          <View style={styles.colHalf}>
+            <Text style={styles.sectionTitle}>Detalhes da venda</Text>
+            <View style={styles.box}>
+              <View style={styles.row}>
+                <Text style={styles.label}>Número:</Text>
+                <Text style={styles.value}>{data.saleNumber}</Text>
+              </View>
+              <View style={styles.row}>
+                <Text style={styles.label}>Data/hora:</Text>
+                <Text style={styles.value}>{formatDate(data.saleDate)}</Text>
+              </View>
+              {data.sellerName ? (
+                <View style={styles.row}>
+                  <Text style={styles.label}>Vendedor:</Text>
+                  <Text style={styles.value}>{data.sellerName}</Text>
+                </View>
+              ) : null}
+              {channel ? (
+                <View style={styles.row}>
+                  <Text style={styles.label}>Canal:</Text>
+                  <Text style={styles.value}>{channel}</Text>
+                </View>
+              ) : null}
+              {delivery ? (
+                <View style={styles.row}>
+                  <Text style={styles.label}>Entrega:</Text>
+                  <Text style={styles.value}>{delivery}</Text>
+                </View>
+              ) : null}
             </View>
-            {c.cpfCnpj ? (
+          </View>
+
+          {/* Cliente */}
+          <View style={styles.colHalf}>
+            <Text style={styles.sectionTitle}>Cliente</Text>
+            <View style={styles.box}>
               <View style={styles.row}>
-                <Text style={styles.label}>CPF/CNPJ:</Text>
-                <Text style={styles.value}>{formatCnpj(c.cpfCnpj)}</Text>
+                <Text style={styles.label}>Nome:</Text>
+                <Text style={styles.value}>{c.name}</Text>
               </View>
-            ) : null}
-            {c.phone ? (
-              <View style={styles.row}>
-                <Text style={styles.label}>Telefone:</Text>
-                <Text style={styles.value}>{formatPhone(c.phone)}</Text>
-              </View>
-            ) : null}
-            {c.email ? (
-              <View style={styles.row}>
-                <Text style={styles.label}>E-mail:</Text>
-                <Text style={styles.value}>{c.email}</Text>
-              </View>
-            ) : null}
+              {c.cpfCnpj ? (
+                <View style={styles.row}>
+                  <Text style={styles.label}>CPF/CNPJ:</Text>
+                  <Text style={styles.value}>{formatCnpj(c.cpfCnpj)}</Text>
+                </View>
+              ) : null}
+              {c.phone ? (
+                <View style={styles.row}>
+                  <Text style={styles.label}>Telefone:</Text>
+                  <Text style={styles.value}>{formatPhone(c.phone)}</Text>
+                </View>
+              ) : null}
+              {c.email ? (
+                <View style={styles.row}>
+                  <Text style={styles.label}>E-mail:</Text>
+                  <Text style={styles.value}>{c.email}</Text>
+                </View>
+              ) : null}
+            </View>
           </View>
         </View>
 
@@ -324,9 +407,19 @@ function ComprovanteDoc({ data }: { data: ComprovanteData }) {
           </View>
         ) : null}
 
-        <Text style={styles.footer}>
-          Este comprovante não substitui documento fiscal. Em caso de dúvidas sobre garantia, consulte a próxima página.
-        </Text>
+        <View style={styles.footer}>
+          <Text style={{ fontSize: 8, fontWeight: 'bold', color: '#475569', textAlign: 'center' }}>
+            Obrigado pela preferência! Em caso de dúvidas sobre garantia, consulte a próxima página.
+          </Text>
+          {tenantContact ? (
+            <Text style={{ fontSize: 7, color: '#94A3B8', textAlign: 'center', marginTop: 3 }}>
+              {t.tradeName || t.name} · {tenantContact}
+            </Text>
+          ) : null}
+          <Text style={{ fontSize: 7, color: '#94A3B8', textAlign: 'center', marginTop: 1 }}>
+            Este comprovante não substitui documento fiscal (NF-e/NFC-e).
+          </Text>
+        </View>
       </Page>
 
       {/* ── Página 2: Termo de Garantia ─────────────────────────────── */}
@@ -369,9 +462,11 @@ function ComprovanteDoc({ data }: { data: ComprovanteData }) {
           </View>
         </View>
 
-        <Text style={styles.footer}>
-          {t.tradeName || t.name} {t.cnpj ? `· CNPJ ${formatCnpj(t.cnpj)}` : ''} · Emitido em {formatDate(new Date().toISOString())}
-        </Text>
+        <View style={styles.footer}>
+          <Text style={{ fontSize: 7, color: '#94A3B8', textAlign: 'center' }}>
+            {t.tradeName || t.name} {t.cnpj ? `· CNPJ ${formatCnpj(t.cnpj)}` : ''} · Emitido em {formatDate(new Date().toISOString())}
+          </Text>
+        </View>
       </Page>
     </Document>
   )
