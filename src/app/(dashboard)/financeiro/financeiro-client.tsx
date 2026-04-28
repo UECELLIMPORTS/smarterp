@@ -344,6 +344,11 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
   const [esCustResults, setEsCustResults]     = useState<Customer[]>([])
   const [esCustSearching, setEsCustSearching] = useState(false)
   const [esCustDrop, setEsCustDrop]           = useState(false)
+  // Cadastro inline de cliente novo durante edição da venda
+  const [esShowCustForm, setEsShowCustForm]   = useState(false)
+  const [esNc, setEsNc]                       = useState(EMPTY_NC)
+  const [savingEsCust, setSavingEsCust]       = useState(false)
+  const [esFetchingCep, setEsFetchingCep]     = useState(false)
   const [esPQuery, setEsPQuery]               = useState('')
   const [esPResults, setEsPResults]           = useState<Product[]>([])
   const [esPSearching, setEsPSearching]       = useState(false)
@@ -703,10 +708,42 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
       const res = await searchCustomers(esCustQuery.trim())
       if (res.length === 1) {
         setEsCustomerId(res[0].id); setEsCustomerName(res[0].full_name); setEsCustQuery('')
+        setEsShowCustForm(false)
       } else if (res.length > 1) {
         setEsCustResults(res); setEsCustDrop(true)
-      } else { toast.info('Cliente não encontrado') }
+      } else {
+        // Nenhum cliente — abre form pra cadastrar com o nome digitado pré-preenchido
+        setEsNc({ ...EMPTY_NC, name: esCustQuery.trim() })
+        setEsShowCustForm(true)
+        toast.info('Cliente não encontrado — cadastre abaixo')
+      }
     } finally { setEsCustSearching(false) }
+  }
+
+  async function handleEsCepBlur(val: string) {
+    const d = val.replace(/\D/g, '')
+    if (d.length !== 8) return
+    setEsFetchingCep(true)
+    try {
+      const r = await fetch(`https://viacep.com.br/ws/${d}/json/`)
+      const data = await r.json()
+      if (!data.erro) {
+        setEsNc(p => ({ ...p, addressStreet: data.logradouro ?? '', addressCity: data.localidade ?? '', addressState: data.uf ?? '' }))
+      }
+    } catch { /* silent */ } finally { setEsFetchingCep(false) }
+  }
+
+  async function handleSaveEsCust() {
+    if (!esNc.name.trim()) { toast.error('Nome é obrigatório'); return }
+    setSavingEsCust(true)
+    try {
+      const c = await createCustomer(esNc)
+      setEsCustomerId(c.id); setEsCustomerName(c.full_name)
+      setEsShowCustForm(false); setEsCustQuery(''); setEsNc(EMPTY_NC)
+      toast.success('Cliente cadastrado e vinculado!')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao cadastrar')
+    } finally { setSavingEsCust(false) }
   }
 
   function addEsProduct(p: Product) {
@@ -1516,6 +1553,61 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                               {c.whatsapp && <span className="text-xs text-muted">{c.whatsapp}</span>}
                             </button>
                           ))}
+                        </div>
+                      )}
+
+                      {!esShowCustForm && (
+                        <button onClick={() => { setEsNc({ ...EMPTY_NC, name: esCustQuery.trim() }); setEsShowCustForm(true) }}
+                          className="w-full flex items-center justify-center gap-2 rounded-lg border border-dashed py-2 text-xs text-muted hover:text-text transition-colors"
+                          style={{ borderColor: '#2A3650' }}>
+                          <UserPlus className="h-3.5 w-3.5" /> Cadastrar novo cliente
+                        </button>
+                      )}
+
+                      {esShowCustForm && (
+                        <div className="space-y-3 border-t pt-3" style={{ borderColor: '#2A3650' }}>
+                          <div className="flex items-center justify-between">
+                            <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#FBBF24' }}>Cadastro de cliente</p>
+                            <button onClick={() => setEsShowCustForm(false)} className="text-xs text-muted hover:text-text">Cancelar</button>
+                          </div>
+                          <input value={esNc.name} onChange={e => setEsNc(p => ({ ...p, name: e.target.value }))}
+                            placeholder="Nome completo *" className={INP} style={INP_S} />
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <input value={esNc.cpf} onChange={e => setEsNc(p => ({ ...p, cpf: fmtCpf(e.target.value) }))}
+                              placeholder="CPF" className={INP} style={INP_S} />
+                            <div className="relative">
+                              <Calendar className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted pointer-events-none" />
+                              <input type="date" value={esNc.birthDate} onChange={e => setEsNc(p => ({ ...p, birthDate: e.target.value }))}
+                                className={INP + ' pl-9'} style={INP_S} title="Data de aniversário" />
+                            </div>
+                          </div>
+                          <input value={esNc.whatsapp} onChange={e => setEsNc(p => ({ ...p, whatsapp: fmtPhone(e.target.value) }))}
+                            placeholder="WhatsApp" className={INP} style={INP_S} />
+                          <input type="email" value={esNc.email} onChange={e => setEsNc(p => ({ ...p, email: e.target.value }))}
+                            placeholder="E-mail" className={INP} style={INP_S} />
+                          <div className="relative">
+                            <input value={esNc.cep} onChange={e => setEsNc(p => ({ ...p, cep: fmtCep(e.target.value) }))}
+                              onBlur={e => handleEsCepBlur(e.target.value)} placeholder="CEP (opcional)"
+                              className={INP} style={INP_S} />
+                            {esFetchingCep && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 animate-spin text-muted" />}
+                          </div>
+                          <input value={esNc.addressStreet} onChange={e => setEsNc(p => ({ ...p, addressStreet: e.target.value }))}
+                            placeholder="Logradouro" className={INP} style={INP_S} />
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <input value={esNc.addressNumber} onChange={e => setEsNc(p => ({ ...p, addressNumber: e.target.value }))}
+                              placeholder="Número" className={INP} style={INP_S} />
+                            <input value={esNc.addressComplement} onChange={e => setEsNc(p => ({ ...p, addressComplement: e.target.value }))}
+                              placeholder="Complemento" className={INP} style={INP_S} />
+                          </div>
+                          <AddressCityState state={esNc.addressState} city={esNc.addressCity}
+                            onStateChange={v => setEsNc(p => ({ ...p, addressState: v }))}
+                            onCityChange={v => setEsNc(p => ({ ...p, addressCity: v }))}
+                            inputCls={INP} inputStyle={INP_S} />
+                          <button onClick={handleSaveEsCust} disabled={savingEsCust || !esNc.name.trim()}
+                            className="w-full flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold text-black disabled:opacity-60"
+                            style={{ background: '#10B981' }}>
+                            {savingEsCust && <Loader2 className="h-4 w-4 animate-spin" />} Cadastrar e vincular
+                          </button>
                         </div>
                       )}
                     </div>
