@@ -48,7 +48,7 @@ function ConviteInvalido({ reason }: { reason: string }) {
         <p className="text-sm mb-6" style={{ color: '#64748B' }}>{reason}</p>
         <Link href="/login"
           className="inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold transition-opacity hover:opacity-90"
-          style={{ background: '#4F46E5', color: 'white' }}>
+          style={{ background: '#1D4ED8', color: 'white' }}>
           Ir pra Login
         </Link>
       </div>

@@ -58,7 +58,7 @@ export default function ResetPasswordPage() {
           </p>
           <Link href="/forgot-password"
             className="inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold transition-opacity hover:opacity-90"
-            style={{ background: '#4F46E5', color: 'white' }}>
+            style={{ background: '#1D4ED8', color: 'white' }}>
             Solicitar novo link
           </Link>
         </div>

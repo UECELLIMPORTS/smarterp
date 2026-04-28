@@ -57,7 +57,7 @@ export function AceitarConviteClient({ token, email, role, tenantName }: Props) 
         </h1>
         <p className="text-sm" style={{ color: '#64748B' }}>
           Junte-se à equipe de <strong style={{ color: '#0F172A' }}>{tenantName}</strong> como{' '}
-          <span className="inline-flex items-center gap-1 font-bold" style={{ color: '#4F46E5' }}>
+          <span className="inline-flex items-center gap-1 font-bold" style={{ color: '#1D4ED8' }}>
             {role === 'manager' ? <><Crown className="h-3 w-3" /> manager</> : role}
           </span>
         </p>

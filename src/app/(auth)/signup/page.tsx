@@ -120,17 +120,17 @@ export default function SignupPage() {
         <a href="https://gestaosmarterp.online/termos"
           target="_blank" rel="noopener noreferrer"
           className="underline transition-opacity hover:opacity-80"
-          style={{ color: '#4F46E5' }}>Termos de Uso</a>
+          style={{ color: '#1D4ED8' }}>Termos de Uso</a>
         {' '}e{' '}
         <a href="https://gestaosmarterp.online/privacidade"
           target="_blank" rel="noopener noreferrer"
           className="underline transition-opacity hover:opacity-80"
-          style={{ color: '#4F46E5' }}>Política de Privacidade</a>.
+          style={{ color: '#1D4ED8' }}>Política de Privacidade</a>.
       </p>
 
       <p className="mt-8 text-center text-sm" style={{ color: '#64748B' }}>
         Já tem conta?{' '}
-        <Link href="/login" className="font-semibold hover:underline" style={{ color: '#4F46E5' }}>
+        <Link href="/login" className="font-semibold hover:underline" style={{ color: '#1D4ED8' }}>
           Fazer login
         </Link>
       </p>

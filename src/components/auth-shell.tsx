@@ -21,11 +21,11 @@ export function AuthShell({ children }: Props) {
         <div className="px-6 sm:px-10 py-6">
           <Link href="/" className="inline-flex items-center gap-2.5 font-bold">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg"
-              style={{ background: 'linear-gradient(135deg, #4F46E5, #06B6D4)' }}>
+              style={{ background: 'linear-gradient(135deg, #1D4ED8, #06B6D4)' }}>
               <Zap className="h-5 w-5" style={{ color: 'white' }} />
             </div>
             <span style={{ color: '#0F172A' }}>
-              Gestão <span style={{ color: '#4F46E5' }}>Inteligente</span>
+              Gestão <span style={{ color: '#1D4ED8' }}>Inteligente</span>
             </span>
           </Link>
         </div>
@@ -50,7 +50,7 @@ export function AuthShell({ children }: Props) {
 
       {/* Right: branding side — só em desktop */}
       <div className="hidden lg:flex flex-col flex-1 max-w-xl relative overflow-hidden"
-        style={{ background: 'linear-gradient(135deg, #4F46E5 0%, #6366F1 50%, #818CF8 100%)' }}>
+        style={{ background: 'linear-gradient(135deg, #1D4ED8 0%, #1E40AF 50%, #3B82F6 100%)' }}>
         {/* Pattern decorativo sutil */}
         <div className="pointer-events-none absolute inset-0 opacity-10"
           style={{
@@ -91,7 +91,7 @@ export function AuthShell({ children }: Props) {
           </p>
           <div className="flex items-center gap-2.5">
             <div className="flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold"
-              style={{ background: 'rgba(255,255,255,.95)', color: '#4F46E5' }}>
+              style={{ background: 'rgba(255,255,255,.95)', color: '#1D4ED8' }}>
               FF
             </div>
             <div className="text-xs">

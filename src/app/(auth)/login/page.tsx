@@ -94,7 +94,7 @@ export default function LoginPage() {
 
       <p className="mt-8 text-center text-sm" style={{ color: '#64748B' }}>
         Ainda não tem conta?{' '}
-        <a href="/signup" className="font-semibold hover:underline" style={{ color: '#4F46E5' }}>
+        <a href="/signup" className="font-semibold hover:underline" style={{ color: '#1D4ED8' }}>
           Criar grátis (7 dias)
         </a>
       </p>
