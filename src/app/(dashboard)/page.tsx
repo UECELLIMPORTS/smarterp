@@ -78,25 +78,25 @@ function KPICard({ title, value, subtitle, icon: Icon, color, trend }: KPICardPr
     <div
       className="rounded-xl p-5 transition-all relative overflow-hidden"
       style={{
-        background: 'white',
-        boxShadow: '0 1px 2px rgba(15,23,42,.06), 0 4px 12px rgba(15,23,42,.04)',
+        background: '#FFFFFF',
+        boxShadow: '0 4px 12px rgba(0,0,0,.25), 0 0 0 1px rgba(255,255,255,.08)',
         borderTop: `3px solid ${color}`,
       }}
     >
       {/* Tint colorido sutil no canto */}
-      <div className="pointer-events-none absolute top-0 right-0 h-24 w-24 rounded-bl-full opacity-[0.06]"
+      <div className="pointer-events-none absolute top-0 right-0 h-24 w-24 rounded-bl-full opacity-[0.10]"
         style={{ background: color }} />
       <div className="relative flex items-start justify-between">
         <div>
-          <p className="text-xs font-bold uppercase tracking-wider" style={{ color: '#94A3B8' }}>
+          <p className="text-xs font-bold uppercase tracking-wider" style={{ color: '#64748B' }}>
             {title}
           </p>
-          <p className="mt-2 text-2xl font-bold tracking-tight" style={{ color: '#F8FAFC' }}>{value}</p>
-          <p className="mt-1 text-xs" style={{ color: '#94A3B8' }}>{subtitle}</p>
+          <p className="mt-2 text-2xl font-bold tracking-tight" style={{ color: '#0B1220' }}>{value}</p>
+          <p className="mt-1 text-xs" style={{ color: '#64748B' }}>{subtitle}</p>
         </div>
         <div
           className="flex h-11 w-11 items-center justify-center rounded-xl shrink-0"
-          style={{ background: `${color}1A`, border: `1px solid ${color}33` }}
+          style={{ background: `${color}18`, border: `1px solid ${color}40` }}
         >
           <Icon className="h-5 w-5" style={{ color }} />
         </div>
@@ -108,7 +108,7 @@ function KPICard({ title, value, subtitle, icon: Icon, color, trend }: KPICardPr
             : <ArrowDownRight className="h-3.5 w-3.5" style={{ color: '#EF4444' }} />
           }
           <span style={{ color: trend.positive ? '#10B981' : '#EF4444' }}>{trend.value}</span>
-          <span style={{ color: '#94A3B8' }}>vs. período anterior</span>
+          <span style={{ color: '#64748B' }}>vs. período anterior</span>
         </div>
       )}
     </div>

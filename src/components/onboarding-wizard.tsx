@@ -18,7 +18,7 @@
 
 import Link from 'next/link'
 import { Sparkles, Package, UserPlus, Megaphone, Check, X } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 type Props = {
   productCount:  number
@@ -26,8 +26,11 @@ type Props = {
   hasChannels:   boolean  // se já configurou canais de venda
 }
 
+const DISMISSED_KEY = 'smarterp_onboarding_dismissed'
+
 export function OnboardingWizard({ productCount, customerCount, hasChannels }: Props) {
-  const [dismissed, setDismissed] = useState(false)
+  // hidden = true durante hidratação (evita flash) + após dismiss persistido
+  const [hidden, setHidden] = useState(true)
 
   const hasProduct  = productCount > 0
   const hasCustomer = customerCount > 0
@@ -35,8 +38,25 @@ export function OnboardingWizard({ productCount, customerCount, hasChannels }: P
   const stepsCompleted = [hasProduct, hasCustomer, hasChannels].filter(Boolean).length
   const allDone = stepsCompleted === 3
 
-  // Se já completou tudo OU user dispensou, não mostra
-  if (allDone || dismissed) return null
+  // Lê localStorage no mount — wizard só aparece se não foi dismissed
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const dismissed = localStorage.getItem(DISMISSED_KEY) === '1'
+    setHidden(dismissed || allDone)
+  }, [allDone])
+
+  function handleDismiss() {
+    localStorage.setItem(DISMISSED_KEY, '1')
+    setHidden(true)
+  }
+
+  // Quando user clica num CTA do wizard, também marca como dismissed
+  // (assumimos que ele engajou e não precisa mais ver o lembrete toda vez)
+  function handleStepCta() {
+    localStorage.setItem(DISMISSED_KEY, '1')
+  }
+
+  if (hidden || allDone) return null
 
   return (
     <div className="rounded-2xl border-2 p-5 mb-6 relative"
@@ -44,9 +64,10 @@ export function OnboardingWizard({ productCount, customerCount, hasChannels }: P
         background: 'linear-gradient(135deg, rgba(34,197,94,.06) 0%, rgba(16,185,129,.04) 100%)',
         borderColor: 'rgba(34,197,94,.3)',
       }}>
-      <button onClick={() => setDismissed(true)}
+      <button onClick={handleDismiss}
         className="absolute top-3 right-3 p-1 rounded hover:bg-white/5"
-        style={{ color: '#94A3B8' }}>
+        style={{ color: '#94A3B8' }}
+        aria-label="Fechar onboarding">
         <X className="h-4 w-4" />
       </button>
 
@@ -77,6 +98,7 @@ export function OnboardingWizard({ productCount, customerCount, hasChannels }: P
               link="/estoque"
               cta="Ir pro Estoque"
               icon={Package}
+              onCta={handleStepCta}
             />
             <StepItem
               num={2}
@@ -86,6 +108,7 @@ export function OnboardingWizard({ productCount, customerCount, hasChannels }: P
               link="/clientes"
               cta="Ir pra Clientes"
               icon={UserPlus}
+              onCta={handleStepCta}
             />
             <StepItem
               num={3}
@@ -95,6 +118,7 @@ export function OnboardingWizard({ productCount, customerCount, hasChannels }: P
               link="/analytics/canais"
               cta="Ir pra Canais"
               icon={Megaphone}
+              onCta={handleStepCta}
             />
           </div>
         </div>
@@ -104,10 +128,11 @@ export function OnboardingWizard({ productCount, customerCount, hasChannels }: P
 }
 
 function StepItem({
-  num, title, desc, done, link, cta, icon: Icon,
+  num, title, desc, done, link, cta, icon: Icon, onCta,
 }: {
   num: number; title: string; desc: string; done: boolean
   link: string; cta: string; icon: React.ElementType
+  onCta?: () => void
 }) {
   return (
     <div className="flex items-center gap-3 rounded-lg border p-3"
@@ -132,6 +157,7 @@ function StepItem({
 
       {!done && (
         <Link href={link}
+          onClick={onCta}
           className="shrink-0 rounded-lg px-3 py-2 text-[11px] font-bold transition-opacity hover:opacity-90"
           style={{ background: '#22C55E', color: '#131C2A' }}>
           {cta} →
