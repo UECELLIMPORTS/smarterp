@@ -134,7 +134,9 @@ export async function sendComprovanteEmail(input: {
     ? `Olá ${escapeHtml(data.customer.name.split(' ')[0])},`
     : 'Olá!'
 
-  const html = await buildComprovanteEmailHtml(data, greeting, input.observation)
+  // Timestamp do envio gerado server-side — operador não consegue alterar
+  const sentAt = new Date()
+  const html = await buildComprovanteEmailHtml(data, greeting, input.observation, sentAt)
 
   const result = await sendEmailWithAttachment({
     to:      email,
@@ -285,9 +287,13 @@ export async function removeTenantLogo(): Promise<Result> {
 // ──────────────────────────────────────────────────────────────────────────
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function buildComprovanteEmailHtml(data: any, greeting: string, observation?: string): Promise<string> {
+async function buildComprovanteEmailHtml(data: any, greeting: string, observation: string | undefined, sentAt: Date): Promise<string> {
   const t = data.tenant
   const totalBRL = (data.totalCents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+
+  // Data/hora de envio (gerada no servidor — não-manipulável)
+  const sentDateBR = sentAt.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })
+  const sentTimeBR = sentAt.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' })
 
   const phoneFmt = t.phone
     ? t.phone.replace(/\D/g, '').replace(/^(\d{2})(\d{5})(\d{4})$/, '($1) $2-$3').replace(/^(\d{2})(\d{4})(\d{4})$/, '($1) $2-$3')
@@ -325,6 +331,9 @@ async function buildComprovanteEmailHtml(data: any, greeting: string, observatio
           ${t.logoUrl ? `<img src="${escapeHtml(t.logoUrl)}" alt="Logo" style="max-height:64px;border-radius:8px;background:#FFFFFF;padding:6px;margin-bottom:12px;" />` : ''}
           <div style="color:#FFFFFF;font-size:18px;font-weight:bold;letter-spacing:.5px;">${escapeHtml(t.tradeName || t.name)}</div>
           <div style="color:rgba(255,255,255,.85);font-size:12px;margin-top:4px;">Comprovante de Compra · ${escapeHtml(data.saleNumber)}</div>
+          <div style="color:rgba(255,255,255,.95);font-size:11px;margin-top:10px;background:rgba(0,0,0,.18);display:inline-block;padding:4px 10px;border-radius:999px;">
+            Enviado em ${sentDateBR} às ${sentTimeBR}
+          </div>
         </td></tr>
 
         <!-- Body -->
