@@ -41,7 +41,7 @@ export function MobileNav({ hasFullAccess = true, allowedModules = [], isOwner =
         onClick={() => setOpen(true)}
         aria-label="Abrir menu"
         className="flex h-9 w-9 items-center justify-center rounded-lg border transition-colors hover:bg-card lg:hidden"
-        style={{ borderColor: '#1E2D45', color: '#E8F0FE' }}
+        style={{ borderColor: '#E2E8F0', color: '#0F172A' }}
       >
         <Menu className="h-5 w-5" />
       </button>
@@ -59,17 +59,17 @@ export function MobileNav({ hasFullAccess = true, allowedModules = [], isOwner =
           {/* Drawer */}
           <aside
             className="absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col border-r"
-            style={{ background: '#0D1320', borderColor: '#1E2D45' }}
+            style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}
           >
             {/* Header com logo + botão fechar */}
-            <div className="flex h-16 items-center justify-between border-b px-5" style={{ borderColor: '#1E2D45' }}>
+            <div className="flex h-16 items-center justify-between border-b px-5" style={{ borderColor: '#E2E8F0' }}>
               <div className="flex items-center gap-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-accent/30"
-                  style={{ background: 'linear-gradient(135deg, #00E5FF20, #00FF9420)' }}>
-                  <Zap className="h-4 w-4" style={{ color: '#00E5FF' }} />
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg"
+                  style={{ background: 'linear-gradient(135deg, #1D4ED8, #06B6D4)' }}>
+                  <Zap className="h-5 w-5" style={{ color: 'white' }} />
                 </div>
-                <span className="text-base font-bold tracking-tight text-text">
-                  Smart<span style={{ color: '#00E5FF' }}>ERP</span>
+                <span className="text-base font-bold tracking-tight" style={{ color: '#0F172A' }}>
+                  Smart<span style={{ color: '#1D4ED8' }}>ERP</span>
                 </span>
               </div>
               <button
@@ -77,7 +77,7 @@ export function MobileNav({ hasFullAccess = true, allowedModules = [], isOwner =
                 onClick={() => setOpen(false)}
                 aria-label="Fechar menu"
                 className="flex h-9 w-9 items-center justify-center rounded-lg border transition-colors hover:bg-card"
-                style={{ borderColor: '#1E2D45', color: '#64748B' }}
+                style={{ borderColor: '#E2E8F0', color: '#64748B' }}
               >
                 <X className="h-5 w-5" />
               </button>
@@ -94,7 +94,7 @@ export function MobileNav({ hasFullAccess = true, allowedModules = [], isOwner =
                         href={href}
                         className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-all"
                         style={active
-                          ? { background: '#00E5FF15', color: '#00E5FF', borderLeft: '2px solid #00E5FF' }
+                          ? { background: '#1D4ED815', color: '#1D4ED8', borderLeft: '2px solid #1D4ED8' }
                           : { color: '#64748B' }
                         }
                       >
@@ -108,8 +108,8 @@ export function MobileNav({ hasFullAccess = true, allowedModules = [], isOwner =
             </nav>
 
             {/* Footer */}
-            <div className="border-t px-4 py-3" style={{ borderColor: '#1E2D45' }}>
-              <p className="text-center text-[10px]" style={{ color: '#1E2D45' }}>v1.0.0</p>
+            <div className="border-t px-4 py-3" style={{ borderColor: '#E2E8F0' }}>
+              <p className="text-center text-[10px]" style={{ color: '#94A3B8' }}>v1.0.0</p>
             </div>
           </aside>
         </div>

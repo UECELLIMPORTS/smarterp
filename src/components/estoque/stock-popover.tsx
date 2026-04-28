@@ -28,15 +28,15 @@ const HOVER_CLOSE_DELAY = 100  // ms de graça antes de fechar
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function stockColor(qty: number, min: number): string | undefined {
-  if (qty <= 0)              return '#FF5C5C'
-  if (min > 0 && qty <= min) return '#FFB800'
+  if (qty <= 0)              return '#EF4444'
+  if (min > 0 && qty <= min) return '#F59E0B'
   return undefined
 }
 
 function availableColor(avail: number, min: number): string {
-  if (avail <= 0)              return '#FF5C5C'
-  if (min > 0 && avail <= min) return '#FFB800'
-  return '#00FF94'
+  if (avail <= 0)              return '#EF4444'
+  if (min > 0 && avail <= min) return '#F59E0B'
+  return '#10B981'
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -58,14 +58,14 @@ function Row({
 }
 
 function Divider() {
-  return <div className="my-2 border-t" style={{ borderColor: '#1E2D45' }} />
+  return <div className="my-2 border-t" style={{ borderColor: '#E2E8F0' }} />
 }
 
 function SkeletonRow() {
   return (
     <div className="flex items-center justify-between animate-pulse">
-      <div className="h-2.5 rounded-full" style={{ background: '#1E2D45', width: '45%' }} />
-      <div className="h-2.5 rounded-full" style={{ background: '#1E2D45', width: '25%' }} />
+      <div className="h-2.5 rounded-full" style={{ background: '#E2E8F0', width: '45%' }} />
+      <div className="h-2.5 rounded-full" style={{ background: '#E2E8F0', width: '25%' }} />
     </div>
   )
 }
@@ -178,7 +178,7 @@ export function StockPopover({ product: p }: { product: ProductRow }) {
             left:        pos.left,
             width:       POPOVER_W,
             background:  '#0A1628',
-            borderColor: '#1E2D45',
+            borderColor: '#E2E8F0',
             animation,
           }}
           onMouseEnter={onEnter}
@@ -187,9 +187,9 @@ export function StockPopover({ product: p }: { product: ProductRow }) {
           {/* Cabeçalho */}
           <div
             className="flex items-center gap-2 px-3.5 py-2.5 border-b"
-            style={{ borderColor: '#1E2D45' }}
+            style={{ borderColor: '#E2E8F0' }}
           >
-            <Warehouse className="h-3.5 w-3.5 shrink-0" style={{ color: '#00FF94' }} />
+            <Warehouse className="h-3.5 w-3.5 shrink-0" style={{ color: '#10B981' }} />
             <span className="text-xs font-semibold" style={{ color: '#F1F5F9' }}>
               Estoque Detalhado
             </span>
@@ -232,7 +232,7 @@ export function StockPopover({ product: p }: { product: ProductRow }) {
               <>
                 <div className="flex items-center justify-between">
                   <span className="flex items-center gap-1.5 text-xs" style={{ color: '#64748B' }}>
-                    <TrendingDown className="h-3 w-3 shrink-0" style={{ color: '#00FF94' }} />
+                    <TrendingDown className="h-3 w-3 shrink-0" style={{ color: '#10B981' }} />
                     Total entradas
                   </span>
                   <span className="text-xs font-semibold tabular-nums" style={{ color: '#CBD5E1' }}>
@@ -241,7 +241,7 @@ export function StockPopover({ product: p }: { product: ProductRow }) {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="flex items-center gap-1.5 text-xs" style={{ color: '#64748B' }}>
-                    <TrendingUp className="h-3 w-3 shrink-0" style={{ color: '#FF5C5C' }} />
+                    <TrendingUp className="h-3 w-3 shrink-0" style={{ color: '#EF4444' }} />
                     Total saídas
                   </span>
                   <span className="text-xs font-semibold tabular-nums" style={{ color: '#CBD5E1' }}>
@@ -262,13 +262,13 @@ export function StockPopover({ product: p }: { product: ProductRow }) {
           {/* Rodapé — Saldo Disponível */}
           <div
             className="flex items-center justify-between px-3.5 py-2.5 border-t rounded-b-xl"
-            style={{ borderColor: '#1E2D45', background: 'rgba(255,255,255,0.03)' }}
+            style={{ borderColor: '#E2E8F0', background: 'rgba(255,255,255,0.03)' }}
           >
             <span className="text-xs font-semibold" style={{ color: '#64748B' }}>
               Saldo Disponível
             </span>
             <div className="flex items-center gap-1.5">
-              {available <= 0 && <Ban className="h-3 w-3" style={{ color: '#FF5C5C' }} />}
+              {available <= 0 && <Ban className="h-3 w-3" style={{ color: '#EF4444' }} />}
               <span
                 className="text-sm font-bold tabular-nums"
                 style={{ color: availableColor(available, p.stock_min) }}

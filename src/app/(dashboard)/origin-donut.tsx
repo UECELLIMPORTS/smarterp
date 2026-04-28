@@ -14,12 +14,12 @@ type OriginItem = {
 const COLORS: Record<string, string> = {
   instagram_pago:     '#E4405F',
   instagram_organico: '#C13584',
-  indicacao:          '#00FF94',
-  passou_na_porta:    '#FFAA00',
+  indicacao:          '#10B981',
+  passou_na_porta:    '#F59E0B',
   google:             '#4285F4',
   facebook:           '#1877F2',
-  outros:             '#9B6DFF',
-  __no__:             '#5A7A9A',
+  outros:             '#8B5CF6',
+  __no__:             '#64748B',
 }
 
 const BRL = (c: number) =>
@@ -33,7 +33,7 @@ export function OriginDonut({ breakdown }: { breakdown: OriginItem[] }) {
   let acc = 0
   const segments: string[] = []
   for (const b of breakdown) {
-    const color = COLORS[b.value ?? '__no__'] ?? '#9B6DFF'
+    const color = COLORS[b.value ?? '__no__'] ?? '#8B5CF6'
     const startDeg = Math.round((acc / 100) * 360)
     const endDeg = Math.round(((acc + b.sharePercent) / 100) * 360)
     segments.push(`${color} ${startDeg}deg ${endDeg}deg`)
@@ -41,11 +41,11 @@ export function OriginDonut({ breakdown }: { breakdown: OriginItem[] }) {
   }
   const gradient = segments.length > 0
     ? `conic-gradient(${segments.join(', ')})`
-    : '#1E2D45'
+    : '#E2E8F0'
 
   if (breakdown.length === 0 || total === 0) {
     return (
-      <div className="rounded-xl border p-6" style={{ background: '#111827', borderColor: '#1E2D45' }}>
+      <div className="rounded-xl border p-6" style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}>
         <div className="flex items-center gap-2 mb-4">
           <Megaphone className="h-4 w-4" style={{ color: '#E4405F' }} />
           <div>
@@ -61,7 +61,7 @@ export function OriginDonut({ breakdown }: { breakdown: OriginItem[] }) {
   }
 
   return (
-    <div className="rounded-xl border p-6" style={{ background: '#111827', borderColor: '#1E2D45' }}>
+    <div className="rounded-xl border p-6" style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Megaphone className="h-4 w-4" style={{ color: '#E4405F' }} />
@@ -73,7 +73,7 @@ export function OriginDonut({ breakdown }: { breakdown: OriginItem[] }) {
         <a
           href="/erp-clientes"
           className="text-[11px] font-bold transition-colors hover:opacity-80"
-          style={{ color: '#00E5FF' }}
+          style={{ color: '#1D4ED8' }}
         >
           Ver análise completa →
         </a>
@@ -92,15 +92,15 @@ export function OriginDonut({ breakdown }: { breakdown: OriginItem[] }) {
             className="absolute inset-0 m-auto flex flex-col items-center justify-center"
             style={{
               width: 110, height: 110, borderRadius: '50%',
-              background: '#111827',
+              background: '#F8FAFC',
               top: '50%', left: '50%',
               transform: 'translate(-50%, -50%)',
             }}
           >
-            <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#5A7A9A' }}>
+            <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#64748B' }}>
               Total
             </span>
-            <span className="text-sm font-bold" style={{ color: '#E8F0FE', fontFamily: 'ui-monospace,monospace' }}>
+            <span className="text-sm font-bold" style={{ color: '#0F172A', fontFamily: 'ui-monospace,monospace' }}>
               {BRL(total)}
             </span>
           </div>
@@ -117,14 +117,14 @@ export function OriginDonut({ breakdown }: { breakdown: OriginItem[] }) {
               }}
             >
               <Megaphone className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: COLORS[top.value] ?? '#E4405F' }} />
-              <span style={{ color: '#8AA8C8' }}>
-                <strong style={{ color: '#E8F0FE' }}>{originLabel(top.value)}</strong> é o principal canal —
+              <span style={{ color: '#475569' }}>
+                <strong style={{ color: '#0F172A' }}>{originLabel(top.value)}</strong> é o principal canal —
                 {' '}{top.sharePercent}% ({BRL(top.totalCents)})
               </span>
             </div>
           )}
           {breakdown.map(b => {
-            const color = COLORS[b.value ?? '__no__'] ?? '#9B6DFF'
+            const color = COLORS[b.value ?? '__no__'] ?? '#8B5CF6'
             return (
               <div
                 key={b.value ?? 'sem-origem'}
@@ -132,7 +132,7 @@ export function OriginDonut({ breakdown }: { breakdown: OriginItem[] }) {
               >
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: color }} />
-                  <span className="text-xs truncate" style={{ color: '#E8F0FE' }}>
+                  <span className="text-xs truncate" style={{ color: '#0F172A' }}>
                     {b.value ? originLabel(b.value) : 'Não informado'}
                   </span>
                 </div>
@@ -140,7 +140,7 @@ export function OriginDonut({ breakdown }: { breakdown: OriginItem[] }) {
                   <span className="rounded-full px-1.5 py-0 text-[10px] font-bold" style={{ background: `${color}20`, color }}>
                     {b.sharePercent}%
                   </span>
-                  <span style={{ color: '#8AA8C8' }}>{BRL(b.totalCents)}</span>
+                  <span style={{ color: '#475569' }}>{BRL(b.totalCents)}</span>
                 </div>
               </div>
             )

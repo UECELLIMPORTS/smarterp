@@ -115,7 +115,7 @@ function fmtBirthDate(iso: string) {
 }
 
 const inputCls   = 'w-full rounded-lg border px-3.5 py-2.5 text-sm text-text outline-none transition-colors focus:border-accent/60 placeholder:text-muted'
-const inputStyle = { background: '#111827', borderColor: '#1E2D45' }
+const inputStyle = { background: '#F8FAFC', borderColor: '#E2E8F0' }
 
 // ── Date text input — DD/MM/AAAA mask, no native calendar picker ───────────
 
@@ -260,7 +260,7 @@ function CustomerModal({
     >
       <div
         className="w-full max-w-md rounded-2xl border p-6 space-y-4 overflow-y-auto max-h-[90vh]"
-        style={{ background: '#0D1320', borderColor: '#1E2D45' }}
+        style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}
       >
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -280,11 +280,11 @@ function CustomerModal({
           <p className="text-xs font-semibold uppercase tracking-wider text-muted">Dados básicos</p>
           {mode === 'edit' && (
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-medium uppercase tracking-wider" style={{ color: '#5A7A9A' }}>
+              <label className="text-[10px] font-medium uppercase tracking-wider" style={{ color: '#64748B' }}>
                 Cliente desde
               </label>
               <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 pointer-events-none" style={{ color: '#5A7A9A' }} />
+                <Calendar className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 pointer-events-none" style={{ color: '#64748B' }} />
                 <DateTextInput
                   value={form.clienteSince}
                   onChange={v => set({ clienteSince: v })}
@@ -313,7 +313,7 @@ function CustomerModal({
         </section>
 
         {/* ── Contato ── */}
-        <section className="border-t pt-3 space-y-2.5" style={{ borderColor: '#1E2D45' }}>
+        <section className="border-t pt-3 space-y-2.5" style={{ borderColor: '#E2E8F0' }}>
           <p className="text-xs font-semibold uppercase tracking-wider text-muted">Contato</p>
           <div className="grid grid-cols-2 gap-2">
             <input value={form.whatsapp} onChange={e => set({ whatsapp: fmtPhoneInput(e.target.value) })} placeholder="WhatsApp" className={inputCls} style={inputStyle} />
@@ -325,7 +325,7 @@ function CustomerModal({
         </section>
 
         {/* ── Endereço ── */}
-        <section className="border-t pt-3 space-y-2.5" style={{ borderColor: '#1E2D45' }}>
+        <section className="border-t pt-3 space-y-2.5" style={{ borderColor: '#E2E8F0' }}>
           <p className="text-xs font-semibold uppercase tracking-wider text-muted">Endereço</p>
           <div className="relative">
             <input
@@ -354,11 +354,11 @@ function CustomerModal({
         </section>
 
         {/* ── Dados pessoais ── */}
-        <section className="border-t pt-3 space-y-2.5" style={{ borderColor: '#1E2D45' }}>
+        <section className="border-t pt-3 space-y-2.5" style={{ borderColor: '#E2E8F0' }}>
           <p className="text-xs font-semibold uppercase tracking-wider text-muted">Dados pessoais</p>
           <div className="grid grid-cols-2 gap-2">
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-medium uppercase tracking-wider" style={{ color: '#5A7A9A' }}>Data de nascimento</label>
+              <label className="text-[10px] font-medium uppercase tracking-wider" style={{ color: '#64748B' }}>Data de nascimento</label>
               <div className="relative">
                 <Calendar className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted pointer-events-none" />
                 <DateTextInput
@@ -370,7 +370,7 @@ function CustomerModal({
               </div>
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-medium uppercase tracking-wider" style={{ color: '#5A7A9A' }}>Sexo</label>
+              <label className="text-[10px] font-medium uppercase tracking-wider" style={{ color: '#64748B' }}>Sexo</label>
               <select value={form.gender} onChange={e => set({ gender: e.target.value })} className={inputCls} style={{ ...inputStyle, appearance: 'none' }}>
                 <option value="">Selecionar</option>
                 <option value="M">Masculino</option>
@@ -393,7 +393,7 @@ function CustomerModal({
         </section>
 
         {/* ── Filiação ── */}
-        <section className="border-t pt-3 space-y-2.5" style={{ borderColor: '#1E2D45' }}>
+        <section className="border-t pt-3 space-y-2.5" style={{ borderColor: '#E2E8F0' }}>
           <p className="text-xs font-semibold uppercase tracking-wider text-muted">Filiação</p>
           <div className="grid grid-cols-2 gap-2">
             <input value={form.motherName} onChange={e => set({ motherName: e.target.value })} placeholder="Nome da mãe" className={inputCls} style={inputStyle} />
@@ -406,7 +406,7 @@ function CustomerModal({
         </section>
 
         {/* ── Comercial ── */}
-        <section className="border-t pt-3 space-y-2.5" style={{ borderColor: '#1E2D45' }}>
+        <section className="border-t pt-3 space-y-2.5" style={{ borderColor: '#E2E8F0' }}>
           <p className="text-xs font-semibold uppercase tracking-wider text-muted">Comercial</p>
           <div className="grid grid-cols-2 gap-2">
             <input value={form.salesperson} onChange={e => set({ salesperson: e.target.value })} placeholder="Vendedor" className={inputCls} style={inputStyle} />
@@ -430,7 +430,7 @@ function CustomerModal({
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#FFAA00' }}>
+            <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#F59E0B' }}>
               Como nos conheceu? *
             </label>
             <select
@@ -447,7 +447,7 @@ function CustomerModal({
           </div>
           {(form.origin === 'instagram_pago' || form.origin === 'facebook') && (
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#00E5FF' }}>
+              <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#1D4ED8' }}>
                 Código da campanha
               </label>
               <input
@@ -458,7 +458,7 @@ function CustomerModal({
                 style={inputStyle}
                 maxLength={40}
               />
-              <p className="text-[10px]" style={{ color: '#5A7A9A' }}>
+              <p className="text-[10px]" style={{ color: '#64748B' }}>
                 Veja na mensagem pré-preenchida que o cliente mandou no WhatsApp
               </p>
             </div>
@@ -466,7 +466,7 @@ function CustomerModal({
         </section>
 
         {/* ── Observações ── */}
-        <section className="border-t pt-3 space-y-2" style={{ borderColor: '#1E2D45' }}>
+        <section className="border-t pt-3 space-y-2" style={{ borderColor: '#E2E8F0' }}>
           <p className="text-xs font-semibold uppercase tracking-wider text-muted">Observações</p>
           <textarea
             value={form.notes}
@@ -483,7 +483,7 @@ function CustomerModal({
           <button
             onClick={onClose}
             className="flex-1 rounded-lg border py-2.5 text-sm font-medium text-muted hover:bg-card transition-colors"
-            style={{ borderColor: '#1E2D45' }}
+            style={{ borderColor: '#E2E8F0' }}
           >
             Cancelar
           </button>
@@ -491,7 +491,7 @@ function CustomerModal({
             onClick={handleSave}
             disabled={saving || !form.name.trim() || !form.origin}
             className="flex-1 flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold transition-opacity disabled:opacity-60"
-            style={{ background: 'linear-gradient(135deg, #00E5FF, #00FF94)', color: '#080C14' }}
+            style={{ background: 'linear-gradient(135deg, #1D4ED8, #10B981)', color: '#FFFFFF' }}
           >
             {saving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
             {mode === 'edit' ? 'Salvar alterações' : 'Cadastrar'}
@@ -672,7 +672,7 @@ export function ClientesClient({
             onFocus={() => suggestions.length > 0 && setShowSuggest(true)}
             placeholder="Buscar por nome, CPF ou WhatsApp..."
             className="w-full rounded-xl border py-2.5 pl-9 pr-10 text-sm text-text outline-none transition-colors focus:border-accent/60 placeholder:text-muted"
-            style={{ background: '#111827', borderColor: '#1E2D45' }}
+            style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}
           />
           {loadingSuggest && (
             <Loader2 className="absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 animate-spin text-muted" />
@@ -690,7 +690,7 @@ export function ClientesClient({
           {showSuggest && suggestions.length > 0 && (
             <div
               className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-xl border shadow-xl"
-              style={{ background: '#0D1320', borderColor: '#1E2D45' }}
+              style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}
             >
               {suggestions.map(item => (
                 <button
@@ -722,7 +722,7 @@ export function ClientesClient({
           href="/clientes/exportar"
           download
           className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-opacity hover:opacity-90 whitespace-nowrap"
-          style={{ background: '#1E2D45', color: '#00FF94', border: '1px solid #00FF9433' }}
+          style={{ background: '#E2E8F0', color: '#10B981', border: '1px solid #10B98133' }}
           title="Exportar todos os clientes em CSV"
         >
           <Download className="h-4 w-4" />
@@ -740,7 +740,7 @@ export function ClientesClient({
           onClick={() => importInputRef.current?.click()}
           disabled={importing}
           className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-opacity hover:opacity-90 whitespace-nowrap disabled:opacity-50"
-          style={{ background: '#1E2D45', color: '#00E5FF', border: '1px solid #00E5FF33' }}
+          style={{ background: '#E2E8F0', color: '#1D4ED8', border: '1px solid #1D4ED833' }}
           title="Importar CSV do Bling"
         >
           {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
@@ -749,7 +749,7 @@ export function ClientesClient({
         <button
           onClick={() => setModal({ mode: 'create' })}
           className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-opacity hover:opacity-90 whitespace-nowrap"
-          style={{ background: 'linear-gradient(135deg, #00E5FF, #00FF94)', color: '#080C14' }}
+          style={{ background: 'linear-gradient(135deg, #1D4ED8, #10B981)', color: '#FFFFFF' }}
         >
           <Plus className="h-4 w-4" />
           Novo Cliente
@@ -757,8 +757,8 @@ export function ClientesClient({
       </div>
 
       {/* Table */}
-      <div className="rounded-xl border overflow-hidden" style={{ background: '#111827', borderColor: '#1E2D45' }}>
-        <div className="flex items-center justify-between border-b px-5 py-4" style={{ borderColor: '#1E2D45' }}>
+      <div className="rounded-xl border overflow-hidden" style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}>
+        <div className="flex items-center justify-between border-b px-5 py-4" style={{ borderColor: '#E2E8F0' }}>
           <h2 className="text-sm font-semibold text-text">
             {q ? `Resultado para "${q}"` : 'Clientes'}
           </h2>
@@ -771,7 +771,7 @@ export function ClientesClient({
 
         {customers.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 py-16">
-            <Search className="h-8 w-8" style={{ color: '#1E2D45' }} />
+            <Search className="h-8 w-8" style={{ color: '#E2E8F0' }} />
             <p className="text-sm text-muted">
               {q ? `Nenhum cliente encontrado para "${q}"` : 'Nenhum cliente cadastrado ainda'}
             </p>
@@ -781,7 +781,7 @@ export function ClientesClient({
             {/* Header */}
             <div
               className="grid gap-3 px-5 py-3 border-b text-xs font-medium uppercase tracking-wider text-muted"
-              style={{ borderColor: '#1E2D45', gridTemplateColumns: '1fr 150px 190px 100px 100px 60px 60px 36px' }}
+              style={{ borderColor: '#E2E8F0', gridTemplateColumns: '1fr 150px 190px 100px 100px 60px 60px 36px' }}
             >
               <span>Nome</span>
               <span>Documento</span>
@@ -805,7 +805,7 @@ export function ClientesClient({
                 <div
                   key={c.id}
                   className="grid gap-3 px-5 py-3.5 border-b items-center last:border-0 group"
-                  style={{ borderColor: '#1E2D45', gridTemplateColumns: '1fr 150px 190px 100px 100px 60px 60px 36px' }}
+                  style={{ borderColor: '#E2E8F0', gridTemplateColumns: '1fr 150px 190px 100px 100px 60px 60px 36px' }}
                 >
                   {/* Name */}
                   <div className="min-w-0">
@@ -858,12 +858,12 @@ export function ClientesClient({
                   <p className="text-xs text-muted">{since}</p>
 
                   {/* Sales */}
-                  <p className="text-sm text-center font-medium" style={{ color: vendas > 0 ? '#00FF94' : '#64748B' }}>
+                  <p className="text-sm text-center font-medium" style={{ color: vendas > 0 ? '#10B981' : '#64748B' }}>
                     {vendas > 0 ? vendas : '—'}
                   </p>
 
                   {/* OS */}
-                  <p className="text-sm text-center font-medium" style={{ color: os > 0 ? '#00E5FF' : '#64748B' }}>
+                  <p className="text-sm text-center font-medium" style={{ color: os > 0 ? '#1D4ED8' : '#64748B' }}>
                     {os > 0 ? os : '—'}
                   </p>
 
@@ -871,7 +871,7 @@ export function ClientesClient({
                   <button
                     onClick={() => setModal({ mode: 'edit', customer: c })}
                     className="flex items-center justify-center h-7 w-7 rounded-lg border opacity-0 group-hover:opacity-100 transition-opacity hover:bg-card"
-                    style={{ borderColor: '#1E2D45' }}
+                    style={{ borderColor: '#E2E8F0' }}
                     title="Editar cliente"
                   >
                     <Pencil className="h-3.5 w-3.5 text-muted" />
@@ -884,12 +884,12 @@ export function ClientesClient({
 
         {/* ── Paginação ── */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between border-t px-5 py-3" style={{ borderColor: '#1E2D45' }}>
+          <div className="flex items-center justify-between border-t px-5 py-3" style={{ borderColor: '#E2E8F0' }}>
             <button
               onClick={() => goToPage(page - 1)}
               disabled={page <= 1}
               className="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium text-muted transition-colors hover:text-text disabled:opacity-30 disabled:cursor-not-allowed"
-              style={{ borderColor: '#1E2D45' }}
+              style={{ borderColor: '#E2E8F0' }}
             >
               <ChevronLeft className="h-3.5 w-3.5" />
               Página anterior
@@ -903,7 +903,7 @@ export function ClientesClient({
               onClick={() => goToPage(page + 1)}
               disabled={page >= totalPages}
               className="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium text-muted transition-colors hover:text-text disabled:opacity-30 disabled:cursor-not-allowed"
-              style={{ borderColor: '#1E2D45' }}
+              style={{ borderColor: '#E2E8F0' }}
             >
               Próxima página
               <ChevronRight className="h-3.5 w-3.5" />

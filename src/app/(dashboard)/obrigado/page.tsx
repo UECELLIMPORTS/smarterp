@@ -41,51 +41,51 @@ export default async function ObrigadoPage() {
       {/* Hero celebratório */}
       <div className="rounded-3xl border-2 p-10 text-center"
         style={{
-          background: 'linear-gradient(135deg, rgba(0,255,148,.12) 0%, rgba(0,229,255,.06) 100%)',
-          borderColor: 'rgba(0,255,148,.3)',
+          background: 'linear-gradient(135deg, rgba(16,185,129,.12) 0%, rgba(29,78,216,.06) 100%)',
+          borderColor: 'rgba(16,185,129,.3)',
         }}>
         <div className="mx-auto mb-5 flex h-24 w-24 items-center justify-center rounded-full"
           style={{
-            background: 'linear-gradient(135deg, #00FF94, #00E5FF)',
-            boxShadow: '0 12px 48px rgba(0, 255, 148, 0.5)',
+            background: 'linear-gradient(135deg, #10B981, #1D4ED8)',
+            boxShadow: '0 12px 48px rgba(16, 185, 129, 0.5)',
           }}>
-          <CheckCircle2 className="h-12 w-12" style={{ color: '#080C14' }} strokeWidth={2.5} />
+          <CheckCircle2 className="h-12 w-12" style={{ color: '#FFFFFF' }} strokeWidth={2.5} />
         </div>
 
         <p className="text-[11px] font-bold uppercase tracking-widest mb-2"
-          style={{ color: '#00FF94' }}>
+          style={{ color: '#10B981' }}>
           Pagamento confirmado
         </p>
-        <h1 className="text-4xl font-bold mb-3" style={{ color: '#E8F0FE' }}>
+        <h1 className="text-4xl font-bold mb-3" style={{ color: '#0F172A' }}>
           Bem-vindo ao plano {planLabel}! 🎉
         </h1>
-        <p className="text-base" style={{ color: '#8AA8C8' }}>
+        <p className="text-base" style={{ color: '#475569' }}>
           Sua assinatura está ativa e todos os recursos liberados.
         </p>
 
         {/* Detalhes do plano */}
         {gestaoSub && (
           <div className="mt-6 inline-flex items-center gap-2 rounded-full border px-4 py-2"
-            style={{ background: 'rgba(0,255,148,.08)', borderColor: 'rgba(0,255,148,.3)' }}>
-            <Crown className="h-4 w-4" style={{ color: '#00FF94' }} />
-            <span className="text-sm font-bold" style={{ color: '#E8F0FE' }}>
+            style={{ background: 'rgba(16,185,129,.08)', borderColor: 'rgba(16,185,129,.3)' }}>
+            <Crown className="h-4 w-4" style={{ color: '#10B981' }} />
+            <span className="text-sm font-bold" style={{ color: '#0F172A' }}>
               {planLabel} {isYearly ? 'Anual' : 'Mensal'}
             </span>
-            <span className="text-sm font-mono" style={{ color: '#00FF94' }}>
+            <span className="text-sm font-mono" style={{ color: '#10B981' }}>
               {fmtBRL(gestaoSub.priceCents)}{isYearly ? '/ano' : '/mês'}
             </span>
           </div>
         )}
-        <p className="text-[11px] mt-2" style={{ color: '#5A7A9A' }}>
+        <p className="text-[11px] mt-2" style={{ color: '#64748B' }}>
           {nextDueText}
         </p>
       </div>
 
       {/* Próximos passos */}
       <div className="rounded-2xl border p-6"
-        style={{ background: '#0D1320', borderColor: '#1E2D45' }}>
+        style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
         <p className="text-[11px] font-bold uppercase tracking-widest mb-4"
-          style={{ color: '#00E5FF' }}>
+          style={{ color: '#1D4ED8' }}>
           <Sparkles className="inline h-3 w-3 mb-0.5" /> Próximos passos pra começar
         </p>
 
@@ -119,13 +119,13 @@ export default async function ObrigadoPage() {
         <Link href="/"
           className="inline-flex items-center gap-2 rounded-xl px-8 py-4 text-base font-bold transition-opacity hover:opacity-90"
           style={{
-            background: 'linear-gradient(135deg, #00E5FF, #00FF94)',
-            color: '#080C14',
-            boxShadow: '0 8px 24px rgba(0, 255, 148, 0.25)',
+            background: 'linear-gradient(135deg, #1D4ED8, #10B981)',
+            color: '#FFFFFF',
+            boxShadow: '0 8px 24px rgba(16, 185, 129, 0.25)',
           }}>
           Começar agora <ArrowRight className="h-5 w-5" />
         </Link>
-        <p className="text-[11px] mt-3" style={{ color: '#5A7A9A' }}>
+        <p className="text-[11px] mt-3" style={{ color: '#64748B' }}>
           Você pode acessar tudo isso depois pelo menu lateral. Sem pressa! 😊
         </p>
       </div>
@@ -139,20 +139,20 @@ function NextStep({ num, icon: Icon, title, desc, href, cta }: {
 }) {
   return (
     <div className="flex items-center gap-3 rounded-lg border p-4"
-      style={{ background: '#0F1A2B', borderColor: '#1E2D45' }}>
+      style={{ background: '#F1F5F9', borderColor: '#E2E8F0' }}>
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
-        style={{ background: 'rgba(0,229,255,.12)', color: '#00E5FF' }}>
+        style={{ background: 'rgba(29,78,216,.12)', color: '#1D4ED8' }}>
         <Icon className="h-5 w-5" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold" style={{ color: '#E8F0FE' }}>
+        <p className="text-sm font-semibold" style={{ color: '#0F172A' }}>
           {num}. {title}
         </p>
-        <p className="text-[11px] mt-0.5" style={{ color: '#8AA8C8' }}>{desc}</p>
+        <p className="text-[11px] mt-0.5" style={{ color: '#475569' }}>{desc}</p>
       </div>
       <Link href={href}
         className="shrink-0 rounded-lg px-3 py-2 text-[11px] font-bold transition-opacity hover:opacity-90"
-        style={{ background: '#00E5FF', color: '#080C14' }}>
+        style={{ background: '#1D4ED8', color: '#FFFFFF' }}>
         {cta} →
       </Link>
     </div>

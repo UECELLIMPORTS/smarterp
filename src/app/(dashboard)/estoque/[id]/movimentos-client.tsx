@@ -106,14 +106,14 @@ function editForm(m: StockMovementRow, product: ProductRow): ModalForm {
 // ── Style constants ───────────────────────────────────────────────────────────
 
 const INP   = 'w-full rounded-lg border bg-transparent px-3 py-2.5 text-sm text-text placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-accent'
-const INP_S = { borderColor: '#1E2D45' }
+const INP_S = { borderColor: '#E2E8F0' }
 
 // ── Cores por tipo ────────────────────────────────────────────────────────────
 
 const TIPO_COLOR: Record<TipoLancamento, string> = {
-  entrada: '#00FF94',
-  saida:   '#FF5C5C',
-  balanco: '#FFB800',
+  entrada: '#10B981',
+  saida:   '#EF4444',
+  balanco: '#F59E0B',
 }
 
 // ── PriceField helper ─────────────────────────────────────────────────────────
@@ -169,10 +169,10 @@ function MovimentoModal({
     >
       <div
         className="w-full max-w-md rounded-2xl border shadow-2xl"
-        style={{ background: '#0D1521', borderColor: '#1E2D45' }}
+        style={{ background: '#0D1521', borderColor: '#E2E8F0' }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b px-5 py-4" style={{ borderColor: '#1E2D45' }}>
+        <div className="flex items-center justify-between border-b px-5 py-4" style={{ borderColor: '#E2E8F0' }}>
           <div className="flex items-center gap-2">
             <CalendarClock className="h-4 w-4" style={{ color: cor }} />
             <h3 className="text-sm font-semibold text-text">
@@ -189,7 +189,7 @@ function MovimentoModal({
 
           {error && (
             <div className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm"
-              style={{ background: '#FF5C5C18', color: '#FF5C5C', border: '1px solid #FF5C5C40' }}>
+              style={{ background: '#EF444418', color: '#EF4444', border: '1px solid #EF444440' }}>
               <AlertTriangle className="h-4 w-4 shrink-0" />{error}
             </div>
           )}
@@ -204,9 +204,9 @@ function MovimentoModal({
                 className="w-full appearance-none rounded-lg border bg-[#0D1521] px-3 py-2.5 text-sm font-medium focus:outline-none focus:ring-1"
                 style={{ borderColor: cor, color: cor }}
               >
-                <option value="entrada" style={{ color: '#00FF94', background: '#0D1521' }}>↓ Entrada</option>
-                <option value="saida"   style={{ color: '#FF5C5C', background: '#0D1521' }}>↑ Saída</option>
-                <option value="balanco" style={{ color: '#FFB800', background: '#0D1521' }}>⚖ Balanço</option>
+                <option value="entrada" style={{ color: '#10B981', background: '#0D1521' }}>↓ Entrada</option>
+                <option value="saida"   style={{ color: '#EF4444', background: '#0D1521' }}>↑ Saída</option>
+                <option value="balanco" style={{ color: '#F59E0B', background: '#0D1521' }}>⚖ Balanço</option>
               </select>
               <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted">▾</span>
             </div>
@@ -227,7 +227,7 @@ function MovimentoModal({
             />
             {/* Preview delta do balanço */}
             {form.type === 'balanco' && qty > 0 && balancoDelta !== 0 && (
-              <p className="mt-1 text-xs" style={{ color: balancoDelta > 0 ? '#00FF94' : '#FF5C5C' }}>
+              <p className="mt-1 text-xs" style={{ color: balancoDelta > 0 ? '#10B981' : '#EF4444' }}>
                 {balancoDelta > 0 ? `+${balancoDelta}` : balancoDelta} {unit} será lançado como {balancoDelta > 0 ? 'Entrada' : 'Saída'}
               </p>
             )}
@@ -253,9 +253,9 @@ function MovimentoModal({
                   <div
                     className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs"
                     style={{
-                      background: positivo ? '#00FF9412' : '#FF5C5C12',
-                      border:     `1px solid ${positivo ? '#00FF9430' : '#FF5C5C30'}`,
-                      color:      positivo ? '#00FF94'   : '#FF5C5C',
+                      background: positivo ? '#10B98112' : '#EF444412',
+                      border:     `1px solid ${positivo ? '#10B98130' : '#EF444430'}`,
+                      color:      positivo ? '#10B981'   : '#EF4444',
                     }}
                   >
                     <span className="font-semibold">Margem: {margem.toFixed(1)}%</span>
@@ -288,9 +288,9 @@ function MovimentoModal({
                   <div
                     className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs"
                     style={{
-                      background: positivo ? '#00FF9412' : '#FF5C5C12',
-                      border:     `1px solid ${positivo ? '#00FF9430' : '#FF5C5C30'}`,
-                      color:      positivo ? '#00FF94'   : '#FF5C5C',
+                      background: positivo ? '#10B98112' : '#EF444412',
+                      border:     `1px solid ${positivo ? '#10B98130' : '#EF444430'}`,
+                      color:      positivo ? '#10B981'   : '#EF4444',
                     }}
                   >
                     <span className="font-semibold">Margem: {margem.toFixed(1)}%</span>
@@ -340,10 +340,10 @@ function MovimentoModal({
         </div>
 
         {/* Footer */}
-        <div className="flex gap-3 border-t px-5 py-4" style={{ borderColor: '#1E2D45' }}>
+        <div className="flex gap-3 border-t px-5 py-4" style={{ borderColor: '#E2E8F0' }}>
           <button onClick={onClose}
             className="flex-1 rounded-lg border py-2.5 text-sm text-muted hover:text-text transition-colors"
-            style={{ borderColor: '#1E2D45' }}>
+            style={{ borderColor: '#E2E8F0' }}>
             Cancelar
           </button>
           <button
@@ -375,11 +375,11 @@ function DeleteConfirm({
     >
       <div
         className="w-full max-w-sm rounded-2xl border p-6 space-y-4 shadow-2xl"
-        style={{ background: '#0D1521', borderColor: '#1E2D45' }}
+        style={{ background: '#0D1521', borderColor: '#E2E8F0' }}
       >
         <div className="flex h-11 w-11 items-center justify-center rounded-xl"
-          style={{ background: '#FF5C5C15' }}>
-          <Trash2 className="h-5 w-5" style={{ color: '#FF5C5C' }} />
+          style={{ background: '#EF444415' }}>
+          <Trash2 className="h-5 w-5" style={{ color: '#EF4444' }} />
         </div>
         <div>
           <h3 className="text-sm font-semibold text-text">Excluir lançamento?</h3>
@@ -390,12 +390,12 @@ function DeleteConfirm({
         <div className="flex gap-3">
           <button onClick={onClose}
             className="flex-1 rounded-lg border py-2 text-sm text-muted hover:text-text"
-            style={{ borderColor: '#1E2D45' }}>
+            style={{ borderColor: '#E2E8F0' }}>
             Cancelar
           </button>
           <button onClick={onConfirm} disabled={deleting}
             className="flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-sm font-semibold text-white"
-            style={{ background: '#FF5C5C' }}>
+            style={{ background: '#EF4444' }}>
             {deleting && <Loader2 className="h-4 w-4 animate-spin" />}
             Excluir
           </button>
@@ -621,10 +621,10 @@ export function MovimentosClient({
   // ── Render ───────────────────────────────────────────────────────────────
 
   const stockColor = product.stock_qty <= 0
-    ? '#FF5C5C'
+    ? '#EF4444'
     : product.stock_min > 0 && product.stock_qty <= product.stock_min
-      ? '#FFB800'
-      : '#00FF94'
+      ? '#F59E0B'
+      : '#10B981'
 
   return (
     <div className="space-y-5">
@@ -635,7 +635,7 @@ export function MovimentosClient({
           <button
             onClick={() => router.push('/estoque')}
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border transition-colors hover:bg-white/5"
-            style={{ borderColor: '#1E2D45' }}
+            style={{ borderColor: '#E2E8F0' }}
             title="Voltar ao Estoque"
           >
             <ArrowLeft className="h-4 w-4 text-muted" />
@@ -648,11 +648,11 @@ export function MovimentosClient({
               <img
                 src={product.image_urls[0]} alt={product.name}
                 className="h-12 w-12 shrink-0 rounded-xl object-cover"
-                style={{ border: '1px solid #1E2D45' }}
+                style={{ border: '1px solid #E2E8F0' }}
               />
             ) : (
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl"
-                style={{ background: '#1E2D45' }}>
+                style={{ background: '#E2E8F0' }}>
                 <Package className="h-5 w-5 text-muted" />
               </div>
             )}
@@ -676,7 +676,7 @@ export function MovimentosClient({
         <button
           onClick={openAdd}
           className="flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-black transition-opacity hover:opacity-90"
-          style={{ background: '#00FF94' }}
+          style={{ background: '#10B981' }}
         >
           <Plus className="h-4 w-4" />
           Incluir Lançamento
@@ -687,7 +687,7 @@ export function MovimentosClient({
       {diverges && (
         <div
           className="flex flex-col gap-2 rounded-xl border px-4 py-3 text-sm sm:flex-row sm:items-start"
-          style={{ background: '#FFB80012', borderColor: '#FFB80040', color: '#FFB800' }}
+          style={{ background: '#F59E0B12', borderColor: '#F59E0B40', color: '#F59E0B' }}
         >
           <div className="flex items-start gap-2 flex-1">
             <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
@@ -702,7 +702,7 @@ export function MovimentosClient({
             onClick={handleReconcile}
             disabled={reconciling}
             className="shrink-0 rounded-lg px-3 py-1.5 text-xs font-bold transition-all hover:opacity-90 disabled:opacity-50"
-            style={{ background: '#FFB800', color: '#000' }}
+            style={{ background: '#F59E0B', color: '#000' }}
           >
             {reconciling ? 'Reconciliando…' : 'Reconciliar vendas antigas'}
           </button>
@@ -711,40 +711,40 @@ export function MovimentosClient({
 
       {/* ── Totalizadores (estilo Bling) ────────────────────────────────────── */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <div className="rounded-xl border p-4" style={{ background: '#111827', borderColor: '#1E2D45' }}>
+        <div className="rounded-xl border p-4" style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}>
           <div className="flex items-center gap-2 mb-2">
-            <ArrowDownCircle className="h-3.5 w-3.5" style={{ color: '#00FF94' }} />
-            <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: '#5A7A9A' }}>
+            <ArrowDownCircle className="h-3.5 w-3.5" style={{ color: '#10B981' }} />
+            <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: '#64748B' }}>
               Entradas
             </span>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold tabular-nums" style={{ color: '#00FF94' }}>
+            <span className="text-2xl font-bold tabular-nums" style={{ color: '#10B981' }}>
               {totals.entradasQty.toFixed(2).replace('.', ',')}
             </span>
             <span className="text-xs text-muted">({BRL(totals.entradasCents)})</span>
           </div>
         </div>
 
-        <div className="rounded-xl border p-4" style={{ background: '#111827', borderColor: '#1E2D45' }}>
+        <div className="rounded-xl border p-4" style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}>
           <div className="flex items-center gap-2 mb-2">
-            <ArrowUpCircle className="h-3.5 w-3.5" style={{ color: '#FF5C5C' }} />
-            <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: '#5A7A9A' }}>
+            <ArrowUpCircle className="h-3.5 w-3.5" style={{ color: '#EF4444' }} />
+            <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: '#64748B' }}>
               Saídas
             </span>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold tabular-nums" style={{ color: '#FF5C5C' }}>
+            <span className="text-2xl font-bold tabular-nums" style={{ color: '#EF4444' }}>
               {totals.saidasQty.toFixed(2).replace('.', ',')}
             </span>
             <span className="text-xs text-muted">({BRL(totals.saidasCents)})</span>
           </div>
         </div>
 
-        <div className="rounded-xl border p-4" style={{ background: '#111827', borderColor: '#1E2D45' }}>
+        <div className="rounded-xl border p-4" style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}>
           <div className="flex items-center gap-2 mb-2">
             <Package className="h-3.5 w-3.5" style={{ color: stockColor }} />
-            <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: '#5A7A9A' }}>
+            <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: '#64748B' }}>
               Saldo Atual
             </span>
           </div>
@@ -760,12 +760,12 @@ export function MovimentosClient({
       {/* ── Tabela ──────────────────────────────────────────────────────────── */}
       <div
         className="rounded-2xl border overflow-hidden"
-        style={{ background: '#111827', borderColor: '#1E2D45' }}
+        style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}
       >
         {/* Título da tabela */}
         <div
           className="flex items-center justify-between border-b px-5 py-3.5"
-          style={{ borderColor: '#1E2D45' }}
+          style={{ borderColor: '#E2E8F0' }}
         >
           <h2 className="text-sm font-semibold text-text">Histórico de Movimentações</h2>
           <span className="text-xs text-muted">{rows.length} {rows.length === 1 ? 'lançamento' : 'lançamentos'}</span>
@@ -773,12 +773,12 @@ export function MovimentosClient({
 
         {rows.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-3 py-20">
-            <CalendarClock className="h-10 w-10" style={{ color: '#1E2D45' }} />
+            <CalendarClock className="h-10 w-10" style={{ color: '#E2E8F0' }} />
             <p className="text-sm text-muted">Nenhuma movimentação registrada</p>
             <button
               onClick={openAdd}
               className="mt-1 flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-black"
-              style={{ background: '#00FF94' }}
+              style={{ background: '#10B981' }}
             >
               <Plus className="h-4 w-4" /> Incluir primeiro lançamento
             </button>
@@ -789,7 +789,7 @@ export function MovimentosClient({
             <div
               className="grid items-center gap-3 border-b px-5 py-3 text-xs font-medium uppercase tracking-wider text-muted"
               style={{
-                borderColor: '#1E2D45',
+                borderColor: '#E2E8F0',
                 gridTemplateColumns: '150px 85px 85px 110px 110px 110px 90px 1fr 110px 72px',
                 minWidth: '1200px',
               }}
@@ -810,7 +810,7 @@ export function MovimentosClient({
             {rows.map(m => {
               const isBalanco = m.origin === 'balanco'
               const isEntrada = m.type === 'entrada'
-              const typeColor = isBalanco ? '#FFB800' : isEntrada ? '#00FF94' : '#FF5C5C'
+              const typeColor = isBalanco ? '#F59E0B' : isEntrada ? '#10B981' : '#EF4444'
               const originLabel = (() => {
                 const o = m.origin
                 if (!o || o === 'manual') return 'Manual'
@@ -828,7 +828,7 @@ export function MovimentosClient({
                   key={m.id}
                   className="grid items-center gap-3 border-b px-5 py-3.5 transition-colors hover:bg-white/[0.025] last:border-0"
                   style={{
-                    borderColor: '#1E2D45',
+                    borderColor: '#E2E8F0',
                     gridTemplateColumns: '150px 85px 85px 110px 110px 110px 90px 1fr 110px 72px',
                     minWidth: '1200px',
                     borderLeft: `3px solid ${typeColor}20`,
@@ -841,38 +841,38 @@ export function MovimentosClient({
 
                   {/* Entrada (qty se for entrada) */}
                   <span className="text-sm font-bold text-right tabular-nums"
-                    style={{ color: isEntrada && !isBalanco ? '#00FF94' : '#5A7A9A' }}>
+                    style={{ color: isEntrada && !isBalanco ? '#10B981' : '#64748B' }}>
                     {isEntrada && !isBalanco ? m.quantity : '—'}
                   </span>
 
                   {/* Saída (qty se for saída) */}
                   <span className="text-sm font-bold text-right tabular-nums"
-                    style={{ color: !isEntrada && !isBalanco ? '#FF5C5C' : isBalanco ? '#FFB800' : '#5A7A9A' }}>
+                    style={{ color: !isEntrada && !isBalanco ? '#EF4444' : isBalanco ? '#F59E0B' : '#64748B' }}>
                     {isBalanco ? `${m.quantity} (bal.)` : !isEntrada ? m.quantity : '—'}
                   </span>
 
                   {/* Pr. Venda (só em saída) */}
                   <span className="text-xs text-right tabular-nums"
-                    style={{ color: !isEntrada && m.sale_price_cents ? '#E8F0FE' : '#5A7A9A' }}>
+                    style={{ color: !isEntrada && m.sale_price_cents ? '#0F172A' : '#64748B' }}>
                     {!isEntrada && m.sale_price_cents ? BRL(m.sale_price_cents) : '—'}
                   </span>
 
                   {/* Pr. Compra (só em entrada) */}
                   <span className="text-xs text-right tabular-nums"
-                    style={{ color: isEntrada && m.purchase_price_cents ? '#E8F0FE' : '#5A7A9A' }}>
+                    style={{ color: isEntrada && m.purchase_price_cents ? '#0F172A' : '#64748B' }}>
                     {isEntrada && m.purchase_price_cents ? BRL(m.purchase_price_cents) : '—'}
                   </span>
 
                   {/* Pr. Custo (só em entrada) */}
                   <span className="text-xs text-right tabular-nums"
-                    style={{ color: isEntrada && m.cost_price_cents ? '#E8F0FE' : '#5A7A9A' }}>
+                    style={{ color: isEntrada && m.cost_price_cents ? '#0F172A' : '#64748B' }}>
                     {isEntrada && m.cost_price_cents ? BRL(m.cost_price_cents) : '—'}
                   </span>
 
                   {/* Saldo acumulado */}
                   <span className="text-sm font-semibold text-right tabular-nums text-text">
                     {recalcing
-                      ? <span className="inline-block h-4 w-10 animate-pulse rounded" style={{ background: '#1E2D45' }} />
+                      ? <span className="inline-block h-4 w-10 animate-pulse rounded" style={{ background: '#E2E8F0' }} />
                       : `${m.running_balance} ${product.unit}`}
                   </span>
 

@@ -8,13 +8,13 @@ import { Sparkles, ArrowRight } from 'lucide-react'
  */
 export function TrialBanner({ daysLeft }: { daysLeft: number }) {
   const isUrgent = daysLeft <= 2
-  const color = isUrgent ? '#FF4D6D' : '#FFB800'
+  const color = isUrgent ? '#EF4444' : '#F59E0B'
   const bg    = isUrgent ? 'rgba(255,77,109,.08)' : 'rgba(255,184,0,.08)'
 
   return (
     <div className="border-b" style={{ background: bg, borderColor: `${color}40` }}>
       <div className="px-4 sm:px-6 py-2.5 flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-2 text-sm" style={{ color: '#E8F0FE' }}>
+        <div className="flex items-center gap-2 text-sm" style={{ color: '#0F172A' }}>
           <Sparkles className="h-4 w-4 shrink-0" style={{ color }} />
           <span>
             <strong style={{ color }}>
@@ -25,7 +25,7 @@ export function TrialBanner({ daysLeft }: { daysLeft: number }) {
                   : `Faltam ${daysLeft} dias do seu trial`
               }
             </strong>
-            <span className="hidden sm:inline" style={{ color: '#8AA8C8' }}>
+            <span className="hidden sm:inline" style={{ color: '#475569' }}>
               {' '}— assine agora pra continuar usando todos os recursos
             </span>
           </span>
@@ -33,7 +33,7 @@ export function TrialBanner({ daysLeft }: { daysLeft: number }) {
         <Link
           href="/configuracoes/assinatura"
           className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-opacity hover:opacity-90 shrink-0"
-          style={{ background: color, color: '#080C14' }}
+          style={{ background: color, color: '#FFFFFF' }}
         >
           Assinar agora <ArrowRight className="h-3 w-3" />
         </Link>

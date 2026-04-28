@@ -35,17 +35,17 @@ export default async function AdminPage() {
     return (
       <div className="max-w-2xl mx-auto mt-12">
         <Link href="/" className="inline-flex items-center gap-1.5 text-xs hover:underline mb-4"
-          style={{ color: '#5A7A9A' }}>
+          style={{ color: '#64748B' }}>
           <ArrowLeft className="h-3.5 w-3.5" /> Voltar pro Dashboard
         </Link>
         <div className="rounded-2xl border p-12 text-center"
-          style={{ background: '#0D1320', borderColor: 'rgba(255,77,109,.3)' }}>
+          style={{ background: '#FFFFFF', borderColor: 'rgba(255,77,109,.3)' }}>
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border"
             style={{ background: 'rgba(255,77,109,.1)', borderColor: 'rgba(255,77,109,.3)' }}>
-            <Lock className="h-7 w-7" style={{ color: '#FF5C5C' }} />
+            <Lock className="h-7 w-7" style={{ color: '#EF4444' }} />
           </div>
-          <h1 className="text-xl font-bold mb-2" style={{ color: '#E8F0FE' }}>Acesso restrito</h1>
-          <p className="text-sm" style={{ color: '#8AA8C8' }}>
+          <h1 className="text-xl font-bold mb-2" style={{ color: '#0F172A' }}>Acesso restrito</h1>
+          <p className="text-sm" style={{ color: '#475569' }}>
             Esta página é exclusiva pra administradores da plataforma.
           </p>
         </div>
@@ -125,14 +125,14 @@ export default async function AdminPage() {
       {/* Header */}
       <div>
         <Link href="/" className="inline-flex items-center gap-1.5 text-xs hover:underline mb-2"
-          style={{ color: '#5A7A9A' }}>
+          style={{ color: '#64748B' }}>
           <ArrowLeft className="h-3.5 w-3.5" /> Voltar pro Dashboard
         </Link>
-        <h1 className="text-2xl font-bold flex items-center gap-2" style={{ color: '#E8F0FE' }}>
-          <Crown className="h-5 w-5" style={{ color: '#FFB800' }} />
+        <h1 className="text-2xl font-bold flex items-center gap-2" style={{ color: '#0F172A' }}>
+          <Crown className="h-5 w-5" style={{ color: '#F59E0B' }} />
           Admin — Métricas SaaS
         </h1>
-        <p className="mt-1 text-sm" style={{ color: '#5A7A9A' }}>
+        <p className="mt-1 text-sm" style={{ color: '#64748B' }}>
           Visão geral da receita, clientes e churn da plataforma.
         </p>
       </div>
@@ -140,42 +140,42 @@ export default async function AdminPage() {
       {/* KPIs principais */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPI title="MRR" value={fmtBRL(mrrCents)} sub="Receita recorrente mensal"
-             icon={DollarSign} color="#00FF94" />
+             icon={DollarSign} color="#10B981" />
         <KPI title="ARR" value={fmtBRL(arrCents)} sub="Receita anualizada"
-             icon={TrendingUp} color="#00E5FF" />
+             icon={TrendingUp} color="#1D4ED8" />
         <KPI title="Clientes pagantes" value={String(payingTenants)} sub={`+${trialingTenants} em trial`}
-             icon={Users} color="#FFB800" />
+             icon={Users} color="#F59E0B" />
         <KPI title="Churn (30d)" value={`${churnRate.toFixed(1)}%`} sub={`${subsCancelledRecent.length} cancelamentos`}
-             icon={AlertTriangle} color={churnRate > 5 ? '#FF4D6D' : '#8AA8C8'} />
+             icon={AlertTriangle} color={churnRate > 5 ? '#EF4444' : '#475569'} />
       </div>
 
       {/* Distribuição por plano */}
       <div className="rounded-2xl border p-6"
-        style={{ background: '#0D1320', borderColor: '#1E2D45' }}>
-        <h3 className="text-sm font-bold mb-4 uppercase tracking-widest" style={{ color: '#8AA8C8' }}>
+        style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
+        <h3 className="text-sm font-bold mb-4 uppercase tracking-widest" style={{ color: '#475569' }}>
           Distribuição por plano (assinaturas ativas)
         </h3>
         <div className="grid grid-cols-3 gap-4">
-          <PlanBox label="Básico" count={byPlan.basico} color="#8AA8C8" />
-          <PlanBox label="Pro" count={byPlan.pro} color="#00E5FF" />
-          <PlanBox label="Premium" count={byPlan.premium} color="#00FF94" />
+          <PlanBox label="Básico" count={byPlan.basico} color="#475569" />
+          <PlanBox label="Pro" count={byPlan.pro} color="#1D4ED8" />
+          <PlanBox label="Premium" count={byPlan.premium} color="#10B981" />
         </div>
       </div>
 
       {/* Tenants — clique nos botões pra liberar plano, estender trial ou cancelar */}
       <div className="rounded-2xl border p-6"
-        style={{ background: '#0D1320', borderColor: '#1E2D45' }}>
+        style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-bold uppercase tracking-widest" style={{ color: '#8AA8C8' }}>
+          <h3 className="text-sm font-bold uppercase tracking-widest" style={{ color: '#475569' }}>
             Tenants ({tenants.length} total)
           </h3>
-          <p className="text-[10px]" style={{ color: '#5A7A9A' }}>
+          <p className="text-[10px]" style={{ color: '#64748B' }}>
             🎁 liberar manual · ⏰ estender trial · ✕ cancelar sub
           </p>
         </div>
         <div className="space-y-2 max-h-[600px] overflow-y-auto">
           {tenants.length === 0 ? (
-            <p className="text-xs" style={{ color: '#5A7A9A' }}>Nenhum tenant ainda.</p>
+            <p className="text-xs" style={{ color: '#64748B' }}>Nenhum tenant ainda.</p>
           ) : (
             tenants.slice().sort((a, b) => b.created_at.localeCompare(a.created_at)).map(t => {
               const tenantSubs = subsAll
@@ -206,9 +206,9 @@ function KPI({ title, value, sub, icon: Icon, color }: {
 }) {
   return (
     <div className="rounded-2xl border p-5"
-      style={{ background: '#0D1320', borderColor: '#1E2D45' }}>
+      style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
       <div className="flex items-start justify-between mb-3">
-        <p className="text-[11px] font-bold uppercase tracking-widest" style={{ color: '#5A7A9A' }}>
+        <p className="text-[11px] font-bold uppercase tracking-widest" style={{ color: '#64748B' }}>
           {title}
         </p>
         <div className="flex h-9 w-9 items-center justify-center rounded-lg"
@@ -217,7 +217,7 @@ function KPI({ title, value, sub, icon: Icon, color }: {
         </div>
       </div>
       <p className="text-2xl font-bold font-mono" style={{ color }}>{value}</p>
-      <p className="text-[11px] mt-1" style={{ color: '#8AA8C8' }}>{sub}</p>
+      <p className="text-[11px] mt-1" style={{ color: '#475569' }}>{sub}</p>
     </div>
   )
 }
@@ -225,11 +225,11 @@ function KPI({ title, value, sub, icon: Icon, color }: {
 function PlanBox({ label, count, color }: { label: string; count: number; color: string }) {
   return (
     <div className="rounded-lg border p-4 text-center"
-      style={{ background: '#0F1A2B', borderColor: '#1E2D45' }}>
+      style={{ background: '#F1F5F9', borderColor: '#E2E8F0' }}>
       <p className="text-[11px] font-bold uppercase tracking-widest"
-        style={{ color: '#5A7A9A' }}>{label}</p>
+        style={{ color: '#64748B' }}>{label}</p>
       <p className="text-3xl font-bold font-mono mt-1" style={{ color }}>{count}</p>
-      <p className="text-[10px] mt-1" style={{ color: '#5A7A9A' }}>
+      <p className="text-[10px] mt-1" style={{ color: '#64748B' }}>
         {count === 1 ? 'cliente' : 'clientes'}
       </p>
     </div>

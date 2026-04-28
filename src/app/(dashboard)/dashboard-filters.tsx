@@ -50,7 +50,7 @@ export function DashboardFilters() {
     <div className="flex flex-wrap items-center gap-3">
 
       {/* Period */}
-      <div className="flex rounded-xl border overflow-hidden" style={{ borderColor: '#1E2D45' }}>
+      <div className="flex rounded-xl border overflow-hidden" style={{ borderColor: '#E2E8F0' }}>
         {PERIODS.map(({ id, label }) => (
           <button
             key={id}
@@ -61,9 +61,9 @@ export function DashboardFilters() {
             }}
             className="border-r px-4 py-2 text-xs font-medium transition-colors last:border-0"
             style={{
-              borderColor: '#1E2D45',
+              borderColor: '#E2E8F0',
               ...(period === id
-                ? { background: '#00E5FF18', color: '#00E5FF' }
+                ? { background: '#1D4ED818', color: '#1D4ED8' }
                 : { color: '#64748B' }),
             }}
           >
@@ -80,7 +80,7 @@ export function DashboardFilters() {
             value={fromDate}
             onChange={e => setFromDate(e.target.value)}
             className="rounded-lg border px-2.5 py-1.5 text-xs text-text outline-none focus:border-accent/60"
-            style={{ background: '#111827', borderColor: '#1E2D45' }}
+            style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}
           />
           <span className="text-xs text-muted">até</span>
           <input
@@ -88,7 +88,7 @@ export function DashboardFilters() {
             value={toDate}
             onChange={e => setToDate(e.target.value)}
             className="rounded-lg border px-2.5 py-1.5 text-xs text-text outline-none focus:border-accent/60"
-            style={{ background: '#111827', borderColor: '#1E2D45' }}
+            style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}
           />
           <button
             onClick={() => {
@@ -98,7 +98,7 @@ export function DashboardFilters() {
             }}
             disabled={!fromDate || !toDate}
             className="rounded-lg px-3 py-1.5 text-xs font-semibold transition-opacity disabled:opacity-50"
-            style={{ background: '#00E5FF', color: '#080C14' }}
+            style={{ background: '#1D4ED8', color: '#FFFFFF' }}
           >
             Aplicar
           </button>
@@ -106,16 +106,16 @@ export function DashboardFilters() {
       )}
 
       {/* Origin */}
-      <div className="flex rounded-xl border overflow-hidden" style={{ borderColor: '#1E2D45' }}>
+      <div className="flex rounded-xl border overflow-hidden" style={{ borderColor: '#E2E8F0' }}>
         {ORIGINS.map(({ id, label }) => (
           <button
             key={id}
             onClick={() => navigate(period, id, osStatus, params.get('from') ?? undefined, params.get('to') ?? undefined)}
             className="border-r px-4 py-2 text-xs font-medium transition-colors last:border-0"
             style={{
-              borderColor: '#1E2D45',
+              borderColor: '#E2E8F0',
               ...(origin === id
-                ? { background: '#00FF9418', color: '#00FF94' }
+                ? { background: '#10B98118', color: '#10B981' }
                 : { color: '#64748B' }),
             }}
           >
@@ -126,7 +126,7 @@ export function DashboardFilters() {
 
       {/* Status OS — só faz sentido quando origin inclui CheckSmart */}
       {origin !== 'erp' && (
-        <div className="flex rounded-xl border overflow-hidden" style={{ borderColor: '#1E2D45' }}>
+        <div className="flex rounded-xl border overflow-hidden" style={{ borderColor: '#E2E8F0' }}>
           {OS_STATUSES.map(({ id, label, hint }) => (
             <button
               key={id}
@@ -134,9 +134,9 @@ export function DashboardFilters() {
               title={hint}
               className="border-r px-4 py-2 text-xs font-medium transition-colors last:border-0"
               style={{
-                borderColor: '#1E2D45',
+                borderColor: '#E2E8F0',
                 ...(osStatus === id
-                  ? { background: '#FFAA0018', color: '#FFAA00' }
+                  ? { background: '#F59E0B18', color: '#F59E0B' }
                   : { color: '#64748B' }),
               }}
             >

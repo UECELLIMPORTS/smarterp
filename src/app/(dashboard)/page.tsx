@@ -77,7 +77,7 @@ function KPICard({ title, value, subtitle, icon: Icon, color, trend }: KPICardPr
   return (
     <div
       className="rounded-xl border p-5 transition-colors"
-      style={{ background: '#111827', borderColor: '#1E2D45' }}
+      style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}
     >
       <div className="flex items-start justify-between">
         <div>
@@ -97,10 +97,10 @@ function KPICard({ title, value, subtitle, icon: Icon, color, trend }: KPICardPr
       {trend && (
         <div className="mt-3 flex items-center gap-1 text-xs font-medium">
           {trend.positive
-            ? <ArrowUpRight className="h-3.5 w-3.5" style={{ color: '#00FF94' }} />
-            : <ArrowDownRight className="h-3.5 w-3.5" style={{ color: '#FF5C5C' }} />
+            ? <ArrowUpRight className="h-3.5 w-3.5" style={{ color: '#10B981' }} />
+            : <ArrowDownRight className="h-3.5 w-3.5" style={{ color: '#EF4444' }} />
           }
-          <span style={{ color: trend.positive ? '#00FF94' : '#FF5C5C' }}>{trend.value}</span>
+          <span style={{ color: trend.positive ? '#10B981' : '#EF4444' }}>{trend.value}</span>
           <span style={{ color: '#64748B' }}>vs. período anterior</span>
         </div>
       )}
@@ -425,7 +425,7 @@ export default async function DashboardPage(props: { searchParams: Promise<Searc
       desc:   `Venda — ${s.customers?.full_name ?? 'Sem cliente'}`,
       value:  BRL(s.total_cents),
       time:   new Date(s.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' }),
-      color:  '#00FF94',
+      color:  '#10B981',
       source: 'ERP' as const,
       date:   new Date(s.created_at),
     })),
@@ -434,7 +434,7 @@ export default async function DashboardPage(props: { searchParams: Promise<Searc
       desc:   `OS — ${o.customers?.full_name ?? 'Sem cliente'}`,
       value:  BRL(o.total_price_cents ?? 0),
       time:   new Date(o.received_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' }),
-      color:  '#00E5FF',
+      color:  '#1D4ED8',
       source: 'CheckSmart' as const,
       date:   new Date(o.received_at),
     })),
@@ -474,42 +474,42 @@ export default async function DashboardPage(props: { searchParams: Promise<Searc
           value={BRL(fatPeriod)}
           subtitle={`${txCount} transaç${txCount === 1 ? 'ão' : 'ões'} realizadas`}
           icon={DollarSign}
-          color="#00FF94"
+          color="#10B981"
         />
         <KPICard
           title="Faturamento do Mês"
           value={BRL(fatMonth)}
           subtitle={new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric', timeZone: 'America/Sao_Paulo' })}
           icon={TrendingUp}
-          color="#00E5FF"
+          color="#1D4ED8"
         />
         <KPICard
           title="Vendas (ERP)"
           value={String(salesCount)}
           subtitle={periodLabel(period, fromDate, toDate)}
           icon={ShoppingCart}
-          color="#FFB800"
+          color="#F59E0B"
         />
         <KPICard
           title="Ticket Médio"
           value={BRL(ticketMedio)}
           subtitle={periodLabel(period, fromDate, toDate)}
           icon={Receipt}
-          color="#00E5FF"
+          color="#1D4ED8"
         />
         <KPICard
           title="Clientes Ativos"
           value={String(clientesAtivos)}
           subtitle="Últimos 90 dias"
           icon={Users}
-          color="#00FF94"
+          color="#10B981"
         />
         <KPICard
           title="OS Abertas"
           value={String(osAbertas)}
           subtitle="CheckSmart"
           icon={Wrench}
-          color="#FF5C5C"
+          color="#EF4444"
         />
       </div>
       )}
@@ -520,19 +520,19 @@ export default async function DashboardPage(props: { searchParams: Promise<Searc
 
       {/* Atividade recente */}
       {showReports && (
-      <div className="rounded-xl border" style={{ background: '#111827', borderColor: '#1E2D45' }}>
-        <div className="flex items-center justify-between border-b px-5 py-4" style={{ borderColor: '#1E2D45' }}>
+      <div className="rounded-xl border" style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}>
+        <div className="flex items-center justify-between border-b px-5 py-4" style={{ borderColor: '#E2E8F0' }}>
           <h2 className="text-sm font-semibold text-text">Atividade Recente</h2>
           <span className="text-xs" style={{ color: '#64748B' }}>{activityItems.length} registros</span>
         </div>
 
         {activityItems.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 py-16">
-            <Receipt className="h-8 w-8" style={{ color: '#1E2D45' }} />
+            <Receipt className="h-8 w-8" style={{ color: '#E2E8F0' }} />
             <p className="text-sm" style={{ color: '#64748B' }}>Nenhuma atividade no período selecionado</p>
           </div>
         ) : (
-          <ul className="divide-y" style={{ borderColor: '#1E2D45' }}>
+          <ul className="divide-y" style={{ borderColor: '#E2E8F0' }}>
             {activityItems.map((item) => (
               <li key={item.id} className="flex items-center justify-between px-5 py-3.5">
                 <div className="flex items-center gap-3 min-w-0">
@@ -561,8 +561,8 @@ export default async function DashboardPage(props: { searchParams: Promise<Searc
       {/* Mensagem se nenhum bloco está liberado */}
       {!showKpis && !showCharts && !showReports && (
         <div className="rounded-xl border p-12 text-center"
-          style={{ background: '#111827', borderColor: '#1E2D45' }}>
-          <p className="text-sm" style={{ color: '#8AA8C8' }}>
+          style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}>
+          <p className="text-sm" style={{ color: '#475569' }}>
             Você tem acesso ao Dashboard mas nenhum bloco foi liberado pelo dono.
           </p>
         </div>

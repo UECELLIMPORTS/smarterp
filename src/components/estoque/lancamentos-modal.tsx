@@ -29,8 +29,8 @@ const fmtDate = (iso: string) =>
     hour: '2-digit', minute: '2-digit',
   })
 
-const INP = 'w-full rounded-lg border bg-transparent px-3 py-2 text-sm text-white placeholder:text-[#64748B] focus:outline-none focus:ring-1 focus:ring-[#00FF94]'
-const INP_S = { borderColor: '#1E2D45' }
+const INP = 'w-full rounded-lg border bg-transparent px-3 py-2 text-sm text-white placeholder:text-[#64748B] focus:outline-none focus:ring-1 focus:ring-[#10B981]'
+const INP_S = { borderColor: '#E2E8F0' }
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 
@@ -160,10 +160,10 @@ export function LancamentosModal({ product, onClose, onStockChanged }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4" style={{ background: 'rgba(0,0,0,0.75)' }}>
-      <div className="relative w-full max-w-4xl rounded-2xl border my-8" style={{ background: '#0D1521', borderColor: '#1E2D45' }}>
+      <div className="relative w-full max-w-4xl rounded-2xl border my-8" style={{ background: '#0D1521', borderColor: '#E2E8F0' }}>
 
         {/* Header */}
-        <div className="flex items-center justify-between border-b px-6 py-4" style={{ borderColor: '#1E2D45' }}>
+        <div className="flex items-center justify-between border-b px-6 py-4" style={{ borderColor: '#E2E8F0' }}>
           <div>
             <h2 className="text-base font-semibold text-white">Lançamentos de Estoque</h2>
             <p className="text-xs text-[#64748B] mt-0.5">{product.name} · Unidade: {product.unit}</p>
@@ -172,7 +172,7 @@ export function LancamentosModal({ product, onClose, onStockChanged }: Props) {
             <button
               onClick={() => { setNovoOpen(true); resetForm() }}
               className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-black"
-              style={{ background: '#00FF94' }}
+              style={{ background: '#10B981' }}
             >
               <Plus className="h-4 w-4" />
               Incluir Lançamento
@@ -189,7 +189,7 @@ export function LancamentosModal({ product, onClose, onStockChanged }: Props) {
             {/* Cabeçalho da tabela */}
             <div
               className="grid gap-3 px-5 py-3 text-xs font-medium uppercase tracking-wider text-[#64748B] border-b"
-              style={{ borderColor: '#1E2D45', gridTemplateColumns: '140px 70px 70px 130px 130px 130px 1fr 40px' }}
+              style={{ borderColor: '#E2E8F0', gridTemplateColumns: '140px 70px 70px 130px 130px 130px 1fr 40px' }}
             >
               <span>Data</span>
               <span className="text-center">Entrada</span>
@@ -208,11 +208,11 @@ export function LancamentosModal({ product, onClose, onStockChanged }: Props) {
               </div>
             ) : movements.length === 0 ? (
               <div className="flex flex-col items-center justify-center gap-2 py-16">
-                <Package className="h-10 w-10 text-[#1E2D45]" />
+                <Package className="h-10 w-10 text-[#E2E8F0]" />
                 <p className="text-sm text-[#64748B]">Nenhum lançamento registrado</p>
               </div>
             ) : (
-              <div className="max-h-[420px] overflow-y-auto divide-y divide-[#1E2D45]">
+              <div className="max-h-[420px] overflow-y-auto divide-y divide-[#E2E8F0]">
                 {movements.map(m => (
                   <div
                     key={m.id}
@@ -221,10 +221,10 @@ export function LancamentosModal({ product, onClose, onStockChanged }: Props) {
                   >
                     <span className="text-xs text-[#64748B]">{fmtDate(m.created_at)}</span>
 
-                    <span className="text-center font-semibold" style={{ color: m.type === 'entrada' ? '#00FF94' : 'transparent' }}>
+                    <span className="text-center font-semibold" style={{ color: m.type === 'entrada' ? '#10B981' : 'transparent' }}>
                       {m.type === 'entrada' ? m.quantity.toString().replace('.', ',') : '-'}
                     </span>
-                    <span className="text-center font-semibold" style={{ color: m.type === 'saida' ? '#FF5C5C' : 'transparent' }}>
+                    <span className="text-center font-semibold" style={{ color: m.type === 'saida' ? '#EF4444' : 'transparent' }}>
                       {m.type === 'saida' ? m.quantity.toString().replace('.', ',') : '-'}
                     </span>
 
@@ -242,7 +242,7 @@ export function LancamentosModal({ product, onClose, onStockChanged }: Props) {
 
                     <button
                       onClick={() => setDeleteTarget(m.id)}
-                      className="flex justify-center text-[#1E2D45] hover:text-red-400 transition-colors"
+                      className="flex justify-center text-[#E2E8F0] hover:text-red-400 transition-colors"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
@@ -253,18 +253,18 @@ export function LancamentosModal({ product, onClose, onStockChanged }: Props) {
           </div>
 
           {/* Painel lateral de resumo */}
-          <div className="w-56 shrink-0 border-l p-5 space-y-4" style={{ borderColor: '#1E2D45' }}>
+          <div className="w-56 shrink-0 border-l p-5 space-y-4" style={{ borderColor: '#E2E8F0' }}>
 
             {/* Entradas */}
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <TrendingUp className="h-4 w-4" style={{ color: '#00FF94' }} />
-                <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#00FF94' }}>Entradas</p>
+                <TrendingUp className="h-4 w-4" style={{ color: '#10B981' }} />
+                <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#10B981' }}>Entradas</p>
               </div>
               <p className="text-xl font-bold text-white">
                 {summary ? summary.total_entrada.toString().replace('.', ',') : '—'}
               </p>
-              <p className="text-xs mt-0.5" style={{ color: '#00FF94' }}>
+              <p className="text-xs mt-0.5" style={{ color: '#10B981' }}>
                 {summary && summary.avg_purchase_price_cents > 0
                   ? BRL(Math.round(summary.total_entrada * summary.avg_purchase_price_cents))
                   : 'R$ 0,00'}
@@ -272,7 +272,7 @@ export function LancamentosModal({ product, onClose, onStockChanged }: Props) {
             </div>
 
             {/* Saídas */}
-            <div className="border-t pt-4" style={{ borderColor: '#1E2D45' }}>
+            <div className="border-t pt-4" style={{ borderColor: '#E2E8F0' }}>
               <div className="flex items-center gap-2 mb-2">
                 <TrendingDown className="h-4 w-4 text-red-400" />
                 <p className="text-xs font-semibold uppercase tracking-wider text-red-400">Saídas</p>
@@ -288,11 +288,11 @@ export function LancamentosModal({ product, onClose, onStockChanged }: Props) {
             </div>
 
             {/* Saldo atual */}
-            <div className="border-t pt-4" style={{ borderColor: '#1E2D45' }}>
+            <div className="border-t pt-4" style={{ borderColor: '#E2E8F0' }}>
               <p className="text-xs font-semibold uppercase tracking-wider text-[#64748B] mb-1">Saldo atual</p>
               <p
                 className="text-2xl font-bold"
-                style={{ color: product.stock_qty <= 0 ? '#FF5C5C' : '#00FF94' }}
+                style={{ color: product.stock_qty <= 0 ? '#EF4444' : '#10B981' }}
               >
                 {product.stock_qty}
               </p>
@@ -300,7 +300,7 @@ export function LancamentosModal({ product, onClose, onStockChanged }: Props) {
             </div>
 
             {/* Saldos por depósito */}
-            <div className="border-t pt-4 overflow-x-auto" style={{ borderColor: '#1E2D45' }}>
+            <div className="border-t pt-4 overflow-x-auto" style={{ borderColor: '#E2E8F0' }}>
               <p className="text-xs font-semibold uppercase tracking-wider text-[#64748B] mb-2">Saldos por depósito</p>
               <table className="w-full text-xs min-w-[320px]">
                 <thead>
@@ -316,7 +316,7 @@ export function LancamentosModal({ product, onClose, onStockChanged }: Props) {
                     </td>
                     <td
                       className="text-right font-semibold py-0.5"
-                      style={{ color: product.stock_qty <= 0 ? '#FF5C5C' : '#00FF94' }}
+                      style={{ color: product.stock_qty <= 0 ? '#EF4444' : '#10B981' }}
                     >
                       {product.stock_qty}
                     </td>
@@ -330,7 +330,7 @@ export function LancamentosModal({ product, onClose, onStockChanged }: Props) {
         {/* ── Modal Novo Lançamento ─────────────────────────────────────────── */}
         {novoOpen && (
           <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl" style={{ background: 'rgba(0,0,0,0.7)' }}>
-            <div className="w-full max-w-md rounded-2xl border p-6 space-y-5" style={{ background: '#0D1521', borderColor: '#1E2D45' }}>
+            <div className="w-full max-w-md rounded-2xl border p-6 space-y-5" style={{ background: '#0D1521', borderColor: '#E2E8F0' }}>
               <div className="flex items-center justify-between">
                 <h3 className="text-base font-semibold text-white">Novo Lançamento</h3>
                 <button onClick={() => setNovoOpen(false)} className="text-[#64748B] hover:text-white">
@@ -339,7 +339,7 @@ export function LancamentosModal({ product, onClose, onStockChanged }: Props) {
               </div>
 
               {error && (
-                <div className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm" style={{ background: '#FF5C5C18', color: '#FF5C5C', border: '1px solid #FF5C5C40' }}>
+                <div className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm" style={{ background: '#EF444418', color: '#EF4444', border: '1px solid #EF444440' }}>
                   <AlertTriangle className="h-4 w-4 shrink-0" />
                   {error}
                 </div>
@@ -354,12 +354,12 @@ export function LancamentosModal({ product, onClose, onStockChanged }: Props) {
                     onChange={e => setTipo(e.target.value as MovementType)}
                     className="w-full appearance-none rounded-lg border bg-[#0D1521] px-3 py-2.5 text-sm font-medium focus:outline-none focus:ring-1"
                     style={{
-                      borderColor: tipo === 'entrada' ? '#00FF94' : '#FF5C5C',
-                      color: tipo === 'entrada' ? '#00FF94' : '#FF5C5C',
+                      borderColor: tipo === 'entrada' ? '#10B981' : '#EF4444',
+                      color: tipo === 'entrada' ? '#10B981' : '#EF4444',
                     }}
                   >
-                    <option value="entrada" style={{ color: '#00FF94', background: '#0D1521' }}>↓ Entrada</option>
-                    <option value="saida"   style={{ color: '#FF5C5C', background: '#0D1521' }}>↑ Saída</option>
+                    <option value="entrada" style={{ color: '#10B981', background: '#0D1521' }}>↓ Entrada</option>
+                    <option value="saida"   style={{ color: '#EF4444', background: '#0D1521' }}>↑ Saída</option>
                   </select>
                   <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#64748B]">▾</span>
                 </div>
@@ -407,7 +407,7 @@ export function LancamentosModal({ product, onClose, onStockChanged }: Props) {
                 <button
                   onClick={() => setNovoOpen(false)}
                   className="flex-1 rounded-lg border py-2.5 text-sm text-[#64748B] hover:text-white transition-colors"
-                  style={{ borderColor: '#1E2D45' }}
+                  style={{ borderColor: '#E2E8F0' }}
                 >
                   Cancelar
                 </button>
@@ -415,7 +415,7 @@ export function LancamentosModal({ product, onClose, onStockChanged }: Props) {
                   onClick={handleSave}
                   disabled={saving}
                   className="flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold text-black disabled:opacity-50"
-                  style={{ background: '#00FF94' }}
+                  style={{ background: '#10B981' }}
                 >
                   {saving && <Loader2 className="h-4 w-4 animate-spin" />}
                   {saving ? 'Salvando…' : 'Incluir'}
@@ -428,8 +428,8 @@ export function LancamentosModal({ product, onClose, onStockChanged }: Props) {
         {/* ── Confirmar exclusão ─────────────────────────────────────────────── */}
         {deleteTarget && (
           <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl" style={{ background: 'rgba(0,0,0,0.7)' }}>
-            <div className="w-full max-w-sm rounded-2xl border p-6 space-y-4" style={{ background: '#0D1521', borderColor: '#1E2D45' }}>
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl" style={{ background: '#FF5C5C18' }}>
+            <div className="w-full max-w-sm rounded-2xl border p-6 space-y-4" style={{ background: '#0D1521', borderColor: '#E2E8F0' }}>
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl" style={{ background: '#EF444418' }}>
                 <AlertTriangle className="h-6 w-6 text-red-400" />
               </div>
               <div>
@@ -437,14 +437,14 @@ export function LancamentosModal({ product, onClose, onStockChanged }: Props) {
                 <p className="mt-1 text-sm text-[#64748B]">O estoque do produto <strong className="text-white">não será revertido</strong> automaticamente. Ajuste manualmente se necessário.</p>
               </div>
               <div className="flex gap-3">
-                <button onClick={() => setDeleteTarget(null)} className="flex-1 rounded-lg border py-2 text-sm text-[#64748B] hover:text-white" style={{ borderColor: '#1E2D45' }}>
+                <button onClick={() => setDeleteTarget(null)} className="flex-1 rounded-lg border py-2 text-sm text-[#64748B] hover:text-white" style={{ borderColor: '#E2E8F0' }}>
                   Cancelar
                 </button>
                 <button
                   onClick={() => handleDelete(deleteTarget)}
                   disabled={deleting}
                   className="flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-sm font-semibold text-white"
-                  style={{ background: '#FF5C5C' }}
+                  style={{ background: '#EF4444' }}
                 >
                   {deleting && <Loader2 className="h-4 w-4 animate-spin" />}
                   Excluir

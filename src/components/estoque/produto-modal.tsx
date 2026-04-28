@@ -38,7 +38,7 @@ const EMPTY_FORM: ProductInput = {
 }
 
 const INP   = 'w-full rounded-lg border bg-transparent px-3 py-2 text-sm text-text placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-accent'
-const INP_S = { borderColor: '#1E2D45' }
+const INP_S = { borderColor: '#E2E8F0' }
 
 const BRL      = (c: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(c / 100)
@@ -113,7 +113,7 @@ function AutocompleteInput({ label, value, onChange, placeholder, suggestions }:
         />
         {open && filtered.length > 0 && (
           <div className="absolute top-full left-0 right-0 z-20 mt-1 max-h-48 overflow-y-auto rounded-lg border shadow-xl"
-            style={{ background: '#0D1521', borderColor: '#1E2D45' }}>
+            style={{ background: '#0D1521', borderColor: '#E2E8F0' }}>
             {filtered.map(s => (
               <button key={s} type="button" onMouseDown={() => { onChange(s); setOpen(false) }}
                 className="block w-full px-3 py-2 text-left text-sm text-text hover:bg-white/5">{s}</button>
@@ -243,12 +243,12 @@ export function ProdutoModal({
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4"
       style={{ background: 'rgba(0,0,0,0.7)' }}>
       <div className="relative w-full max-w-2xl rounded-2xl border my-8"
-        style={{ background: '#0D1521', borderColor: '#1E2D45' }}>
+        style={{ background: '#0D1521', borderColor: '#E2E8F0' }}>
 
         {/* Header */}
-        <div className="flex items-center justify-between border-b px-6 py-4" style={{ borderColor: '#1E2D45' }}>
+        <div className="flex items-center justify-between border-b px-6 py-4" style={{ borderColor: '#E2E8F0' }}>
           <div className="flex items-center gap-2">
-            {isClone && <Copy className="h-4 w-4" style={{ color: '#00FF94' }} />}
+            {isClone && <Copy className="h-4 w-4" style={{ color: '#10B981' }} />}
             <h2 className="text-base font-semibold text-text">{modalTitle}</h2>
           </div>
           <button onClick={onClose} className="text-muted hover:text-text"><X className="h-5 w-5" /></button>
@@ -257,7 +257,7 @@ export function ProdutoModal({
         {/* Banner de clone */}
         {isClone && (
           <div className="border-b px-6 py-3 text-xs flex items-center gap-2"
-            style={{ borderColor: '#1E2D45', background: '#00FF9410', color: '#00FF94' }}>
+            style={{ borderColor: '#E2E8F0', background: '#10B98110', color: '#10B981' }}>
             <Copy className="h-3.5 w-3.5 shrink-0" />
             Baseado em <span className="font-semibold mx-1">{cloneFrom!.name}</span>
             — SKU em branco, estoque zerado e produto inativo até você revisar.
@@ -265,10 +265,10 @@ export function ProdutoModal({
         )}
 
         {/* Dados fixos no topo */}
-        <div className="border-b px-6 py-4 space-y-4" style={{ borderColor: '#1E2D45' }}>
+        <div className="border-b px-6 py-4 space-y-4" style={{ borderColor: '#E2E8F0' }}>
           {error && (
             <div className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm"
-              style={{ background: '#FF5C5C18', color: '#FF5C5C', border: '1px solid #FF5C5C40' }}>
+              style={{ background: '#EF444418', color: '#EF4444', border: '1px solid #EF444440' }}>
               <AlertTriangle className="h-4 w-4 shrink-0" />{error}
             </div>
           )}
@@ -316,13 +316,13 @@ export function ProdutoModal({
         </div>
 
         {/* Abas */}
-        <div className="border-b flex" style={{ borderColor: '#1E2D45' }}>
+        <div className="border-b flex" style={{ borderColor: '#E2E8F0' }}>
           {TABS.map(t => (
             <button key={t} onClick={() => setTab(t)}
               className={`relative px-5 py-3 text-sm font-medium transition-colors border-b-2 ${
                 tab === t ? 'border-accent text-text' : 'border-transparent text-muted hover:text-text'
               }`}
-              style={tab === t ? { borderColor: '#00FF94', color: '#fff' } : {}}>
+              style={tab === t ? { borderColor: '#10B981', color: '#fff' } : {}}>
               {t}
               {/* Ponto de erro na aba Características quando GTIN inválido */}
               {t === 'Características' && gtinError && (
@@ -359,7 +359,7 @@ export function ProdutoModal({
 
               {form.costCents > 0 && form.priceCents > 0 && (
                 <div className="rounded-lg px-3 py-2 text-xs"
-                  style={{ background: '#00FF9410', border: '1px solid #00FF9430', color: '#00FF94' }}>
+                  style={{ background: '#10B98110', border: '1px solid #10B98130', color: '#10B981' }}>
                   Margem: {(((form.priceCents - form.costCents) / form.priceCents) * 100).toFixed(1)}%
                   &nbsp;·&nbsp;
                   Lucro: {BRL(form.priceCents - form.costCents)}
@@ -373,14 +373,14 @@ export function ProdutoModal({
               </div>
 
               <div className="flex items-center justify-between rounded-lg border px-4 py-3"
-                style={{ borderColor: '#1E2D45' }}>
+                style={{ borderColor: '#E2E8F0' }}>
                 <div>
                   <p className="text-sm font-medium text-text">Situação</p>
                   <p className="text-xs text-muted">Inativos não aparecem no Frente de Caixa</p>
                 </div>
                 <button type="button" onClick={() => set('active', !form.active)}>
                   {form.active
-                    ? <ToggleRight className="h-8 w-8" style={{ color: '#00FF94' }} />
+                    ? <ToggleRight className="h-8 w-8" style={{ color: '#10B981' }} />
                     : <ToggleLeft className="h-8 w-8 text-muted" />}
                 </button>
               </div>
@@ -404,23 +404,23 @@ export function ProdutoModal({
                       className={INP}
                       style={{
                         ...INP_S,
-                        ...(gtinError ? { borderColor: '#FF5C5C' } : form.gtin.trim() ? { borderColor: '#00FF94' } : {}),
+                        ...(gtinError ? { borderColor: '#EF4444' } : form.gtin.trim() ? { borderColor: '#10B981' } : {}),
                       }}
                     />
                     {form.gtin.trim() && (
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium"
-                        style={{ color: gtinError ? '#FF5C5C' : '#00FF94' }}>
+                        style={{ color: gtinError ? '#EF4444' : '#10B981' }}>
                         {gtinError ? '✗' : '✓'}
                       </span>
                     )}
                   </div>
                   {gtinError && (
-                    <p className="mt-1 text-xs flex items-center gap-1" style={{ color: '#FF5C5C' }}>
+                    <p className="mt-1 text-xs flex items-center gap-1" style={{ color: '#EF4444' }}>
                       <AlertTriangle className="h-3 w-3 shrink-0" />{gtinError}
                     </p>
                   )}
                   {!gtinError && form.gtin.trim() && (
-                    <p className="mt-1 text-xs" style={{ color: '#00FF94' }}>
+                    <p className="mt-1 text-xs" style={{ color: '#10B981' }}>
                       GTIN-{form.gtin.trim().length} válido
                     </p>
                   )}
@@ -473,7 +473,7 @@ export function ProdutoModal({
               <div className="flex flex-wrap gap-3">
                 {form.imageUrls.map((url, i) => (
                   <div key={i} className="relative h-24 w-24 rounded-lg overflow-hidden"
-                    style={{ border: '1px solid #1E2D45' }}>
+                    style={{ border: '1px solid #E2E8F0' }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={url} alt="" className="h-full w-full object-cover" />
                     <button type="button"
@@ -487,7 +487,7 @@ export function ProdutoModal({
                 {form.imageUrls.length < 4 && (
                   <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
                     className="flex h-24 w-24 flex-col items-center justify-center gap-1 rounded-lg border border-dashed transition-colors hover:border-accent"
-                    style={{ borderColor: '#1E2D45', color: '#64748B' }}>
+                    style={{ borderColor: '#E2E8F0', color: '#64748B' }}>
                     {uploading ? <Loader2 className="h-6 w-6 animate-spin" /> : <Upload className="h-6 w-6" />}
                     <span className="text-xs">{uploading ? 'Enviando…' : 'Upload'}</span>
                   </button>
@@ -536,14 +536,14 @@ export function ProdutoModal({
               {/* Alertas de estoque */}
               {form.stockMin > 0 && form.stockQty <= 0 && (
                 <div className="rounded-lg px-3 py-2 text-xs flex items-center gap-2"
-                  style={{ background: '#FF5C5C18', color: '#FF5C5C', border: '1px solid #FF5C5C40' }}>
+                  style={{ background: '#EF444418', color: '#EF4444', border: '1px solid #EF444440' }}>
                   <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
                   Sem estoque — produto indisponível para venda.
                 </div>
               )}
               {form.stockMin > 0 && form.stockQty > 0 && form.stockQty <= form.stockMin && (
                 <div className="rounded-lg px-3 py-2 text-xs flex items-center gap-2"
-                  style={{ background: '#FFB80018', color: '#FFB800', border: '1px solid #FFB80040' }}>
+                  style={{ background: '#F59E0B18', color: '#F59E0B', border: '1px solid #F59E0B40' }}>
                   <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
                   Estoque abaixo do mínimo — repor a partir de {form.stockMin} unidades.
                 </div>
@@ -562,15 +562,15 @@ export function ProdutoModal({
 
         {/* Footer */}
         <div className="flex items-center justify-end gap-3 border-t px-6 py-4"
-          style={{ borderColor: '#1E2D45' }}>
+          style={{ borderColor: '#E2E8F0' }}>
           <button onClick={onClose}
             className="rounded-lg border px-4 py-2 text-sm text-muted hover:text-text transition-colors"
-            style={{ borderColor: '#1E2D45' }}>
+            style={{ borderColor: '#E2E8F0' }}>
             Cancelar
           </button>
           <button onClick={handleSave} disabled={saving || !form.name.trim() || !!gtinError}
             className="flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-semibold text-black disabled:opacity-50"
-            style={{ background: '#00FF94' }}>
+            style={{ background: '#10B981' }}>
             {saving && <Loader2 className="h-4 w-4 animate-spin" />}
             {saving
               ? 'Salvando…'

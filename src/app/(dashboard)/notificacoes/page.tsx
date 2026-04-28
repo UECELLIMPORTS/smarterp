@@ -21,17 +21,17 @@ export default async function NotificacoesPage() {
       {/* Header */}
       <div>
         <Link href="/" className="inline-flex items-center gap-1.5 text-xs hover:underline mb-2"
-          style={{ color: '#5A7A9A' }}>
+          style={{ color: '#64748B' }}>
           <ArrowLeft className="h-3.5 w-3.5" /> Voltar pro Dashboard
         </Link>
-        <h1 className="text-2xl font-bold flex items-center gap-2" style={{ color: '#E8F0FE' }}>
-          <Bell className="h-5 w-5" style={{ color: '#00E5FF' }} />
+        <h1 className="text-2xl font-bold flex items-center gap-2" style={{ color: '#0F172A' }}>
+          <Bell className="h-5 w-5" style={{ color: '#1D4ED8' }} />
           Notificações
         </h1>
-        <p className="mt-1 text-sm" style={{ color: '#5A7A9A' }}>
+        <p className="mt-1 text-sm" style={{ color: '#64748B' }}>
           Histórico completo de avisos, alertas e atualizações da sua conta.
           {unread > 0 && (
-            <span className="ml-2" style={{ color: '#00E5FF' }}>
+            <span className="ml-2" style={{ color: '#1D4ED8' }}>
               · {unread} não lida{unread !== 1 ? 's' : ''}
             </span>
           )}

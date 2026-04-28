@@ -195,33 +195,33 @@ export default async function MetaAdsPage({
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold" style={{ color: '#E8F0FE' }}>Meta Ads</h1>
-          <p className="mt-1 text-sm" style={{ color: '#5A7A9A' }}>
+          <h1 className="text-2xl font-bold" style={{ color: '#0F172A' }}>Meta Ads</h1>
+          <p className="mt-1 text-sm" style={{ color: '#64748B' }}>
             Dashboard de campanhas do Meta (Facebook + Instagram)
           </p>
         </div>
 
         <div
           className="rounded-2xl border p-10 text-center"
-          style={{ background: '#111827', borderColor: '#1E2D45' }}
+          style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}
         >
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl mb-4"
-            style={{ background: 'linear-gradient(135deg, #E4405F22, #1877F222)', border: '1px solid #1E2D45' }}>
+            style={{ background: 'linear-gradient(135deg, #E4405F22, #1877F222)', border: '1px solid #E2E8F0' }}>
             <TrendingUp className="h-8 w-8" style={{ color: '#E4405F' }} />
           </div>
-          <h2 className="text-lg font-bold" style={{ color: '#E8F0FE' }}>Configure o Meta Ads</h2>
-          <p className="mt-2 text-sm max-w-md mx-auto" style={{ color: '#8AA8C8' }}>
+          <h2 className="text-lg font-bold" style={{ color: '#0F172A' }}>Configure o Meta Ads</h2>
+          <p className="mt-2 text-sm max-w-md mx-auto" style={{ color: '#475569' }}>
             Conecte sua conta Meta Business para ver gastos, métricas de campanha e calcular o ROAS real cruzado com as vendas do seu ERP.
           </p>
           <Link
             href="/meta-ads/configuracoes"
             className="mt-6 inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-bold text-black transition-opacity hover:opacity-90"
-            style={{ background: 'linear-gradient(135deg, #00E5FF, #00FF94)' }}
+            style={{ background: 'linear-gradient(135deg, #1D4ED8, #10B981)' }}
           >
             <Settings className="h-4 w-4" />
             Configurar credenciais
           </Link>
-          <p className="mt-6 text-xs" style={{ color: '#5A7A9A' }}>
+          <p className="mt-6 text-xs" style={{ color: '#64748B' }}>
             Leva ~15 minutos — a gente te guia passo a passo
           </p>
         </div>

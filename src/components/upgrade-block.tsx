@@ -20,35 +20,35 @@ export function UpgradeBlock({
     <div className="flex items-start justify-center min-h-[calc(100vh-12rem)] py-10">
       <div className="w-full max-w-2xl">
         <div className="rounded-2xl border p-8 lg:p-10 text-center"
-          style={{ background: '#0D1320', borderColor: 'rgba(255,184,0,.4)' }}>
+          style={{ background: '#FFFFFF', borderColor: 'rgba(255,184,0,.4)' }}>
 
           {/* Ícone */}
           <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl border"
             style={{ background: 'rgba(255,184,0,.1)', borderColor: 'rgba(255,184,0,.3)' }}>
-            <Lock className="h-8 w-8" style={{ color: '#FFB800' }} />
+            <Lock className="h-8 w-8" style={{ color: '#F59E0B' }} />
           </div>
 
           {/* Título */}
-          <h1 className="text-2xl sm:text-3xl font-bold leading-tight mb-3" style={{ color: '#E8F0FE' }}>
-            {pageTitle} é parte do plano <span style={{ color: '#FFB800' }}>{req.label}</span>
+          <h1 className="text-2xl sm:text-3xl font-bold leading-tight mb-3" style={{ color: '#0F172A' }}>
+            {pageTitle} é parte do plano <span style={{ color: '#F59E0B' }}>{req.label}</span>
           </h1>
 
           {/* Descrição */}
-          <p className="text-base mb-8 max-w-md mx-auto" style={{ color: '#8AA8C8' }}>
+          <p className="text-base mb-8 max-w-md mx-auto" style={{ color: '#475569' }}>
             {req.description}
           </p>
 
           {/* Highlights */}
           <div className="rounded-xl border p-5 mb-8 text-left"
-            style={{ background: '#0F1A2B', borderColor: '#1E2D45' }}>
-            <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#00FF94' }}>
+            style={{ background: '#F1F5F9', borderColor: '#E2E8F0' }}>
+            <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#10B981' }}>
               <Sparkles className="h-3.5 w-3.5 inline mr-1.5" />
               Ao fazer upgrade você desbloqueia
             </p>
-            <ul className="space-y-2 text-sm" style={{ color: '#E8F0FE' }}>
+            <ul className="space-y-2 text-sm" style={{ color: '#0F172A' }}>
               {HIGHLIGHTS_BY_FEATURE[feature].map(item => (
                 <li key={item} className="flex items-start gap-2">
-                  <span className="mt-1.5 h-1.5 w-1.5 rounded-full shrink-0" style={{ background: '#00FF94' }} />
+                  <span className="mt-1.5 h-1.5 w-1.5 rounded-full shrink-0" style={{ background: '#10B981' }} />
                   <span>{item}</span>
                 </li>
               ))}
@@ -60,7 +60,7 @@ export function UpgradeBlock({
             <Link
               href="/configuracoes/assinatura"
               className="inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm font-bold transition-opacity hover:opacity-90"
-              style={{ background: 'linear-gradient(135deg, #00E5FF, #00FF94)', color: '#080C14' }}
+              style={{ background: 'linear-gradient(135deg, #1D4ED8, #10B981)', color: '#FFFFFF' }}
             >
               Fazer upgrade <ArrowRight className="h-4 w-4" />
             </Link>
@@ -68,7 +68,7 @@ export function UpgradeBlock({
               href="https://wa.me/5579999998876?text=Quero%20fazer%20upgrade%20de%20plano"
               target="_blank" rel="noopener noreferrer"
               className="inline-flex items-center justify-center gap-2 rounded-xl border px-6 py-3 text-sm font-bold transition-colors hover:bg-white/5"
-              style={{ borderColor: '#1E2D45', color: '#E8F0FE' }}
+              style={{ borderColor: '#E2E8F0', color: '#0F172A' }}
             >
               Falar no WhatsApp
             </a>

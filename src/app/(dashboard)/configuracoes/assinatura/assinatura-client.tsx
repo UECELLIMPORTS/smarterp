@@ -42,14 +42,14 @@ export function AssinaturaClient({ data }: { data: Data }) {
       {/* Header */}
       <div>
         <Link href="/configuracoes" className="inline-flex items-center gap-1.5 text-xs hover:underline mb-2"
-          style={{ color: '#5A7A9A' }}>
+          style={{ color: '#64748B' }}>
           <ArrowLeft className="h-3.5 w-3.5" /> Voltar pra Configurações
         </Link>
-        <h1 className="text-2xl font-bold flex items-center gap-2" style={{ color: '#E8F0FE' }}>
-          <Sparkles className="h-5 w-5" style={{ color: '#FFB800' }} />
+        <h1 className="text-2xl font-bold flex items-center gap-2" style={{ color: '#0F172A' }}>
+          <Sparkles className="h-5 w-5" style={{ color: '#F59E0B' }} />
           Minha Assinatura
         </h1>
-        <p className="mt-1 text-sm" style={{ color: '#5A7A9A' }}>
+        <p className="mt-1 text-sm" style={{ color: '#64748B' }}>
           Gerencie os produtos contratados, mude de plano ou cancele.
         </p>
       </div>
@@ -58,12 +58,12 @@ export function AssinaturaClient({ data }: { data: Data }) {
       {data.trialDays !== null && data.trialDays <= 3 && (
         <div className="rounded-xl border p-4 flex items-start gap-3"
           style={{ background: 'rgba(255,77,109,.06)', borderColor: 'rgba(255,77,109,.3)' }}>
-          <AlertTriangle className="h-5 w-5 mt-0.5 shrink-0" style={{ color: '#FF4D6D' }} />
-          <div className="text-sm" style={{ color: '#E8F0FE' }}>
-            <p className="font-bold" style={{ color: '#FF4D6D' }}>
+          <AlertTriangle className="h-5 w-5 mt-0.5 shrink-0" style={{ color: '#EF4444' }} />
+          <div className="text-sm" style={{ color: '#0F172A' }}>
+            <p className="font-bold" style={{ color: '#EF4444' }}>
               {data.trialDays === 0 ? 'Seu trial expira hoje!' : `Faltam ${data.trialDays} dias do seu trial`}
             </p>
-            <p className="text-xs mt-1" style={{ color: '#8AA8C8' }}>
+            <p className="text-xs mt-1" style={{ color: '#475569' }}>
               Assine agora pra não perder acesso aos seus dados.
             </p>
           </div>
@@ -75,7 +75,7 @@ export function AssinaturaClient({ data }: { data: Data }) {
         <ProductCard
           name="Gestão Smart" product="gestao_smart"
           description="ERP completo: vendas, estoque, financeiro, dashboards"
-          icon={Store} color="#00E5FF" sub={data.gestaoSmart}
+          icon={Store} color="#1D4ED8" sub={data.gestaoSmart}
           plansAvailable={['basico', 'pro', 'premium']}
           onSubscribe={(label) => setModal({ product: 'gestao_smart', label })}
           onUpgrade={(label, currentPlan) => setUpgradeModal({ product: 'gestao_smart', label, currentPlan })}
@@ -83,7 +83,7 @@ export function AssinaturaClient({ data }: { data: Data }) {
         <ProductCard
           name="CRM" product="crm"
           description="Pipeline + inbox WhatsApp/Instagram unificado"
-          icon={Users} color="#00FF94" sub={data.crm}
+          icon={Users} color="#10B981" sub={data.crm}
           plansAvailable={['basico', 'pro', 'premium']}
           onSubscribe={(label) => setModal({ product: 'crm', label })}
           onUpgrade={(label, currentPlan) => setUpgradeModal({ product: 'crm', label, currentPlan })}
@@ -103,7 +103,7 @@ export function AssinaturaClient({ data }: { data: Data }) {
         <ProductCard
           name="CheckSmart" product="checksmart"
           description="OS de assistência técnica com escudo jurídico"
-          icon={Wrench} color="#FFB800" sub={data.checkSmart}
+          icon={Wrench} color="#F59E0B" sub={data.checkSmart}
           plansAvailable={['basico', 'pro', 'premium']}
           onSubscribe={(label) => setModal({ product: 'checksmart', label })}
           onUpgrade={(label, currentPlan) => setUpgradeModal({ product: 'checksmart', label, currentPlan })}
@@ -173,7 +173,7 @@ function ProductCard({
 
   return (
     <article className="rounded-2xl border p-6"
-      style={{ background: '#0D1320', borderColor: isActive ? `${color}40` : '#1E2D45' }}>
+      style={{ background: '#FFFFFF', borderColor: isActive ? `${color}40` : '#E2E8F0' }}>
       {/* Header */}
       <div className="flex items-start gap-3 mb-4">
         <div className="flex h-11 w-11 items-center justify-center rounded-xl shrink-0 border"
@@ -182,7 +182,7 @@ function ProductCard({
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <h3 className="text-lg font-bold" style={{ color: '#E8F0FE' }}>{name}</h3>
+            <h3 className="text-lg font-bold" style={{ color: '#0F172A' }}>{name}</h3>
             {isActive && (
               <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded"
                 style={{ background: `${color}18`, color }}>
@@ -190,7 +190,7 @@ function ProductCard({
               </span>
             )}
           </div>
-          <p className="text-xs mt-1" style={{ color: '#8AA8C8' }}>{description}</p>
+          <p className="text-xs mt-1" style={{ color: '#475569' }}>{description}</p>
         </div>
       </div>
 
@@ -198,26 +198,26 @@ function ProductCard({
       {isActive && sub ? (
         <>
           <div className="rounded-lg border p-3 mb-4 space-y-1.5"
-            style={{ background: '#0F1A2B', borderColor: '#1E2D45' }}>
+            style={{ background: '#F1F5F9', borderColor: '#E2E8F0' }}>
             <Row label="Plano">
-              <span className="font-bold capitalize" style={{ color: '#E8F0FE' }}>{sub.planName}</span>
+              <span className="font-bold capitalize" style={{ color: '#0F172A' }}>{sub.planName}</span>
             </Row>
             <Row label={sub.billingCycle === 'YEARLY' ? 'Valor anual' : 'Valor mensal'}>
               <span className="font-mono font-bold" style={{ color }}>
                 {BRL(sub.priceCents)}
-                <span className="text-[10px] font-normal ml-1" style={{ color: '#5A7A9A' }}>
+                <span className="text-[10px] font-normal ml-1" style={{ color: '#64748B' }}>
                   {sub.billingCycle === 'YEARLY' ? '/ano' : '/mês'}
                 </span>
               </span>
             </Row>
             {isTrial && sub.trialEndsAt && (
               <Row label="Trial até">
-                <span className="font-mono" style={{ color: '#FFAA00' }}>{DT(sub.trialEndsAt)}</span>
+                <span className="font-mono" style={{ color: '#F59E0B' }}>{DT(sub.trialEndsAt)}</span>
               </Row>
             )}
             {!isTrial && sub.currentPeriodEnd && (
               <Row label="Próxima cobrança">
-                <span className="font-mono" style={{ color: '#E8F0FE' }}>{DT(sub.currentPeriodEnd)}</span>
+                <span className="font-mono" style={{ color: '#0F172A' }}>{DT(sub.currentPeriodEnd)}</span>
               </Row>
             )}
           </div>
@@ -229,13 +229,13 @@ function ProductCard({
                 else onSubscribe(name)
               }}
               className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg py-2.5 text-xs font-bold transition-opacity hover:opacity-90"
-              style={{ background: '#00E5FF', color: '#080C14' }}>
+              style={{ background: '#1D4ED8', color: '#FFFFFF' }}>
               {isTrial ? 'Assinar agora' : 'Mudar plano'}
             </button>
             {!isTrial && (
               <button onClick={handleCancel} disabled={cancelling}
                 className="inline-flex items-center justify-center gap-1 rounded-lg border px-4 py-2.5 text-xs font-semibold transition-colors hover:bg-white/5 disabled:opacity-50"
-                style={{ borderColor: '#1E2D45', color: '#8AA8C8' }}>
+                style={{ borderColor: '#E2E8F0', color: '#475569' }}>
                 {cancelling ? '…' : 'Cancelar'}
               </button>
             )}
@@ -243,20 +243,20 @@ function ProductCard({
         </>
       ) : includedInPremium ? (
         <>
-          <p className="text-xs mb-4" style={{ color: '#5A7A9A' }}>
+          <p className="text-xs mb-4" style={{ color: '#64748B' }}>
             {comingSoon
               ? '🚧 Em desenvolvimento — você terá acesso assim que lançarmos'
               : 'Esse módulo já está liberado pelo seu plano atual.'}
           </p>
           <div className="w-full inline-flex items-center justify-center gap-2 rounded-lg py-2.5 text-xs font-bold border"
-            style={{ background: 'rgba(0,255,148,.08)', color: '#00FF94', borderColor: 'rgba(0,255,148,.3)' }}>
+            style={{ background: 'rgba(16,185,129,.08)', color: '#10B981', borderColor: 'rgba(16,185,129,.3)' }}>
             <Check className="h-3.5 w-3.5" />
             Incluso no plano Premium
           </div>
         </>
       ) : (
         <>
-          <p className="text-xs mb-4" style={{ color: '#5A7A9A' }}>
+          <p className="text-xs mb-4" style={{ color: '#64748B' }}>
             {comingSoon
               ? '🚧 Em desenvolvimento — falaremos com você quando estiver disponível'
               : note ?? 'Você ainda não contratou esse produto.'}
@@ -266,8 +266,8 @@ function ProductCard({
             disabled={comingSoon}
             className="w-full inline-flex items-center justify-center gap-2 rounded-lg py-2.5 text-xs font-bold transition-opacity hover:opacity-90 disabled:cursor-not-allowed"
             style={comingSoon
-              ? { background: '#1E2D45', color: '#8AA8C8' }
-              : { background: 'linear-gradient(135deg, #00E5FF, #00FF94)', color: '#080C14' }
+              ? { background: '#E2E8F0', color: '#475569' }
+              : { background: 'linear-gradient(135deg, #1D4ED8, #10B981)', color: '#FFFFFF' }
             }>
             <Plus className="h-3.5 w-3.5" />
             {comingSoon ? 'Em breve' : `Contratar ${name}`}
@@ -277,8 +277,8 @@ function ProductCard({
 
       {/* Lista de planos disponíveis (info) */}
       {!comingSoon && plansAvailable.length > 1 && (
-        <div className="mt-4 pt-4 border-t" style={{ borderColor: '#1E2D45' }}>
-          <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: '#5A7A9A' }}>
+        <div className="mt-4 pt-4 border-t" style={{ borderColor: '#E2E8F0' }}>
+          <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: '#64748B' }}>
             Planos disponíveis
           </p>
           <div className="flex gap-2 flex-wrap">
@@ -286,7 +286,7 @@ function ProductCard({
               <span key={plan} className="text-[10px] font-bold uppercase px-2 py-0.5 rounded"
                 style={sub?.planName === plan
                   ? { background: `${color}18`, color }
-                  : { background: '#0F1A2B', color: '#5A7A9A' }
+                  : { background: '#F1F5F9', color: '#64748B' }
                 }>
                 <Check className="h-3 w-3 inline mr-1" />
                 {plan}
@@ -302,7 +302,7 @@ function ProductCard({
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between text-xs">
-      <span style={{ color: '#8AA8C8' }}>{label}</span>
+      <span style={{ color: '#475569' }}>{label}</span>
       {children}
     </div>
   )

@@ -35,11 +35,11 @@ const PRODUCT_LABELS: Record<Product, string> = {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  active:    '#00FF94',
-  trial:     '#FFB800',
-  late:      '#FF6B35',
-  inactive:  '#FF4D6D',
-  cancelled: '#5A7A9A',
+  active:    '#10B981',
+  trial:     '#F59E0B',
+  late:      '#EA580C',
+  inactive:  '#EF4444',
+  cancelled: '#64748B',
 }
 
 export function AdminTenantRow({ tenant }: Props) {
@@ -49,7 +49,7 @@ export function AdminTenantRow({ tenant }: Props) {
 
   // Resumo do tenant: pega a sub principal (gestao_smart) pra exibir
   const mainSub = tenant.subs.find(s => s.product === 'gestao_smart') ?? tenant.subs[0]
-  const statusColor = STATUS_COLORS[mainSub?.status ?? ''] ?? '#5A7A9A'
+  const statusColor = STATUS_COLORS[mainSub?.status ?? ''] ?? '#64748B'
   const planLabel = mainSub
     ? mainSub.status === 'active'
       ? `${mainSub.planName ?? '?'} · ${mainSub.billingCycle === 'YEARLY' ? 'Anual' : 'Mensal'}`
@@ -58,18 +58,18 @@ export function AdminTenantRow({ tenant }: Props) {
 
   return (
     <div className="rounded-lg border p-3"
-      style={{ background: '#0F1A2B', borderColor: '#1E2D45' }}>
+      style={{ background: '#F1F5F9', borderColor: '#E2E8F0' }}>
       <div className="flex items-center justify-between gap-3">
         <button
           type="button"
           onClick={() => setDrawerOpen(true)}
           className="min-w-0 text-left transition-opacity hover:opacity-80 cursor-pointer"
           title="Ver dados operacionais (modo suporte)">
-          <p className="text-sm font-semibold truncate flex items-center gap-1.5" style={{ color: '#E8F0FE' }}>
+          <p className="text-sm font-semibold truncate flex items-center gap-1.5" style={{ color: '#0F172A' }}>
             {tenant.name}
-            <Eye className="h-3 w-3" style={{ color: '#5A7A9A' }} />
+            <Eye className="h-3 w-3" style={{ color: '#64748B' }} />
           </p>
-          <p className="text-[10px] mt-0.5" style={{ color: '#5A7A9A' }}>
+          <p className="text-[10px] mt-0.5" style={{ color: '#64748B' }}>
             Cadastrado: {new Date(tenant.createdAt).toLocaleDateString('pt-BR')}
             {' · '}
             {tenant.subs.length} {tenant.subs.length === 1 ? 'assinatura' : 'assinaturas'}
@@ -86,7 +86,7 @@ export function AdminTenantRow({ tenant }: Props) {
             onClick={() => setGrantOpen(true)}
             title="Liberar plano manualmente"
             className="flex h-8 w-8 items-center justify-center rounded-lg border transition-colors hover:bg-card"
-            style={{ borderColor: '#1E2D45', color: '#00FF94' }}>
+            style={{ borderColor: '#E2E8F0', color: '#10B981' }}>
             <Gift className="h-4 w-4" />
           </button>
           <button
@@ -94,7 +94,7 @@ export function AdminTenantRow({ tenant }: Props) {
             onClick={() => setExtendOpen(true)}
             title="Estender trial"
             className="flex h-8 w-8 items-center justify-center rounded-lg border transition-colors hover:bg-card"
-            style={{ borderColor: '#1E2D45', color: '#FFB800' }}>
+            style={{ borderColor: '#E2E8F0', color: '#F59E0B' }}>
             <Clock className="h-4 w-4" />
           </button>
         </div>
@@ -119,7 +119,7 @@ export function AdminTenantRow({ tenant }: Props) {
 function SubRow({ tenantId, sub }: { tenantId: string; sub: Sub }) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
-  const statusColor = STATUS_COLORS[sub.status] ?? '#5A7A9A'
+  const statusColor = STATUS_COLORS[sub.status] ?? '#64748B'
 
   function handleCancel() {
     if (!confirm(`Cancelar assinatura de ${PRODUCT_LABELS[sub.product]}?`)) return
@@ -136,14 +136,14 @@ function SubRow({ tenantId, sub }: { tenantId: string; sub: Sub }) {
 
   return (
     <div className="flex items-center justify-between rounded px-2 py-1.5"
-      style={{ background: '#080C14' }}>
+      style={{ background: '#FFFFFF' }}>
       <div className="flex items-center gap-2 text-[11px]">
-        <span style={{ color: '#8AA8C8' }}>{PRODUCT_LABELS[sub.product]}</span>
+        <span style={{ color: '#475569' }}>{PRODUCT_LABELS[sub.product]}</span>
         <span className="font-bold uppercase" style={{ color: statusColor }}>
           {sub.status}
         </span>
         {sub.planName && (
-          <span style={{ color: '#5A7A9A' }}>
+          <span style={{ color: '#64748B' }}>
             {sub.planName} · {sub.billingCycle === 'YEARLY' ? 'Anual' : 'Mensal'}
           </span>
         )}
@@ -155,7 +155,7 @@ function SubRow({ tenantId, sub }: { tenantId: string; sub: Sub }) {
           disabled={pending}
           title="Cancelar assinatura"
           className="flex h-6 w-6 items-center justify-center rounded transition-colors hover:bg-card disabled:opacity-50"
-          style={{ color: '#FF4D6D' }}>
+          style={{ color: '#EF4444' }}>
           {pending ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-3 w-3" />}
         </button>
       )}
@@ -230,7 +230,7 @@ function GrantManualModal({ tenantId, tenantName, onClose }: {
             className={inputCls} style={inputStyle} />
         </Field>
 
-        <p className="text-[11px]" style={{ color: '#FFB800' }}>
+        <p className="text-[11px]" style={{ color: '#F59E0B' }}>
           ⚠ Plano liberado manualmente NÃO gera cobrança recorrente no Asaas.
           Quando expirar, a sub vira <code>inactive</code> e o tenant perde acesso.
         </p>
@@ -238,13 +238,13 @@ function GrantManualModal({ tenantId, tenantName, onClose }: {
         <div className="flex gap-2 pt-2">
           <button type="submit" disabled={pending}
             className="flex-1 flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold transition-opacity hover:opacity-90 disabled:opacity-50"
-            style={{ background: '#00FF94', color: '#080C14' }}>
+            style={{ background: '#10B981', color: '#FFFFFF' }}>
             {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Gift className="h-4 w-4" />}
             Liberar plano
           </button>
           <button type="button" onClick={onClose}
             className="rounded-lg border px-4 py-2.5 text-sm transition-colors hover:bg-card"
-            style={{ borderColor: '#1E2D45', color: '#8AA8C8' }}>
+            style={{ borderColor: '#E2E8F0', color: '#475569' }}>
             Cancelar
           </button>
         </div>
@@ -302,7 +302,7 @@ function ExtendTrialModal({ tenantId, tenantName, subs, onClose }: {
             className={inputCls} style={inputStyle} />
         </Field>
 
-        <p className="text-[11px]" style={{ color: '#8AA8C8' }}>
+        <p className="text-[11px]" style={{ color: '#475569' }}>
           Se trial já expirou, sub volta pra <code>status=trial</code> e o tenant
           recupera acesso por mais {days} dias.
         </p>
@@ -310,13 +310,13 @@ function ExtendTrialModal({ tenantId, tenantName, subs, onClose }: {
         <div className="flex gap-2 pt-2">
           <button type="submit" disabled={pending}
             className="flex-1 flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold transition-opacity hover:opacity-90 disabled:opacity-50"
-            style={{ background: '#FFB800', color: '#080C14' }}>
+            style={{ background: '#F59E0B', color: '#FFFFFF' }}>
             {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Clock className="h-4 w-4" />}
             Estender trial
           </button>
           <button type="button" onClick={onClose}
             className="rounded-lg border px-4 py-2.5 text-sm transition-colors hover:bg-card"
-            style={{ borderColor: '#1E2D45', color: '#8AA8C8' }}>
+            style={{ borderColor: '#E2E8F0', color: '#475569' }}>
             Cancelar
           </button>
         </div>
@@ -330,12 +330,12 @@ function ExtendTrialModal({ tenantId, tenantName, subs, onClose }: {
 // ──────────────────────────────────────────────────────────────────────────
 
 const inputCls   = 'w-full rounded-lg border px-3.5 py-2.5 text-sm text-text outline-none transition-colors focus:border-accent/60'
-const inputStyle = { background: '#111827', borderColor: '#1E2D45' }
+const inputStyle = { background: '#F8FAFC', borderColor: '#E2E8F0' }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="block text-[11px] font-bold uppercase tracking-widest mb-1.5" style={{ color: '#8AA8C8' }}>
+      <label className="block text-[11px] font-bold uppercase tracking-widest mb-1.5" style={{ color: '#475569' }}>
         {label}
       </label>
       {children}
@@ -351,16 +351,16 @@ function ModalShell({ title, subtitle, onClose, children }: {
       style={{ background: 'rgba(0,0,0,0.75)' }}
       onClick={onClose}>
       <div className="w-full max-w-md rounded-2xl border p-6 max-h-[90vh] overflow-y-auto"
-        style={{ background: '#0D1320', borderColor: '#1E2D45' }}
+        style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}
         onClick={e => e.stopPropagation()}>
         <div className="flex items-start justify-between mb-4">
           <div>
-            <h2 className="text-lg font-bold" style={{ color: '#E8F0FE' }}>{title}</h2>
-            <p className="text-xs mt-0.5" style={{ color: '#5A7A9A' }}>{subtitle}</p>
+            <h2 className="text-lg font-bold" style={{ color: '#0F172A' }}>{title}</h2>
+            <p className="text-xs mt-0.5" style={{ color: '#64748B' }}>{subtitle}</p>
           </div>
           <button type="button" onClick={onClose}
             className="flex h-8 w-8 items-center justify-center rounded-lg border transition-colors hover:bg-card"
-            style={{ borderColor: '#1E2D45', color: '#8AA8C8' }}>
+            style={{ borderColor: '#E2E8F0', color: '#475569' }}>
             <X className="h-4 w-4" />
           </button>
         </div>

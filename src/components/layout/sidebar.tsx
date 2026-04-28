@@ -59,16 +59,16 @@ export function Sidebar({ hasFullAccess = true, allowedModules = [], isOwner = t
     <aside
       // Esconde no mobile (<lg). Mobile usa <MobileNav> dentro do Topbar.
       className="fixed inset-y-0 left-0 z-40 hidden w-60 flex-col border-r lg:flex"
-      style={{ background: '#0D1320', borderColor: '#1E2D45' }}
+      style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}
     >
       {/* Logo */}
-      <div className="flex h-16 items-center gap-3 border-b px-5" style={{ borderColor: '#1E2D45' }}>
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-accent/30"
-          style={{ background: 'linear-gradient(135deg, #00E5FF20, #00FF9420)' }}>
-          <Zap className="h-4 w-4" style={{ color: '#00E5FF' }} />
+      <div className="flex h-16 items-center gap-3 border-b px-5" style={{ borderColor: '#E2E8F0' }}>
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg"
+          style={{ background: 'linear-gradient(135deg, #1D4ED8, #06B6D4)' }}>
+          <Zap className="h-5 w-5" style={{ color: 'white' }} />
         </div>
-        <span className="text-base font-bold tracking-tight text-text">
-          Smart<span style={{ color: '#00E5FF' }}>ERP</span>
+        <span className="text-base font-bold tracking-tight" style={{ color: '#0F172A' }}>
+          Smart<span style={{ color: '#1D4ED8' }}>ERP</span>
         </span>
       </div>
 
@@ -83,7 +83,7 @@ export function Sidebar({ hasFullAccess = true, allowedModules = [], isOwner = t
                   href={href}
                   className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all"
                   style={active
-                    ? { background: '#00E5FF15', color: '#00E5FF', borderLeft: '2px solid #00E5FF' }
+                    ? { background: '#1D4ED815', color: '#1D4ED8', borderLeft: '2px solid #1D4ED8' }
                     : { color: '#64748B' }
                   }
                 >
@@ -97,8 +97,8 @@ export function Sidebar({ hasFullAccess = true, allowedModules = [], isOwner = t
       </nav>
 
       {/* Footer */}
-      <div className="border-t px-4 py-3" style={{ borderColor: '#1E2D45' }}>
-        <p className="text-center text-[10px]" style={{ color: '#1E2D45' }}>v1.0.0</p>
+      <div className="border-t px-4 py-3" style={{ borderColor: '#E2E8F0' }}>
+        <p className="text-center text-[10px]" style={{ color: '#94A3B8' }}>v1.0.0</p>
       </div>
     </aside>
   )

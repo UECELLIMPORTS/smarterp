@@ -87,11 +87,11 @@ export function ConfiguracoesClient({ current, accounts }: Props) {
     <div className="space-y-6 max-w-4xl">
       <div className="flex items-start justify-between">
         <div>
-          <Link href="/meta-ads" className="mb-2 inline-flex items-center gap-1 text-xs" style={{ color: '#5A7A9A' }}>
+          <Link href="/meta-ads" className="mb-2 inline-flex items-center gap-1 text-xs" style={{ color: '#64748B' }}>
             <ArrowLeft className="h-3 w-3" /> Voltar ao Dashboard
           </Link>
-          <h1 className="text-2xl font-bold" style={{ color: '#E8F0FE' }}>Configurações do Meta Ads</h1>
-          <p className="mt-1 text-sm" style={{ color: '#5A7A9A' }}>
+          <h1 className="text-2xl font-bold" style={{ color: '#0F172A' }}>Configurações do Meta Ads</h1>
+          <p className="mt-1 text-sm" style={{ color: '#64748B' }}>
             Credenciais da sua conta Meta Business e contas de anúncios conectadas
           </p>
         </div>
@@ -102,25 +102,25 @@ export function ConfiguracoesClient({ current, accounts }: Props) {
         <div
           className="rounded-xl border p-4"
           style={{
-            background: current.lastError ? 'rgba(255,77,109,.08)' : 'rgba(0,255,148,.06)',
-            borderColor: current.lastError ? 'rgba(255,77,109,.3)' : 'rgba(0,255,148,.3)',
+            background: current.lastError ? 'rgba(255,77,109,.08)' : 'rgba(16,185,129,.06)',
+            borderColor: current.lastError ? 'rgba(255,77,109,.3)' : 'rgba(16,185,129,.3)',
           }}
         >
           <div className="flex items-start gap-3">
             {current.lastError
-              ? <XCircle className="h-4 w-4 mt-0.5 shrink-0" style={{ color: '#FF4D6D' }} />
-              : <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" style={{ color: '#00FF94' }} />
+              ? <XCircle className="h-4 w-4 mt-0.5 shrink-0" style={{ color: '#EF4444' }} />
+              : <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" style={{ color: '#10B981' }} />
             }
             <div className="flex-1">
-              <p className="text-sm font-semibold" style={{ color: '#E8F0FE' }}>
+              <p className="text-sm font-semibold" style={{ color: '#0F172A' }}>
                 {current.lastError ? 'Erro na última sincronização' : 'Credenciais configuradas'}
               </p>
-              <p className="mt-1 text-xs" style={{ color: '#8AA8C8' }}>
+              <p className="mt-1 text-xs" style={{ color: '#475569' }}>
                 {accounts.length} {accounts.length === 1 ? 'conta conectada' : 'contas conectadas'}
                 {current.lastSyncAt && <> · Última sync: {formatDateTime(current.lastSyncAt)}</>}
               </p>
               {current.lastError && (
-                <p className="mt-2 text-xs font-mono" style={{ color: '#FF4D6D' }}>{current.lastError}</p>
+                <p className="mt-2 text-xs font-mono" style={{ color: '#EF4444' }}>{current.lastError}</p>
               )}
             </div>
           </div>
@@ -135,20 +135,20 @@ export function ConfiguracoesClient({ current, accounts }: Props) {
       {/* Guia */}
       <div
         className="rounded-xl border p-5"
-        style={{ background: 'rgba(0,229,255,.04)', borderColor: 'rgba(0,229,255,.25)' }}
+        style={{ background: 'rgba(29,78,216,.04)', borderColor: 'rgba(29,78,216,.25)' }}
       >
         <div className="flex items-start gap-3 mb-3">
-          <BookOpen className="h-5 w-5 mt-0.5 shrink-0" style={{ color: '#00E5FF' }} />
+          <BookOpen className="h-5 w-5 mt-0.5 shrink-0" style={{ color: '#1D4ED8' }} />
           <div>
-            <h2 className="text-sm font-semibold" style={{ color: '#E8F0FE' }}>Como pegar cada credencial</h2>
-            <p className="text-xs" style={{ color: '#8AA8C8' }}>Siga a ordem — ~15 minutos no total</p>
+            <h2 className="text-sm font-semibold" style={{ color: '#0F172A' }}>Como pegar cada credencial</h2>
+            <p className="text-xs" style={{ color: '#475569' }}>Siga a ordem — ~15 minutos no total</p>
           </div>
         </div>
-        <ol className="space-y-2 text-xs pl-8 list-decimal" style={{ color: '#8AA8C8' }}>
+        <ol className="space-y-2 text-xs pl-8 list-decimal" style={{ color: '#475569' }}>
           <li>
             <strong className="text-text">App ID e App Secret</strong>: crie um app em{' '}
             <a href="https://developers.facebook.com/apps/" target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 underline" style={{ color: '#00E5FF' }}>
+              className="inline-flex items-center gap-1 underline" style={{ color: '#1D4ED8' }}>
               developers.facebook.com/apps <ExternalLink className="h-2.5 w-2.5" />
             </a>
             {' '}→ tipo <em>Business</em> → adicione o produto <em>Marketing API</em>. Dashboard do app mostra o ID e o Secret.
@@ -156,20 +156,20 @@ export function ConfiguracoesClient({ current, accounts }: Props) {
           <li>
             <strong className="text-text">Access Token</strong>: no{' '}
             <a href="https://business.facebook.com/settings/" target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 underline" style={{ color: '#00E5FF' }}>
+              className="inline-flex items-center gap-1 underline" style={{ color: '#1D4ED8' }}>
               Business Settings <ExternalLink className="h-2.5 w-2.5" />
             </a>
-            {' '}→ Users → <em>System Users</em> → gerar token com permissões <code className="px-1 rounded" style={{ background: '#1E2D45', color: '#00E5FF' }}>ads_read</code> e <code className="px-1 rounded" style={{ background: '#1E2D45', color: '#00E5FF' }}>ads_management</code>.
+            {' '}→ Users → <em>System Users</em> → gerar token com permissões <code className="px-1 rounded" style={{ background: '#E2E8F0', color: '#1D4ED8' }}>ads_read</code> e <code className="px-1 rounded" style={{ background: '#E2E8F0', color: '#1D4ED8' }}>ads_management</code>.
             Token de System User não expira — mais estável que token de usuário.
           </li>
           <li>
             <strong className="text-text">Ad Account ID</strong>: abra o{' '}
             <a href="https://business.facebook.com/adsmanager/" target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 underline" style={{ color: '#00E5FF' }}>
+              className="inline-flex items-center gap-1 underline" style={{ color: '#1D4ED8' }}>
               Ads Manager <ExternalLink className="h-2.5 w-2.5" />
             </a>
-            {' '}→ canto superior esquerdo mostra a conta ativa. Copie o ID e adicione o prefixo <code className="px-1 rounded" style={{ background: '#1E2D45', color: '#00E5FF' }}>act_</code>.
-            Exemplo: <code className="px-1 rounded font-mono" style={{ background: '#1E2D45', color: '#00FF94' }}>act_1234567890</code>
+            {' '}→ canto superior esquerdo mostra a conta ativa. Copie o ID e adicione o prefixo <code className="px-1 rounded" style={{ background: '#E2E8F0', color: '#1D4ED8' }}>act_</code>.
+            Exemplo: <code className="px-1 rounded font-mono" style={{ background: '#E2E8F0', color: '#10B981' }}>act_1234567890</code>
           </li>
           <li>
             <strong className="text-text">Business ID (opcional)</strong>: Business Settings → Informações do Negócio. Útil se você tem múltiplas contas.
@@ -177,20 +177,20 @@ export function ConfiguracoesClient({ current, accounts }: Props) {
         </ol>
 
         <div className="mt-4 flex items-start gap-2 rounded-lg px-3 py-2 text-[11px]"
-          style={{ background: 'rgba(255,170,0,.06)', borderLeft: '2px solid #FFAA00' }}>
-          <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: '#FFAA00' }} />
-          <span style={{ color: '#8AA8C8' }}>
-            <strong style={{ color: '#FFAA00' }}>Segurança:</strong> essas credenciais dão acesso à sua conta de anúncios.
+          style={{ background: 'rgba(255,170,0,.06)', borderLeft: '2px solid #F59E0B' }}>
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: '#F59E0B' }} />
+          <span style={{ color: '#475569' }}>
+            <strong style={{ color: '#F59E0B' }}>Segurança:</strong> essas credenciais dão acesso à sua conta de anúncios.
             Não compartilhe. Elas são armazenadas com RLS por tenant — só esta loja tem acesso.
           </span>
         </div>
       </div>
 
       {/* Formulário */}
-      <div className="rounded-xl border p-6 space-y-5" style={{ background: '#111827', borderColor: '#1E2D45' }}>
+      <div className="rounded-xl border p-6 space-y-5" style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}>
         <div className="flex items-center gap-2">
-          <Key className="h-4 w-4" style={{ color: '#FFAA00' }} />
-          <h2 className="text-sm font-semibold" style={{ color: '#E8F0FE' }}>Credenciais</h2>
+          <Key className="h-4 w-4" style={{ color: '#F59E0B' }} />
+          <h2 className="text-sm font-semibold" style={{ color: '#0F172A' }}>Credenciais</h2>
         </div>
 
         <Field
@@ -243,25 +243,25 @@ export function ConfiguracoesClient({ current, accounts }: Props) {
           <div
             className="flex items-start gap-2 rounded-lg px-3 py-2 text-xs"
             style={{
-              background: testResult.ok ? 'rgba(0,255,148,.08)' : 'rgba(255,77,109,.08)',
-              borderLeft: `2px solid ${testResult.ok ? '#00FF94' : '#FF4D6D'}`,
+              background: testResult.ok ? 'rgba(16,185,129,.08)' : 'rgba(255,77,109,.08)',
+              borderLeft: `2px solid ${testResult.ok ? '#10B981' : '#EF4444'}`,
             }}
           >
             {testResult.ok
-              ? <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 shrink-0" style={{ color: '#00FF94' }} />
-              : <XCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" style={{ color: '#FF4D6D' }} />
+              ? <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 shrink-0" style={{ color: '#10B981' }} />
+              : <XCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" style={{ color: '#EF4444' }} />
             }
-            <span style={{ color: testResult.ok ? '#00FF94' : '#FF4D6D' }}>{testResult.message}</span>
+            <span style={{ color: testResult.ok ? '#10B981' : '#EF4444' }}>{testResult.message}</span>
           </div>
         )}
 
         {/* Ações */}
-        <div className="flex items-center gap-3 flex-wrap border-t pt-5" style={{ borderColor: '#1E2D45' }}>
+        <div className="flex items-center gap-3 flex-wrap border-t pt-5" style={{ borderColor: '#E2E8F0' }}>
           <button
             onClick={handleSave}
             disabled={saving || !form.appId || (!current && (!form.appSecret || !form.accessToken)) || !form.adAccountId}
             className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold text-black transition-opacity disabled:opacity-50"
-            style={{ background: 'linear-gradient(135deg, #00E5FF, #00FF94)' }}
+            style={{ background: 'linear-gradient(135deg, #1D4ED8, #10B981)' }}
           >
             {saving && <Loader2 className="h-4 w-4 animate-spin" />}
             Salvar credenciais
@@ -272,7 +272,7 @@ export function ConfiguracoesClient({ current, accounts }: Props) {
                 onClick={handleTest}
                 disabled={testing}
                 className="flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-bold transition-opacity disabled:opacity-50 hover:bg-white/5"
-                style={{ borderColor: '#1E2D45', color: '#00E5FF' }}
+                style={{ borderColor: '#E2E8F0', color: '#1D4ED8' }}
               >
                 {testing && <Loader2 className="h-4 w-4 animate-spin" />}
                 Testar conexão
@@ -280,7 +280,7 @@ export function ConfiguracoesClient({ current, accounts }: Props) {
               <button
                 onClick={handleDelete}
                 className="ml-auto flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-bold transition-colors hover:bg-red-500/10"
-                style={{ borderColor: 'rgba(255,77,109,.3)', color: '#FF4D6D' }}
+                style={{ borderColor: 'rgba(255,77,109,.3)', color: '#EF4444' }}
               >
                 <Trash2 className="h-3.5 w-3.5" />
                 Remover credenciais
@@ -322,14 +322,14 @@ function AccountsSection({ accounts, onChange }: { accounts: MetaAdsAdAccount[];
   }
 
   return (
-    <div className="rounded-xl border p-6 space-y-4" style={{ background: '#111827', borderColor: '#1E2D45' }}>
+    <div className="rounded-xl border p-6 space-y-4" style={{ background: '#F8FAFC', borderColor: '#E2E8F0' }}>
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div>
-          <h2 className="text-sm font-semibold flex items-center gap-2" style={{ color: '#E8F0FE' }}>
-            <Star className="h-4 w-4" style={{ color: '#FFAA00' }} />
+          <h2 className="text-sm font-semibold flex items-center gap-2" style={{ color: '#0F172A' }}>
+            <Star className="h-4 w-4" style={{ color: '#F59E0B' }} />
             Contas conectadas
           </h2>
-          <p className="text-xs mt-0.5" style={{ color: '#5A7A9A' }}>
+          <p className="text-xs mt-0.5" style={{ color: '#64748B' }}>
             Mesmo access_token; cada conta tem métricas e ROAS isolados
           </p>
         </div>
@@ -337,7 +337,7 @@ function AccountsSection({ accounts, onChange }: { accounts: MetaAdsAdAccount[];
           <button
             onClick={() => setAdding(true)}
             className="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-bold transition-colors hover:bg-white/5"
-            style={{ borderColor: '#1E2D45', color: '#00E5FF' }}
+            style={{ borderColor: '#E2E8F0', color: '#1D4ED8' }}
           >
             <Plus className="h-3.5 w-3.5" />
             Adicionar conta
@@ -346,10 +346,10 @@ function AccountsSection({ accounts, onChange }: { accounts: MetaAdsAdAccount[];
       </div>
 
       {adding && (
-        <div className="rounded-lg border p-4 space-y-3" style={{ background: '#0D1320', borderColor: 'rgba(0,229,255,.3)' }}>
+        <div className="rounded-lg border p-4 space-y-3" style={{ background: '#FFFFFF', borderColor: 'rgba(29,78,216,.3)' }}>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#5A7A9A' }}>
+              <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#64748B' }}>
                 Ad Account ID
               </label>
               <input
@@ -357,12 +357,12 @@ function AccountsSection({ accounts, onChange }: { accounts: MetaAdsAdAccount[];
                 onChange={e => setNewAdAccountId(e.target.value)}
                 placeholder="act_1234567890"
                 className="w-full rounded-lg border px-3 py-2 text-sm outline-none font-mono"
-                style={{ background: '#0D1320', borderColor: '#1E2D45', color: '#E8F0FE' }}
+                style={{ background: '#FFFFFF', borderColor: '#E2E8F0', color: '#0F172A' }}
                 autoComplete="off"
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#5A7A9A' }}>
+              <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#64748B' }}>
                 Nome para exibição
               </label>
               <input
@@ -370,7 +370,7 @@ function AccountsSection({ accounts, onChange }: { accounts: MetaAdsAdAccount[];
                 onChange={e => setNewDisplayName(e.target.value)}
                 placeholder="Victoria Auto Peças"
                 className="w-full rounded-lg border px-3 py-2 text-sm outline-none"
-                style={{ background: '#0D1320', borderColor: '#1E2D45', color: '#E8F0FE' }}
+                style={{ background: '#FFFFFF', borderColor: '#E2E8F0', color: '#0F172A' }}
                 autoComplete="off"
               />
             </div>
@@ -380,7 +380,7 @@ function AccountsSection({ accounts, onChange }: { accounts: MetaAdsAdAccount[];
               onClick={handleAdd}
               disabled={creating}
               className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold text-black disabled:opacity-50"
-              style={{ background: 'linear-gradient(135deg, #00E5FF, #00FF94)' }}
+              style={{ background: 'linear-gradient(135deg, #1D4ED8, #10B981)' }}
             >
               {creating && <Loader2 className="h-3 w-3 animate-spin" />}
               Adicionar
@@ -388,7 +388,7 @@ function AccountsSection({ accounts, onChange }: { accounts: MetaAdsAdAccount[];
             <button
               onClick={() => { setAdding(false); setNewAdAccountId(''); setNewDisplayName('') }}
               className="rounded-lg border px-3 py-1.5 text-xs font-bold hover:bg-white/5"
-              style={{ borderColor: '#1E2D45', color: '#8AA8C8' }}
+              style={{ borderColor: '#E2E8F0', color: '#475569' }}
             >
               Cancelar
             </button>
@@ -401,7 +401,7 @@ function AccountsSection({ accounts, onChange }: { accounts: MetaAdsAdAccount[];
       </div>
 
       {accounts.length === 0 && !adding && (
-        <p className="text-xs text-center py-4" style={{ color: '#5A7A9A' }}>
+        <p className="text-xs text-center py-4" style={{ color: '#64748B' }}>
           Nenhuma conta cadastrada. Clique em &quot;Adicionar conta&quot; pra começar.
         </p>
       )}
@@ -491,15 +491,15 @@ function AccountRow({ account, onChange }: { account: MetaAdsAdAccount; onChange
     <div
       className="rounded-lg border p-3"
       style={{
-        background: account.isPrimary ? 'rgba(255,170,0,.05)' : '#0D1320',
-        borderColor: account.isPrimary ? 'rgba(255,170,0,.3)' : '#1E2D45',
+        background: account.isPrimary ? 'rgba(255,170,0,.05)' : '#FFFFFF',
+        borderColor: account.isPrimary ? 'rgba(255,170,0,.3)' : '#E2E8F0',
         opacity: account.isActive ? 1 : 0.5,
       }}
     >
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="flex-1 min-w-[240px]">
           <div className="flex items-center gap-2 flex-wrap">
-            {account.isPrimary && <Star className="h-3.5 w-3.5 fill-current shrink-0" style={{ color: '#FFAA00' }} />}
+            {account.isPrimary && <Star className="h-3.5 w-3.5 fill-current shrink-0" style={{ color: '#F59E0B' }} />}
             {editingName ? (
               <div className="flex items-center gap-1 flex-1 min-w-0">
                 <input
@@ -511,39 +511,39 @@ function AccountRow({ account, onChange }: { account: MetaAdsAdAccount; onChange
                   }}
                   autoFocus
                   className="flex-1 rounded border px-2 py-0.5 text-sm outline-none"
-                  style={{ background: '#0D1320', borderColor: '#1E2D45', color: '#E8F0FE' }}
+                  style={{ background: '#FFFFFF', borderColor: '#E2E8F0', color: '#0F172A' }}
                 />
                 <button onClick={handleRename} disabled={busy} className="p-1 hover:bg-white/5 rounded shrink-0">
-                  <Check className="h-3.5 w-3.5" style={{ color: '#00FF94' }} />
+                  <Check className="h-3.5 w-3.5" style={{ color: '#10B981' }} />
                 </button>
                 <button onClick={() => { setEditingName(false); setEditValue(account.displayName) }} className="p-1 hover:bg-white/5 rounded shrink-0">
-                  <X className="h-3.5 w-3.5" style={{ color: '#FF4D6D' }} />
+                  <X className="h-3.5 w-3.5" style={{ color: '#EF4444' }} />
                 </button>
               </div>
             ) : (
               <>
-                <span className="text-sm font-semibold" style={{ color: '#E8F0FE' }}>{account.displayName}</span>
+                <span className="text-sm font-semibold" style={{ color: '#0F172A' }}>{account.displayName}</span>
                 <button onClick={() => { setEditingName(true); setEditValue(account.displayName) }} className="p-0.5 opacity-40 hover:opacity-100" title="Renomear">
-                  <Pencil className="h-3 w-3" style={{ color: '#8AA8C8' }} />
+                  <Pencil className="h-3 w-3" style={{ color: '#475569' }} />
                 </button>
                 {account.isPrimary && (
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase" style={{ background: 'rgba(255,170,0,.15)', color: '#FFAA00' }}>
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase" style={{ background: 'rgba(255,170,0,.15)', color: '#F59E0B' }}>
                     Principal
                   </span>
                 )}
                 {!account.isActive && (
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase" style={{ background: 'rgba(138,168,200,.15)', color: '#8AA8C8' }}>
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase" style={{ background: 'rgba(138,168,200,.15)', color: '#475569' }}>
                     Inativa
                   </span>
                 )}
               </>
             )}
           </div>
-          <p className="text-xs mt-1 font-mono break-all" style={{ color: '#8AA8C8' }}>
+          <p className="text-xs mt-1 font-mono break-all" style={{ color: '#475569' }}>
             {account.adAccountId}
-            {account.currency && <span className="ml-2" style={{ color: '#5A7A9A' }}>· {account.currency}</span>}
+            {account.currency && <span className="ml-2" style={{ color: '#64748B' }}>· {account.currency}</span>}
           </p>
-          <p className="text-[10px] mt-1" style={{ color: account.lastError ? '#FF4D6D' : '#5A7A9A' }}>
+          <p className="text-[10px] mt-1" style={{ color: account.lastError ? '#EF4444' : '#64748B' }}>
             {account.lastError
               ? `Erro: ${account.lastError.slice(0, 80)}`
               : account.lastSyncAt
@@ -557,7 +557,7 @@ function AccountRow({ account, onChange }: { account: MetaAdsAdAccount; onChange
             onClick={handleTest}
             disabled={busy}
             className="flex items-center gap-1 rounded border px-2 py-1 text-[10px] font-bold transition-colors hover:bg-white/5 disabled:opacity-50"
-            style={{ borderColor: '#1E2D45', color: '#00E5FF' }}
+            style={{ borderColor: '#E2E8F0', color: '#1D4ED8' }}
           >
             {busy && <Loader2 className="h-3 w-3 animate-spin" />}
             Testar
@@ -567,7 +567,7 @@ function AccountRow({ account, onChange }: { account: MetaAdsAdAccount; onChange
               onClick={handleSetPrimary}
               disabled={busy}
               className="flex items-center gap-1 rounded border px-2 py-1 text-[10px] font-bold transition-colors hover:bg-white/5 disabled:opacity-50"
-              style={{ borderColor: 'rgba(255,170,0,.3)', color: '#FFAA00' }}
+              style={{ borderColor: 'rgba(255,170,0,.3)', color: '#F59E0B' }}
             >
               <Star className="h-3 w-3" />
               Tornar principal
@@ -577,7 +577,7 @@ function AccountRow({ account, onChange }: { account: MetaAdsAdAccount; onChange
             onClick={handleToggleActive}
             disabled={busy}
             className="flex items-center gap-1 rounded border px-2 py-1 text-[10px] font-bold transition-colors hover:bg-white/5 disabled:opacity-50"
-            style={{ borderColor: '#1E2D45', color: '#8AA8C8' }}
+            style={{ borderColor: '#E2E8F0', color: '#475569' }}
             title={account.isActive ? 'Desativar (não aparece no seletor)' : 'Reativar'}
           >
             {account.isActive ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
@@ -588,7 +588,7 @@ function AccountRow({ account, onChange }: { account: MetaAdsAdAccount; onChange
               onClick={handleDelete}
               disabled={busy}
               className="flex items-center gap-1 rounded border px-2 py-1 text-[10px] font-bold transition-colors hover:bg-red-500/10 disabled:opacity-50"
-              style={{ borderColor: 'rgba(255,77,109,.3)', color: '#FF4D6D' }}
+              style={{ borderColor: 'rgba(255,77,109,.3)', color: '#EF4444' }}
               title="Remover conta"
             >
               <Trash2 className="h-3 w-3" />
@@ -611,7 +611,7 @@ function Field({
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#5A7A9A' }}>
+      <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#64748B' }}>
         {label}
       </label>
       <input
@@ -620,10 +620,10 @@ function Field({
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
         className={`w-full rounded-lg border px-3.5 py-2.5 text-sm text-text outline-none transition-colors focus:border-accent/60 placeholder:text-muted ${mono ? 'font-mono' : ''}`}
-        style={{ background: '#0D1320', borderColor: '#1E2D45' }}
+        style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}
         autoComplete="off"
       />
-      {hint && <p className="text-[10px]" style={{ color: '#5A7A9A' }}>{hint}</p>}
+      {hint && <p className="text-[10px]" style={{ color: '#64748B' }}>{hint}</p>}
     </div>
   )
 }

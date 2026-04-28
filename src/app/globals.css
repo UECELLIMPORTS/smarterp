@@ -1,16 +1,45 @@
 @import "tailwindcss";
 
+/* ============================================================================
+ * SmartERP — App interno (LIGHT theme)
+ * Paleta consistente com a landing (gestaosmarterp.online): blue-700 primary
+ * ============================================================================ */
+
 :root {
-  --bg:      #080C14;
-  --surface: #0D1320;
-  --card:    #111827;
-  --border:  #1E2D45;
-  --accent:  #00E5FF;
-  --green:   #00FF94;
-  --amber:   #FFB800;
-  --coral:   #FF5C5C;
-  --text:    #F1F5F9;
-  --muted:   #64748B;
+  /* Backgrounds & surfaces */
+  --bg:        #F1F5F9;       /* slate-100 — body (pouco mais cinza pra contraste vs cards) */
+  --surface:   #FFFFFF;       /* cards, sidebars */
+  --card:      #FFFFFF;
+  --surface-2: #F8FAFC;       /* slate-50 — alternadas leves */
+
+  /* Borders */
+  --border:    #E2E8F0;       /* slate-200 */
+  --border-2:  #CBD5E1;       /* slate-300 */
+
+  /* Text */
+  --text:      #0F172A;       /* slate-900 */
+  --text-2:    #334155;       /* slate-700 */
+  --muted:     #64748B;       /* slate-500 */
+  --muted-2:   #94A3B8;       /* slate-400 */
+
+  /* Brand — azul Conta Azul-style (mesmo da landing) */
+  --accent:         #1D4ED8;
+  --accent-hover:   #1E40AF;
+  --accent-dark:    #1E3A8A;
+  --accent-light:   #DBEAFE;
+  --accent-lighter: #EFF6FF;
+
+  /* Semantic */
+  --green:        #10B981;
+  --green-light:  #ECFDF5;
+  --amber:        #F59E0B;
+  --amber-light:  #FFFBEB;
+  --coral:        #EF4444;
+  --coral-light:  #FEF2F2;
+
+  /* Compat */
+  --gold:   #F59E0B;
+  --danger: #EF4444;
 }
 
 @theme inline {
@@ -37,28 +66,28 @@ body {
   color: var(--text);
   font-family: var(--font-geist-sans), Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: var(--surface); }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #2a3f5f; }
+/* Scrollbar light */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--surface-2); }
+::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--muted-2); }
 
-/* datetime-local dark mode styling */
 input[type="datetime-local"] {
-  color-scheme: dark;
+  color-scheme: light;
 }
 input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-  filter: invert(0.7) brightness(1.4);
   cursor: pointer;
   border-radius: 4px;
   padding: 2px;
+  opacity: 0.6;
 }
 input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
-  filter: invert(1) brightness(1.6);
+  opacity: 1;
 }
 
-/* Stock popover entrance animation */
 @keyframes stockPopIn {
   from { opacity: 0; transform: translateY(-6px) scale(0.97); }
   to   { opacity: 1; transform: translateY(0)   scale(1);    }
@@ -69,9 +98,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
- * AUTH PAGES — light theme local (login, signup, forgot, reset, aceitar-convite)
- * Sistema interno continua dark; só auth muda pra light pra reduzir fricção
- * visual no momento de entrada.
+ * AUTH classes (continuam funcionando — alinhadas com app agora)
  * ───────────────────────────────────────────────────────────────────────── */
 
 .auth-input {
@@ -136,4 +163,19 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
 .auth-btn-secondary:hover {
   background: #F8FAFC;
   border-color: #CBD5E1;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * APP utilities — cards, hovers, transições light
+ * ───────────────────────────────────────────────────────────────────────── */
+
+.app-card {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  transition: border-color .2s, box-shadow .2s;
+}
+.app-card:hover {
+  border-color: var(--border-2);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, .04);
 }

@@ -24,12 +24,12 @@ type Props = {
 }
 
 const BADGE_STYLES: Record<PlanBadge['kind'], { bg: string; color: string; border: string; icon: React.ElementType }> = {
-  trial:    { bg: 'rgba(255,184,0,.12)',   color: '#FFB800', border: 'rgba(255,184,0,.3)', icon: Clock },
-  pending:  { bg: 'rgba(255,77,109,.12)',  color: '#FF4D6D', border: 'rgba(255,77,109,.3)', icon: AlertTriangle },
-  late:     { bg: 'rgba(255,77,109,.12)',  color: '#FF4D6D', border: 'rgba(255,77,109,.4)', icon: AlertTriangle },
-  basico:   { bg: 'rgba(138,168,200,.12)', color: '#8AA8C8', border: 'rgba(138,168,200,.3)', icon: Sparkles },
-  pro:      { bg: 'rgba(0,229,255,.12)',   color: '#00E5FF', border: 'rgba(0,229,255,.3)', icon: Zap },
-  premium:  { bg: 'rgba(0,255,148,.12)',   color: '#00FF94', border: 'rgba(0,255,148,.4)', icon: Crown },
+  trial:    { bg: 'rgba(255,184,0,.12)',   color: '#F59E0B', border: 'rgba(255,184,0,.3)', icon: Clock },
+  pending:  { bg: 'rgba(255,77,109,.12)',  color: '#EF4444', border: 'rgba(255,77,109,.3)', icon: AlertTriangle },
+  late:     { bg: 'rgba(255,77,109,.12)',  color: '#EF4444', border: 'rgba(255,77,109,.4)', icon: AlertTriangle },
+  basico:   { bg: 'rgba(138,168,200,.12)', color: '#475569', border: 'rgba(138,168,200,.3)', icon: Sparkles },
+  pro:      { bg: 'rgba(29,78,216,.12)',   color: '#1D4ED8', border: 'rgba(29,78,216,.3)', icon: Zap },
+  premium:  { bg: 'rgba(16,185,129,.12)',   color: '#10B981', border: 'rgba(16,185,129,.4)', icon: Crown },
 }
 
 export function Topbar({
@@ -56,7 +56,7 @@ export function Topbar({
       // z-50 (acima da sidebar z-40) pra que dropdowns filhos (notifs, badge plano)
       // possam sobrepor a sidebar quando expandem pra esquerda.
       className="fixed right-0 top-0 z-50 flex h-16 items-center justify-between border-b px-4 sm:px-6 left-0 lg:left-60"
-      style={{ background: '#080C14', borderColor: '#1E2D45' }}
+      style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}
     >
       {/* Slot esquerdo: hamburger no mobile */}
       <MobileNav hasFullAccess={hasFullAccess} allowedModules={allowedModules} isOwner={isOwner} />
@@ -83,7 +83,7 @@ export function Topbar({
         <div className="flex items-center gap-2.5">
           <div
             className="flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold"
-            style={{ background: 'linear-gradient(135deg, #00E5FF, #00FF94)', color: '#080C14' }}
+            style={{ background: 'linear-gradient(135deg, #1D4ED8, #06B6D4)', color: '#FFFFFF' }}
           >
             {initials}
           </div>
@@ -98,7 +98,7 @@ export function Topbar({
           onClick={handleSignOut}
           className="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium
             transition-colors hover:bg-card"
-          style={{ borderColor: '#1E2D45', color: '#64748B' }}
+          style={{ borderColor: '#E2E8F0', color: '#64748B' }}
         >
           <LogOut className="h-3.5 w-3.5" />
           Sair

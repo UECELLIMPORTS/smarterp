@@ -98,7 +98,7 @@ export function CampaignCodePicker({
     return (
       <div className="flex items-center gap-1.5 flex-wrap">
         <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 font-mono font-bold ${compact ? 'text-[10px]' : 'text-[11px]'}`}
-          style={{ background: 'rgba(255,170,0,.15)', color: '#FFAA00' }}>
+          style={{ background: 'rgba(255,170,0,.15)', color: '#F59E0B' }}>
           <Tag className="h-3 w-3" />
           {currentCode}
         </span>
@@ -108,7 +108,7 @@ export function CampaignCodePicker({
           title="Trocar código"
           className="p-0.5 opacity-50 hover:opacity-100 disabled:opacity-30"
         >
-          <Pencil className="h-3 w-3" style={{ color: '#8AA8C8' }} />
+          <Pencil className="h-3 w-3" style={{ color: '#475569' }} />
         </button>
         <button
           onClick={clear}
@@ -116,7 +116,7 @@ export function CampaignCodePicker({
           title="Remover código"
           className="p-0.5 opacity-50 hover:opacity-100 disabled:opacity-30"
         >
-          {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-3 w-3" style={{ color: '#FF4D6D' }} />}
+          {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-3 w-3" style={{ color: '#EF4444' }} />}
         </button>
         {open && (
           <PickerPopover
@@ -140,7 +140,7 @@ export function CampaignCodePicker({
         onClick={openPicker}
         disabled={saving}
         className={`inline-flex items-center gap-1.5 rounded-md border font-bold transition-colors hover:bg-white/5 disabled:opacity-40 ${compact ? 'px-2 py-1 text-[10px]' : 'px-3 py-1.5 text-xs'}`}
-        style={{ borderColor: 'rgba(0,229,255,.3)', color: '#00E5FF', background: 'rgba(0,229,255,.05)' }}
+        style={{ borderColor: 'rgba(29,78,216,.3)', color: '#1D4ED8', background: 'rgba(29,78,216,.05)' }}
       >
         <Tag className="h-3.5 w-3.5" />
         Definir código da campanha
@@ -177,11 +177,11 @@ function PickerPopover({
   return (
     <div
       className="absolute z-40 mt-1 w-72 rounded-xl border shadow-2xl overflow-hidden"
-      style={{ background: '#111827', borderColor: '#1E2D45', right: 0 }}
+      style={{ background: '#F8FAFC', borderColor: '#E2E8F0', right: 0 }}
       onClick={e => e.stopPropagation()}
     >
-      <div className="flex items-center justify-between px-3 py-2 border-b" style={{ borderColor: '#1E2D45' }}>
-        <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: '#5A7A9A' }}>
+      <div className="flex items-center justify-between px-3 py-2 border-b" style={{ borderColor: '#E2E8F0' }}>
+        <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: '#64748B' }}>
           Código da campanha
         </span>
         <button onClick={onClose} className="text-muted hover:text-coral">
@@ -191,7 +191,7 @@ function PickerPopover({
 
       {loading ? (
         <div className="flex items-center justify-center py-6">
-          <Loader2 className="h-4 w-4 animate-spin" style={{ color: '#00E5FF' }} />
+          <Loader2 className="h-4 w-4 animate-spin" style={{ color: '#1D4ED8' }} />
         </div>
       ) : (
         <div className="max-h-[280px] overflow-y-auto">
@@ -199,7 +199,7 @@ function PickerPopover({
           {metas.length > 0 && (
             <div>
               <div className="px-3 py-1.5 text-[9px] font-bold uppercase tracking-wider sticky top-0"
-                style={{ color: '#FFAA00', background: 'rgba(255,170,0,.05)' }}>
+                style={{ color: '#F59E0B', background: 'rgba(255,170,0,.05)' }}>
                 Campanhas Meta Ads
               </div>
               {metas.map(s => (
@@ -212,14 +212,14 @@ function PickerPopover({
                   <Check className="h-3.5 w-3.5 mt-0.5 opacity-0 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-xs font-mono font-bold" style={{ color: '#FFAA00' }}>{s.code}</span>
+                      <span className="text-xs font-mono font-bold" style={{ color: '#F59E0B' }}>{s.code}</span>
                       {s.status === 'ACTIVE' && (
-                        <span className="text-[8px] font-bold px-1 rounded uppercase" style={{ background: 'rgba(0,255,148,.15)', color: '#00FF94' }}>
+                        <span className="text-[8px] font-bold px-1 rounded uppercase" style={{ background: 'rgba(16,185,129,.15)', color: '#10B981' }}>
                           Ativa
                         </span>
                       )}
                     </div>
-                    <p className="text-[10px] truncate mt-0.5" style={{ color: '#8AA8C8' }}>{s.campaignName}</p>
+                    <p className="text-[10px] truncate mt-0.5" style={{ color: '#475569' }}>{s.campaignName}</p>
                   </div>
                 </button>
               ))}
@@ -230,7 +230,7 @@ function PickerPopover({
           {histories.length > 0 && (
             <div>
               <div className="px-3 py-1.5 text-[9px] font-bold uppercase tracking-wider sticky top-0"
-                style={{ color: '#8AA8C8', background: 'rgba(138,168,200,.05)' }}>
+                style={{ color: '#475569', background: 'rgba(138,168,200,.05)' }}>
                 Já usados
               </div>
               {histories.map(s => (
@@ -241,16 +241,16 @@ function PickerPopover({
                   className="w-full flex items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-white/5 disabled:opacity-40"
                 >
                   <Check className="h-3.5 w-3.5 opacity-0 shrink-0" />
-                  <span className="text-xs font-mono" style={{ color: '#E8F0FE' }}>{s.code}</span>
+                  <span className="text-xs font-mono" style={{ color: '#0F172A' }}>{s.code}</span>
                 </button>
               ))}
             </div>
           )}
 
           {/* Seção: Digitar novo */}
-          <div className="border-t" style={{ borderColor: '#1E2D45' }}>
+          <div className="border-t" style={{ borderColor: '#E2E8F0' }}>
             <div className="px-3 py-1.5 text-[9px] font-bold uppercase tracking-wider"
-              style={{ color: '#00E5FF', background: 'rgba(0,229,255,.05)' }}>
+              style={{ color: '#1D4ED8', background: 'rgba(29,78,216,.05)' }}>
               Outro código
             </div>
             <div className="flex items-center gap-2 px-3 py-2">
@@ -260,7 +260,7 @@ function PickerPopover({
                 placeholder="Ex: HJ-VAI-1"
                 maxLength={40}
                 className="flex-1 rounded border px-2 py-1 text-xs font-mono outline-none"
-                style={{ background: '#0D1320', borderColor: '#1E2D45', color: '#E8F0FE' }}
+                style={{ background: '#FFFFFF', borderColor: '#E2E8F0', color: '#0F172A' }}
                 onKeyDown={e => {
                   if (e.key === 'Enter' && customInput.trim()) onPick(customInput.trim())
                 }}
@@ -269,7 +269,7 @@ function PickerPopover({
                 onClick={() => customInput.trim() && onPick(customInput.trim())}
                 disabled={saving || !customInput.trim()}
                 className="rounded px-2 py-1 text-[10px] font-bold text-black disabled:opacity-40"
-                style={{ background: 'linear-gradient(135deg, #00E5FF, #00FF94)' }}
+                style={{ background: 'linear-gradient(135deg, #1D4ED8, #10B981)' }}
               >
                 {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : 'OK'}
               </button>
@@ -277,7 +277,7 @@ function PickerPopover({
           </div>
 
           {metas.length === 0 && histories.length === 0 && !loading && (
-            <p className="px-3 py-4 text-[11px] text-center" style={{ color: '#5A7A9A' }}>
+            <p className="px-3 py-4 text-[11px] text-center" style={{ color: '#64748B' }}>
               Nenhuma sugestão — digite o código acima
             </p>
           )}

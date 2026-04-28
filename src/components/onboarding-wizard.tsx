@@ -41,30 +41,30 @@ export function OnboardingWizard({ productCount, customerCount, hasChannels }: P
   return (
     <div className="rounded-2xl border-2 p-5 mb-6 relative"
       style={{
-        background: 'linear-gradient(135deg, rgba(0,229,255,.06) 0%, rgba(0,255,148,.04) 100%)',
-        borderColor: 'rgba(0,229,255,.3)',
+        background: 'linear-gradient(135deg, rgba(29,78,216,.06) 0%, rgba(16,185,129,.04) 100%)',
+        borderColor: 'rgba(29,78,216,.3)',
       }}>
       <button onClick={() => setDismissed(true)}
         className="absolute top-3 right-3 p-1 rounded hover:bg-white/5"
-        style={{ color: '#5A7A9A' }}>
+        style={{ color: '#64748B' }}>
         <X className="h-4 w-4" />
       </button>
 
       <div className="flex items-start gap-4">
         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl"
-          style={{ background: 'linear-gradient(135deg, #00E5FF, #00FF94)', color: '#080C14' }}>
+          style={{ background: 'linear-gradient(135deg, #1D4ED8, #10B981)', color: '#FFFFFF' }}>
           <Sparkles className="h-6 w-6" />
         </div>
 
         <div className="flex-1 min-w-0">
           <p className="text-[11px] font-bold uppercase tracking-widest mb-1"
-            style={{ color: '#00E5FF' }}>
+            style={{ color: '#1D4ED8' }}>
             Bem-vindo! · {stepsCompleted} de 3 passos
           </p>
-          <h3 className="text-lg font-bold mb-1" style={{ color: '#E8F0FE' }}>
+          <h3 className="text-lg font-bold mb-1" style={{ color: '#0F172A' }}>
             Configure sua conta em poucos minutos
           </h3>
-          <p className="text-xs mb-4" style={{ color: '#8AA8C8' }}>
+          <p className="text-xs mb-4" style={{ color: '#475569' }}>
             Esses 3 passos liberam tudo que o sistema oferece. Você pode começar agora.
           </p>
 
@@ -112,28 +112,28 @@ function StepItem({
   return (
     <div className="flex items-center gap-3 rounded-lg border p-3"
       style={{
-        background: done ? 'rgba(0,255,148,.06)' : '#0D1320',
-        borderColor: done ? 'rgba(0,255,148,.3)' : '#1E2D45',
+        background: done ? 'rgba(16,185,129,.06)' : '#FFFFFF',
+        borderColor: done ? 'rgba(16,185,129,.3)' : '#E2E8F0',
       }}>
       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
         style={done
-          ? { background: 'rgba(0,255,148,.15)', color: '#00FF94' }
-          : { background: 'rgba(0,229,255,.1)', color: '#00E5FF' }
+          ? { background: 'rgba(16,185,129,.15)', color: '#10B981' }
+          : { background: 'rgba(29,78,216,.1)', color: '#1D4ED8' }
         }>
         {done ? <Check className="h-5 w-5" /> : <Icon className="h-4 w-4" />}
       </div>
 
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold" style={{ color: '#E8F0FE' }}>
+        <p className="text-sm font-semibold" style={{ color: '#0F172A' }}>
           {num}. {title}
         </p>
-        <p className="text-[11px] mt-0.5" style={{ color: '#8AA8C8' }}>{desc}</p>
+        <p className="text-[11px] mt-0.5" style={{ color: '#475569' }}>{desc}</p>
       </div>
 
       {!done && (
         <Link href={link}
           className="shrink-0 rounded-lg px-3 py-2 text-[11px] font-bold transition-opacity hover:opacity-90"
-          style={{ background: '#00E5FF', color: '#080C14' }}>
+          style={{ background: '#1D4ED8', color: '#FFFFFF' }}>
           {cta} →
         </Link>
       )}
