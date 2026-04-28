@@ -106,7 +106,7 @@ export function RecurringExpensesSection({ initial }: Props) {
 
   return (
     <div className="rounded-xl border p-5"
-      style={{ background: '#1E1B2E', borderColor: '#3D3656' }}>
+      style={{ background: '#0E3A30', borderColor: '#1F5949' }}>
       <div className="flex items-start gap-3 mb-4">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
           style={{ background: 'rgba(255,184,0,.15)', color: '#F59E0B' }}>
@@ -143,18 +143,18 @@ export function RecurringExpensesSection({ initial }: Props) {
               <div key={item.id}
                 className="flex items-center gap-3 rounded-lg border p-3"
                 style={{
-                  background: item.active ? '#2A2440' : 'rgba(15,26,43,.5)',
-                  borderColor: '#3D3656',
+                  background: item.active ? '#15463A' : 'rgba(15,26,43,.5)',
+                  borderColor: '#1F5949',
                   opacity: item.active ? 1 : 0.55,
                 }}>
                 <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded shrink-0"
-                  style={{ background: `${cat?.color ?? '#A78BFA'}18`, color: cat?.color ?? '#A78BFA' }}>
+                  style={{ background: `${cat?.color ?? '#86EFAC'}18`, color: cat?.color ?? '#86EFAC' }}>
                   {cat?.label ?? item.category}
                 </span>
                 <p className="text-sm font-semibold flex-1 truncate" style={{ color: '#F8FAFC' }}>
                   {item.name}
                 </p>
-                <p className="text-sm font-bold font-mono shrink-0" style={{ color: item.active ? '#10B981' : '#A78BFA' }}>
+                <p className="text-sm font-bold font-mono shrink-0" style={{ color: item.active ? '#10B981' : '#86EFAC' }}>
                   {BRL(item.valueCents)}
                 </p>
                 <div className="flex items-center gap-1 shrink-0">
@@ -166,7 +166,7 @@ export function RecurringExpensesSection({ initial }: Props) {
                   </button>
                   <button onClick={() => startEdit(item)} disabled={pending}
                     className="p-1.5 rounded hover:bg-white/5"
-                    style={{ color: '#A855F7' }}>
+                    style={{ color: '#22C55E' }}>
                     <Edit2 className="h-3.5 w-3.5" />
                   </button>
                   <button onClick={() => handleDelete(item.id)} disabled={pending}
@@ -195,14 +195,14 @@ export function RecurringExpensesSection({ initial }: Props) {
       {!adding && !editingId && (
         <button onClick={() => setAdding(true)}
           className="w-full inline-flex items-center justify-center gap-2 rounded-lg border-2 border-dashed py-3 text-xs font-bold transition-colors hover:bg-white/[0.02]"
-          style={{ borderColor: '#4C4470', color: '#A855F7' }}>
+          style={{ borderColor: '#266F5C', color: '#22C55E' }}>
           <Plus className="h-4 w-4" /> Adicionar despesa
         </button>
       )}
 
       {/* Total */}
       <div className="mt-4 pt-4 border-t flex justify-between items-baseline"
-        style={{ borderColor: '#3D3656' }}>
+        style={{ borderColor: '#1F5949' }}>
         <span className="text-sm font-bold" style={{ color: '#F8FAFC' }}>
           Total mensal (despesas ativas)
         </span>
@@ -234,11 +234,11 @@ function ExpenseForm({
 }) {
   return (
     <div className="rounded-lg border-2 p-3 space-y-2"
-      style={{ background: '#2A2440', borderColor: '#A855F7' }}>
+      style={{ background: '#15463A', borderColor: '#22C55E' }}>
       <div className="flex gap-2">
         <select value={category} onChange={e => setCategory(e.target.value as ExpenseCategory)}
           className="rounded-lg border px-3 py-2 text-xs font-bold uppercase shrink-0 cursor-pointer"
-          style={{ background: '#1E1B2E', borderColor: '#3D3656', color: '#F8FAFC' }}>
+          style={{ background: '#0E3A30', borderColor: '#1F5949', color: '#F8FAFC' }}>
           {EXPENSE_CATEGORIES.map(c => (
             <option key={c.value} value={c.value}>{c.label}</option>
           ))}
@@ -247,7 +247,7 @@ function ExpenseForm({
           placeholder="Ex: Aluguel da loja"
           autoFocus
           className="flex-1 rounded-lg border px-3 py-2 text-sm"
-          style={{ background: '#1E1B2E', borderColor: '#3D3656', color: '#F8FAFC' }} />
+          style={{ background: '#0E3A30', borderColor: '#1F5949', color: '#F8FAFC' }} />
       </div>
       <div className="flex gap-2 items-center">
         <span className="text-xs shrink-0" style={{ color: '#CBD5E1' }}>R$</span>
@@ -255,15 +255,15 @@ function ExpenseForm({
           onChange={e => setValueStr(e.target.value)}
           placeholder="0,00"
           className="flex-1 rounded-lg border px-3 py-2 text-sm font-mono"
-          style={{ background: '#1E1B2E', borderColor: '#3D3656', color: '#F8FAFC' }} />
+          style={{ background: '#0E3A30', borderColor: '#1F5949', color: '#F8FAFC' }} />
         <button onClick={onSave} disabled={pending}
           className="rounded-lg px-3 py-2 text-xs font-bold flex items-center gap-1 shrink-0"
-          style={{ background: '#10B981', color: '#1E1B2E' }}>
+          style={{ background: '#10B981', color: '#0E3A30' }}>
           <Check className="h-3.5 w-3.5" /> Salvar
         </button>
         <button onClick={onCancel} disabled={pending}
           className="rounded-lg p-2 hover:bg-white/5 shrink-0"
-          style={{ color: '#A78BFA' }}>
+          style={{ color: '#86EFAC' }}>
           <X className="h-4 w-4" />
         </button>
       </div>

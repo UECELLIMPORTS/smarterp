@@ -111,15 +111,15 @@ export function MetaAdsDashboard({
         return { c: '#EF4444', bg: 'rgba(255,77,109,.15)', label: 'Reprovada', detail: null }
       case 'PENDING_REVIEW':
       case 'IN_PROCESS':
-        return { c: '#A855F7', bg: 'rgba(168,85,247,.15)', label: 'Em revisão', detail: null }
+        return { c: '#22C55E', bg: 'rgba(34,197,94,.15)', label: 'Em revisão', detail: null }
       case 'CAMPAIGN_PAUSED':
         return { c: '#F59E0B', bg: 'rgba(255,170,0,.15)', label: 'Pausada (campanha)', detail: null }
       case 'ADSET_PAUSED':
         return { c: '#F59E0B', bg: 'rgba(255,170,0,.15)', label: 'Pausada (ad set)', detail: null }
       case 'ARCHIVED':
-        return { c: '#A78BFA', bg: 'rgba(90,122,154,.15)', label: 'Arquivada', detail: null }
+        return { c: '#86EFAC', bg: 'rgba(90,122,154,.15)', label: 'Arquivada', detail: null }
       case 'DELETED':
-        return { c: '#A78BFA', bg: 'rgba(90,122,154,.15)', label: 'Excluída', detail: null }
+        return { c: '#86EFAC', bg: 'rgba(90,122,154,.15)', label: 'Excluída', detail: null }
       default:
         return { c: '#CBD5E1', bg: 'rgba(138,168,200,.15)', label: campaign.status, detail: null }
     }
@@ -142,7 +142,7 @@ export function MetaAdsDashboard({
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold" style={{ color: '#F8FAFC' }}>Meta Ads</h1>
-          <p className="mt-1 text-sm" style={{ color: '#A78BFA' }}>
+          <p className="mt-1 text-sm" style={{ color: '#86EFAC' }}>
             {selectedAccount ? (
               <>
                 <span style={{ color: '#F8FAFC' }}>{selectedAccount.displayName}</span>
@@ -163,7 +163,7 @@ export function MetaAdsDashboard({
               onSelect={id => router.push(buildUrl(period, id))}
             />
           )}
-          <div className="flex gap-1 rounded-xl p-1" style={{ background: '#2A2440', border: '1px solid #3D3656' }}>
+          <div className="flex gap-1 rounded-xl p-1" style={{ background: '#15463A', border: '1px solid #1F5949' }}>
             {periodOptions.map(p => (
               <button
                 key={p.v}
@@ -171,7 +171,7 @@ export function MetaAdsDashboard({
                 className="rounded-lg px-3 py-1.5 text-xs font-bold transition-all"
                 style={period === p.v
                   ? { background: '#E4405F', color: '#fff' }
-                  : { color: '#A78BFA' }
+                  : { color: '#86EFAC' }
                 }
               >
                 {p.label}
@@ -181,7 +181,7 @@ export function MetaAdsDashboard({
           <Link
             href={`/meta-ads/relatorios?period=${period}${selectedAccount ? `&account=${selectedAccount.adAccountId}` : ''}`}
             className="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-bold transition-colors hover:bg-white/5"
-            style={{ borderColor: '#3D3656', color: '#A855F7' }}
+            style={{ borderColor: '#1F5949', color: '#22C55E' }}
           >
             <BarChart3 className="h-3.5 w-3.5" />
             Relatórios
@@ -189,7 +189,7 @@ export function MetaAdsDashboard({
           <Link
             href="/meta-ads/alertas"
             className="relative flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-bold transition-colors hover:bg-white/5"
-            style={{ borderColor: '#3D3656', color: '#F59E0B' }}
+            style={{ borderColor: '#1F5949', color: '#F59E0B' }}
           >
             <Bell className="h-3.5 w-3.5" />
             Alertas
@@ -199,7 +199,7 @@ export function MetaAdsDashboard({
                 style={{
                   background: '#EF4444', color: '#fff',
                   minWidth: '18px', height: '18px', padding: '0 4px',
-                  boxShadow: '0 0 0 2px #1E1B2E',
+                  boxShadow: '0 0 0 2px #0E3A30',
                 }}
               >
                 {unreadAlertsCount > 99 ? '99+' : unreadAlertsCount}
@@ -209,7 +209,7 @@ export function MetaAdsDashboard({
           <Link
             href="/meta-ads/configuracoes"
             className="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-bold transition-colors hover:bg-white/5"
-            style={{ borderColor: '#3D3656', color: '#A855F7' }}
+            style={{ borderColor: '#1F5949', color: '#22C55E' }}
           >
             <Settings className="h-3.5 w-3.5" />
             Configurações
@@ -237,7 +237,7 @@ export function MetaAdsDashboard({
                 target="_blank"
                 rel="noopener noreferrer"
                 className="underline font-semibold"
-                style={{ color: '#A855F7' }}
+                style={{ color: '#22C55E' }}
               >
                 Abrir Central de Cobrança
               </a>
@@ -256,7 +256,7 @@ export function MetaAdsDashboard({
             <p className="text-xs font-mono mt-1" style={{ color: '#EF4444' }}>{loadError}</p>
             <p className="text-xs mt-2" style={{ color: '#CBD5E1' }}>
               Tokens de longa duração expiram em 60 dias.{' '}
-              <Link href="/meta-ads/configuracoes" className="underline" style={{ color: '#A855F7' }}>
+              <Link href="/meta-ads/configuracoes" className="underline" style={{ color: '#22C55E' }}>
                 Revise suas credenciais
               </Link>
               {' '}ou teste a conexão.
@@ -279,7 +279,7 @@ export function MetaAdsDashboard({
             label="Impressões"
             value={NUM(insights.impressions)}
             sub={`Alcance: ${NUM(insights.reach)} · Freq: ${insights.frequency.toFixed(1)}`}
-            color="#A855F7"
+            color="#22C55E"
             icon={Eye}
           />
           <KpiCard
@@ -301,41 +301,41 @@ export function MetaAdsDashboard({
 
       {/* ROAS — destaque */}
       {insights && (
-        <div className="rounded-2xl border p-6" style={{ background: '#2A2440', borderColor: '#3D3656' }}>
+        <div className="rounded-2xl border p-6" style={{ background: '#15463A', borderColor: '#1F5949' }}>
           <div className="flex items-center gap-2 mb-4">
             <div className="h-4 w-1 rounded-full" style={{ background: '#10B981' }} />
             <div>
               <h2 className="text-xs font-bold uppercase tracking-widest" style={{ color: '#CBD5E1' }}>ROAS Real</h2>
-              <p className="text-[11px]" style={{ color: '#A78BFA' }}>
+              <p className="text-[11px]" style={{ color: '#86EFAC' }}>
                 Gasto no Meta × Faturamento atribuído aos canais <strong>Instagram Pago</strong>, <strong>Instagram Orgânico</strong> e <strong>Facebook</strong>
               </p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
-            <div className="rounded-xl border p-5" style={{ background: '#1E1B2E', borderColor: '#3D3656' }}>
-              <div className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: '#A78BFA' }}>Investido</div>
+            <div className="rounded-xl border p-5" style={{ background: '#0E3A30', borderColor: '#1F5949' }}>
+              <div className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: '#86EFAC' }}>Investido</div>
               <div className="text-2xl font-bold mt-1" style={{ color: '#E4405F', fontFamily: 'ui-monospace,monospace' }}>
                 {BRL(insights.spendCents)}
               </div>
-              <div className="text-[11px] mt-1" style={{ color: '#A78BFA' }}>em Meta Ads</div>
+              <div className="text-[11px] mt-1" style={{ color: '#86EFAC' }}>em Meta Ads</div>
             </div>
 
-            <div className="rounded-xl border p-5" style={{ background: '#1E1B2E', borderColor: '#3D3656' }}>
-              <div className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: '#A78BFA' }}>Retornou</div>
+            <div className="rounded-xl border p-5" style={{ background: '#0E3A30', borderColor: '#1F5949' }}>
+              <div className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: '#86EFAC' }}>Retornou</div>
               <div className="text-2xl font-bold mt-1" style={{ color: '#10B981', fontFamily: 'ui-monospace,monospace' }}>
                 {BRL(metaRevenueCents)}
               </div>
-              <div className="text-[11px] mt-1" style={{ color: '#A78BFA' }}>{originRevenue.txCount} venda(s)/OS atribuídas</div>
+              <div className="text-[11px] mt-1" style={{ color: '#86EFAC' }}>{originRevenue.txCount} venda(s)/OS atribuídas</div>
             </div>
 
             <div className="rounded-xl border p-5 relative overflow-hidden"
-              style={{ background: '#1E1B2E', borderColor: roas >= 1 ? 'rgba(16,185,129,.4)' : 'rgba(255,77,109,.4)' }}>
-              <div className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: '#A78BFA' }}>ROAS</div>
+              style={{ background: '#0E3A30', borderColor: roas >= 1 ? 'rgba(16,185,129,.4)' : 'rgba(255,77,109,.4)' }}>
+              <div className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: '#86EFAC' }}>ROAS</div>
               <div className="text-2xl font-bold mt-1" style={{ color: roas >= 1 ? '#10B981' : '#EF4444', fontFamily: 'ui-monospace,monospace' }}>
                 {returnPerReal === '—' ? '—' : `${returnPerReal}x`}
               </div>
-              <div className="text-[11px] mt-1" style={{ color: '#A78BFA' }}>
+              <div className="text-[11px] mt-1" style={{ color: '#86EFAC' }}>
                 {spendCents > 0 && metaRevenueCents > 0
                   ? `R$ 1 investido → ${BRL(metaRevenueCents / (spendCents / 100))}`
                   : 'Sem dados suficientes'}
@@ -344,8 +344,8 @@ export function MetaAdsDashboard({
           </div>
 
           {/* Breakdown por canal */}
-          <div className="mt-4 pt-4 border-t space-y-2" style={{ borderColor: '#3D3656' }}>
-            <div className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: '#A78BFA' }}>
+          <div className="mt-4 pt-4 border-t space-y-2" style={{ borderColor: '#1F5949' }}>
+            <div className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: '#86EFAC' }}>
               Faturamento por canal no período
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -356,8 +356,8 @@ export function MetaAdsDashboard({
           </div>
 
           <div className="mt-4 flex items-start gap-2 text-[11px] rounded-lg px-3 py-2"
-            style={{ background: 'rgba(168,85,247,.05)', borderLeft: '2px solid #A855F7', color: '#CBD5E1' }}>
-            <CheckCircle2 className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: '#A855F7' }} />
+            style={{ background: 'rgba(34,197,94,.05)', borderLeft: '2px solid #22C55E', color: '#CBD5E1' }}>
+            <CheckCircle2 className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: '#22C55E' }} />
             <span>
               O ROAS usa a origem do cliente (&quot;Como nos conheceu?&quot;) pra atribuir o faturamento. Quanto mais clientes cadastrados com origem correta, mais preciso fica.
             </span>
@@ -369,13 +369,13 @@ export function MetaAdsDashboard({
       <CampaignCodeSection totals={campaignCodeTotals} spendCents={insights?.spendCents ?? 0} />
 
       {/* Campanhas */}
-      <div className="rounded-2xl border" style={{ background: '#2A2440', borderColor: '#3D3656' }}>
-        <div className="flex items-center justify-between border-b px-6 py-4" style={{ borderColor: '#3D3656' }}>
+      <div className="rounded-2xl border" style={{ background: '#15463A', borderColor: '#1F5949' }}>
+        <div className="flex items-center justify-between border-b px-6 py-4" style={{ borderColor: '#1F5949' }}>
           <div className="flex items-center gap-2">
             <div className="h-4 w-1 rounded-full" style={{ background: '#E4405F' }} />
             <div>
               <p className="text-xs font-bold uppercase tracking-widest" style={{ color: '#CBD5E1' }}>Campanhas</p>
-              <p className="text-[11px]" style={{ color: '#A78BFA' }}>Performance por campanha no período</p>
+              <p className="text-[11px]" style={{ color: '#86EFAC' }}>Performance por campanha no período</p>
             </div>
           </div>
           {campaigns.length > 0 && (
@@ -387,15 +387,15 @@ export function MetaAdsDashboard({
         </div>
         <div className="overflow-x-auto">
           {campaigns.length === 0 ? (
-            <p className="p-10 text-center text-sm" style={{ color: '#A78BFA' }}>
+            <p className="p-10 text-center text-sm" style={{ color: '#86EFAC' }}>
               {loadError ? 'Verifique a conexão pra ver as campanhas' : 'Nenhuma campanha no período'}
             </p>
           ) : (
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b text-left" style={{ borderColor: '#3D3656' }}>
+                <tr className="border-b text-left" style={{ borderColor: '#1F5949' }}>
                   {['Campanha', 'Status', 'Objetivo', 'Investido', 'Budget/dia', 'Impressões', 'Cliques', 'CTR', 'CPC', 'Ações'].map(h => (
-                    <th key={h} className="px-5 py-3 text-[10px] font-bold uppercase tracking-wider" style={{ color: '#A78BFA' }}>
+                    <th key={h} className="px-5 py-3 text-[10px] font-bold uppercase tracking-wider" style={{ color: '#86EFAC' }}>
                       {h}
                     </th>
                   ))}
@@ -411,7 +411,7 @@ export function MetaAdsDashboard({
                       <tr key={c.id} className="border-b hover:bg-white/[0.02] transition-colors" style={{ borderColor: 'rgba(30,45,69,.5)' }}>
                         <td className="px-5 py-3">
                           <p className="font-medium text-sm" style={{ color: '#F8FAFC' }}>{c.name}</p>
-                          <p className="text-[10px] font-mono mt-0.5" style={{ color: '#A78BFA' }}>ID: {c.id}</p>
+                          <p className="text-[10px] font-mono mt-0.5" style={{ color: '#86EFAC' }}>ID: {c.id}</p>
                         </td>
                         <td className="px-5 py-3">
                           <span className="rounded-full px-2 py-0.5 text-[10px] font-bold whitespace-nowrap"
@@ -424,7 +424,7 @@ export function MetaAdsDashboard({
                             </p>
                           )}
                           {blocked && c.status === 'ACTIVE' && (
-                            <p className="text-[9px] mt-1 italic" style={{ color: '#A78BFA' }}>
+                            <p className="text-[9px] mt-1 italic" style={{ color: '#86EFAC' }}>
                               Intenção: ativa
                             </p>
                           )}
@@ -435,7 +435,7 @@ export function MetaAdsDashboard({
                         <td className="px-5 py-3 font-mono font-semibold" style={{ color: '#E4405F' }}>
                           {BRL(c.spendCents)}
                         </td>
-                        <td className="px-5 py-3 font-mono" style={{ color: c.dailyBudgetCents != null ? '#A855F7' : '#A78BFA' }}>
+                        <td className="px-5 py-3 font-mono" style={{ color: c.dailyBudgetCents != null ? '#22C55E' : '#86EFAC' }}>
                           {c.dailyBudgetCents != null ? BRL(c.dailyBudgetCents) : '—'}
                         </td>
                         <td className="px-5 py-3 font-mono" style={{ color: '#CBD5E1' }}>
@@ -470,12 +470,12 @@ export function MetaAdsDashboard({
 
       {/* Rodapé com link útil */}
       {selectedAccount && (
-        <div className="flex items-center justify-center gap-2 text-[11px]" style={{ color: '#A78BFA' }}>
+        <div className="flex items-center justify-center gap-2 text-[11px]" style={{ color: '#86EFAC' }}>
           <a
             href={`https://business.facebook.com/adsmanager/manage/campaigns?act=${selectedAccount.adAccountId.replace('act_', '')}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 transition-colors hover:text-[#A855F7]"
+            className="inline-flex items-center gap-1.5 transition-colors hover:text-[#22C55E]"
           >
             <ExternalLink className="h-3 w-3" />
             Abrir no Ads Manager
@@ -502,20 +502,20 @@ function AccountSelector({
         onClick={() => setOpen(v => !v)}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
         className="flex items-center gap-2 rounded-xl border px-3 py-1.5 text-xs font-bold transition-colors hover:bg-white/5"
-        style={{ background: '#2A2440', borderColor: '#3D3656', color: '#F8FAFC' }}
+        style={{ background: '#15463A', borderColor: '#1F5949', color: '#F8FAFC' }}
       >
         <span className="truncate max-w-[160px]">{selected?.displayName ?? 'Selecionar conta'}</span>
         {selected?.isPrimary && <Star className="h-3 w-3 fill-current shrink-0" style={{ color: '#F59E0B' }} />}
-        <ChevronDown className="h-3.5 w-3.5 shrink-0" style={{ color: '#A78BFA' }} />
+        <ChevronDown className="h-3.5 w-3.5 shrink-0" style={{ color: '#86EFAC' }} />
       </button>
 
       {open && (
         <div
           className="absolute right-0 mt-1 w-72 rounded-xl border shadow-lg z-20 overflow-hidden"
-          style={{ background: '#2A2440', borderColor: '#3D3656' }}
+          style={{ background: '#15463A', borderColor: '#1F5949' }}
         >
           <div className="px-3 py-2 border-b text-[10px] font-bold uppercase tracking-wider"
-            style={{ borderColor: '#3D3656', color: '#A78BFA' }}>
+            style={{ borderColor: '#1F5949', color: '#86EFAC' }}>
             Contas ativas
           </div>
           {accounts.map(acc => {
@@ -539,7 +539,7 @@ function AccountSelector({
                       <Star className="h-3 w-3 fill-current shrink-0" style={{ color: '#F59E0B' }} />
                     )}
                   </div>
-                  <div className="text-[10px] font-mono truncate" style={{ color: '#A78BFA' }}>
+                  <div className="text-[10px] font-mono truncate" style={{ color: '#86EFAC' }}>
                     {acc.adAccountId}
                     {acc.currency && <span className="ml-1">· {acc.currency}</span>}
                   </div>
@@ -560,15 +560,15 @@ function KpiCard({
   color: string; icon: React.ElementType
 }) {
   return (
-    <div className="rounded-2xl border p-5 relative overflow-hidden" style={{ background: '#2A2440', borderColor: '#3D3656' }}>
+    <div className="rounded-2xl border p-5 relative overflow-hidden" style={{ background: '#15463A', borderColor: '#1F5949' }}>
       <div className="absolute -right-4 -top-4 h-20 w-20 rounded-full opacity-15"
         style={{ background: `radial-gradient(circle, ${color}, transparent)` }} />
       <div className="mb-3 flex items-center justify-between">
-        <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: '#A78BFA' }}>{label}</span>
+        <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: '#86EFAC' }}>{label}</span>
         <Icon className="h-4 w-4" style={{ color }} />
       </div>
       <div className="text-2xl font-bold tracking-tight" style={{ color, fontFamily: 'ui-monospace,monospace' }}>{value}</div>
-      <div className="mt-1 text-[11px]" style={{ color: '#A78BFA' }}>{sub}</div>
+      <div className="mt-1 text-[11px]" style={{ color: '#86EFAC' }}>{sub}</div>
     </div>
   )
 }
@@ -578,7 +578,7 @@ function CampaignCodeSection({ totals, spendCents }: { totals: CampaignCodeTotal
   const hasData      = totals.length > 0
 
   return (
-    <div className="rounded-2xl border p-6" style={{ background: '#2A2440', borderColor: '#3D3656' }}>
+    <div className="rounded-2xl border p-6" style={{ background: '#15463A', borderColor: '#1F5949' }}>
       <div className="flex items-start justify-between gap-3 flex-wrap mb-4">
         <div className="flex items-center gap-2">
           <div className="h-4 w-1 rounded-full" style={{ background: '#F59E0B' }} />
@@ -587,7 +587,7 @@ function CampaignCodeSection({ totals, spendCents }: { totals: CampaignCodeTotal
               <Tag className="h-3.5 w-3.5" />
               ROAS por Código de Campanha
             </h2>
-            <p className="text-[11px]" style={{ color: '#A78BFA' }}>
+            <p className="text-[11px]" style={{ color: '#86EFAC' }}>
               Cruzamento de <strong>códigos preenchidos no cadastro do cliente</strong> com vendas e OS do período
             </p>
           </div>
@@ -601,14 +601,14 @@ function CampaignCodeSection({ totals, spendCents }: { totals: CampaignCodeTotal
       </div>
 
       {!hasData ? (
-        <div className="rounded-xl border p-5 text-center" style={{ background: '#1E1B2E', borderColor: 'rgba(255,170,0,.2)' }}>
+        <div className="rounded-xl border p-5 text-center" style={{ background: '#0E3A30', borderColor: 'rgba(255,170,0,.2)' }}>
           <Tag className="h-8 w-8 mx-auto mb-2" style={{ color: '#F59E0B', opacity: 0.5 }} />
           <p className="text-sm font-semibold" style={{ color: '#F8FAFC' }}>Nenhum cliente com código de campanha no período</p>
           <p className="text-xs mt-2 max-w-lg mx-auto" style={{ color: '#CBD5E1' }}>
             Pra rastrear qual anúncio trouxe o cliente, edite a mensagem pré-preenchida dos seus anúncios Click-to-WhatsApp no Meta Ads Manager com um código identificador, tipo:
           </p>
           <div className="mt-3 inline-block rounded-lg border px-3 py-2 font-mono text-xs"
-            style={{ background: '#1E1B2E', borderColor: '#3D3656', color: '#10B981' }}>
+            style={{ background: '#0E3A30', borderColor: '#1F5949', color: '#10B981' }}>
             &quot;Olá! Vi anúncio <span style={{ color: '#F59E0B' }}>[HJ-VAI-1]</span> — tenho interesse&quot;
           </div>
           <p className="text-xs mt-3 max-w-lg mx-auto" style={{ color: '#CBD5E1' }}>
@@ -619,9 +619,9 @@ function CampaignCodeSection({ totals, spendCents }: { totals: CampaignCodeTotal
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b text-left" style={{ borderColor: '#3D3656' }}>
+              <tr className="border-b text-left" style={{ borderColor: '#1F5949' }}>
                 {['Código', 'Clientes', 'Transações', 'Faturamento', '% do Investido'].map(h => (
-                  <th key={h} className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider" style={{ color: '#A78BFA' }}>
+                  <th key={h} className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider" style={{ color: '#86EFAC' }}>
                     {h}
                   </th>
                 ))}
@@ -647,7 +647,7 @@ function CampaignCodeSection({ totals, spendCents }: { totals: CampaignCodeTotal
                     <td className="px-4 py-3 font-mono font-semibold" style={{ color: '#10B981' }}>
                       {BRL(t.revenueCents)}
                     </td>
-                    <td className="px-4 py-3 font-mono text-xs" style={{ color: spendCents > 0 ? (pct >= 1 ? '#10B981' : pct >= 0.5 ? '#F59E0B' : '#EF4444') : '#A78BFA' }}>
+                    <td className="px-4 py-3 font-mono text-xs" style={{ color: spendCents > 0 ? (pct >= 1 ? '#10B981' : pct >= 0.5 ? '#F59E0B' : '#EF4444') : '#86EFAC' }}>
                       {spendCents > 0 ? `${(pct * 100).toFixed(0)}%` : '—'}
                     </td>
                   </tr>
@@ -657,8 +657,8 @@ function CampaignCodeSection({ totals, spendCents }: { totals: CampaignCodeTotal
           </table>
 
           <p className="mt-3 text-[11px] rounded-lg px-3 py-2 flex items-start gap-2"
-            style={{ background: 'rgba(168,85,247,.05)', borderLeft: '2px solid #A855F7', color: '#CBD5E1' }}>
-            <CheckCircle2 className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: '#A855F7' }} />
+            style={{ background: 'rgba(34,197,94,.05)', borderLeft: '2px solid #22C55E', color: '#CBD5E1' }}>
+            <CheckCircle2 className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: '#22C55E' }} />
             <span>
               <strong style={{ color: '#F8FAFC' }}>Como é calculado:</strong> cada código cruza os clientes que o possuem com todas as vendas e OS (entregues) do período.
               A coluna <strong>% do Investido</strong> mostra quanto esse código representa do gasto total no Meta —
@@ -731,7 +731,7 @@ function CampaignActions({
           disabled={busy}
           title="Ver gráfico temporal"
           className="rounded-md border p-1.5 transition-colors hover:bg-white/5 disabled:opacity-40"
-          style={{ borderColor: '#3D3656', color: '#F59E0B' }}
+          style={{ borderColor: '#1F5949', color: '#F59E0B' }}
         >
           <LineChartIcon className="h-3.5 w-3.5" />
         </button>
@@ -757,7 +757,7 @@ function CampaignActions({
           disabled={busy}
           title={campaign.dailyBudgetCents != null ? 'Ajustar orçamento diário' : 'Campanha usa orçamento do ad set (CBO)'}
           className="rounded-md border p-1.5 transition-colors hover:bg-white/5 disabled:opacity-40"
-          style={{ borderColor: '#3D3656', color: '#A855F7' }}
+          style={{ borderColor: '#1F5949', color: '#22C55E' }}
         >
           <Wallet className="h-3.5 w-3.5" />
         </button>
@@ -768,7 +768,7 @@ function CampaignActions({
           disabled={busy}
           title="Duplicar campanha"
           className="rounded-md border p-1.5 transition-colors hover:bg-white/5 disabled:opacity-40"
-          style={{ borderColor: '#3D3656', color: '#8B5CF6' }}
+          style={{ borderColor: '#1F5949', color: '#8B5CF6' }}
         >
           {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Copy className="h-3.5 w-3.5" />}
         </button>
@@ -840,12 +840,12 @@ function BudgetModal({
     >
       <div
         className="w-full max-w-md rounded-2xl border p-6 space-y-4"
-        style={{ background: '#1E1B2E', borderColor: '#3D3656' }}
+        style={{ background: '#0E3A30', borderColor: '#1F5949' }}
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Wallet className="h-4 w-4" style={{ color: '#A855F7' }} />
+            <Wallet className="h-4 w-4" style={{ color: '#22C55E' }} />
             <h3 className="text-sm font-semibold" style={{ color: '#F8FAFC' }}>Ajustar orçamento diário</h3>
           </div>
           <button onClick={onClose} className="text-muted hover:text-coral transition-colors">
@@ -854,7 +854,7 @@ function BudgetModal({
         </div>
 
         <div>
-          <p className="text-xs" style={{ color: '#A78BFA' }}>Campanha</p>
+          <p className="text-xs" style={{ color: '#86EFAC' }}>Campanha</p>
           <p className="text-sm font-semibold mt-0.5" style={{ color: '#F8FAFC' }}>{campaign.name}</p>
           {campaign.dailyBudgetCents == null && (
             <div className="mt-2 flex items-start gap-2 rounded-lg px-3 py-2 text-[11px]"
@@ -869,7 +869,7 @@ function BudgetModal({
         </div>
 
         <div className="flex flex-col gap-1">
-          <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#A78BFA' }}>
+          <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#86EFAC' }}>
             Orçamento diário
           </label>
           <div className="relative">
@@ -879,12 +879,12 @@ function BudgetModal({
               onChange={e => setValue(e.target.value.replace(/[^0-9,]/g, ''))}
               placeholder="0,00"
               className="w-full rounded-lg border pl-10 pr-3 py-2.5 text-sm outline-none font-mono"
-              style={{ background: '#1E1B2E', borderColor: '#3D3656', color: '#F8FAFC' }}
+              style={{ background: '#0E3A30', borderColor: '#1F5949', color: '#F8FAFC' }}
               autoFocus
               onKeyDown={e => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') onClose() }}
             />
           </div>
-          <p className="text-[10px]" style={{ color: '#A78BFA' }}>
+          <p className="text-[10px]" style={{ color: '#86EFAC' }}>
             Valor em reais (ex: <code>25,00</code>). A Meta ajusta a entrega pra gastar até esse valor por dia.
           </p>
         </div>
@@ -893,7 +893,7 @@ function BudgetModal({
           <button
             onClick={onClose}
             className="flex-1 rounded-lg border py-2.5 text-sm font-medium transition-colors hover:bg-white/5"
-            style={{ borderColor: '#3D3656', color: '#CBD5E1' }}
+            style={{ borderColor: '#1F5949', color: '#CBD5E1' }}
           >
             Cancelar
           </button>
@@ -901,7 +901,7 @@ function BudgetModal({
             onClick={handleSave}
             disabled={saving || !value}
             className="flex-1 flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold transition-opacity disabled:opacity-50"
-            style={{ background: 'linear-gradient(135deg, #A855F7, #10B981)', color: '#1E1B2E' }}
+            style={{ background: 'linear-gradient(135deg, #22C55E, #10B981)', color: '#0E3A30' }}
           >
             {saving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
             Salvar
@@ -919,7 +919,7 @@ type Metric = 'spend' | 'clicks' | 'impressions' | 'ctr'
 const METRIC_CONFIG: Record<Metric, { label: string; color: string; format: (v: number) => string }> = {
   spend:       { label: 'Gasto',       color: '#E4405F', format: v => BRL(v) },
   clicks:      { label: 'Cliques',     color: '#F59E0B', format: v => NUM(v) },
-  impressions: { label: 'Impressões',  color: '#A855F7', format: v => NUM(v) },
+  impressions: { label: 'Impressões',  color: '#22C55E', format: v => NUM(v) },
   ctr:         { label: 'CTR',         color: '#8B5CF6', format: v => `${v.toFixed(2)}%` },
 }
 
@@ -977,7 +977,7 @@ function TimeseriesModal({
     >
       <div
         className="w-full max-w-4xl rounded-2xl border p-6 space-y-4 max-h-[90vh] overflow-y-auto"
-        style={{ background: '#1E1B2E', borderColor: '#3D3656' }}
+        style={{ background: '#0E3A30', borderColor: '#1F5949' }}
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-3">
@@ -988,7 +988,7 @@ function TimeseriesModal({
             </div>
             <p className="text-xs mt-1" style={{ color: '#CBD5E1' }}>
               <span style={{ color: '#F8FAFC' }}>{campaign.name}</span>
-              <span className="ml-2" style={{ color: '#A78BFA' }}>· {period.toUpperCase()}</span>
+              <span className="ml-2" style={{ color: '#86EFAC' }}>· {period.toUpperCase()}</span>
             </p>
           </div>
           <button onClick={onClose} className="text-muted hover:text-coral transition-colors">
@@ -1001,21 +1001,21 @@ function TimeseriesModal({
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             <MiniKpi label="Gasto total"     value={BRL(totalSpend)}            color="#E4405F" />
             <MiniKpi label="Cliques totais"  value={NUM(totalClicks)}           color="#F59E0B" />
-            <MiniKpi label="Impressões"      value={NUM(totalImpressions)}      color="#A855F7" />
+            <MiniKpi label="Impressões"      value={NUM(totalImpressions)}      color="#22C55E" />
             <MiniKpi label="CTR médio"       value={`${avgCtr.toFixed(2)}%`}    color="#8B5CF6" />
           </div>
         )}
 
         {/* Toggle de métrica */}
         {!loading && !error && data.length > 0 && (
-          <div className="flex gap-1 rounded-xl p-1 w-fit" style={{ background: '#2A2440', border: '1px solid #3D3656' }}>
+          <div className="flex gap-1 rounded-xl p-1 w-fit" style={{ background: '#15463A', border: '1px solid #1F5949' }}>
             {(['spend', 'clicks', 'impressions', 'ctr'] as Metric[]).map(m => (
               <button
                 key={m}
                 onClick={() => setMetric(m)}
                 className="rounded-lg px-3 py-1.5 text-xs font-bold transition-all"
                 style={metric === m
-                  ? { background: METRIC_CONFIG[m].color, color: '#1E1B2E' }
+                  ? { background: METRIC_CONFIG[m].color, color: '#0E3A30' }
                   : { color: '#CBD5E1' }
                 }
               >
@@ -1028,7 +1028,7 @@ function TimeseriesModal({
         {/* Conteúdo principal */}
         {loading && (
           <div className="flex items-center justify-center py-20">
-            <Loader2 className="h-6 w-6 animate-spin" style={{ color: '#A855F7' }} />
+            <Loader2 className="h-6 w-6 animate-spin" style={{ color: '#22C55E' }} />
           </div>
         )}
 
@@ -1042,13 +1042,13 @@ function TimeseriesModal({
         )}
 
         {!loading && !error && data.length === 0 && (
-          <p className="py-12 text-center text-sm" style={{ color: '#A78BFA' }}>
+          <p className="py-12 text-center text-sm" style={{ color: '#86EFAC' }}>
             Sem dados no período. A campanha pode não ter tido entrega nesse intervalo.
           </p>
         )}
 
         {!loading && !error && data.length > 0 && (
-          <div className="rounded-xl border p-4" style={{ background: '#2A2440', borderColor: '#3D3656' }}>
+          <div className="rounded-xl border p-4" style={{ background: '#15463A', borderColor: '#1F5949' }}>
             <TimeseriesChart points={chartPoints} color={cfg.color} formatY={cfg.format} />
           </div>
         )}
@@ -1059,8 +1059,8 @@ function TimeseriesModal({
 
 function MiniKpi({ label, value, color }: { label: string; value: string; color: string }) {
   return (
-    <div className="rounded-lg border p-3" style={{ background: '#2A2440', borderColor: '#3D3656' }}>
-      <div className="text-[9px] font-semibold uppercase tracking-wider" style={{ color: '#A78BFA' }}>{label}</div>
+    <div className="rounded-lg border p-3" style={{ background: '#15463A', borderColor: '#1F5949' }}>
+      <div className="text-[9px] font-semibold uppercase tracking-wider" style={{ color: '#86EFAC' }}>{label}</div>
       <div className="text-sm font-bold mt-1 font-mono" style={{ color }}>{value}</div>
     </div>
   )
@@ -1107,7 +1107,7 @@ function TimeseriesChart({
       {yTicks.map(t => (
         <line key={t.y}
           x1={padL} y1={t.y} x2={width - padR} y2={t.y}
-          stroke="#3D3656" strokeWidth="1" strokeDasharray="2 3"
+          stroke="#1F5949" strokeWidth="1" strokeDasharray="2 3"
         />
       ))}
 
@@ -1123,7 +1123,7 @@ function TimeseriesChart({
       {yTicks.map(t => (
         <text key={`ylbl-${t.y}`}
           x={padL - 8} y={t.y + 3}
-          textAnchor="end" fontSize="10" fill="#A78BFA" fontFamily="ui-monospace,monospace"
+          textAnchor="end" fontSize="10" fill="#86EFAC" fontFamily="ui-monospace,monospace"
         >
           {formatY(t.value)}
         </text>
@@ -1132,7 +1132,7 @@ function TimeseriesChart({
       {points.map((p, i) => (i % xStep === 0 || i === points.length - 1) && (
         <text key={`xlbl-${i}`}
           x={xScale(i)} y={height - 15}
-          textAnchor="middle" fontSize="10" fill="#A78BFA" fontFamily="ui-monospace,monospace"
+          textAnchor="middle" fontSize="10" fill="#86EFAC" fontFamily="ui-monospace,monospace"
         >
           {fmtShortDate(p.date)}
         </text>
@@ -1143,7 +1143,7 @@ function TimeseriesChart({
 
 function ChannelRow({ label, value, color }: { label: string; value: number; color: string }) {
   return (
-    <div className="rounded-lg border p-3" style={{ background: '#2A2440', borderColor: '#3D3656' }}>
+    <div className="rounded-lg border p-3" style={{ background: '#15463A', borderColor: '#1F5949' }}>
       <div className="flex items-center gap-2 mb-1">
         <span className="h-2 w-2 rounded-full" style={{ background: color }} />
         <span className="text-[11px]" style={{ color: '#CBD5E1' }}>{label}</span>

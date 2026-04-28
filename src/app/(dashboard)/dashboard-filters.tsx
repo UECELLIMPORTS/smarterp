@@ -50,7 +50,7 @@ export function DashboardFilters() {
     <div className="flex flex-wrap items-center gap-3">
 
       {/* Period */}
-      <div className="flex rounded-xl border overflow-hidden" style={{ borderColor: '#3D3656' }}>
+      <div className="flex rounded-xl border overflow-hidden" style={{ borderColor: '#1F5949' }}>
         {PERIODS.map(({ id, label }) => (
           <button
             key={id}
@@ -61,10 +61,10 @@ export function DashboardFilters() {
             }}
             className="border-r px-4 py-2 text-xs font-medium transition-colors last:border-0"
             style={{
-              borderColor: '#3D3656',
+              borderColor: '#1F5949',
               ...(period === id
-                ? { background: '#A855F718', color: '#A855F7' }
-                : { color: '#A78BFA' }),
+                ? { background: '#22C55E18', color: '#22C55E' }
+                : { color: '#86EFAC' }),
             }}
           >
             {label}
@@ -80,7 +80,7 @@ export function DashboardFilters() {
             value={fromDate}
             onChange={e => setFromDate(e.target.value)}
             className="rounded-lg border px-2.5 py-1.5 text-xs text-text outline-none focus:border-accent/60"
-            style={{ background: '#2A2440', borderColor: '#3D3656' }}
+            style={{ background: '#15463A', borderColor: '#1F5949' }}
           />
           <span className="text-xs text-muted">até</span>
           <input
@@ -88,7 +88,7 @@ export function DashboardFilters() {
             value={toDate}
             onChange={e => setToDate(e.target.value)}
             className="rounded-lg border px-2.5 py-1.5 text-xs text-text outline-none focus:border-accent/60"
-            style={{ background: '#2A2440', borderColor: '#3D3656' }}
+            style={{ background: '#15463A', borderColor: '#1F5949' }}
           />
           <button
             onClick={() => {
@@ -98,7 +98,7 @@ export function DashboardFilters() {
             }}
             disabled={!fromDate || !toDate}
             className="rounded-lg px-3 py-1.5 text-xs font-semibold transition-opacity disabled:opacity-50"
-            style={{ background: '#A855F7', color: '#1E1B2E' }}
+            style={{ background: '#22C55E', color: '#0E3A30' }}
           >
             Aplicar
           </button>
@@ -106,17 +106,17 @@ export function DashboardFilters() {
       )}
 
       {/* Origin */}
-      <div className="flex rounded-xl border overflow-hidden" style={{ borderColor: '#3D3656' }}>
+      <div className="flex rounded-xl border overflow-hidden" style={{ borderColor: '#1F5949' }}>
         {ORIGINS.map(({ id, label }) => (
           <button
             key={id}
             onClick={() => navigate(period, id, osStatus, params.get('from') ?? undefined, params.get('to') ?? undefined)}
             className="border-r px-4 py-2 text-xs font-medium transition-colors last:border-0"
             style={{
-              borderColor: '#3D3656',
+              borderColor: '#1F5949',
               ...(origin === id
                 ? { background: '#10B98118', color: '#10B981' }
-                : { color: '#A78BFA' }),
+                : { color: '#86EFAC' }),
             }}
           >
             {label}
@@ -126,7 +126,7 @@ export function DashboardFilters() {
 
       {/* Status OS — só faz sentido quando origin inclui CheckSmart */}
       {origin !== 'erp' && (
-        <div className="flex rounded-xl border overflow-hidden" style={{ borderColor: '#3D3656' }}>
+        <div className="flex rounded-xl border overflow-hidden" style={{ borderColor: '#1F5949' }}>
           {OS_STATUSES.map(({ id, label, hint }) => (
             <button
               key={id}
@@ -134,10 +134,10 @@ export function DashboardFilters() {
               title={hint}
               className="border-r px-4 py-2 text-xs font-medium transition-colors last:border-0"
               style={{
-                borderColor: '#3D3656',
+                borderColor: '#1F5949',
                 ...(osStatus === id
                   ? { background: '#F59E0B18', color: '#F59E0B' }
-                  : { color: '#A78BFA' }),
+                  : { color: '#86EFAC' }),
               }}
             >
               {label}

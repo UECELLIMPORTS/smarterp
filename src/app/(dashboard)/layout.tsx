@@ -49,7 +49,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   }
 
   return (
-    <div className="min-h-screen" style={{ background: '#1E1B2E' }}>
+    <div className="min-h-screen" style={{ background: '#0E3A30' }}>
       <Sidebar hasFullAccess={fullAccess} allowedModules={permissions} isOwner={isOwner} />
       <Topbar
         userName={userName}

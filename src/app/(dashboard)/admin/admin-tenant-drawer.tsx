@@ -59,12 +59,12 @@ export function AdminTenantDrawer({ tenantId, onClose }: Props) {
       style={{ background: 'rgba(0,0,0,0.75)' }}
       onClick={onClose}>
       <div className="w-full max-w-2xl h-full overflow-y-auto border-l"
-        style={{ background: '#1E1B2E', borderColor: '#3D3656' }}
+        style={{ background: '#0E3A30', borderColor: '#1F5949' }}
         onClick={e => e.stopPropagation()}>
 
         {/* Header */}
         <div className="sticky top-0 z-10 flex items-start justify-between border-b p-5"
-          style={{ background: '#1E1B2E', borderColor: '#3D3656' }}>
+          style={{ background: '#0E3A30', borderColor: '#1F5949' }}>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 mb-1">
               <Eye className="h-3.5 w-3.5" style={{ color: '#F59E0B' }} />
@@ -75,20 +75,20 @@ export function AdminTenantDrawer({ tenantId, onClose }: Props) {
             <h2 className="text-xl font-bold truncate" style={{ color: '#F8FAFC' }}>
               {data?.name ?? '...'}
             </h2>
-            <p className="text-xs mt-0.5" style={{ color: '#A78BFA' }}>
+            <p className="text-xs mt-0.5" style={{ color: '#86EFAC' }}>
               ID: <code style={{ color: '#CBD5E1' }}>{tenantId.slice(0, 8)}…</code>
             </p>
           </div>
           <button type="button" onClick={onClose}
             className="flex h-9 w-9 items-center justify-center rounded-lg border transition-colors hover:bg-card"
-            style={{ borderColor: '#3D3656', color: '#CBD5E1' }}>
+            style={{ borderColor: '#1F5949', color: '#CBD5E1' }}>
             <X className="h-4 w-4" />
           </button>
         </div>
 
         {loading && (
           <div className="flex items-center justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#A855F7' }} />
+            <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#22C55E' }} />
           </div>
         )}
 
@@ -110,7 +110,7 @@ export function AdminTenantDrawer({ tenantId, onClose }: Props) {
                 })()}
                 hintColor={(() => {
                   const d = daysSince(data.ownerLastLogin)
-                  return d !== null && d > 30 ? '#EA580C' : '#A78BFA'
+                  return d !== null && d > 30 ? '#EA580C' : '#86EFAC'
                 })()} />
             </Section>
 
@@ -118,10 +118,10 @@ export function AdminTenantDrawer({ tenantId, onClose }: Props) {
             <Section title="Faturamento">
               <div className="grid grid-cols-3 gap-3">
                 <KPI label="Últimos 30d" value={fmtBRL(data.revenue30dCents)} color="#10B981" />
-                <KPI label="Últimos 90d" value={fmtBRL(data.revenue90dCents)} color="#A855F7" />
+                <KPI label="Últimos 90d" value={fmtBRL(data.revenue90dCents)} color="#22C55E" />
                 <KPI label="Histórico"   value={fmtBRL(data.revenueTotalCents)} color="#F59E0B" />
               </div>
-              <p className="text-[10px] mt-2" style={{ color: '#A78BFA' }}>
+              <p className="text-[10px] mt-2" style={{ color: '#86EFAC' }}>
                 Soma de vendas (POS + ERP) + ordens de serviço. Exclui canceladas.
               </p>
             </Section>
@@ -143,7 +143,7 @@ export function AdminTenantDrawer({ tenantId, onClose }: Props) {
                 })()}
                 hintColor={(() => {
                   const d = daysSince(data.lastSaleAt)
-                  return d !== null && d > 14 ? '#EA580C' : '#A78BFA'
+                  return d !== null && d > 14 ? '#EA580C' : '#86EFAC'
                 })()} />
             </Section>
 
@@ -225,11 +225,11 @@ function HealthSummary({ data }: { data: TenantDetails }) {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <h3 className="text-[11px] font-bold uppercase tracking-widest mb-2" style={{ color: '#A78BFA' }}>
+      <h3 className="text-[11px] font-bold uppercase tracking-widest mb-2" style={{ color: '#86EFAC' }}>
         {title}
       </h3>
       <div className="rounded-lg border divide-y"
-        style={{ background: '#2A2440', borderColor: '#3D3656' }}>
+        style={{ background: '#15463A', borderColor: '#1F5949' }}>
         {children}
       </div>
     </div>
@@ -242,14 +242,14 @@ function Row({ icon: Icon, label, value, valueColor, hint, hintColor }: {
 }) {
   return (
     <div className="flex items-center justify-between gap-3 px-4 py-2.5"
-      style={{ borderColor: '#3D3656' }}>
+      style={{ borderColor: '#1F5949' }}>
       <div className="flex items-center gap-2 min-w-0">
-        <Icon className="h-3.5 w-3.5 shrink-0" style={{ color: '#A78BFA' }} />
+        <Icon className="h-3.5 w-3.5 shrink-0" style={{ color: '#86EFAC' }} />
         <span className="text-xs truncate" style={{ color: '#CBD5E1' }}>{label}</span>
       </div>
       <div className="text-right shrink-0">
         <p className="text-sm font-bold" style={{ color: valueColor ?? '#F8FAFC' }}>{value}</p>
-        {hint && <p className="text-[10px]" style={{ color: hintColor ?? '#A78BFA' }}>{hint}</p>}
+        {hint && <p className="text-[10px]" style={{ color: hintColor ?? '#86EFAC' }}>{hint}</p>}
       </div>
     </div>
   )
@@ -258,8 +258,8 @@ function Row({ icon: Icon, label, value, valueColor, hint, hintColor }: {
 function KPI({ label, value, color }: { label: string; value: string; color: string }) {
   return (
     <div className="rounded-lg border p-3"
-      style={{ background: '#2A2440', borderColor: '#3D3656' }}>
-      <p className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: '#A78BFA' }}>
+      style={{ background: '#15463A', borderColor: '#1F5949' }}>
+      <p className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: '#86EFAC' }}>
         {label}
       </p>
       <p className="text-sm font-bold font-mono truncate" style={{ color }}>{value}</p>

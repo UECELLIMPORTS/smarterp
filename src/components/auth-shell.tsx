@@ -14,18 +14,18 @@ type Props = {
  */
 export function AuthShell({ children }: Props) {
   return (
-    <div className="min-h-screen flex" style={{ background: '#1E1B2E', color: '#F8FAFC' }}>
+    <div className="min-h-screen flex" style={{ background: '#0E3A30', color: '#F8FAFC' }}>
       {/* Left: form area */}
       <div className="flex-1 flex flex-col">
         {/* Top bar with logo */}
         <div className="px-6 sm:px-10 py-6">
           <Link href="/" className="inline-flex items-center gap-2.5 font-bold">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg"
-              style={{ background: 'linear-gradient(135deg, #A855F7, #EC4899)' }}>
+              style={{ background: 'linear-gradient(135deg, #22C55E, #22D3EE)' }}>
               <Zap className="h-5 w-5" style={{ color: 'white' }} />
             </div>
             <span style={{ color: '#F8FAFC' }}>
-              Gestão <span style={{ color: '#A855F7' }}>Inteligente</span>
+              Gestão <span style={{ color: '#22C55E' }}>Inteligente</span>
             </span>
           </Link>
         </div>
@@ -39,7 +39,7 @@ export function AuthShell({ children }: Props) {
 
         {/* Footer */}
         <div className="px-6 sm:px-10 py-6 text-xs flex items-center justify-between"
-          style={{ color: '#8B82A8' }}>
+          style={{ color: '#5EC2A0' }}>
           <span>© {new Date().getFullYear()} Gestão Inteligente</span>
           <div className="flex gap-4">
             <a href="https://gestaosmarterp.online/termos" className="hover:opacity-80 transition-opacity">Termos</a>
@@ -50,7 +50,7 @@ export function AuthShell({ children }: Props) {
 
       {/* Right: branding side — só em desktop */}
       <div className="hidden lg:flex flex-col flex-1 max-w-xl relative overflow-hidden"
-        style={{ background: 'linear-gradient(135deg, #A855F7 0%, #9333EA 50%, #C084FC 100%)' }}>
+        style={{ background: 'linear-gradient(135deg, #22C55E 0%, #16A34A 50%, #86EFAC 100%)' }}>
         {/* Pattern decorativo sutil */}
         <div className="pointer-events-none absolute inset-0 opacity-10"
           style={{
@@ -91,7 +91,7 @@ export function AuthShell({ children }: Props) {
           </p>
           <div className="flex items-center gap-2.5">
             <div className="flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold"
-              style={{ background: 'rgba(255,255,255,.95)', color: '#A855F7' }}>
+              style={{ background: 'rgba(255,255,255,.95)', color: '#22C55E' }}>
               FF
             </div>
             <div className="text-xs">

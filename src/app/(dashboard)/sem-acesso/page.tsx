@@ -10,7 +10,7 @@ export default async function SemAcessoPage() {
   return (
     <div className="max-w-2xl mx-auto mt-12">
       <div className="rounded-2xl border p-12 text-center"
-        style={{ background: '#1E1B2E', borderColor: 'rgba(255,77,109,.3)' }}>
+        style={{ background: '#0E3A30', borderColor: 'rgba(255,77,109,.3)' }}>
         <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border"
           style={{ background: 'rgba(255,77,109,.1)', borderColor: 'rgba(255,77,109,.3)' }}>
           <Lock className="h-7 w-7" style={{ color: '#EF4444' }} />

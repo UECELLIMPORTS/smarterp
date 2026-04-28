@@ -87,13 +87,13 @@ export function VendasTab({ data, paymentMethod, status, channel, buildUrl }: Pr
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KPI label="Vendas" value={String(data.totalCount)} icon={ShoppingCart} color="#F59E0B" />
         <KPI label="Faturado" value={BRL(data.totalRevenueCents)} icon={DollarSign} color="#10B981" />
-        <KPI label="Lucro" value={BRL(data.totalProfitCents)} icon={TrendingUp} color="#A855F7" />
+        <KPI label="Lucro" value={BRL(data.totalProfitCents)} icon={TrendingUp} color="#22C55E" />
         <KPI label="Ticket médio" value={BRL(data.avgTicketCents)} icon={Receipt} color="#CBD5E1" />
       </div>
 
       {/* Filtros */}
       <div className="rounded-xl border p-4 grid grid-cols-1 sm:grid-cols-3 gap-3"
-        style={{ background: '#1E1B2E', borderColor: '#3D3656' }}>
+        style={{ background: '#0E3A30', borderColor: '#1F5949' }}>
         <FilterSelect label="Forma de pagamento" value={paymentMethod}
           options={[
             { v: 'all',      label: 'Todas' },
@@ -125,16 +125,16 @@ export function VendasTab({ data, paymentMethod, status, channel, buildUrl }: Pr
 
       {/* Tabela */}
       <div className="rounded-xl border overflow-hidden"
-        style={{ background: '#1E1B2E', borderColor: '#3D3656' }}>
+        style={{ background: '#0E3A30', borderColor: '#1F5949' }}>
         <div className="flex items-center justify-between border-b px-4 py-3"
-          style={{ borderColor: '#3D3656' }}>
-          <p className="text-xs font-bold uppercase tracking-widest" style={{ color: '#A78BFA' }}>
+          style={{ borderColor: '#1F5949' }}>
+          <p className="text-xs font-bold uppercase tracking-widest" style={{ color: '#86EFAC' }}>
             {data.totalCount} {data.totalCount === 1 ? 'venda' : 'vendas'} no período
           </p>
           {data.rows.length > 0 && (
             <button onClick={exportCsv}
               className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-bold transition-colors hover:bg-white/5"
-              style={{ borderColor: '#3D3656', color: '#A855F7' }}>
+              style={{ borderColor: '#1F5949', color: '#22C55E' }}>
               <Download className="h-3 w-3" />
               CSV
             </button>
@@ -143,14 +143,14 @@ export function VendasTab({ data, paymentMethod, status, channel, buildUrl }: Pr
 
         {data.rows.length === 0 ? (
           <div className="py-16 text-center">
-            <p className="text-sm" style={{ color: '#A78BFA' }}>
+            <p className="text-sm" style={{ color: '#86EFAC' }}>
               Nenhuma venda encontrada com esses filtros.
             </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
-              <thead style={{ background: '#2A2440' }}>
+              <thead style={{ background: '#15463A' }}>
                 <tr>
                   <Th>Data</Th>
                   <Th>Cliente</Th>
@@ -166,9 +166,9 @@ export function VendasTab({ data, paymentMethod, status, channel, buildUrl }: Pr
               <tbody>
                 {data.rows.map(r => (
                   <tr key={r.id} className="border-t hover:bg-white/[0.02] transition-colors"
-                    style={{ borderColor: '#3D3656' }}>
+                    style={{ borderColor: '#1F5949' }}>
                     <Td>{fmtDate(r.createdAt)}</Td>
-                    <Td>{r.customerName ?? <span className="italic" style={{ color: '#A78BFA' }}>—</span>}</Td>
+                    <Td>{r.customerName ?? <span className="italic" style={{ color: '#86EFAC' }}>—</span>}</Td>
                     <Td>
                       <span className="font-mono text-[10px]" style={{ color: '#CBD5E1' }}>
                         {r.sellerEmail?.split('@')[0] ?? '—'}
@@ -179,8 +179,8 @@ export function VendasTab({ data, paymentMethod, status, channel, buildUrl }: Pr
                     <Td>
                       <span className="rounded px-1.5 py-0.5 text-[10px] font-bold"
                         style={{
-                          background: `${STATUS_COLOR[r.status] ?? '#A78BFA'}18`,
-                          color: STATUS_COLOR[r.status] ?? '#A78BFA',
+                          background: `${STATUS_COLOR[r.status] ?? '#86EFAC'}18`,
+                          color: STATUS_COLOR[r.status] ?? '#86EFAC',
                         }}>
                         {STATUS_LABEL[r.status] ?? r.status}
                       </span>
@@ -188,20 +188,20 @@ export function VendasTab({ data, paymentMethod, status, channel, buildUrl }: Pr
                     <Td align="right">{r.itemsCount}</Td>
                     <Td align="right" mono color="#F8FAFC" bold>{BRL(r.totalCents)}</Td>
                     <Td align="right" mono
-                      color={r.profitCents > 0 ? '#10B981' : r.profitCents < 0 ? '#EF4444' : '#A78BFA'}>
+                      color={r.profitCents > 0 ? '#10B981' : r.profitCents < 0 ? '#EF4444' : '#86EFAC'}>
                       {BRL(r.profitCents)}
                     </Td>
                   </tr>
                 ))}
               </tbody>
               {/* Totais */}
-              <tfoot style={{ background: '#2A2440' }}>
+              <tfoot style={{ background: '#15463A' }}>
                 <tr>
                   <Td colSpan={6}><span className="font-bold uppercase text-[10px] tracking-wider"
-                    style={{ color: '#A78BFA' }}>Totais (excl. canceladas)</span></Td>
+                    style={{ color: '#86EFAC' }}>Totais (excl. canceladas)</span></Td>
                   <Td align="right" bold>{data.rows.filter(r => r.status !== 'cancelled').reduce((s, r) => s + r.itemsCount, 0)}</Td>
                   <Td align="right" mono bold color="#10B981">{BRL(data.totalRevenueCents)}</Td>
-                  <Td align="right" mono bold color="#A855F7">{BRL(data.totalProfitCents)}</Td>
+                  <Td align="right" mono bold color="#22C55E">{BRL(data.totalProfitCents)}</Td>
                 </tr>
               </tfoot>
             </table>
@@ -219,12 +219,12 @@ function FilterSelect({ label, value, options, onChange }: {
 }) {
   return (
     <div>
-      <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: '#A78BFA' }}>
+      <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: '#86EFAC' }}>
         {label}
       </label>
       <select value={value} onChange={e => onChange(e.target.value)}
         className="w-full rounded-lg border px-3 py-2 text-xs outline-none transition-colors focus:border-accent/60"
-        style={{ background: '#2A2440', borderColor: '#3D3656', color: '#F8FAFC' }}>
+        style={{ background: '#15463A', borderColor: '#1F5949', color: '#F8FAFC' }}>
         {options.map(o => <option key={o.v} value={o.v}>{o.label}</option>)}
       </select>
     </div>
@@ -236,10 +236,10 @@ function KPI({ label, value, icon: Icon, color }: {
 }) {
   return (
     <div className="rounded-xl border p-4"
-      style={{ background: '#1E1B2E', borderColor: '#3D3656' }}>
+      style={{ background: '#0E3A30', borderColor: '#1F5949' }}>
       <div className="flex items-center gap-1.5 mb-1.5">
         <Icon className="h-3 w-3" style={{ color }} />
-        <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: '#A78BFA' }}>
+        <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: '#86EFAC' }}>
           {label}
         </p>
       </div>
@@ -251,7 +251,7 @@ function KPI({ label, value, icon: Icon, color }: {
 function Th({ children, align = 'left' }: { children: React.ReactNode; align?: 'left' | 'right' }) {
   return (
     <th className={`px-3 py-2 text-[10px] font-bold uppercase tracking-wider whitespace-nowrap ${align === 'right' ? 'text-right' : 'text-left'}`}
-      style={{ color: '#A78BFA' }}>
+      style={{ color: '#86EFAC' }}>
       {children}
     </th>
   )

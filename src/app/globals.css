@@ -1,59 +1,58 @@
 @import "tailwindcss";
 
 /* ============================================================================
- * SmartERP — Premium DARK roxo Latana-style
- * Background gradient profundo (purple-black) · DM Sans · Inter · Mono
- * Inspiração: Latana, Linear, Vercel
+ * SmartERP — Premium DARK verde gradient claro (Latana-style)
+ * Background gradient profundo emerald · DM Sans · Inter · Mono
  * ============================================================================ */
 
 :root {
-  /* Background — gradient roxo profundo aplicado via body */
-  --bg:        #0F0A1F;       /* fallback solid */
-  --bg-2:      #1A0B2E;
-  --bg-3:      #2D1B4E;
+  /* Background — gradient verde profundo aplicado via body */
+  --bg:        #062E26;
+  --bg-2:      #0A3D31;
+  --bg-3:      #0F4C3D;
 
   /* Surfaces (cards, sidebars) */
-  --surface:   #1E1B2E;       /* dark purple-slate */
-  --surface-2: #2A2440;       /* alt surfaces, table heads */
-  --card:      #1E1B2E;
+  --surface:   #0E3A30;       /* slate-emerald */
+  --surface-2: #15463A;       /* alt surfaces */
+  --card:      #0E3A30;
 
-  /* Borders — sutis com tint roxo */
-  --border:    #3D3656;
-  --border-2:  #4C4470;
+  /* Borders */
+  --border:    #1F5949;
+  --border-2:  #266F5C;
 
-  /* Text — branco/violet */
-  --text:      #F8FAFC;       /* off-white */
-  --text-2:    #E2D9F0;       /* levemente roxo */
-  --muted:     #A78BFA;       /* violet-300 — identidade Latana */
-  --muted-2:   #8B82A8;
+  /* Text — branco com tint emerald */
+  --text:      #F0FDF4;
+  --text-2:    #D1FAE5;
+  --muted:     #86EFAC;       /* emerald-300 — identidade */
+  --muted-2:   #5EC2A0;
 
-  /* Brand — Latana purple/violet com pink accent */
-  --accent:         #A855F7;       /* violet-500 — primary */
-  --accent-hover:   #9333EA;       /* violet-600 */
-  --accent-dark:    #7E22CE;       /* violet-700 */
-  --accent-light:   rgba(168, 85, 247, .15);
-  --accent-lighter: rgba(168, 85, 247, .08);
+  /* Brand — verde vibrante com cyan accent */
+  --accent:         #22C55E;       /* green-500 — primary */
+  --accent-hover:   #16A34A;       /* green-600 */
+  --accent-dark:    #15803D;       /* green-700 */
+  --accent-light:   rgba(34, 197, 94, .15);
+  --accent-lighter: rgba(34, 197, 94, .08);
 
-  --accent-pink:    #EC4899;       /* pink-500 — accent secundário */
-  --accent-fuchsia: #D946EF;
+  --accent-pink:    #22D3EE;       /* cyan-400 — secundário pra contraste */
+  --accent-fuchsia: #14B8A6;       /* teal-500 */
 
-  /* Semantic — versões mais claras pra fundo dark */
-  --green:        #34D399;    /* emerald-400 */
+  /* Semantic */
+  --green:        #34D399;
   --green-light:  rgba(52, 211, 153, .12);
-  --amber:        #FBBF24;    /* amber-400 */
+  --amber:        #FBBF24;
   --amber-light:  rgba(251, 191, 36, .12);
-  --coral:        #F87171;    /* red-400 */
+  --coral:        #F87171;
   --coral-light:  rgba(248, 113, 113, .12);
 
   /* Compat */
   --gold:   #FBBF24;
   --danger: #F87171;
 
-  /* Sombras dark — glow violet ao invés de drop shadow */
+  /* Sombras dark — glow verde */
   --shadow-sm: 0 1px 2px rgba(0,0,0,.4), 0 1px 3px rgba(0,0,0,.2);
-  --shadow:    0 4px 12px rgba(0,0,0,.35), 0 0 0 1px rgba(168,85,247,.05);
-  --shadow-md: 0 12px 24px rgba(0,0,0,.4), 0 0 0 1px rgba(168,85,247,.08);
-  --shadow-lg: 0 24px 48px rgba(0,0,0,.5), 0 0 60px rgba(168,85,247,.12);
+  --shadow:    0 4px 12px rgba(0,0,0,.35), 0 0 0 1px rgba(34, 197, 94, .05);
+  --shadow-md: 0 12px 24px rgba(0,0,0,.4), 0 0 0 1px rgba(34, 197, 94, .08);
+  --shadow-lg: 0 24px 48px rgba(0,0,0,.5), 0 0 60px rgba(34, 197, 94, .12);
 }
 
 @theme inline {
@@ -78,10 +77,10 @@ html, body { height: 100%; }
 
 body {
   background:
-    radial-gradient(ellipse at 0% 0%,   rgba(168, 85, 247, .15) 0px, transparent 40%),
-    radial-gradient(ellipse at 100% 0%, rgba(236, 72, 153, .10) 0px, transparent 50%),
-    radial-gradient(ellipse at 50% 100%, rgba(124, 58, 237, .12) 0px, transparent 50%),
-    linear-gradient(135deg, #0F0A1F 0%, #1A0B2E 50%, #2D1B4E 100%);
+    radial-gradient(ellipse at 0% 0%,   rgba(34, 197, 94, .18) 0px, transparent 40%),
+    radial-gradient(ellipse at 100% 0%, rgba(20, 184, 166, .14) 0px, transparent 50%),
+    radial-gradient(ellipse at 50% 100%, rgba(34, 211, 238, .12) 0px, transparent 50%),
+    linear-gradient(135deg, #062E26 0%, #0A3D31 50%, #0F4C3D 100%);
   background-attachment: fixed;
   color: var(--text);
   font-family: var(--font-inter), 'Inter', system-ui, -apple-system, sans-serif;
@@ -91,7 +90,6 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* Display headings — DM Sans */
 h1, h2, h3, h4, h5, h6,
 .display, .font-display {
   font-family: var(--font-display), 'DM Sans', system-ui, sans-serif;
@@ -99,12 +97,10 @@ h1, h2, h3, h4, h5, h6,
   font-feature-settings: 'ss01';
 }
 
-/* Mono */
 .font-mono, code, kbd {
   font-family: var(--font-mono), 'JetBrains Mono', ui-monospace, monospace;
 }
 
-/* Scrollbar dark */
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
@@ -132,21 +128,17 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover { opacity:
   to   { opacity: 1; transform: translateY(0)   scale(1);    }
 }
 
-/* Glassmorphism utility — cards com leve transparência sobre o gradient */
 .glass {
-  background: rgba(30, 27, 46, .7);
+  background: rgba(14, 58, 48, .7);
   backdrop-filter: blur(20px) saturate(140%);
   -webkit-backdrop-filter: blur(20px) saturate(140%);
   border: 1px solid var(--border);
 }
 
-/* ─────────────────────────────────────────────────────────────────────────
- * Auth — dark roxo Latana-style
- * ───────────────────────────────────────────────────────────────────────── */
-
+/* Auth — dark verde */
 .auth-input {
   width: 100%;
-  background: rgba(30, 27, 46, .6);
+  background: rgba(14, 58, 48, .6);
   border: 1px solid var(--border);
   border-radius: 0.625rem;
   padding: 0.7rem 1rem;
@@ -157,7 +149,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover { opacity:
 }
 .auth-input:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(168, 85, 247, .15);
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, .15);
 }
 .auth-input::placeholder { color: var(--muted-2); }
 
@@ -176,10 +168,10 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover { opacity:
   font-weight: 600;
   letter-spacing: -0.01em;
   transition: opacity .15s, box-shadow .15s, transform .1s;
-  box-shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(168, 85, 247, .35);
+  box-shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(34, 197, 94, .35);
 }
 .auth-btn-primary:hover:not(:disabled) {
-  box-shadow: 0 1px 3px rgba(0,0,0,.4), 0 12px 32px rgba(168, 85, 247, .45);
+  box-shadow: 0 1px 3px rgba(0,0,0,.4), 0 12px 32px rgba(34, 197, 94, .45);
   transform: translateY(-1px);
 }
 .auth-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -189,7 +181,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover { opacity:
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  background: rgba(30, 27, 46, .5);
+  background: rgba(14, 58, 48, .5);
   color: var(--text);
   border: 1px solid var(--border);
   border-radius: 0.625rem;
@@ -199,13 +191,9 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover { opacity:
   transition: background .15s, border-color .15s;
 }
 .auth-btn-secondary:hover {
-  background: rgba(30, 27, 46, .8);
+  background: rgba(14, 58, 48, .8);
   border-color: var(--border-2);
 }
-
-/* ─────────────────────────────────────────────────────────────────────────
- * App utilities
- * ───────────────────────────────────────────────────────────────────────── */
 
 .app-card {
   background: var(--surface);
@@ -216,7 +204,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover { opacity:
 }
 .app-card:hover {
   border-color: var(--accent);
-  box-shadow: 0 0 0 1px rgba(168, 85, 247, .2), 0 8px 24px rgba(168, 85, 247, .08);
+  box-shadow: 0 0 0 1px rgba(34, 197, 94, .2), 0 8px 24px rgba(34, 197, 94, .08);
 }
 
 .page-title {

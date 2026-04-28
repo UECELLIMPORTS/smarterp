@@ -200,17 +200,17 @@ export function SubscribeModal({ open, onClose, product, productLabel, hasCpfCnp
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
         style={{ background: 'rgba(0,0,0,0.7)' }} onClick={onClose}>
         <div className="rounded-2xl border w-full max-w-md max-h-[95vh] overflow-y-auto"
-          style={{ background: '#2A2440', borderColor: '#4C4470' }}
+          style={{ background: '#15463A', borderColor: '#266F5C' }}
           onClick={e => e.stopPropagation()}>
 
           {/* Header com gradient */}
           <div className="relative px-6 pt-5 pb-4 border-b"
             style={{
               background: 'linear-gradient(180deg, rgba(16,185,129,.1) 0%, transparent 100%)',
-              borderColor: '#3D3656',
+              borderColor: '#1F5949',
             }}>
             <button onClick={onClose} className="absolute top-4 right-4 p-1 rounded hover:bg-white/5"
-              style={{ color: '#A78BFA' }}><X className="h-5 w-5" /></button>
+              style={{ color: '#86EFAC' }}><X className="h-5 w-5" /></button>
             <div className="flex items-center gap-2 mb-1">
               <QrCode className="h-5 w-5" style={{ color: '#10B981' }} />
               <p className="text-[11px] font-bold uppercase tracking-widest" style={{ color: '#10B981' }}>
@@ -227,7 +227,7 @@ export function SubscribeModal({ open, onClose, product, productLabel, hasCpfCnp
             {/* Valor em destaque */}
             <div className="text-center rounded-xl border p-4"
               style={{ background: 'rgba(16,185,129,.06)', borderColor: 'rgba(16,185,129,.3)' }}>
-              <p className="text-[11px] font-bold uppercase tracking-widest" style={{ color: '#A78BFA' }}>
+              <p className="text-[11px] font-bold uppercase tracking-widest" style={{ color: '#86EFAC' }}>
                 Total a pagar
               </p>
               <p className="text-4xl font-bold font-mono mt-1" style={{ color: '#10B981' }}>
@@ -253,19 +253,19 @@ export function SubscribeModal({ open, onClose, product, productLabel, hasCpfCnp
             {/* Código copia-e-cola */}
             <div>
               <label className="text-[11px] font-bold uppercase tracking-widest mb-2 block"
-                style={{ color: '#A78BFA' }}>
+                style={{ color: '#86EFAC' }}>
                 Ou copie o código PIX (Pix Copia e Cola)
               </label>
               <button onClick={handleCopyPix}
                 className="w-full rounded-lg border p-3 flex items-center gap-2 transition-colors hover:bg-white/[0.02]"
                 style={{
-                  background: copiedPix ? 'rgba(16,185,129,.06)' : '#1E1B2E',
-                  borderColor: copiedPix ? '#10B981' : '#3D3656',
+                  background: copiedPix ? 'rgba(16,185,129,.06)' : '#0E3A30',
+                  borderColor: copiedPix ? '#10B981' : '#1F5949',
                 }}>
                 <code className="text-[10px] flex-1 truncate font-mono text-left"
                   style={{ color: '#F8FAFC' }}>{pixQr.payload}</code>
                 <span className="shrink-0 inline-flex items-center gap-1 text-xs font-semibold"
-                  style={{ color: copiedPix ? '#10B981' : '#A855F7' }}>
+                  style={{ color: copiedPix ? '#10B981' : '#22C55E' }}>
                   {copiedPix ? <><Check className="h-4 w-4" /> Copiado</> : <><Copy className="h-4 w-4" /> Copiar</>}
                 </span>
               </button>
@@ -273,10 +273,10 @@ export function SubscribeModal({ open, onClose, product, productLabel, hasCpfCnp
 
             {/* Aviso de ativação automática */}
             <div className="rounded-lg border p-3 flex items-start gap-2.5"
-              style={{ background: 'rgba(168,85,247,.06)', borderColor: 'rgba(168,85,247,.3)' }}>
-              <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" style={{ color: '#A855F7' }} />
+              style={{ background: 'rgba(34,197,94,.06)', borderColor: 'rgba(34,197,94,.3)' }}>
+              <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" style={{ color: '#22C55E' }} />
               <div>
-                <p className="text-xs font-bold" style={{ color: '#A855F7' }}>
+                <p className="text-xs font-bold" style={{ color: '#22C55E' }}>
                   Ativação em segundos
                 </p>
                 <p className="text-[11px] mt-0.5 leading-relaxed" style={{ color: '#F8FAFC' }}>
@@ -288,14 +288,14 @@ export function SubscribeModal({ open, onClose, product, productLabel, hasCpfCnp
 
             {/* Garantia também aqui */}
             <div className="flex items-center justify-center gap-2 text-[10px]"
-              style={{ color: '#A78BFA' }}>
+              style={{ color: '#86EFAC' }}>
               <Shield className="h-3.5 w-3.5" style={{ color: '#10B981' }} />
               Garantia de 7 dias · 100% reembolso se não gostar
             </div>
 
             <button onClick={onClose}
               className="w-full rounded-lg py-3 text-sm font-bold border transition-colors hover:bg-white/5"
-              style={{ borderColor: '#3D3656', color: '#F8FAFC' }}>
+              style={{ borderColor: '#1F5949', color: '#F8FAFC' }}>
               Fechar — pagar depois
             </button>
           </div>
@@ -310,19 +310,19 @@ export function SubscribeModal({ open, onClose, product, productLabel, hasCpfCnp
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
         style={{ background: 'rgba(0,0,0,0.7)' }} onClick={onClose}>
         <div className="rounded-2xl border w-full max-w-md overflow-hidden"
-          style={{ background: '#2A2440', borderColor: '#4C4470' }}
+          style={{ background: '#15463A', borderColor: '#266F5C' }}
           onClick={e => e.stopPropagation()}>
           {/* Hero celebratório com gradient */}
           <div className="px-8 py-10 text-center"
             style={{
-              background: 'linear-gradient(135deg, rgba(16,185,129,.15) 0%, rgba(168,85,247,.08) 100%)',
+              background: 'linear-gradient(135deg, rgba(16,185,129,.15) 0%, rgba(34,197,94,.08) 100%)',
             }}>
             <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full mb-4"
               style={{
-                background: 'linear-gradient(135deg, #10B981, #A855F7)',
+                background: 'linear-gradient(135deg, #10B981, #22C55E)',
                 boxShadow: '0 8px 32px rgba(16, 185, 129, 0.4)',
               }}>
-              <CheckCircle2 className="h-10 w-10" style={{ color: '#1E1B2E' }} strokeWidth={2.5} />
+              <CheckCircle2 className="h-10 w-10" style={{ color: '#0E3A30' }} strokeWidth={2.5} />
             </div>
             <p className="text-[11px] font-bold uppercase tracking-widest mb-1" style={{ color: '#10B981' }}>
               Pagamento aprovado
@@ -339,7 +339,7 @@ export function SubscribeModal({ open, onClose, product, productLabel, hasCpfCnp
             {/* Próximos passos */}
             <div>
               <p className="text-[11px] font-bold uppercase tracking-widest mb-3"
-                style={{ color: '#A78BFA' }}>Comece agora:</p>
+                style={{ color: '#86EFAC' }}>Comece agora:</p>
               <ul className="space-y-2.5">
                 <NextStep num={1} title="Cadastre seus produtos" desc="Importe ou cadastre o estoque inicial" />
                 <NextStep num={2} title="Cadastre seus clientes" desc="Ou deixe o app criar automaticamente nas vendas" />
@@ -359,8 +359,8 @@ export function SubscribeModal({ open, onClose, product, productLabel, hasCpfCnp
             <button onClick={() => { onClose(); window.location.href = '/obrigado' }}
               className="w-full rounded-xl py-3.5 text-sm font-bold transition-opacity hover:opacity-90"
               style={{
-                background: 'linear-gradient(135deg, #A855F7, #10B981)',
-                color: '#1E1B2E',
+                background: 'linear-gradient(135deg, #22C55E, #10B981)',
+                color: '#0E3A30',
                 boxShadow: '0 4px 16px rgba(16, 185, 129, 0.2)',
               }}>
               Começar a usar →
@@ -376,17 +376,17 @@ export function SubscribeModal({ open, onClose, product, productLabel, hasCpfCnp
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: 'rgba(0,0,0,0.7)' }} onClick={onClose}>
       <div className="rounded-2xl border w-full max-w-lg max-h-[95vh] overflow-y-auto"
-        style={{ background: '#2A2440', borderColor: '#4C4470' }}
+        style={{ background: '#15463A', borderColor: '#266F5C' }}
         onClick={e => e.stopPropagation()}>
 
         {/* Header com gradient + título */}
         <div className="relative px-6 pt-6 pb-4 border-b"
           style={{
-            background: 'linear-gradient(180deg, rgba(16,185,129,.08) 0%, rgba(168,85,247,.04) 50%, transparent 100%)',
-            borderColor: '#3D3656',
+            background: 'linear-gradient(180deg, rgba(16,185,129,.08) 0%, rgba(34,197,94,.04) 50%, transparent 100%)',
+            borderColor: '#1F5949',
           }}>
           <button onClick={onClose} className="absolute top-4 right-4 p-1 rounded hover:bg-white/5"
-            style={{ color: '#A78BFA' }}><X className="h-5 w-5" /></button>
+            style={{ color: '#86EFAC' }}><X className="h-5 w-5" /></button>
           <p className="text-[11px] font-bold uppercase tracking-widest mb-1"
             style={{ color: '#10B981' }}>Assinar agora</p>
           <h3 className="text-2xl font-bold" style={{ color: '#F8FAFC' }}>{productLabel}</h3>
@@ -397,9 +397,9 @@ export function SubscribeModal({ open, onClose, product, productLabel, hasCpfCnp
 
         {/* Trust strip — garantia + segurança */}
         <div className="grid grid-cols-3 gap-2 px-6 py-3 border-b"
-          style={{ background: '#1E1B2E', borderColor: '#3D3656' }}>
+          style={{ background: '#0E3A30', borderColor: '#1F5949' }}>
           <TrustBadge icon={ShieldCheck} label="Garantia 7 dias" sub="100% reembolso" color="#10B981" />
-          <TrustBadge icon={RefreshCcw} label="Sem fidelidade" sub="Cancele quando" color="#A855F7" />
+          <TrustBadge icon={RefreshCcw} label="Sem fidelidade" sub="Cancele quando" color="#22C55E" />
           <TrustBadge icon={Lock} label="Pagamento seguro" sub="Asaas + SSL" color="#F59E0B" />
         </div>
 
@@ -407,24 +407,24 @@ export function SubscribeModal({ open, onClose, product, productLabel, hasCpfCnp
           {/* Toggle Mensal/Anual */}
           <div>
             <label className="text-[11px] font-bold uppercase tracking-widest mb-2 block"
-              style={{ color: '#A78BFA' }}>Período da assinatura</label>
+              style={{ color: '#86EFAC' }}>Período da assinatura</label>
             <div className="grid grid-cols-2 gap-2 rounded-xl border p-1"
-              style={{ background: '#1E1B2E', borderColor: '#3D3656' }}>
+              style={{ background: '#0E3A30', borderColor: '#1F5949' }}>
               <button type="button" onClick={() => setBillingCycle('MONTHLY')}
                 className="rounded-lg py-2 text-sm font-bold transition-all"
                 style={billingCycle === 'MONTHLY'
-                  ? { background: 'linear-gradient(135deg, #A855F7, #10B981)', color: '#1E1B2E' }
+                  ? { background: 'linear-gradient(135deg, #22C55E, #10B981)', color: '#0E3A30' }
                   : { background: 'transparent', color: '#CBD5E1' }}>
                 Mensal
               </button>
               <button type="button" onClick={() => setBillingCycle('YEARLY')}
                 className="rounded-lg py-2 text-sm font-bold transition-all relative"
                 style={billingCycle === 'YEARLY'
-                  ? { background: 'linear-gradient(135deg, #10B981, #A855F7)', color: '#1E1B2E' }
+                  ? { background: 'linear-gradient(135deg, #10B981, #22C55E)', color: '#0E3A30' }
                   : { background: 'transparent', color: '#CBD5E1' }}>
                 Anual
                 <span className="absolute -top-2 -right-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full"
-                  style={{ background: '#F59E0B', color: '#1E1B2E' }}>
+                  style={{ background: '#F59E0B', color: '#0E3A30' }}>
                   -10%
                 </span>
               </button>
@@ -439,14 +439,14 @@ export function SubscribeModal({ open, onClose, product, productLabel, hasCpfCnp
           {/* Plano com features inline */}
           <div>
             <label className="text-[11px] font-bold uppercase tracking-widest mb-3 block"
-              style={{ color: '#A78BFA' }}>1. Escolha seu plano</label>
+              style={{ color: '#86EFAC' }}>1. Escolha seu plano</label>
             <div className="space-y-2.5">
               {plans.map((p, idx) => {
                 const planFeatures = featuresFor(product, p.plan)
                 const isPopular = plans.length === 3 && idx === 1
                 const isPremium = p.plan === 'premium' && plans.length === 3
                 const PlanIcon = p.plan === 'basico' ? Sparkles : p.plan === 'pro' ? Zap : Crown
-                const accentColor = p.plan === 'premium' ? '#10B981' : p.plan === 'pro' ? '#A855F7' : '#CBD5E1'
+                const accentColor = p.plan === 'premium' ? '#10B981' : p.plan === 'pro' ? '#22C55E' : '#CBD5E1'
                 const isSelected = plan === p.plan
                 // Cálculo do preço a exibir baseado no cycle
                 const yearlyPrice = billingCycle === 'YEARLY' ? getYearlyPrice(product, p.plan) : null
@@ -455,10 +455,10 @@ export function SubscribeModal({ open, onClose, product, productLabel, hasCpfCnp
                     className="w-full rounded-xl border-2 p-4 text-left transition-all relative"
                     style={isSelected
                       ? { background: `${accentColor}10`, borderColor: accentColor, transform: 'scale(1.01)' }
-                      : { background: '#1E1B2E', borderColor: '#3D3656' }}>
+                      : { background: '#0E3A30', borderColor: '#1F5949' }}>
                     {(isPopular || isPremium) && !isSelected && (
                       <span className="absolute -top-2 right-3 text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded"
-                        style={{ background: accentColor, color: '#1E1B2E' }}>
+                        style={{ background: accentColor, color: '#0E3A30' }}>
                         {isPremium ? '⭐ Melhor escolha' : 'Mais popular'}
                       </span>
                     )}
@@ -474,7 +474,7 @@ export function SubscribeModal({ open, onClose, product, productLabel, hasCpfCnp
                           <>
                             {/* Preço cheio riscado */}
                             <p className="text-xs line-through font-mono leading-tight"
-                              style={{ color: '#A78BFA' }}>
+                              style={{ color: '#86EFAC' }}>
                               {fmtBRL(yearlyPrice.fullCents)}
                             </p>
                             {/* Preço com desconto */}
@@ -482,7 +482,7 @@ export function SubscribeModal({ open, onClose, product, productLabel, hasCpfCnp
                               style={{ color: isSelected ? accentColor : '#F8FAFC' }}>
                               {fmtBRL(yearlyPrice.discountedCents)}
                             </p>
-                            <p className="text-[10px] mt-0.5" style={{ color: '#A78BFA' }}>/ano</p>
+                            <p className="text-[10px] mt-0.5" style={{ color: '#86EFAC' }}>/ano</p>
                             {paymentMethod === 'CREDIT_CARD' && (
                               <p className="text-[10px] font-mono" style={{ color: '#10B981' }}>
                                 ou {YEARLY_INSTALLMENTS}x {fmtBRL(yearlyPrice.installmentCents)}
@@ -495,7 +495,7 @@ export function SubscribeModal({ open, onClose, product, productLabel, hasCpfCnp
                               style={{ color: isSelected ? accentColor : '#F8FAFC' }}>
                               {fmtBRL(p.priceCents)}
                             </p>
-                            <p className="text-[10px] mt-0.5" style={{ color: '#A78BFA' }}>/mês</p>
+                            <p className="text-[10px] mt-0.5" style={{ color: '#86EFAC' }}>/mês</p>
                           </>
                         )}
                       </div>
@@ -510,7 +510,7 @@ export function SubscribeModal({ open, onClose, product, productLabel, hasCpfCnp
                           </li>
                         ))}
                         {planFeatures.length > 3 && (
-                          <li className="text-[10px] italic" style={{ color: '#A78BFA' }}>
+                          <li className="text-[10px] italic" style={{ color: '#86EFAC' }}>
                             + {planFeatures.length - 3} outros recursos
                           </li>
                         )}
@@ -525,25 +525,25 @@ export function SubscribeModal({ open, onClose, product, productLabel, hasCpfCnp
           {/* Pagamento */}
           <div>
             <label className="text-[11px] font-bold uppercase tracking-widest mb-2 block"
-              style={{ color: '#A78BFA' }}>Forma de pagamento</label>
+              style={{ color: '#86EFAC' }}>Forma de pagamento</label>
             <div className="grid grid-cols-2 gap-2">
               <button type="button" onClick={() => setPaymentMethod('PIX')}
                 className="flex flex-col items-center gap-1 rounded-lg border py-3 px-2 transition-colors"
                 style={paymentMethod === 'PIX'
                   ? { background: 'rgba(16,185,129,.08)', borderColor: '#10B981' }
-                  : { background: '#1E1B2E', borderColor: '#3D3656' }}>
+                  : { background: '#0E3A30', borderColor: '#1F5949' }}>
                 <QrCode className="h-5 w-5" style={{ color: paymentMethod === 'PIX' ? '#10B981' : '#CBD5E1' }} />
                 <span className="text-xs font-bold" style={{ color: '#F8FAFC' }}>PIX</span>
-                <span className="text-[10px]" style={{ color: '#A78BFA' }}>Recomendado</span>
+                <span className="text-[10px]" style={{ color: '#86EFAC' }}>Recomendado</span>
               </button>
               <button type="button" onClick={() => setPaymentMethod('CREDIT_CARD')}
                 className="flex flex-col items-center gap-1 rounded-lg border py-3 px-2 transition-colors"
                 style={paymentMethod === 'CREDIT_CARD'
-                  ? { background: 'rgba(168,85,247,.08)', borderColor: '#A855F7' }
-                  : { background: '#1E1B2E', borderColor: '#3D3656' }}>
-                <CreditCard className="h-5 w-5" style={{ color: paymentMethod === 'CREDIT_CARD' ? '#A855F7' : '#CBD5E1' }} />
+                  ? { background: 'rgba(34,197,94,.08)', borderColor: '#22C55E' }
+                  : { background: '#0E3A30', borderColor: '#1F5949' }}>
+                <CreditCard className="h-5 w-5" style={{ color: paymentMethod === 'CREDIT_CARD' ? '#22C55E' : '#CBD5E1' }} />
                 <span className="text-xs font-bold" style={{ color: '#F8FAFC' }}>Cartão</span>
-                <span className="text-[10px]" style={{ color: '#A78BFA' }}>Recorrente</span>
+                <span className="text-[10px]" style={{ color: '#86EFAC' }}>Recorrente</span>
               </button>
             </div>
           </div>
@@ -551,40 +551,40 @@ export function SubscribeModal({ open, onClose, product, productLabel, hasCpfCnp
           {/* Dados de contato — sempre obrigatórios */}
           <div>
             <label className="text-[11px] font-bold uppercase tracking-widest mb-2 block"
-              style={{ color: '#A78BFA' }}>
+              style={{ color: '#86EFAC' }}>
               Nome completo <span style={{ color: '#EF4444' }}>*</span>
             </label>
             <input type="text" value={fullName}
               onChange={e => setFullName(e.target.value)}
               placeholder="Seu nome ou razão social"
               className="w-full rounded-lg border px-3 py-2 text-sm"
-              style={{ background: '#1E1B2E', borderColor: '#3D3656', color: '#F8FAFC' }} />
+              style={{ background: '#0E3A30', borderColor: '#1F5949', color: '#F8FAFC' }} />
           </div>
 
           {/* CPF/CNPJ — só se tenant não tem ainda */}
           {!hasCpfCnpj && (
             <div>
               <label className="text-[11px] font-bold uppercase tracking-widest mb-2 block"
-                style={{ color: '#A78BFA' }}>
+                style={{ color: '#86EFAC' }}>
                 CPF ou CNPJ <span style={{ color: '#EF4444' }}>*</span>
               </label>
               <input type="text" value={cpfCnpj}
                 onChange={e => setCpfCnpj(formatCpfCnpj(e.target.value))}
                 placeholder="000.000.000-00"
                 className="w-full rounded-lg border px-3 py-2 text-sm font-mono"
-                style={{ background: '#1E1B2E', borderColor: '#3D3656', color: '#F8FAFC' }} />
+                style={{ background: '#0E3A30', borderColor: '#1F5949', color: '#F8FAFC' }} />
             </div>
           )}
 
           <div>
             <label className="text-[11px] font-bold uppercase tracking-widest mb-2 block"
-              style={{ color: '#A78BFA' }}>
+              style={{ color: '#86EFAC' }}>
               Celular com DDD <span style={{ color: '#EF4444' }}>*</span>
             </label>
             <input type="tel" value={phone} onChange={e => setPhone(e.target.value)}
               placeholder="(79) 99999-9999"
               className="w-full rounded-lg border px-3 py-2 text-sm font-mono"
-              style={{ background: '#1E1B2E', borderColor: '#3D3656', color: '#F8FAFC' }} />
+              style={{ background: '#0E3A30', borderColor: '#1F5949', color: '#F8FAFC' }} />
           </div>
 
           {/* Campos do cartão (só se CREDIT_CARD) */}
@@ -592,75 +592,75 @@ export function SubscribeModal({ open, onClose, product, productLabel, hasCpfCnp
             <>
               <div>
                 <label className="text-[11px] font-bold uppercase tracking-widest mb-2 block"
-                  style={{ color: '#A78BFA' }}>
+                  style={{ color: '#86EFAC' }}>
                   Número do cartão <span style={{ color: '#EF4444' }}>*</span>
                 </label>
                 <input type="text" inputMode="numeric" value={cardNumber}
                   onChange={e => setCardNumber(formatCardNumber(e.target.value))}
                   placeholder="0000 0000 0000 0000"
                   className="w-full rounded-lg border px-3 py-2 text-sm font-mono"
-                  style={{ background: '#1E1B2E', borderColor: '#3D3656', color: '#F8FAFC' }} />
+                  style={{ background: '#0E3A30', borderColor: '#1F5949', color: '#F8FAFC' }} />
               </div>
 
               <div>
                 <label className="text-[11px] font-bold uppercase tracking-widest mb-2 block"
-                  style={{ color: '#A78BFA' }}>
+                  style={{ color: '#86EFAC' }}>
                   Nome impresso <span style={{ color: '#EF4444' }}>*</span>
                 </label>
                 <input type="text" value={cardHolder}
                   onChange={e => setCardHolder(e.target.value.toUpperCase())}
                   placeholder="NOME COMO ESTÁ NO CARTÃO"
                   className="w-full rounded-lg border px-3 py-2 text-sm uppercase"
-                  style={{ background: '#1E1B2E', borderColor: '#3D3656', color: '#F8FAFC' }} />
+                  style={{ background: '#0E3A30', borderColor: '#1F5949', color: '#F8FAFC' }} />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-[11px] font-bold uppercase tracking-widest mb-2 block"
-                    style={{ color: '#A78BFA' }}>
+                    style={{ color: '#86EFAC' }}>
                     Validade <span style={{ color: '#EF4444' }}>*</span>
                   </label>
                   <input type="text" inputMode="numeric" value={cardExpiry}
                     onChange={e => setCardExpiry(formatExpiry(e.target.value))}
                     placeholder="MM/AA"
                     className="w-full rounded-lg border px-3 py-2 text-sm font-mono"
-                    style={{ background: '#1E1B2E', borderColor: '#3D3656', color: '#F8FAFC' }} />
+                    style={{ background: '#0E3A30', borderColor: '#1F5949', color: '#F8FAFC' }} />
                 </div>
                 <div>
                   <label className="text-[11px] font-bold uppercase tracking-widest mb-2 block"
-                    style={{ color: '#A78BFA' }}>
+                    style={{ color: '#86EFAC' }}>
                     CCV <span style={{ color: '#EF4444' }}>*</span>
                   </label>
                   <input type="text" inputMode="numeric" value={cardCcv}
                     onChange={e => setCardCcv(e.target.value.replace(/\D/g, '').slice(0, 4))}
                     placeholder="000"
                     className="w-full rounded-lg border px-3 py-2 text-sm font-mono"
-                    style={{ background: '#1E1B2E', borderColor: '#3D3656', color: '#F8FAFC' }} />
+                    style={{ background: '#0E3A30', borderColor: '#1F5949', color: '#F8FAFC' }} />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-[11px] font-bold uppercase tracking-widest mb-2 block"
-                    style={{ color: '#A78BFA' }}>
+                    style={{ color: '#86EFAC' }}>
                     CEP <span style={{ color: '#EF4444' }}>*</span>
                   </label>
                   <input type="text" inputMode="numeric" value={cep}
                     onChange={e => setCep(formatCep(e.target.value))}
                     placeholder="00000-000"
                     className="w-full rounded-lg border px-3 py-2 text-sm font-mono"
-                    style={{ background: '#1E1B2E', borderColor: '#3D3656', color: '#F8FAFC' }} />
+                    style={{ background: '#0E3A30', borderColor: '#1F5949', color: '#F8FAFC' }} />
                 </div>
                 <div>
                   <label className="text-[11px] font-bold uppercase tracking-widest mb-2 block"
-                    style={{ color: '#A78BFA' }}>
+                    style={{ color: '#86EFAC' }}>
                     Número <span style={{ color: '#EF4444' }}>*</span>
                   </label>
                   <input type="text" value={addressNumber}
                     onChange={e => setAddressNumber(e.target.value.slice(0, 10))}
                     placeholder="123"
                     className="w-full rounded-lg border px-3 py-2 text-sm"
-                    style={{ background: '#1E1B2E', borderColor: '#3D3656', color: '#F8FAFC' }} />
+                    style={{ background: '#0E3A30', borderColor: '#1F5949', color: '#F8FAFC' }} />
                 </div>
               </div>
             </>
@@ -691,7 +691,7 @@ export function SubscribeModal({ open, onClose, product, productLabel, hasCpfCnp
             const isInstallment = yearly && paymentMethod === 'CREDIT_CARD'
             return (
               <div className="rounded-xl border-2 p-4 space-y-2"
-                style={{ background: '#1E1B2E', borderColor: '#4C4470' }}>
+                style={{ background: '#0E3A30', borderColor: '#266F5C' }}>
                 <div className="flex justify-between items-baseline">
                   <span className="text-xs" style={{ color: '#CBD5E1' }}>Plano</span>
                   <span className="text-sm font-bold capitalize" style={{ color: '#F8FAFC' }}>
@@ -721,7 +721,7 @@ export function SubscribeModal({ open, onClose, product, productLabel, hasCpfCnp
                   </div>
                 )}
                 <div className="border-t pt-2 flex justify-between items-baseline"
-                  style={{ borderColor: '#3D3656' }}>
+                  style={{ borderColor: '#1F5949' }}>
                   <span className="text-sm font-bold" style={{ color: '#F8FAFC' }}>
                     Total {yearly ? 'do ano' : 'hoje'}
                   </span>
@@ -730,11 +730,11 @@ export function SubscribeModal({ open, onClose, product, productLabel, hasCpfCnp
                       {fmtBRL(totalCents)}
                     </span>
                     {isInstallment && (
-                      <span className="text-[11px] block" style={{ color: '#A855F7' }}>
+                      <span className="text-[11px] block" style={{ color: '#22C55E' }}>
                         {YEARLY_INSTALLMENTS}x {fmtBRL(yearly!.installmentCents)} no cartão
                       </span>
                     )}
-                    <span className="text-[10px] block" style={{ color: '#A78BFA' }}>
+                    <span className="text-[10px] block" style={{ color: '#86EFAC' }}>
                       {yearly
                         ? '· renovação automática em 1 ano (preço cheio)'
                         : '/mês · próxima cobrança em 30 dias'}
@@ -749,8 +749,8 @@ export function SubscribeModal({ open, onClose, product, productLabel, hasCpfCnp
           <button onClick={handleSubmit} disabled={loading}
             className="w-full inline-flex items-center justify-center gap-2 rounded-xl py-4 text-base font-bold transition-all hover:opacity-90 disabled:opacity-50 shadow-lg"
             style={{
-              background: 'linear-gradient(135deg, #A855F7, #10B981)',
-              color: '#1E1B2E',
+              background: 'linear-gradient(135deg, #22C55E, #10B981)',
+              color: '#0E3A30',
               boxShadow: '0 8px 24px rgba(16, 185, 129, 0.25)',
             }}>
             {loading ? (
@@ -764,18 +764,18 @@ export function SubscribeModal({ open, onClose, product, productLabel, hasCpfCnp
 
           {/* Linha de selos de segurança embaixo do CTA */}
           <div className="flex items-center justify-center gap-4 pt-1">
-            <span className="inline-flex items-center gap-1 text-[10px]" style={{ color: '#A78BFA' }}>
+            <span className="inline-flex items-center gap-1 text-[10px]" style={{ color: '#86EFAC' }}>
               <Lock className="h-3 w-3" /> SSL 256-bit
             </span>
-            <span className="inline-flex items-center gap-1 text-[10px]" style={{ color: '#A78BFA' }}>
+            <span className="inline-flex items-center gap-1 text-[10px]" style={{ color: '#86EFAC' }}>
               <ShieldCheck className="h-3 w-3" /> PCI-DSS
             </span>
-            <span className="inline-flex items-center gap-1 text-[10px]" style={{ color: '#A78BFA' }}>
+            <span className="inline-flex items-center gap-1 text-[10px]" style={{ color: '#86EFAC' }}>
               <Star className="h-3 w-3" /> Asaas
             </span>
           </div>
 
-          <p className="text-[10px] text-center leading-relaxed" style={{ color: '#A78BFA' }}>
+          <p className="text-[10px] text-center leading-relaxed" style={{ color: '#86EFAC' }}>
             Ao confirmar, você concorda com os <a href="https://smartgestao-site.vercel.app/termos" target="_blank" rel="noopener noreferrer" className="underline" style={{ color: '#CBD5E1' }}>Termos de Uso</a> e{' '}
             <a href="https://smartgestao-site.vercel.app/privacidade" target="_blank" rel="noopener noreferrer" className="underline" style={{ color: '#CBD5E1' }}>Política de Privacidade</a>.
             Pagamento processado com criptografia de ponta a ponta pelo Asaas.
@@ -794,7 +794,7 @@ function TrustBadge({ icon: Icon, label, sub, color }: {
     <div className="flex flex-col items-center text-center">
       <Icon className="h-4 w-4 mb-1" style={{ color }} />
       <p className="text-[10px] font-bold leading-tight" style={{ color: '#F8FAFC' }}>{label}</p>
-      <p className="text-[9px] leading-tight" style={{ color: '#A78BFA' }}>{sub}</p>
+      <p className="text-[9px] leading-tight" style={{ color: '#86EFAC' }}>{sub}</p>
     </div>
   )
 }
@@ -805,9 +805,9 @@ function NextStep({ num, title, desc }: { num: number; title: string; desc: stri
     <li className="flex items-start gap-3">
       <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold"
         style={{
-          background: 'rgba(168,85,247,.12)',
-          color: '#A855F7',
-          border: '1px solid rgba(168,85,247,.3)',
+          background: 'rgba(34,197,94,.12)',
+          color: '#22C55E',
+          border: '1px solid rgba(34,197,94,.3)',
         }}>
         {num}
       </div>

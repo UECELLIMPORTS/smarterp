@@ -196,17 +196,17 @@ export default async function MetaAdsPage({
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold" style={{ color: '#F8FAFC' }}>Meta Ads</h1>
-          <p className="mt-1 text-sm" style={{ color: '#A78BFA' }}>
+          <p className="mt-1 text-sm" style={{ color: '#86EFAC' }}>
             Dashboard de campanhas do Meta (Facebook + Instagram)
           </p>
         </div>
 
         <div
           className="rounded-2xl border p-10 text-center"
-          style={{ background: '#2A2440', borderColor: '#3D3656' }}
+          style={{ background: '#15463A', borderColor: '#1F5949' }}
         >
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl mb-4"
-            style={{ background: 'linear-gradient(135deg, #E4405F22, #1877F222)', border: '1px solid #3D3656' }}>
+            style={{ background: 'linear-gradient(135deg, #E4405F22, #1877F222)', border: '1px solid #1F5949' }}>
             <TrendingUp className="h-8 w-8" style={{ color: '#E4405F' }} />
           </div>
           <h2 className="text-lg font-bold" style={{ color: '#F8FAFC' }}>Configure o Meta Ads</h2>
@@ -216,12 +216,12 @@ export default async function MetaAdsPage({
           <Link
             href="/meta-ads/configuracoes"
             className="mt-6 inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-bold text-black transition-opacity hover:opacity-90"
-            style={{ background: 'linear-gradient(135deg, #A855F7, #10B981)' }}
+            style={{ background: 'linear-gradient(135deg, #22C55E, #10B981)' }}
           >
             <Settings className="h-4 w-4" />
             Configurar credenciais
           </Link>
-          <p className="mt-6 text-xs" style={{ color: '#A78BFA' }}>
+          <p className="mt-6 text-xs" style={{ color: '#86EFAC' }}>
             Leva ~15 minutos — a gente te guia passo a passo
           </p>
         </div>

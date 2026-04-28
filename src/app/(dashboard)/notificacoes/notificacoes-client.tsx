@@ -24,7 +24,7 @@ const ICONS: Record<NotificationType, { icon: React.ElementType; color: string }
   meta_ads_alert:          { icon: TrendingUp,    color: '#E4405F' },
   customer_at_risk:        { icon: Users,         color: '#EF4444' },
   os_pending:              { icon: Wrench,        color: '#F59E0B' },
-  team_invite_accepted:    { icon: MailCheck,     color: '#A855F7' },
+  team_invite_accepted:    { icon: MailCheck,     color: '#22C55E' },
   generic:                 { icon: Bell,          color: '#CBD5E1' },
 }
 
@@ -69,8 +69,8 @@ export function NotificacoesClient({ initialItems, initialUnread }: Props) {
   if (items.length === 0) {
     return (
       <div className="rounded-2xl border p-12 text-center"
-        style={{ background: '#1E1B2E', borderColor: '#3D3656' }}>
-        <Inbox className="h-12 w-12 mx-auto mb-3" style={{ color: '#A78BFA' }} />
+        style={{ background: '#0E3A30', borderColor: '#1F5949' }}>
+        <Inbox className="h-12 w-12 mx-auto mb-3" style={{ color: '#86EFAC' }} />
         <p className="text-sm font-bold" style={{ color: '#F8FAFC' }}>
           Você não tem notificações ainda
         </p>
@@ -89,7 +89,7 @@ export function NotificacoesClient({ initialItems, initialUnread }: Props) {
         <div className="flex items-center justify-end">
           <button onClick={handleMarkAllRead} disabled={busy}
             className="inline-flex items-center gap-1.5 text-xs font-semibold hover:underline disabled:opacity-50"
-            style={{ color: '#A855F7' }}>
+            style={{ color: '#22C55E' }}>
             <Check className="h-3.5 w-3.5" /> Marcar todas como lidas
           </button>
         </div>
@@ -97,15 +97,15 @@ export function NotificacoesClient({ initialItems, initialUnread }: Props) {
 
       {/* Lista */}
       <ul className="rounded-2xl border overflow-hidden"
-        style={{ background: '#1E1B2E', borderColor: '#3D3656' }}>
+        style={{ background: '#0E3A30', borderColor: '#1F5949' }}>
         {items.map(n => {
           const { icon: Icon, color } = ICONS[n.type] ?? ICONS.generic
           const isUnread = !n.readAt
           return (
-            <li key={n.id} className="border-b last:border-b-0" style={{ borderColor: '#3D3656' }}>
+            <li key={n.id} className="border-b last:border-b-0" style={{ borderColor: '#1F5949' }}>
               <button onClick={() => handleClick(n)}
                 className="w-full flex items-start gap-3 px-5 py-4 text-left transition-colors hover:bg-white/[0.03]"
-                style={{ background: isUnread ? 'rgba(168,85,247,.04)' : undefined }}>
+                style={{ background: isUnread ? 'rgba(34,197,94,.04)' : undefined }}>
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg shrink-0 border"
                   style={{ background: `${color}15`, borderColor: `${color}40` }}>
                   <Icon className="h-4 w-4" style={{ color }} />
@@ -116,13 +116,13 @@ export function NotificacoesClient({ initialItems, initialUnread }: Props) {
                       {n.title}
                     </p>
                     {isUnread && (
-                      <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: '#A855F7' }} />
+                      <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: '#22C55E' }} />
                     )}
                   </div>
                   {n.body && (
                     <p className="text-xs mt-1" style={{ color: '#CBD5E1' }}>{n.body}</p>
                   )}
-                  <p className="text-[10px] mt-1.5" style={{ color: '#A78BFA' }}>
+                  <p className="text-[10px] mt-1.5" style={{ color: '#86EFAC' }}>
                     {timeAgo(n.createdAt)}
                   </p>
                 </div>

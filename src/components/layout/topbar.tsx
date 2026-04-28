@@ -28,7 +28,7 @@ const BADGE_STYLES: Record<PlanBadge['kind'], { bg: string; color: string; borde
   pending:  { bg: 'rgba(255,77,109,.12)',  color: '#EF4444', border: 'rgba(255,77,109,.3)', icon: AlertTriangle },
   late:     { bg: 'rgba(255,77,109,.12)',  color: '#EF4444', border: 'rgba(255,77,109,.4)', icon: AlertTriangle },
   basico:   { bg: 'rgba(138,168,200,.12)', color: '#CBD5E1', border: 'rgba(138,168,200,.3)', icon: Sparkles },
-  pro:      { bg: 'rgba(168,85,247,.12)',   color: '#A855F7', border: 'rgba(168,85,247,.3)', icon: Zap },
+  pro:      { bg: 'rgba(34,197,94,.12)',   color: '#22C55E', border: 'rgba(34,197,94,.3)', icon: Zap },
   premium:  { bg: 'rgba(16,185,129,.12)',   color: '#10B981', border: 'rgba(16,185,129,.4)', icon: Crown },
 }
 
@@ -56,7 +56,7 @@ export function Topbar({
       // z-50 (acima da sidebar z-40) pra que dropdowns filhos (notifs, badge plano)
       // possam sobrepor a sidebar quando expandem pra esquerda.
       className="fixed right-0 top-0 z-50 flex h-16 items-center justify-between border-b px-4 sm:px-6 left-0 lg:left-60"
-      style={{ background: '#1E1B2E', borderColor: '#3D3656' }}
+      style={{ background: '#0E3A30', borderColor: '#1F5949' }}
     >
       {/* Slot esquerdo: hamburger no mobile */}
       <MobileNav hasFullAccess={hasFullAccess} allowedModules={allowedModules} isOwner={isOwner} />
@@ -83,13 +83,13 @@ export function Topbar({
         <div className="flex items-center gap-2.5">
           <div
             className="flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold"
-            style={{ background: 'linear-gradient(135deg, #A855F7, #EC4899)', color: '#1E1B2E' }}
+            style={{ background: 'linear-gradient(135deg, #22C55E, #22D3EE)', color: '#0E3A30' }}
           >
             {initials}
           </div>
           <div className="hidden sm:block">
             <p className="text-sm font-medium text-text leading-none">{userName || userEmail}</p>
-            <p className="mt-0.5 text-xs leading-none" style={{ color: '#A78BFA' }}>{userEmail}</p>
+            <p className="mt-0.5 text-xs leading-none" style={{ color: '#86EFAC' }}>{userEmail}</p>
           </div>
         </div>
 
@@ -98,7 +98,7 @@ export function Topbar({
           onClick={handleSignOut}
           className="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium
             transition-colors hover:bg-card"
-          style={{ borderColor: '#3D3656', color: '#A78BFA' }}
+          style={{ borderColor: '#1F5949', color: '#86EFAC' }}
         >
           <LogOut className="h-3.5 w-3.5" />
           Sair

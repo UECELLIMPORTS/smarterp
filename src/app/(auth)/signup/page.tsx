@@ -51,7 +51,7 @@ export default function SignupPage() {
         <h1 className="text-2xl font-bold tracking-tight" style={{ color: '#F8FAFC' }}>
           Comece agora — 7 dias grátis
         </h1>
-        <p className="mt-1 text-sm" style={{ color: '#A78BFA' }}>
+        <p className="mt-1 text-sm" style={{ color: '#86EFAC' }}>
           Sem cartão de crédito. Cancele quando quiser.
         </p>
       </div>
@@ -95,7 +95,7 @@ export default function SignupPage() {
             <button type="button" onClick={() => setShowPass(v => !v)}
               className="absolute right-3 top-1/2 -translate-y-1/2"
               tabIndex={-1} aria-label="Mostrar/esconder senha"
-              style={{ color: '#8B82A8' }}>
+              style={{ color: '#5EC2A0' }}>
               {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
           </div>
@@ -115,22 +115,22 @@ export default function SignupPage() {
         </button>
       </form>
 
-      <p className="mt-4 text-center text-[11px]" style={{ color: '#8B82A8' }}>
+      <p className="mt-4 text-center text-[11px]" style={{ color: '#5EC2A0' }}>
         Ao criar a conta você concorda com nossos{' '}
         <a href="https://gestaosmarterp.online/termos"
           target="_blank" rel="noopener noreferrer"
           className="underline transition-opacity hover:opacity-80"
-          style={{ color: '#A855F7' }}>Termos de Uso</a>
+          style={{ color: '#22C55E' }}>Termos de Uso</a>
         {' '}e{' '}
         <a href="https://gestaosmarterp.online/privacidade"
           target="_blank" rel="noopener noreferrer"
           className="underline transition-opacity hover:opacity-80"
-          style={{ color: '#A855F7' }}>Política de Privacidade</a>.
+          style={{ color: '#22C55E' }}>Política de Privacidade</a>.
       </p>
 
-      <p className="mt-8 text-center text-sm" style={{ color: '#A78BFA' }}>
+      <p className="mt-8 text-center text-sm" style={{ color: '#86EFAC' }}>
         Já tem conta?{' '}
-        <Link href="/login" className="font-semibold hover:underline" style={{ color: '#A855F7' }}>
+        <Link href="/login" className="font-semibold hover:underline" style={{ color: '#22C55E' }}>
           Fazer login
         </Link>
       </p>
@@ -141,7 +141,7 @@ export default function SignupPage() {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
-      <label className="text-xs font-medium uppercase tracking-wider" style={{ color: '#A78BFA' }}>
+      <label className="text-xs font-medium uppercase tracking-wider" style={{ color: '#86EFAC' }}>
         {label}
       </label>
       {children}

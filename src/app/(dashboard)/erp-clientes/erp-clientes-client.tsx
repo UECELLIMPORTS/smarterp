@@ -33,12 +33,12 @@ function DonutChart({ recShare, novShare }: { recShare: number; novShare: number
         }} />
         <div
           className="absolute flex flex-col items-center justify-center"
-          style={{ width: 112, height: 112, borderRadius: '50%', background: '#2A2440' }}
+          style={{ width: 112, height: 112, borderRadius: '50%', background: '#15463A' }}
         >
           <span className="text-xl font-bold" style={{ color: '#F8FAFC', fontFamily: 'ui-monospace,monospace' }}>
             {recShare}%
           </span>
-          <span className="text-[10px]" style={{ color: '#A78BFA', marginTop: 2 }}>Recorrentes</span>
+          <span className="text-[10px]" style={{ color: '#86EFAC', marginTop: 2 }}>Recorrentes</span>
         </div>
       </div>
       <div className="flex gap-6">
@@ -66,18 +66,18 @@ function BarChart({ months }: { months: MonthPoint[] }) {
   return (
     <div className="space-y-3">
       <div className="flex justify-end">
-        <div className="flex gap-1 rounded-lg p-1" style={{ background: '#1E1B2E', border: '1px solid #3D3656' }}>
+        <div className="flex gap-1 rounded-lg p-1" style={{ background: '#0E3A30', border: '1px solid #1F5949' }}>
           <button
             onClick={() => setMetric('fatur')}
             className="rounded px-3 py-1 text-[11px] font-bold transition-all"
-            style={metric === 'fatur' ? { background: '#3D3656', color: '#F8FAFC' } : { color: '#A78BFA' }}
+            style={metric === 'fatur' ? { background: '#1F5949', color: '#F8FAFC' } : { color: '#86EFAC' }}
           >
             Faturamento
           </button>
           <button
             onClick={() => setMetric('lucro')}
             className="rounded px-3 py-1 text-[11px] font-bold transition-all"
-            style={metric === 'lucro' ? { background: '#3D3656', color: '#10B981' } : { color: '#A78BFA' }}
+            style={metric === 'lucro' ? { background: '#1F5949', color: '#10B981' } : { color: '#86EFAC' }}
           >
             Lucro
           </button>
@@ -103,7 +103,7 @@ function BarChart({ months }: { months: MonthPoint[] }) {
                   title={`Novos (${metric}): ${BRL(novVal)}`}
                 />
               </div>
-              <span className="text-[10px] capitalize" style={{ color: '#A78BFA' }}>{m.label}</span>
+              <span className="text-[10px] capitalize" style={{ color: '#86EFAC' }}>{m.label}</span>
             </div>
           )
         })}
@@ -126,7 +126,7 @@ function ClientCard({
   return (
     <div
       className="rounded-2xl border p-6 relative overflow-hidden"
-      style={{ background: '#2A2440', borderColor: '#3D3656' }}
+      style={{ background: '#15463A', borderColor: '#1F5949' }}
     >
       <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full opacity-30"
         style={{ background: `radial-gradient(circle, ${glowColor}, transparent)` }}
@@ -136,7 +136,7 @@ function ClientCard({
           style={{ background: `${color}20` }}>
           <Icon className="h-4 w-4" style={{ color }} />
         </div>
-        <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#A78BFA' }}>
+        <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#86EFAC' }}>
           {label}
         </span>
       </div>
@@ -146,7 +146,7 @@ function ClientCard({
         <span className="text-3xl font-bold tracking-tight" style={{ color, fontFamily: 'ui-monospace,monospace' }}>
           {BRL(totalCents)}
         </span>
-        <span className="ml-2 text-xs" style={{ color: '#A78BFA' }}>{transactions} pedidos</span>
+        <span className="ml-2 text-xs" style={{ color: '#86EFAC' }}>{transactions} pedidos</span>
       </div>
 
       {/* Lucro + margem */}
@@ -154,7 +154,7 @@ function ClientCard({
         <span className="text-lg font-bold" style={{ color: '#10B981', fontFamily: 'ui-monospace,monospace' }}>
           {BRL(profitCents)}
         </span>
-        <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#A78BFA' }}>
+        <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#86EFAC' }}>
           Lucro · margem {marginPercent}%
         </span>
       </div>
@@ -168,12 +168,12 @@ function ClientCard({
           <div
             key={l}
             className="flex flex-col items-center rounded-lg py-2.5"
-            style={{ background: '#1E1B2E', border: '1px solid #3D3656' }}
+            style={{ background: '#0E3A30', border: '1px solid #1F5949' }}
           >
             <span className="text-sm font-bold" style={{ color, fontFamily: 'ui-monospace,monospace' }}>
               {value}
             </span>
-            <span className="mt-1 text-[9px] font-semibold uppercase tracking-wider" style={{ color: '#A78BFA' }}>
+            <span className="mt-1 text-[9px] font-semibold uppercase tracking-wider" style={{ color: '#86EFAC' }}>
               {l}
             </span>
           </div>
@@ -190,8 +190,8 @@ function SourcesSection({ sources }: { sources: DashboardData['sources'] }) {
     {
       label: 'SmartERP — POS',
       icon: ShoppingCart,
-      color: '#A855F7',
-      glow: 'rgba(168,85,247,.4)',
+      color: '#22C55E',
+      glow: 'rgba(34,197,94,.4)',
       totalCents: sources.smarterp.totalCents,
       profitCents: sources.smarterp.profitCents,
       transactions: sources.smarterp.transactions,
@@ -219,7 +219,7 @@ function SourcesSection({ sources }: { sources: DashboardData['sources'] }) {
           <div
             key={label}
             className="rounded-2xl border p-6 relative overflow-hidden"
-            style={{ background: '#2A2440', borderColor: '#3D3656' }}
+            style={{ background: '#15463A', borderColor: '#1F5949' }}
           >
             <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full opacity-20"
               style={{ background: `radial-gradient(circle, ${glow}, transparent)` }}
@@ -229,7 +229,7 @@ function SourcesSection({ sources }: { sources: DashboardData['sources'] }) {
                 style={{ background: `${color}20` }}>
                 <Icon className="h-4 w-4" style={{ color }} />
               </div>
-              <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#A78BFA' }}>
+              <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#86EFAC' }}>
                 {label}
               </span>
             </div>
@@ -239,7 +239,7 @@ function SourcesSection({ sources }: { sources: DashboardData['sources'] }) {
               <span className="text-3xl font-bold tracking-tight" style={{ color, fontFamily: 'ui-monospace,monospace' }}>
                 {BRL(totalCents)}
               </span>
-              <p className="text-[10px] font-semibold uppercase tracking-wider mt-0.5" style={{ color: '#A78BFA' }}>
+              <p className="text-[10px] font-semibold uppercase tracking-wider mt-0.5" style={{ color: '#86EFAC' }}>
                 Faturamento
               </p>
             </div>
@@ -249,21 +249,21 @@ function SourcesSection({ sources }: { sources: DashboardData['sources'] }) {
               <span className="text-lg font-bold" style={{ color: '#10B981', fontFamily: 'ui-monospace,monospace' }}>
                 {BRL(profitCents)}
               </span>
-              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#A78BFA' }}>
+              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#86EFAC' }}>
                 Lucro · margem {marginPct}%
               </span>
             </div>
 
             <div className="flex gap-3">
               <div className="flex flex-col items-center flex-1 rounded-lg py-2.5"
-                style={{ background: '#1E1B2E', border: '1px solid #3D3656' }}>
+                style={{ background: '#0E3A30', border: '1px solid #1F5949' }}>
                 <span className="text-sm font-bold" style={{ color, fontFamily: 'ui-monospace,monospace' }}>{transactions}</span>
-                <span className="mt-1 text-[9px] font-semibold uppercase tracking-wider" style={{ color: '#A78BFA' }}>{sub}</span>
+                <span className="mt-1 text-[9px] font-semibold uppercase tracking-wider" style={{ color: '#86EFAC' }}>{sub}</span>
               </div>
               <div className="flex flex-col items-center flex-1 rounded-lg py-2.5"
-                style={{ background: '#1E1B2E', border: '1px solid #3D3656' }}>
+                style={{ background: '#0E3A30', border: '1px solid #1F5949' }}>
                 <span className="text-sm font-bold" style={{ color, fontFamily: 'ui-monospace,monospace' }}>{customers}</span>
-                <span className="mt-1 text-[9px] font-semibold uppercase tracking-wider" style={{ color: '#A78BFA' }}>clientes únicos</span>
+                <span className="mt-1 text-[9px] font-semibold uppercase tracking-wider" style={{ color: '#86EFAC' }}>clientes únicos</span>
               </div>
             </div>
           </div>
@@ -273,7 +273,7 @@ function SourcesSection({ sources }: { sources: DashboardData['sources'] }) {
       {/* Overlap card */}
       <div
         className="rounded-2xl border p-6 relative overflow-hidden flex flex-col items-center justify-center text-center"
-        style={{ background: '#2A2440', borderColor: '#3D3656' }}
+        style={{ background: '#15463A', borderColor: '#1F5949' }}
       >
         <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full opacity-20"
           style={{ background: 'radial-gradient(circle, rgba(16,185,129,.4), transparent)' }}
@@ -282,13 +282,13 @@ function SourcesSection({ sources }: { sources: DashboardData['sources'] }) {
           style={{ background: 'rgba(16,185,129,.15)' }}>
           <Link2 className="h-5 w-5" style={{ color: '#10B981' }} />
         </div>
-        <span className="text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: '#A78BFA' }}>
+        <span className="text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: '#86EFAC' }}>
           Clientes em Ambos
         </span>
         <span className="text-5xl font-bold" style={{ color: '#10B981', fontFamily: 'ui-monospace,monospace' }}>
           {sources.overlap}
         </span>
-        <p className="mt-2 text-xs" style={{ color: '#A78BFA' }}>
+        <p className="mt-2 text-xs" style={{ color: '#86EFAC' }}>
           usaram SmartERP e CheckSmart no período
         </p>
       </div>
@@ -320,15 +320,15 @@ function RfmSection({ rfmSegments }: { rfmSegments: DashboardData['rfmSegments']
       key: 'novosPromissores' as const,
       label: 'Promissores',
       desc: 'Compraram recentemente, pouco frequentes',
-      color: '#A855F7',
-      bg: 'rgba(168,85,247,.12)',
+      color: '#22C55E',
+      bg: 'rgba(34,197,94,.12)',
       icon: '✨',
     },
     {
       key: 'dormentes' as const,
       label: 'Dormentes',
       desc: 'Inativos com baixo histórico',
-      color: '#A78BFA',
+      color: '#86EFAC',
       bg: 'rgba(90,122,154,.12)',
       icon: '💤',
     },
@@ -345,7 +345,7 @@ function RfmSection({ rfmSegments }: { rfmSegments: DashboardData['rfmSegments']
           <div
             key={key}
             className="rounded-2xl border p-5 flex flex-col"
-            style={{ background: '#2A2440', borderColor: '#3D3656' }}
+            style={{ background: '#15463A', borderColor: '#1F5949' }}
           >
             <div className="flex items-center justify-between mb-3">
               <span className="text-lg">{icon}</span>
@@ -360,9 +360,9 @@ function RfmSection({ rfmSegments }: { rfmSegments: DashboardData['rfmSegments']
               {count}
             </span>
             <span className="text-xs font-bold" style={{ color: '#F8FAFC' }}>{label}</span>
-            <span className="mt-1 text-[10px]" style={{ color: '#A78BFA' }}>{desc}</span>
+            <span className="mt-1 text-[10px]" style={{ color: '#86EFAC' }}>{desc}</span>
             {/* Progress bar */}
-            <div className="mt-3 h-1 rounded-full" style={{ background: '#3D3656' }}>
+            <div className="mt-3 h-1 rounded-full" style={{ background: '#1F5949' }}>
               <div
                 className="h-1 rounded-full transition-all duration-500"
                 style={{ width: `${pct}%`, background: color }}
@@ -391,17 +391,17 @@ function WeekdayHeatmap({ days }: { days: WeekdayPoint[] }) {
   const hasAny = days.some(d => valueOf(d) > 0)
 
   const SOURCE_OPTS: { value: SourceFilter; label: string; color: string }[] = [
-    { value: 'total',      label: 'Ambos',      color: '#A855F7' },
+    { value: 'total',      label: 'Ambos',      color: '#22C55E' },
     { value: 'smarterp',   label: 'SmartERP',   color: '#10B981' },
     { value: 'checksmart', label: 'CheckSmart', color: '#8B5CF6' },
   ]
-  const activeColor = SOURCE_OPTS.find(o => o.value === source)?.color ?? '#A855F7'
+  const activeColor = SOURCE_OPTS.find(o => o.value === source)?.color ?? '#22C55E'
 
   return (
     <div className="space-y-4">
       {/* Filtros */}
       <div className="flex flex-wrap items-center gap-3">
-        <div className="flex gap-1 rounded-lg p-1" style={{ background: '#1E1B2E', border: '1px solid #3D3656' }}>
+        <div className="flex gap-1 rounded-lg p-1" style={{ background: '#0E3A30', border: '1px solid #1F5949' }}>
           {SOURCE_OPTS.map(opt => (
             <button
               key={opt.value}
@@ -409,20 +409,20 @@ function WeekdayHeatmap({ days }: { days: WeekdayPoint[] }) {
               className="rounded px-3 py-1 text-[11px] font-bold transition-all"
               style={source === opt.value
                 ? { background: opt.color, color: '#000' }
-                : { color: '#A78BFA' }
+                : { color: '#86EFAC' }
               }
             >
               {opt.label}
             </button>
           ))}
         </div>
-        <div className="flex gap-1 rounded-lg p-1" style={{ background: '#1E1B2E', border: '1px solid #3D3656' }}>
+        <div className="flex gap-1 rounded-lg p-1" style={{ background: '#0E3A30', border: '1px solid #1F5949' }}>
           <button
             onClick={() => setMetric('totalCents')}
             className="rounded px-3 py-1 text-[11px] font-bold transition-all"
             style={metric === 'totalCents'
-              ? { background: '#3D3656', color: '#F8FAFC' }
-              : { color: '#A78BFA' }
+              ? { background: '#1F5949', color: '#F8FAFC' }
+              : { color: '#86EFAC' }
             }
           >
             Faturamento
@@ -431,8 +431,8 @@ function WeekdayHeatmap({ days }: { days: WeekdayPoint[] }) {
             onClick={() => setMetric('profitCents')}
             className="rounded px-3 py-1 text-[11px] font-bold transition-all"
             style={metric === 'profitCents'
-              ? { background: '#3D3656', color: '#10B981' }
-              : { color: '#A78BFA' }
+              ? { background: '#1F5949', color: '#10B981' }
+              : { color: '#86EFAC' }
             }
           >
             Lucro
@@ -455,7 +455,7 @@ function WeekdayHeatmap({ days }: { days: WeekdayPoint[] }) {
       )}
 
       {!hasAny ? (
-        <p className="py-10 text-center text-sm" style={{ color: '#A78BFA' }}>
+        <p className="py-10 text-center text-sm" style={{ color: '#86EFAC' }}>
           Sem dados para os filtros selecionados no período
         </p>
       ) : (
@@ -470,14 +470,14 @@ function WeekdayHeatmap({ days }: { days: WeekdayPoint[] }) {
               ? `rgba(16,185,129,${0.04 + intensity * 0.22})`
               : activeColor === '#8B5CF6'
               ? `rgba(155,109,255,${0.04 + intensity * 0.22})`
-              : `rgba(168,85,247,${0.04 + intensity * 0.22})`
+              : `rgba(34,197,94,${0.04 + intensity * 0.22})`
             return (
               <div
                 key={day.label}
                 className="flex flex-col items-center gap-1.5 rounded-xl p-2.5 transition-all"
                 style={{
                   background: rgba,
-                  border: isBest ? `1px solid ${activeColor}80` : '1px solid #3D3656',
+                  border: isBest ? `1px solid ${activeColor}80` : '1px solid #1F5949',
                 }}
               >
                 <div className="flex items-center gap-1">
@@ -493,12 +493,12 @@ function WeekdayHeatmap({ days }: { days: WeekdayPoint[] }) {
                 </div>
 
                 {tx === 0 ? (
-                  <span className="text-xs" style={{ color: '#A78BFA', marginTop: 4, marginBottom: 4 }}>—</span>
+                  <span className="text-xs" style={{ color: '#86EFAC', marginTop: 4, marginBottom: 4 }}>—</span>
                 ) : (
                   <>
                     {/* Faturamento */}
                     <div className="flex flex-col items-center w-full">
-                      <span className="text-[8px] font-semibold uppercase tracking-wider" style={{ color: '#A78BFA' }}>
+                      <span className="text-[8px] font-semibold uppercase tracking-wider" style={{ color: '#86EFAC' }}>
                         Fatur.
                       </span>
                       <span className="text-[11px] font-bold leading-tight"
@@ -509,7 +509,7 @@ function WeekdayHeatmap({ days }: { days: WeekdayPoint[] }) {
 
                     {/* Lucro */}
                     <div className="flex flex-col items-center w-full">
-                      <span className="text-[8px] font-semibold uppercase tracking-wider" style={{ color: '#A78BFA' }}>
+                      <span className="text-[8px] font-semibold uppercase tracking-wider" style={{ color: '#86EFAC' }}>
                         Lucro
                       </span>
                       <span className="text-[11px] font-bold leading-tight"
@@ -520,7 +520,7 @@ function WeekdayHeatmap({ days }: { days: WeekdayPoint[] }) {
 
                     {/* Vendas */}
                     <div className="flex flex-col items-center w-full">
-                      <span className="text-[8px] font-semibold uppercase tracking-wider" style={{ color: '#A78BFA' }}>
+                      <span className="text-[8px] font-semibold uppercase tracking-wider" style={{ color: '#86EFAC' }}>
                         Vendas
                       </span>
                       <span className="text-[11px] font-bold leading-tight" style={{ color: '#F8FAFC', fontFamily: 'ui-monospace,monospace' }}>
@@ -530,7 +530,7 @@ function WeekdayHeatmap({ days }: { days: WeekdayPoint[] }) {
                   </>
                 )}
 
-                <div className="w-full h-1 rounded-full mt-1" style={{ background: '#3D3656' }}>
+                <div className="w-full h-1 rounded-full mt-1" style={{ background: '#1F5949' }}>
                   <div
                     className="h-1 rounded-full"
                     style={{ width: `${Math.round(intensity * 100)}%`, background: activeColor }}
@@ -636,7 +636,7 @@ function ChurnTable({ clients }: { clients: ChurnClient[] }) {
       {/* Filtros */}
       <div className="flex flex-wrap items-center gap-3">
         {/* Sistema */}
-        <div className="flex gap-1 rounded-lg p-1" style={{ background: '#1E1B2E', border: '1px solid #3D3656' }}>
+        <div className="flex gap-1 rounded-lg p-1" style={{ background: '#0E3A30', border: '1px solid #1F5949' }}>
           {SOURCE_OPTS.map(opt => (
             <button
               key={opt.value}
@@ -644,7 +644,7 @@ function ChurnTable({ clients }: { clients: ChurnClient[] }) {
               className="rounded px-3 py-1 text-[11px] font-bold transition-all"
               style={source === opt.value
                 ? { background: opt.color, color: '#000' }
-                : { color: '#A78BFA' }
+                : { color: '#86EFAC' }
               }
             >
               {opt.label}
@@ -657,7 +657,7 @@ function ChurnTable({ clients }: { clients: ChurnClient[] }) {
           value={originVal}
           onChange={e => setOriginVal(e.target.value)}
           className="rounded-lg border px-3 py-1 text-xs outline-none"
-          style={{ background: '#1E1B2E', borderColor: '#3D3656', color: '#F8FAFC' }}
+          style={{ background: '#0E3A30', borderColor: '#1F5949', color: '#F8FAFC' }}
         >
           <option value="all">Todas as origens</option>
           {CUSTOMER_ORIGIN_OPTIONS.map(opt => (
@@ -667,8 +667,8 @@ function ChurnTable({ clients }: { clients: ChurnClient[] }) {
         </select>
 
         {/* Threshold */}
-        <div className="flex items-center gap-2 rounded-lg border px-3 py-1" style={{ background: '#1E1B2E', borderColor: '#3D3656' }}>
-          <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#A78BFA' }}>Sem comprar há</span>
+        <div className="flex items-center gap-2 rounded-lg border px-3 py-1" style={{ background: '#0E3A30', borderColor: '#1F5949' }}>
+          <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#86EFAC' }}>Sem comprar há</span>
           <input
             type="number"
             min={1}
@@ -678,7 +678,7 @@ function ChurnTable({ clients }: { clients: ChurnClient[] }) {
             className="w-14 bg-transparent text-xs font-bold outline-none text-right tabular-nums"
             style={{ color: '#F8FAFC' }}
           />
-          <span className="text-[11px]" style={{ color: '#A78BFA' }}>dias+</span>
+          <span className="text-[11px]" style={{ color: '#86EFAC' }}>dias+</span>
         </div>
 
         {/* Export CSV */}
@@ -686,7 +686,7 @@ function ChurnTable({ clients }: { clients: ChurnClient[] }) {
           onClick={exportCsv}
           disabled={filtered.length === 0}
           className="ml-auto flex items-center gap-2 rounded-lg border px-3 py-1 text-xs font-bold transition-all hover:bg-white/5 disabled:opacity-50"
-          style={{ borderColor: '#3D3656', color: '#10B981' }}
+          style={{ borderColor: '#1F5949', color: '#10B981' }}
         >
           <Download className="h-3.5 w-3.5" />
           Exportar CSV
@@ -697,10 +697,10 @@ function ChurnTable({ clients }: { clients: ChurnClient[] }) {
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b text-left" style={{ borderColor: '#3D3656' }}>
+            <tr className="border-b text-left" style={{ borderColor: '#1F5949' }}>
               {['Cliente', 'Contato', 'Origem', 'Sem comprar há', 'Valor (6m)', 'Pedidos', 'Risco'].map(h => (
                 <th key={h} className="pb-3 pr-4 text-[10px] font-bold uppercase tracking-wider"
-                  style={{ color: '#A78BFA' }}>
+                  style={{ color: '#86EFAC' }}>
                   {h}
                 </th>
               ))}
@@ -745,7 +745,7 @@ function ChurnTable({ clients }: { clients: ChurnClient[] }) {
                         <a
                           href={`tel:${stripDigits(c.whatsapp || c.phone)}`}
                           className="flex h-7 w-7 items-center justify-center rounded-lg transition-all hover:opacity-80"
-                          style={{ background: 'rgba(168,85,247,.12)', color: '#A855F7' }}
+                          style={{ background: 'rgba(34,197,94,.12)', color: '#22C55E' }}
                           title={`Ligar ${phone}`}
                         >
                           <Phone className="h-3.5 w-3.5" />
@@ -753,11 +753,11 @@ function ChurnTable({ clients }: { clients: ChurnClient[] }) {
                         <span className="text-xs font-mono" style={{ color: '#CBD5E1' }}>{phone}</span>
                       </div>
                     ) : (
-                      <span className="text-xs" style={{ color: '#A78BFA' }}>—</span>
+                      <span className="text-xs" style={{ color: '#86EFAC' }}>—</span>
                     )}
                   </td>
                   <td className="py-3 pr-4 text-xs" style={{ color: '#CBD5E1' }}>
-                    {c.origin ? originLabel(c.origin) : <span style={{ color: '#A78BFA' }}>—</span>}
+                    {c.origin ? originLabel(c.origin) : <span style={{ color: '#86EFAC' }}>—</span>}
                   </td>
                   <td className="py-3 pr-4 font-mono font-semibold" style={{ color: '#EF4444' }}>
                     {days} dias
@@ -779,7 +779,7 @@ function ChurnTable({ clients }: { clients: ChurnClient[] }) {
             })}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={7} className="py-10 text-center text-sm" style={{ color: '#A78BFA' }}>
+                <td colSpan={7} className="py-10 text-center text-sm" style={{ color: '#86EFAC' }}>
                   Nenhum cliente em risco com os filtros atuais — ótimo sinal!
                 </td>
               </tr>
@@ -816,14 +816,14 @@ function ClientsTable({ clients }: { clients: TopClient[] }) {
     .slice(0, 10)
 
   const SOURCE_OPTS: { value: SourceFilter; label: string; color: string }[] = [
-    { value: 'total',      label: 'Ambos',      color: '#A855F7' },
+    { value: 'total',      label: 'Ambos',      color: '#22C55E' },
     { value: 'smarterp',   label: 'SmartERP',   color: '#10B981' },
     { value: 'checksmart', label: 'CheckSmart', color: '#8B5CF6' },
   ]
 
   return (
     <div className="space-y-3">
-      <div className="flex gap-1 rounded-lg p-1 w-fit" style={{ background: '#1E1B2E', border: '1px solid #3D3656' }}>
+      <div className="flex gap-1 rounded-lg p-1 w-fit" style={{ background: '#0E3A30', border: '1px solid #1F5949' }}>
         {SOURCE_OPTS.map(opt => (
           <button
             key={opt.value}
@@ -831,7 +831,7 @@ function ClientsTable({ clients }: { clients: TopClient[] }) {
             className="rounded px-3 py-1 text-[11px] font-bold transition-all"
             style={source === opt.value
               ? { background: opt.color, color: '#000' }
-              : { color: '#A78BFA' }
+              : { color: '#86EFAC' }
             }
           >
             {opt.label}
@@ -842,10 +842,10 @@ function ClientsTable({ clients }: { clients: TopClient[] }) {
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b text-left" style={{ borderColor: '#3D3656' }}>
+            <tr className="border-b text-left" style={{ borderColor: '#1F5949' }}>
               {['Cliente', 'Contato', 'Pedidos', 'Faturamento', 'Lucro', 'Ticket Médio', 'Tipo', 'Último contato'].map(h => (
                 <th key={h} className="pb-3 pr-4 text-[10px] font-bold uppercase tracking-wider"
-                  style={{ color: '#A78BFA' }}>
+                  style={{ color: '#86EFAC' }}>
                   {h}
                 </th>
               ))}
@@ -870,7 +870,7 @@ function ClientsTable({ clients }: { clients: TopClient[] }) {
                   <td className="py-3 pr-4">
                     <div className="flex items-center gap-2.5">
                       <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold"
-                        style={{ background: 'rgba(168,85,247,.12)', color: '#A855F7' }}>
+                        style={{ background: 'rgba(34,197,94,.12)', color: '#22C55E' }}>
                         {c.name.trim().charAt(0).toUpperCase()}
                       </div>
                       <span className="font-medium text-sm" style={{ color: '#F8FAFC' }}>{c.name}</span>
@@ -889,14 +889,14 @@ function ClientsTable({ clients }: { clients: TopClient[] }) {
                         )}
                         <a href={`tel:${phoneNum}`}
                           className="flex h-7 w-7 items-center justify-center rounded-lg transition-all hover:opacity-80"
-                          style={{ background: 'rgba(168,85,247,.12)', color: '#A855F7' }}
+                          style={{ background: 'rgba(34,197,94,.12)', color: '#22C55E' }}
                           title={`Ligar ${phoneDisplay}`}>
                           <Phone className="h-3.5 w-3.5" />
                         </a>
                         <span className="text-xs font-mono" style={{ color: '#CBD5E1' }}>{phoneDisplay}</span>
                       </div>
                     ) : (
-                      <span className="text-xs" style={{ color: '#A78BFA' }}>—</span>
+                      <span className="text-xs" style={{ color: '#86EFAC' }}>—</span>
                     )}
                   </td>
                   <td className="py-3 pr-4 font-mono font-semibold" style={{ color: '#F8FAFC' }}>
@@ -917,7 +917,7 @@ function ClientsTable({ clients }: { clients: TopClient[] }) {
                       {b.label}
                     </span>
                   </td>
-                  <td className="py-3 font-mono text-xs" style={{ color: '#A78BFA' }}>
+                  <td className="py-3 font-mono text-xs" style={{ color: '#86EFAC' }}>
                     {c.lastDate}
                   </td>
                 </tr>
@@ -925,7 +925,7 @@ function ClientsTable({ clients }: { clients: TopClient[] }) {
             })}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={8} className="py-10 text-center text-sm" style={{ color: '#A78BFA' }}>
+                <td colSpan={8} className="py-10 text-center text-sm" style={{ color: '#86EFAC' }}>
                   Nenhum cliente encontrado no sistema selecionado
                 </td>
               </tr>
@@ -976,7 +976,7 @@ function OriginSection({ breakdown }: { breakdown: OriginBreakdown[] }) {
     return (
       <div className="space-y-4">
         <OriginFilters source={source} metric={metric} setSource={setSource} setMetric={setMetric} />
-        <p className="py-10 text-center text-sm" style={{ color: '#A78BFA' }}>
+        <p className="py-10 text-center text-sm" style={{ color: '#86EFAC' }}>
           Sem dados para os filtros selecionados no período
         </p>
       </div>
@@ -1011,13 +1011,13 @@ function OriginSection({ breakdown }: { breakdown: OriginBreakdown[] }) {
         <div
           className="flex items-start gap-3 rounded-xl border px-4 py-3"
           style={{
-            background: `${ORIGIN_COLORS[topOrigin.value] ?? '#A855F7'}0D`,
-            borderColor: `${ORIGIN_COLORS[topOrigin.value] ?? '#A855F7'}40`,
+            background: `${ORIGIN_COLORS[topOrigin.value] ?? '#22C55E'}0D`,
+            borderColor: `${ORIGIN_COLORS[topOrigin.value] ?? '#22C55E'}40`,
             borderLeftWidth: 3,
-            borderLeftColor: ORIGIN_COLORS[topOrigin.value] ?? '#A855F7',
+            borderLeftColor: ORIGIN_COLORS[topOrigin.value] ?? '#22C55E',
           }}
         >
-          <Megaphone className="mt-0.5 h-4 w-4 flex-shrink-0" style={{ color: ORIGIN_COLORS[topOrigin.value] ?? '#A855F7' }} />
+          <Megaphone className="mt-0.5 h-4 w-4 flex-shrink-0" style={{ color: ORIGIN_COLORS[topOrigin.value] ?? '#22C55E' }} />
           <p className="text-sm" style={{ color: '#CBD5E1' }}>
             <span className="font-semibold" style={{ color: '#F8FAFC' }}>{topOrigin.label}</span>{' '}
             é seu principal canal no período — {filteredTotal > 0 ? Math.round((topOrigin._val / filteredTotal) * 100) : 0}% do {metricLabel}
@@ -1029,7 +1029,7 @@ function OriginSection({ breakdown }: { breakdown: OriginBreakdown[] }) {
       {/* Ranking por origem */}
       <div className="space-y-3">
         {filtered.map(b => {
-          const color = b.value ? (ORIGIN_COLORS[b.value] ?? '#A78BFA') : '#A78BFA'
+          const color = b.value ? (ORIGIN_COLORS[b.value] ?? '#86EFAC') : '#86EFAC'
           const barPct = Math.round((b._val / maxVal) * 100)
           const pct    = filteredTotal > 0 ? Math.round((b._val / filteredTotal) * 100) : 0
           const ticket = b._bucket.transactions > 0 ? Math.round(b._bucket.totalCents / b._bucket.transactions) : 0
@@ -1037,7 +1037,7 @@ function OriginSection({ breakdown }: { breakdown: OriginBreakdown[] }) {
             <div
               key={b.value ?? 'sem-origem'}
               className="rounded-xl border p-4"
-              style={{ background: '#1E1B2E', borderColor: '#3D3656' }}
+              style={{ background: '#0E3A30', borderColor: '#1F5949' }}
             >
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2 min-w-0">
@@ -1056,7 +1056,7 @@ function OriginSection({ breakdown }: { breakdown: OriginBreakdown[] }) {
                   {BRL(b._val)}
                 </span>
               </div>
-              <div className="h-1.5 rounded-full mb-3" style={{ background: '#3D3656' }}>
+              <div className="h-1.5 rounded-full mb-3" style={{ background: '#1F5949' }}>
                 <div
                   className="h-1.5 rounded-full transition-all duration-500"
                   style={{ width: `${barPct}%`, background: color }}
@@ -1072,7 +1072,7 @@ function OriginSection({ breakdown }: { breakdown: OriginBreakdown[] }) {
         })}
 
         {totalCustomers > 0 && (
-          <p className="text-center text-[11px] pt-2" style={{ color: '#A78BFA' }}>
+          <p className="text-center text-[11px] pt-2" style={{ color: '#86EFAC' }}>
             Total agregado: {totalCustomers} cliente(s) únicos no filtro selecionado
           </p>
         )}
@@ -1085,7 +1085,7 @@ function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="text-center">
       <p className="text-sm font-bold" style={{ color: '#F8FAFC', fontFamily: 'ui-monospace,monospace' }}>{value}</p>
-      <p className="text-[9px] font-semibold uppercase tracking-wider" style={{ color: '#A78BFA' }}>{label}</p>
+      <p className="text-[9px] font-semibold uppercase tracking-wider" style={{ color: '#86EFAC' }}>{label}</p>
     </div>
   )
 }
@@ -1099,13 +1099,13 @@ function OriginFilters({
   setMetric: (m: 'totalCents' | 'profitCents') => void
 }) {
   const SOURCE_OPTS: { value: SourceFilter; label: string; color: string }[] = [
-    { value: 'total',      label: 'Ambos',      color: '#A855F7' },
+    { value: 'total',      label: 'Ambos',      color: '#22C55E' },
     { value: 'smarterp',   label: 'SmartERP',   color: '#10B981' },
     { value: 'checksmart', label: 'CheckSmart', color: '#8B5CF6' },
   ]
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <div className="flex gap-1 rounded-lg p-1" style={{ background: '#1E1B2E', border: '1px solid #3D3656' }}>
+      <div className="flex gap-1 rounded-lg p-1" style={{ background: '#0E3A30', border: '1px solid #1F5949' }}>
         {SOURCE_OPTS.map(opt => (
           <button
             key={opt.value}
@@ -1113,25 +1113,25 @@ function OriginFilters({
             className="rounded px-3 py-1 text-[11px] font-bold transition-all"
             style={source === opt.value
               ? { background: opt.color, color: '#000' }
-              : { color: '#A78BFA' }
+              : { color: '#86EFAC' }
             }
           >
             {opt.label}
           </button>
         ))}
       </div>
-      <div className="flex gap-1 rounded-lg p-1" style={{ background: '#1E1B2E', border: '1px solid #3D3656' }}>
+      <div className="flex gap-1 rounded-lg p-1" style={{ background: '#0E3A30', border: '1px solid #1F5949' }}>
         <button
           onClick={() => setMetric('totalCents')}
           className="rounded px-3 py-1 text-[11px] font-bold transition-all"
-          style={metric === 'totalCents' ? { background: '#3D3656', color: '#F8FAFC' } : { color: '#A78BFA' }}
+          style={metric === 'totalCents' ? { background: '#1F5949', color: '#F8FAFC' } : { color: '#86EFAC' }}
         >
           Faturamento
         </button>
         <button
           onClick={() => setMetric('profitCents')}
           className="rounded px-3 py-1 text-[11px] font-bold transition-all"
-          style={metric === 'profitCents' ? { background: '#3D3656', color: '#10B981' } : { color: '#A78BFA' }}
+          style={metric === 'profitCents' ? { background: '#1F5949', color: '#10B981' } : { color: '#86EFAC' }}
         >
           Lucro
         </button>
@@ -1153,7 +1153,7 @@ function SectionHeader({
       <div className="h-4 w-1 rounded-full" style={{ background: accentColor }} />
       <div className="flex-1">
         <p className="text-xs font-bold uppercase tracking-widest" style={{ color: '#CBD5E1' }}>{title}</p>
-        <p className="text-[11px]" style={{ color: '#A78BFA' }}>{subtitle}</p>
+        <p className="text-[11px]" style={{ color: '#86EFAC' }}>{subtitle}</p>
       </div>
       {badge}
     </div>
@@ -1187,7 +1187,7 @@ export function ErpClientesClient({ data }: { data: DashboardData }) {
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold" style={{ color: '#F8FAFC' }}>ERP — Clientes</h1>
-          <p className="mt-1 text-sm" style={{ color: '#A78BFA' }}>
+          <p className="mt-1 text-sm" style={{ color: '#86EFAC' }}>
             Análise de clientes novos vs recorrentes
           </p>
         </div>
@@ -1201,15 +1201,15 @@ export function ErpClientesClient({ data }: { data: DashboardData }) {
             <Stethoscope className="h-3.5 w-3.5" />
             Diagnóstico de Lucro
           </Link>
-          <div className="flex gap-1 rounded-xl p-1" style={{ background: '#2A2440', border: '1px solid #3D3656' }}>
+          <div className="flex gap-1 rounded-xl p-1" style={{ background: '#15463A', border: '1px solid #1F5949' }}>
             {periods.map(p => (
               <button
                 key={p}
                 onClick={() => { setCustomOpen(false); router.push(`/erp-clientes?period=${p}`) }}
                 className="rounded-lg px-4 py-1.5 text-xs font-bold transition-all"
                 style={period === p
-                  ? { background: '#A855F7', color: '#000' }
-                  : { color: '#A78BFA' }
+                  ? { background: '#22C55E', color: '#000' }
+                  : { color: '#86EFAC' }
                 }
               >
                 {p}
@@ -1219,29 +1219,29 @@ export function ErpClientesClient({ data }: { data: DashboardData }) {
               onClick={() => setCustomOpen(v => !v)}
               className="rounded-lg px-4 py-1.5 text-xs font-bold transition-all"
               style={period === 'custom' || customOpen
-                ? { background: '#A855F7', color: '#000' }
-                : { color: '#A78BFA' }
+                ? { background: '#22C55E', color: '#000' }
+                : { color: '#86EFAC' }
               }
             >
               Datas
             </button>
           </div>
           {customOpen && (
-            <div className="flex items-center gap-2 rounded-xl p-2" style={{ background: '#2A2440', border: '1px solid #3D3656' }}>
+            <div className="flex items-center gap-2 rounded-xl p-2" style={{ background: '#15463A', border: '1px solid #1F5949' }}>
               <input
                 type="date"
                 value={fromDate}
                 onChange={e => setFromDate(e.target.value)}
                 className="rounded-lg border px-2 py-1 text-xs text-text outline-none"
-                style={{ background: '#1E1B2E', borderColor: '#3D3656' }}
+                style={{ background: '#0E3A30', borderColor: '#1F5949' }}
               />
-              <span className="text-xs" style={{ color: '#A78BFA' }}>até</span>
+              <span className="text-xs" style={{ color: '#86EFAC' }}>até</span>
               <input
                 type="date"
                 value={toDate}
                 onChange={e => setToDate(e.target.value)}
                 className="rounded-lg border px-2 py-1 text-xs text-text outline-none"
-                style={{ background: '#1E1B2E', borderColor: '#3D3656' }}
+                style={{ background: '#0E3A30', borderColor: '#1F5949' }}
               />
               <button
                 onClick={applyCustom}
@@ -1259,17 +1259,17 @@ export function ErpClientesClient({ data }: { data: DashboardData }) {
       {/* Insight box */}
       <div
         className="flex items-start gap-3 rounded-xl border px-4 py-3"
-        style={{ background: 'rgba(168,85,247,.05)', borderColor: 'rgba(168,85,247,.2)', borderLeftWidth: 3, borderLeftColor: '#A855F7' }}
+        style={{ background: 'rgba(34,197,94,.05)', borderColor: 'rgba(34,197,94,.2)', borderLeftWidth: 3, borderLeftColor: '#22C55E' }}
       >
-        <Lightbulb className="mt-0.5 h-4 w-4 flex-shrink-0" style={{ color: '#A855F7' }} />
+        <Lightbulb className="mt-0.5 h-4 w-4 flex-shrink-0" style={{ color: '#22C55E' }} />
         <p className="text-sm" style={{ color: '#CBD5E1' }}>{insightText}</p>
       </div>
 
       {/* SmartERP vs CheckSmart */}
-      <div className="rounded-2xl border" style={{ background: '#2A2440', borderColor: '#3D3656' }}>
-        <div className="flex items-center gap-2 border-b px-6 py-4" style={{ borderColor: '#3D3656' }}>
+      <div className="rounded-2xl border" style={{ background: '#15463A', borderColor: '#1F5949' }}>
+        <div className="flex items-center gap-2 border-b px-6 py-4" style={{ borderColor: '#1F5949' }}>
           <SectionHeader
-            accentColor="#A855F7"
+            accentColor="#22C55E"
             title="Comparativo de Sistemas"
             subtitle="SmartERP (POS) vs CheckSmart (OS) no período"
           />
@@ -1280,8 +1280,8 @@ export function ErpClientesClient({ data }: { data: DashboardData }) {
       </div>
 
       {/* Origem dos clientes */}
-      <div className="rounded-2xl border" style={{ background: '#2A2440', borderColor: '#3D3656' }}>
-        <div className="flex items-center gap-2 border-b px-6 py-4" style={{ borderColor: '#3D3656' }}>
+      <div className="rounded-2xl border" style={{ background: '#15463A', borderColor: '#1F5949' }}>
+        <div className="flex items-center gap-2 border-b px-6 py-4" style={{ borderColor: '#1F5949' }}>
           <SectionHeader
             accentColor="#E4405F"
             title="Origem dos Clientes"
@@ -1335,7 +1335,7 @@ export function ErpClientesClient({ data }: { data: DashboardData }) {
 
       {/* Charts */}
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
-        <div className="rounded-2xl border p-6" style={{ background: '#2A2440', borderColor: '#3D3656' }}>
+        <div className="rounded-2xl border p-6" style={{ background: '#15463A', borderColor: '#1F5949' }}>
           <div className="mb-5">
             <SectionHeader
               accentColor="#10B981"
@@ -1348,7 +1348,7 @@ export function ErpClientesClient({ data }: { data: DashboardData }) {
           </div>
         </div>
 
-        <div className="rounded-2xl border p-6" style={{ background: '#2A2440', borderColor: '#3D3656' }}>
+        <div className="rounded-2xl border p-6" style={{ background: '#15463A', borderColor: '#1F5949' }}>
           <div className="mb-5 flex items-start justify-between">
             <SectionHeader
               accentColor="#8B5CF6"
@@ -1358,11 +1358,11 @@ export function ErpClientesClient({ data }: { data: DashboardData }) {
             <div className="flex gap-4">
               <div className="flex items-center gap-1.5">
                 <div className="h-2 w-2 rounded-full" style={{ background: '#10B981' }} />
-                <span className="text-[10px]" style={{ color: '#A78BFA' }}>Recorrentes</span>
+                <span className="text-[10px]" style={{ color: '#86EFAC' }}>Recorrentes</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="h-2 w-2 rounded-full" style={{ background: '#8B5CF6' }} />
-                <span className="text-[10px]" style={{ color: '#A78BFA' }}>Novos</span>
+                <span className="text-[10px]" style={{ color: '#86EFAC' }}>Novos</span>
               </div>
             </div>
           </div>
@@ -1371,8 +1371,8 @@ export function ErpClientesClient({ data }: { data: DashboardData }) {
       </div>
 
       {/* RFM Segments */}
-      <div className="rounded-2xl border" style={{ background: '#2A2440', borderColor: '#3D3656' }}>
-        <div className="flex items-center gap-2 border-b px-6 py-4" style={{ borderColor: '#3D3656' }}>
+      <div className="rounded-2xl border" style={{ background: '#15463A', borderColor: '#1F5949' }}>
+        <div className="flex items-center gap-2 border-b px-6 py-4" style={{ borderColor: '#1F5949' }}>
           <SectionHeader
             accentColor="#F59E0B"
             title="Segmentação RFM"
@@ -1386,10 +1386,10 @@ export function ErpClientesClient({ data }: { data: DashboardData }) {
       </div>
 
       {/* Weekday heatmap */}
-      <div className="rounded-2xl border" style={{ background: '#2A2440', borderColor: '#3D3656' }}>
-        <div className="flex items-center gap-2 border-b px-6 py-4" style={{ borderColor: '#3D3656' }}>
+      <div className="rounded-2xl border" style={{ background: '#15463A', borderColor: '#1F5949' }}>
+        <div className="flex items-center gap-2 border-b px-6 py-4" style={{ borderColor: '#1F5949' }}>
           <SectionHeader
-            accentColor="#A855F7"
+            accentColor="#22C55E"
             title="Heatmap por Dia da Semana"
             subtitle="Dias com maior faturamento no período selecionado"
             icon={Calendar}
@@ -1401,8 +1401,8 @@ export function ErpClientesClient({ data }: { data: DashboardData }) {
       </div>
 
       {/* Churn risk */}
-      <div className="rounded-2xl border" style={{ background: '#2A2440', borderColor: '#3D3656' }}>
-        <div className="flex items-center gap-2 border-b px-6 py-4" style={{ borderColor: '#3D3656' }}>
+      <div className="rounded-2xl border" style={{ background: '#15463A', borderColor: '#1F5949' }}>
+        <div className="flex items-center gap-2 border-b px-6 py-4" style={{ borderColor: '#1F5949' }}>
           <SectionHeader
             accentColor="#EF4444"
             title="Clientes em Risco de Perda"
@@ -1425,17 +1425,17 @@ export function ErpClientesClient({ data }: { data: DashboardData }) {
       </div>
 
       {/* Top clients */}
-      <div className="rounded-2xl border" style={{ background: '#2A2440', borderColor: '#3D3656' }}>
-        <div className="flex items-center gap-2 border-b px-6 py-4" style={{ borderColor: '#3D3656' }}>
+      <div className="rounded-2xl border" style={{ background: '#15463A', borderColor: '#1F5949' }}>
+        <div className="flex items-center gap-2 border-b px-6 py-4" style={{ borderColor: '#1F5949' }}>
           <SectionHeader
-            accentColor="#A855F7"
+            accentColor="#22C55E"
             title="Top Clientes"
             subtitle="Por valor total no período"
           />
           <div className="ml-auto flex items-center gap-1.5 rounded-lg px-2.5 py-1"
-            style={{ background: 'rgba(168,85,247,.08)', border: '1px solid rgba(168,85,247,.2)' }}>
-            <TrendingUp className="h-3 w-3" style={{ color: '#A855F7' }} />
-            <span className="text-[10px] font-bold" style={{ color: '#A855F7' }}>
+            style={{ background: 'rgba(34,197,94,.08)', border: '1px solid rgba(34,197,94,.2)' }}>
+            <TrendingUp className="h-3 w-3" style={{ color: '#22C55E' }} />
+            <span className="text-[10px] font-bold" style={{ color: '#22C55E' }}>
               {topClients.length} clientes
             </span>
           </div>

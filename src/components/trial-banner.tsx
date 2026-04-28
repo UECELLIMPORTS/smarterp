@@ -33,7 +33,7 @@ export function TrialBanner({ daysLeft }: { daysLeft: number }) {
         <Link
           href="/configuracoes/assinatura"
           className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-opacity hover:opacity-90 shrink-0"
-          style={{ background: color, color: '#1E1B2E' }}
+          style={{ background: color, color: '#0E3A30' }}
         >
           Assinar agora <ArrowRight className="h-3 w-3" />
         </Link>

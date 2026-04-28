@@ -20,7 +20,7 @@ export function UpgradeBlock({
     <div className="flex items-start justify-center min-h-[calc(100vh-12rem)] py-10">
       <div className="w-full max-w-2xl">
         <div className="rounded-2xl border p-8 lg:p-10 text-center"
-          style={{ background: '#1E1B2E', borderColor: 'rgba(255,184,0,.4)' }}>
+          style={{ background: '#0E3A30', borderColor: 'rgba(255,184,0,.4)' }}>
 
           {/* Ícone */}
           <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl border"
@@ -40,7 +40,7 @@ export function UpgradeBlock({
 
           {/* Highlights */}
           <div className="rounded-xl border p-5 mb-8 text-left"
-            style={{ background: '#2A2440', borderColor: '#3D3656' }}>
+            style={{ background: '#15463A', borderColor: '#1F5949' }}>
             <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#10B981' }}>
               <Sparkles className="h-3.5 w-3.5 inline mr-1.5" />
               Ao fazer upgrade você desbloqueia
@@ -60,7 +60,7 @@ export function UpgradeBlock({
             <Link
               href="/configuracoes/assinatura"
               className="inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm font-bold transition-opacity hover:opacity-90"
-              style={{ background: 'linear-gradient(135deg, #A855F7, #10B981)', color: '#1E1B2E' }}
+              style={{ background: 'linear-gradient(135deg, #22C55E, #10B981)', color: '#0E3A30' }}
             >
               Fazer upgrade <ArrowRight className="h-4 w-4" />
             </Link>
@@ -68,7 +68,7 @@ export function UpgradeBlock({
               href="https://wa.me/5579999998876?text=Quero%20fazer%20upgrade%20de%20plano"
               target="_blank" rel="noopener noreferrer"
               className="inline-flex items-center justify-center gap-2 rounded-xl border px-6 py-3 text-sm font-bold transition-colors hover:bg-white/5"
-              style={{ borderColor: '#3D3656', color: '#F8FAFC' }}
+              style={{ borderColor: '#1F5949', color: '#F8FAFC' }}
             >
               Falar no WhatsApp
             </a>

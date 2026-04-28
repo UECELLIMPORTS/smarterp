@@ -105,7 +105,7 @@ export function AlertasClient({ accounts, rules, events }: Props) {
       {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
-          <Link href="/meta-ads" className="mb-2 inline-flex items-center gap-1 text-xs" style={{ color: '#A78BFA' }}>
+          <Link href="/meta-ads" className="mb-2 inline-flex items-center gap-1 text-xs" style={{ color: '#86EFAC' }}>
             <ArrowLeft className="h-3 w-3" /> Voltar ao Dashboard
           </Link>
           <h1 className="text-2xl font-bold flex items-center gap-2" style={{ color: '#F8FAFC' }}>
@@ -118,7 +118,7 @@ export function AlertasClient({ accounts, rules, events }: Props) {
               </span>
             )}
           </h1>
-          <p className="mt-1 text-sm" style={{ color: '#A78BFA' }}>
+          <p className="mt-1 text-sm" style={{ color: '#86EFAC' }}>
             Regras que monitoram CPC, gasto, CTR e engajamento das suas campanhas
           </p>
         </div>
@@ -127,7 +127,7 @@ export function AlertasClient({ accounts, rules, events }: Props) {
             onClick={handleEvaluate}
             disabled={evaluating || rules.filter(r => r.isActive).length === 0}
             className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold text-black transition-opacity disabled:opacity-50"
-            style={{ background: 'linear-gradient(135deg, #A855F7, #10B981)' }}
+            style={{ background: 'linear-gradient(135deg, #22C55E, #10B981)' }}
           >
             {evaluating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
             Avaliar agora
@@ -135,7 +135,7 @@ export function AlertasClient({ accounts, rules, events }: Props) {
           <button
             onClick={() => setModalRule('new')}
             className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-bold transition-colors hover:bg-white/5"
-            style={{ borderColor: '#3D3656', color: '#A855F7' }}
+            style={{ borderColor: '#1F5949', color: '#22C55E' }}
           >
             <Plus className="h-4 w-4" />
             Nova regra
@@ -178,14 +178,14 @@ function RulesSection({
   onChange: () => void
 }) {
   return (
-    <div className="rounded-2xl border p-6 space-y-4" style={{ background: '#2A2440', borderColor: '#3D3656' }}>
+    <div className="rounded-2xl border p-6 space-y-4" style={{ background: '#15463A', borderColor: '#1F5949' }}>
       <div className="flex items-center gap-2">
         <div className="h-4 w-1 rounded-full" style={{ background: '#F59E0B' }} />
         <div>
           <h2 className="text-xs font-bold uppercase tracking-widest" style={{ color: '#CBD5E1' }}>
             Regras configuradas
           </h2>
-          <p className="text-[11px]" style={{ color: '#A78BFA' }}>
+          <p className="text-[11px]" style={{ color: '#86EFAC' }}>
             {rules.length === 0
               ? 'Nenhuma regra ainda. Crie a primeira pra começar a monitorar.'
               : `${rules.filter(r => r.isActive).length} ativa(s) de ${rules.length}`}
@@ -194,7 +194,7 @@ function RulesSection({
       </div>
 
       {rules.length === 0 ? (
-        <div className="rounded-xl border p-6 text-center" style={{ background: '#1E1B2E', borderColor: '#3D3656' }}>
+        <div className="rounded-xl border p-6 text-center" style={{ background: '#0E3A30', borderColor: '#1F5949' }}>
           <Bell className="h-8 w-8 mx-auto mb-2" style={{ color: '#F59E0B', opacity: 0.5 }} />
           <p className="text-sm" style={{ color: '#CBD5E1' }}>
             Exemplos úteis: <strong>CPC acima de R$ 2,00</strong>, <strong>CTR abaixo de 1%</strong>,
@@ -253,8 +253,8 @@ function RuleRow({
   return (
     <div className="rounded-lg border p-3 flex items-start justify-between gap-3 flex-wrap"
       style={{
-        background: rule.isActive ? '#1E1B2E' : 'rgba(13,19,32,0.5)',
-        borderColor: '#3D3656',
+        background: rule.isActive ? '#0E3A30' : 'rgba(13,19,32,0.5)',
+        borderColor: '#1F5949',
         opacity: rule.isActive ? 1 : 0.6,
       }}>
       <div className="flex-1 min-w-[240px]">
@@ -272,7 +272,7 @@ function RuleRow({
           )}
         </div>
         <p className="text-xs mt-1" style={{ color: '#CBD5E1' }}>{humanizeRule(rule, accounts)}</p>
-        <p className="text-[10px] mt-1" style={{ color: '#A78BFA' }}>
+        <p className="text-[10px] mt-1" style={{ color: '#86EFAC' }}>
           Cooldown: {rule.cooldownHours}h · Janela: {rule.daysWindow} dia{rule.daysWindow > 1 ? 's' : ''}
         </p>
       </div>
@@ -294,7 +294,7 @@ function RuleRow({
           onClick={() => onEdit(rule)}
           title="Editar regra"
           className="rounded-md border p-1.5 transition-colors hover:bg-white/5"
-          style={{ borderColor: '#3D3656', color: '#A855F7' }}
+          style={{ borderColor: '#1F5949', color: '#22C55E' }}
         >
           <Pencil className="h-3.5 w-3.5" />
         </button>
@@ -337,16 +337,16 @@ function EventsSection({
   }
 
   return (
-    <div className="rounded-2xl border" style={{ background: '#2A2440', borderColor: '#3D3656' }}>
+    <div className="rounded-2xl border" style={{ background: '#15463A', borderColor: '#1F5949' }}>
       <div className="flex items-center justify-between gap-3 border-b px-6 py-4 flex-wrap"
-        style={{ borderColor: '#3D3656' }}>
+        style={{ borderColor: '#1F5949' }}>
         <div className="flex items-center gap-2">
           <div className="h-4 w-1 rounded-full" style={{ background: '#EF4444' }} />
           <div>
             <h2 className="text-xs font-bold uppercase tracking-widest" style={{ color: '#CBD5E1' }}>
               Histórico de alertas
             </h2>
-            <p className="text-[11px]" style={{ color: '#A78BFA' }}>
+            <p className="text-[11px]" style={{ color: '#86EFAC' }}>
               {events.length === 0
                 ? 'Nenhum alerta disparou ainda'
                 : `${events.length} no total · ${unreadCount} não lido(s)`}
@@ -358,7 +358,7 @@ function EventsSection({
             onClick={handleMarkAllRead}
             disabled={markingAll}
             className="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-bold transition-colors hover:bg-white/5 disabled:opacity-50"
-            style={{ borderColor: '#3D3656', color: '#A855F7' }}
+            style={{ borderColor: '#1F5949', color: '#22C55E' }}
           >
             {markingAll ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
             Marcar todos como lidos
@@ -413,7 +413,7 @@ function EventRow({ event, onChange }: { event: MetaAdsAlertEvent; onChange: () 
     <div className="flex items-start gap-3 px-6 py-3"
       style={{ background: isUnread ? 'rgba(255,77,109,.04)' : 'transparent' }}>
       <div className="mt-0.5 shrink-0">
-        <AlertTriangle className="h-4 w-4" style={{ color: isUnread ? '#EF4444' : '#A78BFA' }} />
+        <AlertTriangle className="h-4 w-4" style={{ color: isUnread ? '#EF4444' : '#86EFAC' }} />
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
@@ -426,7 +426,7 @@ function EventRow({ event, onChange }: { event: MetaAdsAlertEvent; onChange: () 
           )}
         </div>
         <p className="text-sm mt-1" style={{ color: '#F8FAFC' }}>{event.message}</p>
-        <p className="text-[10px] mt-1" style={{ color: '#A78BFA' }}>
+        <p className="text-[10px] mt-1" style={{ color: '#86EFAC' }}>
           {formatDateTime(event.triggeredAt)}
           {event.ruleName && ` · regra "${event.ruleName}"`}
         </p>
@@ -438,7 +438,7 @@ function EventRow({ event, onChange }: { event: MetaAdsAlertEvent; onChange: () 
             disabled={busy}
             title="Marcar como lido"
             className="rounded-md border p-1.5 transition-colors hover:bg-white/5 disabled:opacity-40"
-            style={{ borderColor: '#3D3656', color: '#A855F7' }}
+            style={{ borderColor: '#1F5949', color: '#22C55E' }}
           >
             <Check className="h-3 w-3" />
           </button>
@@ -448,7 +448,7 @@ function EventRow({ event, onChange }: { event: MetaAdsAlertEvent; onChange: () 
           disabled={busy}
           title="Arquivar"
           className="rounded-md border p-1.5 transition-colors hover:bg-white/5 disabled:opacity-40"
-          style={{ borderColor: '#3D3656', color: '#CBD5E1' }}
+          style={{ borderColor: '#1F5949', color: '#CBD5E1' }}
         >
           <Archive className="h-3 w-3" />
         </button>
@@ -533,7 +533,7 @@ function RuleModal({
     >
       <div
         className="w-full max-w-lg rounded-2xl border p-6 space-y-4 max-h-[90vh] overflow-y-auto"
-        style={{ background: '#1E1B2E', borderColor: '#3D3656' }}
+        style={{ background: '#0E3A30', borderColor: '#1F5949' }}
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">
@@ -550,7 +550,7 @@ function RuleModal({
 
         {/* Nome */}
         <div className="flex flex-col gap-1">
-          <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#A78BFA' }}>
+          <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#86EFAC' }}>
             Nome da regra
           </label>
           <input
@@ -558,14 +558,14 @@ function RuleModal({
             onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
             placeholder="Ex: Alerta CPC alto (>R$ 2)"
             className="w-full rounded-lg border px-3 py-2 text-sm outline-none"
-            style={{ background: '#1E1B2E', borderColor: '#3D3656', color: '#F8FAFC' }}
+            style={{ background: '#0E3A30', borderColor: '#1F5949', color: '#F8FAFC' }}
             autoFocus
           />
         </div>
 
         {/* Tipo */}
         <div className="flex flex-col gap-2">
-          <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#A78BFA' }}>
+          <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#86EFAC' }}>
             Tipo de regra
           </label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -575,8 +575,8 @@ function RuleModal({
                 onClick={() => setForm(f => ({ ...f, ruleType: rt.value }))}
                 className="rounded-lg border p-3 text-left transition-colors"
                 style={{
-                  background:  form.ruleType === rt.value ? 'rgba(255,170,0,.08)' : '#2A2440',
-                  borderColor: form.ruleType === rt.value ? 'rgba(255,170,0,.4)' : '#3D3656',
+                  background:  form.ruleType === rt.value ? 'rgba(255,170,0,.08)' : '#15463A',
+                  borderColor: form.ruleType === rt.value ? 'rgba(255,170,0,.4)' : '#1F5949',
                 }}
               >
                 <p className="text-xs font-semibold" style={{ color: form.ruleType === rt.value ? '#F59E0B' : '#F8FAFC' }}>
@@ -591,7 +591,7 @@ function RuleModal({
         {/* Threshold condicional */}
         {config.needsCents && (
           <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#A78BFA' }}>
+            <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#86EFAC' }}>
               Valor limite
             </label>
             <div className="relative">
@@ -601,14 +601,14 @@ function RuleModal({
                 onChange={e => setForm(f => ({ ...f, thresholdReaisStr: e.target.value.replace(/[^0-9,]/g, '') }))}
                 placeholder="2,00"
                 className="w-full rounded-lg border pl-10 pr-3 py-2 text-sm outline-none font-mono"
-                style={{ background: '#1E1B2E', borderColor: '#3D3656', color: '#F8FAFC' }}
+                style={{ background: '#0E3A30', borderColor: '#1F5949', color: '#F8FAFC' }}
               />
             </div>
           </div>
         )}
         {config.needsPercent && (
           <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#A78BFA' }}>
+            <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#86EFAC' }}>
               Percentual mínimo (CTR)
             </label>
             <div className="relative">
@@ -617,7 +617,7 @@ function RuleModal({
                 onChange={e => setForm(f => ({ ...f, thresholdPercentStr: e.target.value.replace(/[^0-9,]/g, '') }))}
                 placeholder="1,50"
                 className="w-full rounded-lg border pr-8 pl-3 py-2 text-sm outline-none font-mono"
-                style={{ background: '#1E1B2E', borderColor: '#3D3656', color: '#F8FAFC' }}
+                style={{ background: '#0E3A30', borderColor: '#1F5949', color: '#F8FAFC' }}
               />
               <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-sm" style={{ color: '#CBD5E1' }}>%</span>
             </div>
@@ -626,14 +626,14 @@ function RuleModal({
 
         {/* Escopo: conta */}
         <div className="flex flex-col gap-1">
-          <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#A78BFA' }}>
+          <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#86EFAC' }}>
             Conta de anúncios
           </label>
           <select
             value={form.adAccountId}
             onChange={e => setForm(f => ({ ...f, adAccountId: e.target.value }))}
             className="w-full rounded-lg border px-3 py-2 text-sm outline-none"
-            style={{ background: '#1E1B2E', borderColor: '#3D3656', color: '#F8FAFC', appearance: 'none' }}
+            style={{ background: '#0E3A30', borderColor: '#1F5949', color: '#F8FAFC', appearance: 'none' }}
           >
             <option value="">Todas as contas</option>
             {accounts.filter(a => a.isActive).map(a => (
@@ -645,7 +645,7 @@ function RuleModal({
         {/* Janela + cooldown */}
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#A78BFA' }}>
+            <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#86EFAC' }}>
               Janela (dias)
             </label>
             <input
@@ -653,11 +653,11 @@ function RuleModal({
               value={form.daysWindow}
               onChange={e => setForm(f => ({ ...f, daysWindow: Math.max(1, parseInt(e.target.value) || 1) }))}
               className="w-full rounded-lg border px-3 py-2 text-sm outline-none font-mono"
-              style={{ background: '#1E1B2E', borderColor: '#3D3656', color: '#F8FAFC' }}
+              style={{ background: '#0E3A30', borderColor: '#1F5949', color: '#F8FAFC' }}
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#A78BFA' }}>
+            <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#86EFAC' }}>
               Cooldown (horas)
             </label>
             <input
@@ -665,11 +665,11 @@ function RuleModal({
               value={form.cooldownHours}
               onChange={e => setForm(f => ({ ...f, cooldownHours: Math.max(1, parseInt(e.target.value) || 24) }))}
               className="w-full rounded-lg border px-3 py-2 text-sm outline-none font-mono"
-              style={{ background: '#1E1B2E', borderColor: '#3D3656', color: '#F8FAFC' }}
+              style={{ background: '#0E3A30', borderColor: '#1F5949', color: '#F8FAFC' }}
             />
           </div>
         </div>
-        <p className="text-[10px]" style={{ color: '#A78BFA' }}>
+        <p className="text-[10px]" style={{ color: '#86EFAC' }}>
           <strong>Cooldown:</strong> tempo mínimo entre disparos do mesmo alerta pra mesma campanha, evitando spam.
         </p>
 
@@ -678,7 +678,7 @@ function RuleModal({
           <button
             onClick={onClose}
             className="flex-1 rounded-lg border py-2.5 text-sm font-medium hover:bg-white/5"
-            style={{ borderColor: '#3D3656', color: '#CBD5E1' }}
+            style={{ borderColor: '#1F5949', color: '#CBD5E1' }}
           >
             Cancelar
           </button>
@@ -686,7 +686,7 @@ function RuleModal({
             onClick={handleSave}
             disabled={saving || !form.name.trim()}
             className="flex-1 flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold transition-opacity disabled:opacity-50"
-            style={{ background: 'linear-gradient(135deg, #A855F7, #10B981)', color: '#1E1B2E' }}
+            style={{ background: 'linear-gradient(135deg, #22C55E, #10B981)', color: '#0E3A30' }}
           >
             {saving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
             {isEdit ? 'Salvar' : 'Criar regra'}
