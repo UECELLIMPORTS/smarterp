@@ -28,7 +28,7 @@ export default async function FinanceiroPage() {
     supabase
       .from('service_orders')
       .select(`
-        id, total_price_cents, service_price_cents, parts_sale_cents,
+        id, customer_id, total_price_cents, service_price_cents, parts_sale_cents,
         discount_cents, status, payment_method, received_at, sale_channel, delivery_type,
         customers ( full_name, cpf_cnpj, created_at )
       `)
@@ -47,7 +47,8 @@ export default async function FinanceiroPage() {
     sale_items: { name: string; quantity: number; unit_price_cents: number }[]
   }
   type OrderRow = {
-    id: string; total_price_cents: number; service_price_cents: number
+    id: string; customer_id: string | null
+    total_price_cents: number; service_price_cents: number
     parts_sale_cents: number; discount_cents: number
     status: string; payment_method: string | null; received_at: string
     sale_channel: string | null; delivery_type: string | null
@@ -103,6 +104,7 @@ export default async function FinanceiroPage() {
         hour: '2-digit', minute: '2-digit',
       }),
       customerName: o.customers?.full_name ?? 'Sem cliente',
+      customerId:   o.customer_id ?? null,
       description:  `OS — ${o.status ?? ''}`,
       payment:      o.payment_method ?? null,
       osStatus:     o.status ?? null,

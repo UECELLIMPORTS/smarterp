@@ -140,7 +140,10 @@ export async function updateServiceOrder(orderId: string, input: EditServiceOrde
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const patch: Record<string, any> = { updated_at: new Date().toISOString() }
-  if (input.customer_id          !== undefined) patch.customer_id          = input.customer_id
+  // service_orders.customer_id é NOT NULL — só atualiza se veio um valor real
+  if (input.customer_id          !== undefined && input.customer_id !== null) {
+    patch.customer_id = input.customer_id
+  }
   if (input.received_at          !== undefined) patch.received_at          = input.received_at
   if (input.service_price_cents  !== undefined) patch.service_price_cents  = Math.max(0, Math.round(input.service_price_cents))
   if (input.discount_cents       !== undefined) patch.discount_cents       = Math.max(0, Math.round(input.discount_cents))
