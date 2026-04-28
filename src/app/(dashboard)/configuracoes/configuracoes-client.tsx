@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import {
   Package, CheckCircle, AlertTriangle, Ban, Loader2, Save, Store,
-  Sparkles, ChevronRight, Users,
+  Sparkles, ChevronRight, Users, FileText,
 } from 'lucide-react'
 import { saveSettings, type TenantSettings, type StockControlMode } from '@/actions/settings'
 import type { RecurringExpense } from '@/lib/expense-categories'
@@ -128,6 +128,24 @@ export function ConfiguracoesClient({ initialSettings, isOwner = false, initialE
                 <h2 className="text-sm font-semibold text-text">Equipe</h2>
                 <p className="text-xs text-muted mt-0.5">
                   Convide membros pra trabalhar com você na mesma conta
+                </p>
+              </div>
+              <ChevronRight className="h-5 w-5 shrink-0" style={{ color: '#94A3B8' }} />
+            </div>
+          </Link>
+
+          <Link href="/configuracoes/fiscal"
+            className="block rounded-xl border p-4 transition-all hover:border-blue-400/40"
+            style={{ background: '#1B2638', borderColor: '#2A3650' }}>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg shrink-0"
+                style={{ background: 'rgba(59,130,246,.15)' }}>
+                <FileText className="h-5 w-5" style={{ color: '#3B82F6' }} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h2 className="text-sm font-semibold text-text">Fiscal — NF-e, NFC-e, NFS-e</h2>
+                <p className="text-xs text-muted mt-0.5">
+                  Configure regime tributário, certificado A1 e ative emissão de notas fiscais
                 </p>
               </div>
               <ChevronRight className="h-5 w-5 shrink-0" style={{ color: '#94A3B8' }} />
