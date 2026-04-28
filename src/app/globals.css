@@ -1,28 +1,29 @@
 @import "tailwindcss";
 
 /* ============================================================================
- * SmartERP — App interno (LIGHT theme)
- * Paleta consistente com a landing (gestaosmarterp.online): blue-700 primary
+ * SmartERP — Premium light theme com identidade tipográfica
+ * Sem branco puro · DM Sans display · Inter body · JetBrains Mono pra números
+ * Inspiração: Stripe + Mercury + Linear (light)
  * ============================================================================ */
 
 :root {
-  /* Backgrounds & surfaces */
-  --bg:        #EEF2F7;       /* azulado-cinza pra dar vida ao body */
-  --surface:   #FFFFFF;       /* cards, sidebars */
-  --card:      #FFFFFF;
-  --surface-2: #F8FAFC;       /* slate-50 — alternadas leves */
+  /* Backgrounds — off-white azulado (não branco puro!) */
+  --bg:        #E8ECF1;       /* slate-200 azulado, mais cor que cinza padrão */
+  --bg-2:      #DEE3EB;       /* mais marcado pra alternâncias */
+  --surface:   #FFFFFF;       /* cards principais */
+  --surface-2: #F7F9FC;       /* surfaces secundárias (table head, hover) */
 
   /* Borders */
-  --border:    #E2E8F0;       /* slate-200 */
-  --border-2:  #CBD5E1;       /* slate-300 */
+  --border:    #D4DBE4;       /* mais marcado que slate-200 padrão */
+  --border-2:  #BCC5D1;
 
-  /* Text */
-  --text:      #0F172A;       /* slate-900 */
-  --text-2:    #334155;       /* slate-700 */
-  --muted:     #64748B;       /* slate-500 */
-  --muted-2:   #94A3B8;       /* slate-400 */
+  /* Text — slate com peso */
+  --text:      #0B1220;       /* quase preto azulado, não preto puro */
+  --text-2:    #2D3748;
+  --muted:     #5A6B82;       /* slate-500 mais escuro */
+  --muted-2:   #94A3B8;
 
-  /* Brand — azul Conta Azul-style (mesmo da landing) */
+  /* Brand — azul Conta Azul */
   --accent:         #1D4ED8;
   --accent-hover:   #1E40AF;
   --accent-dark:    #1E3A8A;
@@ -30,16 +31,23 @@
   --accent-lighter: #EFF6FF;
 
   /* Semantic */
-  --green:        #10B981;
-  --green-light:  #ECFDF5;
-  --amber:        #F59E0B;
-  --amber-light:  #FFFBEB;
-  --coral:        #EF4444;
-  --coral-light:  #FEF2F2;
+  --green:        #059669;    /* emerald-600 mais profundo */
+  --green-light:  #D1FAE5;
+  --amber:        #D97706;    /* amber-600 mais profundo */
+  --amber-light:  #FEF3C7;
+  --coral:        #DC2626;    /* red-600 */
+  --coral-light:  #FEE2E2;
 
   /* Compat */
-  --gold:   #F59E0B;
-  --danger: #EF4444;
+  --gold:   #D97706;
+  --danger: #DC2626;
+  --card:   #FFFFFF;
+
+  /* Sombras (multi-layer, Stripe-style) */
+  --shadow-sm: 0 1px 2px rgba(11,18,32,.05), 0 1px 1px rgba(11,18,32,.04);
+  --shadow:    0 1px 3px rgba(11,18,32,.06), 0 4px 12px rgba(11,18,32,.04);
+  --shadow-md: 0 4px 6px rgba(11,18,32,.04), 0 12px 24px rgba(11,18,32,.06);
+  --shadow-lg: 0 10px 15px rgba(11,18,32,.05), 0 24px 48px rgba(11,18,32,.08);
 }
 
 @theme inline {
@@ -53,8 +61,9 @@
   --color-coral:   var(--coral);
   --color-text:    var(--text);
   --color-muted:   var(--muted);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans:    var(--font-inter);
+  --font-display: var(--font-display);
+  --font-mono:    var(--font-mono);
 }
 
 * { box-sizing: border-box; }
@@ -64,29 +73,42 @@ html, body { height: 100%; }
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: var(--font-geist-sans), Arial, sans-serif;
+  font-family: var(--font-inter), 'Inter', system-ui, -apple-system, sans-serif;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11', 'ss01';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
-/* Scrollbar light */
-::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-track { background: var(--surface-2); }
-::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 4px; }
+/* Display headings — DM Sans com tracking apertado */
+h1, h2, h3, h4, h5, h6,
+.display, .font-display {
+  font-family: var(--font-display), 'DM Sans', system-ui, sans-serif;
+  letter-spacing: -0.02em;
+  font-feature-settings: 'ss01';
+}
+
+/* Mono — números, códigos, valores monetários */
+.font-mono, code, kbd {
+  font-family: var(--font-mono), 'JetBrains Mono', ui-monospace, monospace;
+}
+
+/* Scrollbar premium */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--border-2);
+  border-radius: 5px;
+  border: 2px solid var(--bg);
+}
 ::-webkit-scrollbar-thumb:hover { background: var(--muted-2); }
 
-input[type="datetime-local"] {
-  color-scheme: light;
-}
+input[type="datetime-local"] { color-scheme: light; }
 input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   cursor: pointer;
-  border-radius: 4px;
-  padding: 2px;
-  opacity: 0.6;
+  opacity: 0.5;
 }
-input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
-  opacity: 1;
-}
+input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
 
 @keyframes stockPopIn {
   from { opacity: 0; transform: translateY(-6px) scale(0.97); }
@@ -98,27 +120,25 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
- * AUTH classes (continuam funcionando — alinhadas com app agora)
+ * Auth pages — light com identidade premium
  * ───────────────────────────────────────────────────────────────────────── */
 
 .auth-input {
   width: 100%;
   background: white;
-  border: 1px solid #E2E8F0;
-  border-radius: 0.5rem;
-  padding: 0.625rem 0.875rem;
+  border: 1px solid var(--border);
+  border-radius: 0.625rem;
+  padding: 0.7rem 1rem;
   font-size: 0.875rem;
-  color: #0F172A;
+  color: var(--text);
   outline: none;
   transition: border-color .15s, box-shadow .15s;
 }
 .auth-input:focus {
-  border-color: #1D4ED8;
+  border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(29, 78, 216, .12);
 }
-.auth-input::placeholder {
-  color: #94A3B8;
-}
+.auth-input::placeholder { color: var(--muted-2); }
 
 .auth-btn-primary {
   margin-top: 0.5rem;
@@ -127,24 +147,22 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  background: #1D4ED8;
+  background: var(--accent);
   color: white;
-  border-radius: 0.5rem;
-  padding: 0.625rem 0;
+  border-radius: 0.625rem;
+  padding: 0.7rem 0;
   font-size: 0.875rem;
   font-weight: 600;
+  letter-spacing: -0.01em;
   transition: opacity .15s, box-shadow .15s, transform .1s;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, .08), 0 4px 12px rgba(29, 78, 216, .15);
+  box-shadow: var(--shadow-sm), 0 4px 12px rgba(29, 78, 216, .18);
 }
 .auth-btn-primary:hover:not(:disabled) {
-  background: #1E40AF;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, .1), 0 6px 20px rgba(29, 78, 216, .25);
+  background: var(--accent-hover);
+  box-shadow: var(--shadow), 0 6px 20px rgba(29, 78, 216, .28);
   transform: translateY(-1px);
 }
-.auth-btn-primary:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
+.auth-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .auth-btn-secondary {
   display: flex;
@@ -152,30 +170,54 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
   justify-content: center;
   gap: 0.5rem;
   background: white;
-  color: #0F172A;
-  border: 1px solid #E2E8F0;
-  border-radius: 0.5rem;
-  padding: 0.625rem 0;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 0.625rem;
+  padding: 0.7rem 0;
   font-size: 0.875rem;
   font-weight: 600;
   transition: background .15s, border-color .15s;
 }
 .auth-btn-secondary:hover {
-  background: #F8FAFC;
-  border-color: #CBD5E1;
+  background: var(--surface-2);
+  border-color: var(--border-2);
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
- * APP utilities — cards, hovers, transições light
+ * App utilities — cards premium com sombras múltiplas
  * ───────────────────────────────────────────────────────────────────────── */
 
 .app-card {
   background: white;
   border: 1px solid var(--border);
-  border-radius: 0.75rem;
-  transition: border-color .2s, box-shadow .2s;
+  border-radius: 0.875rem;
+  box-shadow: var(--shadow-sm);
+  transition: border-color .2s, box-shadow .2s, transform .15s;
 }
 .app-card:hover {
   border-color: var(--border-2);
-  box-shadow: 0 4px 12px rgba(15, 23, 42, .04);
+  box-shadow: var(--shadow);
+}
+
+.app-card-elevated {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  box-shadow: var(--shadow);
+}
+
+/* Page header com hierarquia clara */
+.page-title {
+  font-family: var(--font-display), 'DM Sans', sans-serif;
+  font-size: 1.875rem;
+  line-height: 1.1;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--text);
+}
+.page-subtitle {
+  font-family: var(--font-inter), 'Inter', sans-serif;
+  font-size: 0.875rem;
+  color: var(--muted);
+  margin-top: 0.375rem;
 }
