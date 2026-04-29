@@ -116,6 +116,29 @@ export type ChannelMetric = {
   avgTicketCents:    number
 }
 
+export type ChannelDeliveryCell = {
+  count:        number     // total de transações (sales + os) nessa célula
+  revenueCents: number
+  profitCents:  number
+}
+
+export type ChannelDeliveryRow = {
+  channel:       string                            // 'whatsapp', 'fisica_balcao', etc, ou 'nao_informado'
+  channelLabel:  string
+  channelColor:  string
+  channelGroup:  'online' | 'fisica' | 'outro'
+  // Chave: 'counter' | 'pickup' | 'shipping' | 'nao_informado'
+  cells:         Record<string, ChannelDeliveryCell>
+  rowTotal:      ChannelDeliveryCell
+}
+
+export type ChannelDeliveryMatrix = {
+  deliveries:    { key: string; label: string }[]    // colunas (ordem fixa)
+  rows:          ChannelDeliveryRow[]
+  columnTotals:  Record<string, ChannelDeliveryCell>
+  grandTotal:    ChannelDeliveryCell
+}
+
 export type ChannelAnalytics = {
   period:              ChannelAnalyticsPeriod
   sinceIso:            string
@@ -140,6 +163,9 @@ export type ChannelAnalytics = {
   // Útil pra ver quanto vai por balcão vs retirada vs delivery.
   deliveryBreakdown: { delivery: string; label: string; cents: number; count: number }[]
   channels:            ChannelMetric[]
+  // Cruzamento canal × tipo de entrega — responde "do WhatsApp, quantos
+  // vieram retirar na loja vs receberam por delivery vs balcão?"
+  channelDeliveryMatrix: ChannelDeliveryMatrix
   daily:               {
     date: string
     onlineCents: number
@@ -265,6 +291,19 @@ export async function getChannelAnalytics(period: ChannelAnalyticsPeriod = '30d'
     deliveryMap.set(key, b)
   }
 
+  // Cruzamento canal × delivery (matriz)
+  const matrixMap = new Map<string, ChannelDeliveryCell>()  // chave = `${channel}|${delivery}`
+  const bumpMatrix = (channel: string | null, delivery: string | null, revenue: number, profit: number) => {
+    const ch = channel || 'nao_informado'
+    const dl = delivery || 'nao_informado'
+    const key = `${ch}|${dl}`
+    const cell = matrixMap.get(key) ?? { count: 0, revenueCents: 0, profitCents: 0 }
+    cell.count        += 1
+    cell.revenueCents += revenue
+    cell.profitCents  += profit
+    matrixMap.set(key, cell)
+  }
+
   for (const s of salesData) {
     const v = s.total_cents ?? 0
     if (v <= 0) continue
@@ -282,6 +321,7 @@ export async function getChannelAnalytics(period: ChannelAnalyticsPeriod = '30d'
     bumpSale(s.sale_channel ?? '', v, profit)
     bumpDaily(s.created_at, s.sale_channel, v, profit)
     bumpDelivery(s.delivery_type, v)
+    bumpMatrix(s.sale_channel, s.delivery_type, v, profit)
     totalCents   += v
     totalTxCount += 1
   }
@@ -294,6 +334,7 @@ export async function getChannelAnalytics(period: ChannelAnalyticsPeriod = '30d'
     bumpOs(o.sale_channel ?? '', v, profit)
     bumpDaily(o.received_at, o.sale_channel, v, profit)
     bumpDelivery(o.delivery_type, v)
+    bumpMatrix(o.sale_channel, o.delivery_type, v, profit)
     totalCents   += v
     totalTxCount += 1
   }
@@ -348,6 +389,65 @@ export async function getChannelAnalytics(period: ChannelAnalyticsPeriod = '30d'
       fisicaProfitCents: v.fisicaProfit,
     }))
 
+  // ── Constrói matriz canal × delivery a partir do matrixMap ─────────────
+  const emptyCell = (): ChannelDeliveryCell => ({ count: 0, revenueCents: 0, profitCents: 0 })
+  const addCells = (a: ChannelDeliveryCell, b: ChannelDeliveryCell): ChannelDeliveryCell => ({
+    count:        a.count        + b.count,
+    revenueCents: a.revenueCents + b.revenueCents,
+    profitCents:  a.profitCents  + b.profitCents,
+  })
+
+  const deliveryColumns: { key: string; label: string }[] = [
+    ...DELIVERY_TYPE_OPTIONS.map(o => ({ key: o.value, label: o.label })),
+    { key: 'nao_informado', label: 'Não informado' },
+  ]
+
+  // Linhas a mostrar: canais que aparecem nas opções pickable + 'nao_informado' se houver dados
+  const channelKeys: { key: string; label: string; color: string; group: 'online' | 'fisica' | 'outro' }[] =
+    SALE_CHANNEL_OPTIONS.filter(o => !o.deprecated).map(o => ({
+      key: o.value, label: o.label, color: o.color, group: o.group,
+    }))
+  if (Array.from(matrixMap.keys()).some(k => k.startsWith('nao_informado|'))) {
+    channelKeys.push({ key: 'nao_informado', label: 'Não informado', color: '#5A7A9A', group: 'outro' })
+  }
+
+  const matrixRows: ChannelDeliveryRow[] = channelKeys.map(ch => {
+    const cells: Record<string, ChannelDeliveryCell> = {}
+    let rowTotal = emptyCell()
+    for (const col of deliveryColumns) {
+      const cell = matrixMap.get(`${ch.key}|${col.key}`) ?? emptyCell()
+      cells[col.key] = cell
+      rowTotal = addCells(rowTotal, cell)
+    }
+    return {
+      channel:       ch.key,
+      channelLabel:  ch.label,
+      channelColor:  ch.color,
+      channelGroup:  ch.group,
+      cells,
+      rowTotal,
+    }
+  })
+
+  // Filtra linhas sem dados pra não poluir
+  const matrixRowsWithData = matrixRows.filter(r => r.rowTotal.count > 0)
+
+  const columnTotals: Record<string, ChannelDeliveryCell> = {}
+  let grandTotal = emptyCell()
+  for (const col of deliveryColumns) {
+    let total = emptyCell()
+    for (const r of matrixRowsWithData) total = addCells(total, r.cells[col.key])
+    columnTotals[col.key] = total
+    grandTotal = addCells(grandTotal, total)
+  }
+
+  const channelDeliveryMatrix: ChannelDeliveryMatrix = {
+    deliveries:   deliveryColumns,
+    rows:         matrixRowsWithData,
+    columnTotals,
+    grandTotal,
+  }
+
   return {
     period,
     sinceIso,
@@ -378,6 +478,7 @@ export async function getChannelAnalytics(period: ChannelAnalyticsPeriod = '30d'
       }))
       .sort((a, b) => b.cents - a.cents),
     channels,
+    channelDeliveryMatrix,
     daily,
   }
 }

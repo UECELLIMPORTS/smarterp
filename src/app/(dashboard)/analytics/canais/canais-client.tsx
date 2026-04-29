@@ -133,6 +133,9 @@ export function CanaisClient({ data, origins, inferredOrigins, originChannelMatr
       {/* Modalidade de entrega */}
       <DeliveryBreakdownCard data={data} />
 
+      {/* Cruzamento Canal × Tipo de Entrega */}
+      <ChannelDeliveryMatrixSection data={data} />
+
       {/* Break-even da loja física */}
       <BreakEvenSection
         data={data}
@@ -726,6 +729,139 @@ function ToggleGroup<T extends string>({
             </button>
           )
         })}
+      </div>
+    </div>
+  )
+}
+
+function ChannelDeliveryMatrixSection({ data }: { data: ChannelAnalytics }) {
+  const m = data.channelDeliveryMatrix
+  if (!m.rows.length || m.grandTotal.count === 0) return null
+
+  // Esconde colunas com 0 em todas as linhas pra não poluir
+  const visibleCols = m.deliveries.filter(col => (m.columnTotals[col.key]?.count ?? 0) > 0)
+  if (visibleCols.length === 0) return null
+
+  return (
+    <div className="rounded-2xl border" style={{ background: '#1B2638', borderColor: '#2A3650' }}>
+      <div className="border-b px-6 py-4" style={{ borderColor: '#2A3650' }}>
+        <div className="flex items-center gap-2">
+          <div className="h-4 w-1 rounded-full" style={{ background: '#06B6D4' }} />
+          <h2 className="text-base font-semibold text-text">Canal × Tipo de Entrega</h2>
+        </div>
+        <p className="mt-1 text-xs text-muted">
+          Resposta exata pra <em>&quot;quantos do WhatsApp vêm retirar na loja vs receber por delivery?&quot;</em>.
+          Cada célula mostra <strong>vendas / faturamento / lucro</strong>.
+        </p>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr style={{ background: 'rgba(15,23,42,.5)' }}>
+              <th className="sticky left-0 px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted"
+                  style={{ background: 'rgba(15,23,42,.95)' }}>
+                Canal
+              </th>
+              {visibleCols.map(col => (
+                <th key={col.key} className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted">
+                  {col.label}
+                </th>
+              ))}
+              <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider"
+                  style={{ color: '#10B981' }}>
+                Total do canal
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {m.rows.map(row => (
+              <tr key={row.channel} className="border-t" style={{ borderColor: '#2A3650' }}>
+                <td className="sticky left-0 px-4 py-3 text-text"
+                    style={{ background: '#1B2638' }}>
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full shrink-0" style={{ background: row.channelColor }} />
+                    <span className="font-medium">{row.channelLabel}</span>
+                  </div>
+                </td>
+                {visibleCols.map(col => {
+                  const cell = row.cells[col.key]
+                  const empty = !cell || cell.count === 0
+                  return (
+                    <td key={col.key} className="px-4 py-3 text-right" style={{ color: empty ? '#3A4868' : '#E2E8F0' }}>
+                      {empty ? (
+                        <span>—</span>
+                      ) : (
+                        <div className="space-y-0.5">
+                          <div className="text-[11px] uppercase tracking-wide" style={{ color: '#94A3B8' }}>
+                            {cell.count} {cell.count === 1 ? 'venda' : 'vendas'}
+                          </div>
+                          <div className="font-semibold">{BRL(cell.revenueCents)}</div>
+                          <div className="text-xs" style={{ color: cell.profitCents >= 0 ? '#10B981' : '#EF4444' }}>
+                            Lucro {BRL(cell.profitCents)}
+                          </div>
+                        </div>
+                      )}
+                    </td>
+                  )
+                })}
+                <td className="px-4 py-3 text-right">
+                  {row.rowTotal.count === 0 ? (
+                    <span style={{ color: '#3A4868' }}>—</span>
+                  ) : (
+                    <div className="space-y-0.5">
+                      <div className="text-[11px] uppercase tracking-wide" style={{ color: '#94A3B8' }}>
+                        {row.rowTotal.count} {row.rowTotal.count === 1 ? 'venda' : 'vendas'}
+                      </div>
+                      <div className="font-bold" style={{ color: '#10B981' }}>{BRL(row.rowTotal.revenueCents)}</div>
+                      <div className="text-xs" style={{ color: row.rowTotal.profitCents >= 0 ? '#10B981' : '#EF4444' }}>
+                        Lucro {BRL(row.rowTotal.profitCents)}
+                      </div>
+                    </div>
+                  )}
+                </td>
+              </tr>
+            ))}
+            {/* Linha de totais por coluna */}
+            <tr className="border-t" style={{ borderColor: '#2A3650', background: 'rgba(15,23,42,.5)' }}>
+              <td className="sticky left-0 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-muted"
+                  style={{ background: 'rgba(15,23,42,.95)' }}>
+                Total da entrega
+              </td>
+              {visibleCols.map(col => {
+                const total = m.columnTotals[col.key] ?? { count: 0, revenueCents: 0, profitCents: 0 }
+                return (
+                  <td key={col.key} className="px-4 py-3 text-right">
+                    {total.count === 0 ? (
+                      <span style={{ color: '#3A4868' }}>—</span>
+                    ) : (
+                      <div className="space-y-0.5">
+                        <div className="text-[11px] uppercase tracking-wide" style={{ color: '#94A3B8' }}>
+                          {total.count} {total.count === 1 ? 'venda' : 'vendas'}
+                        </div>
+                        <div className="font-bold text-text">{BRL(total.revenueCents)}</div>
+                        <div className="text-xs" style={{ color: total.profitCents >= 0 ? '#10B981' : '#EF4444' }}>
+                          Lucro {BRL(total.profitCents)}
+                        </div>
+                      </div>
+                    )}
+                  </td>
+                )
+              })}
+              <td className="px-4 py-3 text-right">
+                <div className="space-y-0.5">
+                  <div className="text-[11px] uppercase tracking-wide" style={{ color: '#94A3B8' }}>
+                    {m.grandTotal.count} {m.grandTotal.count === 1 ? 'venda' : 'vendas'}
+                  </div>
+                  <div className="font-bold" style={{ color: '#10B981' }}>{BRL(m.grandTotal.revenueCents)}</div>
+                  <div className="text-xs" style={{ color: m.grandTotal.profitCents >= 0 ? '#10B981' : '#EF4444' }}>
+                    Lucro {BRL(m.grandTotal.profitCents)}
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
   )
