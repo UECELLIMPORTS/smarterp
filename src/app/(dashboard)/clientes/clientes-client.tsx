@@ -209,24 +209,27 @@ function CustomerModal({
 
     setSaving(true)
     try {
-      let result: Awaited<ReturnType<typeof createCustomer>>
-      if (mode === 'edit' && editId) {
-        result = await updateCustomer({ ...form, id: editId, clienteSince: form.clienteSince })
-      } else {
-        result = await createCustomer(form)
+      const result = mode === 'edit' && editId
+        ? await updateCustomer({ ...form, id: editId, clienteSince: form.clienteSince })
+        : await createCustomer(form)
+
+      if (!result.ok) {
+        toast.error(result.error)
+        return
       }
+      const customer = result.customer
 
       const creditCents = Math.round(parseFloat(form.creditLimitStr.replace(',', '.') || '0') * 100) || 0
       const resolvedCreatedAt = mode === 'edit' && form.clienteSince
         ? form.clienteSince + 'T00:00:00.000Z'
         : (originalCreatedAt ?? new Date().toISOString())
       const row: CustomerRow = {
-        id: result.id, full_name: result.full_name,
+        id: customer.id, full_name: customer.full_name,
         trade_name: form.tradeName || null, person_type: form.personType,
-        cpf_cnpj: result.cpf_cnpj, ie_rg: form.ieRg || null,
+        cpf_cnpj: customer.cpf_cnpj, ie_rg: form.ieRg || null,
         is_active: form.isActive,
-        whatsapp: result.whatsapp, phone: form.phone.replace(/\D/g, '') || null,
-        email: result.email, nfe_email: form.nfeEmail || null, website: form.website || null,
+        whatsapp: customer.whatsapp, phone: form.phone.replace(/\D/g, '') || null,
+        email: customer.email, nfe_email: form.nfeEmail || null, website: form.website || null,
         birth_date: form.birthDate || null, gender: form.gender || null,
         marital_status: form.maritalStatus || null, profession: form.profession || null,
         father_name: form.fatherName || null, father_cpf: form.fatherCpf.replace(/\D/g, '') || null,

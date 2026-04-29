@@ -161,11 +161,16 @@ export async function getOrCreateConsumidorFinal(): Promise<Customer> {
   return data as Customer
 }
 
-export async function createCustomer(input: CreateCustomerInput): Promise<Customer> {
+export type CustomerResult =
+  | { ok: true;  customer: Customer }
+  | { ok: false; error: string }
+
+export async function createCustomer(input: CreateCustomerInput): Promise<CustomerResult> {
   const { supabase, user } = await requireAuth()
   const tenantId = getTenantId(user)
 
-  // Duplicate CPF check
+  // Duplicate CPF check (returns error result em vez de throw — Next 16 mascara
+  // throw em produção e mostra mensagem genérica "Server Components render")
   const cpfDigits = input.cpf.replace(/\D/g, '')
   if (cpfDigits) {
     const { data: dups } = await supabase
@@ -174,7 +179,7 @@ export async function createCustomer(input: CreateCustomerInput): Promise<Custom
       .eq('tenant_id', tenantId)
       .eq('cpf_cnpj', cpfDigits)
       .limit(1)
-    if (dups && dups.length > 0) throw new Error(`CPF já cadastrado para: ${dups[0].full_name}`)
+    if (dups && dups.length > 0) return { ok: false, error: `CPF já cadastrado para: ${dups[0].full_name}` }
   }
 
   // Duplicate WhatsApp check
@@ -186,7 +191,7 @@ export async function createCustomer(input: CreateCustomerInput): Promise<Custom
       .eq('tenant_id', tenantId)
       .eq('whatsapp', whatsDigits)
       .limit(1)
-    if (dups && dups.length > 0) throw new Error(`WhatsApp já cadastrado para: ${dups[0].full_name}`)
+    if (dups && dups.length > 0) return { ok: false, error: `WhatsApp já cadastrado para: ${dups[0].full_name}` }
   }
 
   const creditCents = Math.round(parseFloat(input.creditLimitStr.replace(',', '.') || '0') * 100) || 0
@@ -231,11 +236,11 @@ export async function createCustomer(input: CreateCustomerInput): Promise<Custom
     .select('id, full_name, cpf_cnpj, whatsapp, email, origin, campaign_code')
     .single()
 
-  if (error) throw new Error(error.message)
-  return data as Customer
+  if (error) return { ok: false, error: error.message }
+  return { ok: true, customer: data as Customer }
 }
 
-export async function updateCustomer(input: UpdateCustomerInput): Promise<Customer> {
+export async function updateCustomer(input: UpdateCustomerInput): Promise<CustomerResult> {
   const { supabase, user } = await requireAuth()
   const tenantId = getTenantId(user)
 
@@ -251,7 +256,7 @@ export async function updateCustomer(input: UpdateCustomerInput): Promise<Custom
       .eq('cpf_cnpj', cpfDigits)
       .neq('id', input.id)
       .limit(1)
-    if (dups && dups.length > 0) throw new Error(`CPF já cadastrado para: ${dups[0].full_name}`)
+    if (dups && dups.length > 0) return { ok: false, error: `CPF já cadastrado para: ${dups[0].full_name}` }
   }
 
   // Duplicate WhatsApp check (exclude self)
@@ -263,7 +268,7 @@ export async function updateCustomer(input: UpdateCustomerInput): Promise<Custom
       .eq('whatsapp', whatsDigits)
       .neq('id', input.id)
       .limit(1)
-    if (dups && dups.length > 0) throw new Error(`WhatsApp já cadastrado para: ${dups[0].full_name}`)
+    if (dups && dups.length > 0) return { ok: false, error: `WhatsApp já cadastrado para: ${dups[0].full_name}` }
   }
 
   const creditCents = Math.round(parseFloat(input.creditLimitStr.replace(',', '.') || '0') * 100) || 0
@@ -310,8 +315,8 @@ export async function updateCustomer(input: UpdateCustomerInput): Promise<Custom
     .select('id, full_name, cpf_cnpj, whatsapp, email, origin, campaign_code')
     .single()
 
-  if (error) throw new Error(error.message)
-  return data as Customer
+  if (error) return { ok: false, error: error.message }
+  return { ok: true, customer: data as Customer }
 }
 
 export async function updateCustomerCampaignCode(id: string, code: string): Promise<{ ok: true }> {

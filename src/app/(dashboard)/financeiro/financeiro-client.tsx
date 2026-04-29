@@ -851,7 +851,12 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
     if (!esNc.name.trim()) { toast.error('Nome é obrigatório'); return }
     setSavingEsCust(true)
     try {
-      const c = await createCustomer(esNc)
+      const result = await createCustomer(esNc)
+      if (!result.ok) {
+        toast.error(result.error)
+        return
+      }
+      const c = result.customer
       setEsCustomerId(c.id); setEsCustomerName(c.full_name)
       setEsShowCustForm(false); setEsCustQuery(''); setEsNc(EMPTY_NC)
       toast.success('Cliente cadastrado e vinculado!')
@@ -973,8 +978,12 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
     if (!nc.name.trim()) { toast.error('Nome é obrigatório'); return }
     setSavingCust(true)
     try {
-      const c = await createCustomer(nc)
-      setCustomer(c); setShowCustForm(false); setCustQuery(''); toast.success('Cliente cadastrado!')
+      const result = await createCustomer(nc)
+      if (!result.ok) {
+        toast.error(result.error)
+        return
+      }
+      setCustomer(result.customer); setShowCustForm(false); setCustQuery(''); toast.success('Cliente cadastrado!')
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erro ao cadastrar')
     } finally { setSavingCust(false) }

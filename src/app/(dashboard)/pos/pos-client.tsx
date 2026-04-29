@@ -263,8 +263,12 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
     if (!nc.origin)      { toast.error('Informe como o cliente te conheceu'); return }
     setSavingCustomer(true)
     try {
-      const c = await createCustomer(nc)
-      setCustomer(c); setShowForm(false); setSearchQuery('')
+      const result = await createCustomer(nc)
+      if (!result.ok) {
+        toast.error(result.error)
+        return
+      }
+      setCustomer(result.customer); setShowForm(false); setSearchQuery('')
       toast.success('Cliente cadastrado!')
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erro ao cadastrar cliente')
