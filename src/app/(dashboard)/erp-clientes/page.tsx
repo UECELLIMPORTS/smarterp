@@ -161,7 +161,7 @@ export default async function ErpClientesPage({
 
   const [salesPeriodRes, osPeriodRes, salesMonthRes, osMonthRes] = await Promise.all([
     sb.from('sales')
-      .select('customer_id, total_cents, created_at, sale_items(quantity, unit_price_cents, product_id, cost_snapshot_cents), customers(full_name, created_at, origin, whatsapp, phone)')
+      .select('customer_id, total_cents, created_at, customer_origin, sale_items(quantity, unit_price_cents, product_id, cost_snapshot_cents), customers(full_name, created_at, origin, whatsapp, phone)')
       .eq('tenant_id', tenantId)
       .gte('created_at', start.toISOString())
       .lte('created_at', end.toISOString())
@@ -179,7 +179,7 @@ export default async function ErpClientesPage({
       .limit(1000),
 
     sb.from('sales')
-      .select('customer_id, total_cents, created_at, sale_items(quantity, product_id, cost_snapshot_cents), customers(full_name, created_at, origin, whatsapp, phone)')
+      .select('customer_id, total_cents, created_at, customer_origin, sale_items(quantity, product_id, cost_snapshot_cents), customers(full_name, created_at, origin, whatsapp, phone)')
       .eq('tenant_id', tenantId)
       .gte('created_at', sixAgo.toISOString())
       .neq('status', 'cancelled')
@@ -196,7 +196,7 @@ export default async function ErpClientesPage({
   // ── Process period data ─────────────────────────────────────────────────
   type SaleItemPeriod = { quantity: number; unit_price_cents: number; product_id: string | null; cost_snapshot_cents: number | null }
   type CustomerJoinPeriod = { full_name: string; created_at: string; origin: string|null; whatsapp: string|null; phone: string|null }
-  type SalePeriod = { customer_id: string|null; total_cents: number; created_at: string; sale_items: SaleItemPeriod[]|null; customers: CustomerJoinPeriod|null }
+  type SalePeriod = { customer_id: string|null; total_cents: number; created_at: string; customer_origin: string|null; sale_items: SaleItemPeriod[]|null; customers: CustomerJoinPeriod|null }
   type OsPeriod   = { customer_id: string|null; total_price_cents: number|null; service_price_cents: number|null; parts_sale_cents: number|null; parts_cost_cents: number|null; discount_cents: number|null; received_at: string; customers: CustomerJoinPeriod|null }
 
   const salesPeriodData = (salesPeriodRes.data ?? []) as SalePeriod[]
@@ -206,7 +206,7 @@ export default async function ErpClientesPage({
   // products OU parts_catalog, então busco nas duas tabelas em paralelo.
   type MonthSaleItem = { quantity: number; product_id: string | null; cost_snapshot_cents: number | null }
   type CustomerJoin = { full_name: string; created_at: string; origin: string|null; whatsapp: string|null; phone: string|null }
-  type MonthSaleRow = { customer_id: string|null; total_cents: number; created_at: string; sale_items: MonthSaleItem[]|null; customers: CustomerJoin|null }
+  type MonthSaleRow = { customer_id: string|null; total_cents: number; created_at: string; customer_origin: string|null; sale_items: MonthSaleItem[]|null; customers: CustomerJoin|null }
   type MonthOsRow   = { customer_id: string|null; total_price_cents: number|null; service_price_cents: number|null; parts_sale_cents: number|null; parts_cost_cents: number|null; discount_cents: number|null; received_at: string; customers: CustomerJoin|null }
 
   const salesMonthData = (salesMonthRes.data ?? []) as MonthSaleRow[]
@@ -259,7 +259,7 @@ export default async function ErpClientesPage({
         customerId: s.customer_id,
         name: s.customers?.full_name ?? 'Sem cliente',
         createdAt: s.customers?.created_at ?? null,
-        origin: s.customers?.origin ?? null,
+        origin: s.customer_origin ?? s.customers?.origin ?? null,
         whatsapp: s.customers?.whatsapp ?? null,
         phone: s.customers?.phone ?? null,
         totalCents,
@@ -496,7 +496,7 @@ export default async function ErpClientesPage({
         createdAt: s.customers?.created_at ?? null,
         whatsapp: s.customers?.whatsapp ?? null,
         phone: s.customers?.phone ?? null,
-        origin: s.customers?.origin ?? null,
+        origin: s.customer_origin ?? s.customers?.origin ?? null,
         totalCents: total,
         profitCents: total - cost,
         date: new Date(s.created_at),

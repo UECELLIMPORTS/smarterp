@@ -97,6 +97,10 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
   const [method, setMethod] = useState<PaymentMethod>('pix')
   const [saleChannel, setSaleChannel]   = useState<SaleChannel | ''>('')
   const [deliveryType, setDeliveryType] = useState<DeliveryType | ''>('')
+  // Origem da venda — só usado quando cliente é Consumidor Final (vendas
+  // anônimas precisam declarar origem na sale, pq o cliente padrão é compartilhado).
+  // Default 'passou_na_porta' porque é 99% dos casos em loja física.
+  const [consumerOrigin, setConsumerOrigin] = useState<string>('passou_na_porta')
   const [mxCash, setMxCash] = useState('')
   const [mxPix, setMxPix]   = useState('')
   const [mxCard, setMxCard] = useState('')
@@ -316,6 +320,7 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
           : null,
         saleChannel:    saleChannel  || null,
         deliveryType:   deliveryType || null,
+        customerOrigin: isDefault ? (consumerOrigin || null) : null,
         items: cart.map(i => ({
           productId:      i.productId,
           source:         i.source,
@@ -329,6 +334,7 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
       setCart([]); setShipping(''); setDiscount('')
       setMethod('pix'); setMxCash(''); setMxPix(''); setMxCard('')
       setSaleChannel(''); setDeliveryType('')
+      setConsumerOrigin('passou_na_porta')
       setCustomer(consumidorFinal)
     } catch { toast.error('Erro ao finalizar venda') }
     finally { setFinalizing(false) }
@@ -973,6 +979,30 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
               ))}
             </select>
+
+            {/* Origem da venda — só pra Consumidor Final (vendas anônimas) */}
+            {isDefault && (
+              <>
+                <div className="pt-2 border-t" style={{ borderColor: '#2A3650' }}>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: '#94A3B8' }}>
+                    Onde nos conheceu?
+                  </p>
+                  <select
+                    value={consumerOrigin}
+                    onChange={e => setConsumerOrigin(e.target.value)}
+                    className={inputCls + ' text-xs'}
+                    style={{ ...inputStyle, appearance: 'none' }}
+                  >
+                    {CUSTOMER_ORIGIN_OPTIONS.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                  <p className="mt-1 text-[10px]" style={{ color: '#64748B' }}>
+                    Ajuda a saber quantos clientes vêm de cada canal — entra nos relatórios de origem mesmo sem cadastrar o cliente.
+                  </p>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Finalize */}

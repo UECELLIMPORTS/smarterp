@@ -531,7 +531,7 @@ export async function getOriginAnalytics(period: ChannelAnalyticsPeriod = '30d')
 
   const [salesRes, osRes] = await Promise.all([
     sb.from('sales')
-      .select('customer_id, total_cents, customers(origin)')
+      .select('customer_id, total_cents, customer_origin, customers(origin)')
       .eq('tenant_id', tenantId)
       .gte('created_at', sinceIso)
       .neq('status', 'cancelled')
@@ -544,7 +544,7 @@ export async function getOriginAnalytics(period: ChannelAnalyticsPeriod = '30d')
       .limit(20000),
   ])
 
-  type SaleRow = { customer_id: string | null; total_cents: number; customers: { origin: string | null } | null }
+  type SaleRow = { customer_id: string | null; total_cents: number; customer_origin: string | null; customers: { origin: string | null } | null }
   type OsRow   = { customer_id: string | null; total_price_cents: number|null; service_price_cents: number|null; parts_sale_cents: number|null; discount_cents: number|null; customers: { origin: string | null } | null }
 
   const byOrigin = new Map<string, { customers: Set<string>; transactions: number; totalCents: number }>()
@@ -559,7 +559,10 @@ export async function getOriginAnalytics(period: ChannelAnalyticsPeriod = '30d')
   }
 
   for (const s of (salesRes.data ?? []) as SaleRow[]) {
-    bump(s.customers?.origin ?? null, s.customer_id, s.total_cents ?? 0)
+    // COALESCE: prioriza origem da venda (preenchida no PDV pra Consumidor
+    // Final), fallback pro origin do cliente cadastrado.
+    const origin = s.customer_origin ?? s.customers?.origin ?? null
+    bump(origin, s.customer_id, s.total_cents ?? 0)
   }
   for (const o of (osRes.data ?? []) as OsRow[]) {
     const v = o.total_price_cents
@@ -614,7 +617,7 @@ export async function getInferredOriginAnalytics(period: ChannelAnalyticsPeriod 
 
   const [salesRes, osRes] = await Promise.all([
     sb.from('sales')
-      .select('customer_id, total_cents, sale_channel, customers(origin)')
+      .select('customer_id, total_cents, sale_channel, customer_origin, customers(origin)')
       .eq('tenant_id', tenantId)
       .gte('created_at', sinceIso)
       .neq('status', 'cancelled')
@@ -627,7 +630,7 @@ export async function getInferredOriginAnalytics(period: ChannelAnalyticsPeriod 
       .limit(20000),
   ])
 
-  type SaleRow = { customer_id: string | null; total_cents: number; sale_channel: string | null; customers: { origin: string | null } | null }
+  type SaleRow = { customer_id: string | null; total_cents: number; sale_channel: string | null; customer_origin: string | null; customers: { origin: string | null } | null }
   type OsRow   = { customer_id: string | null; total_price_cents: number|null; service_price_cents: number|null; parts_sale_cents: number|null; discount_cents: number|null; sale_channel: string | null; customers: { origin: string | null } | null }
 
   const byChannel = new Map<string, { transactions: number; totalCents: number }>()
@@ -642,8 +645,8 @@ export async function getInferredOriginAnalytics(period: ChannelAnalyticsPeriod 
   }
 
   for (const s of (salesRes.data ?? []) as SaleRow[]) {
-    // Só conta se NÃO tiver origem real cadastrada
-    if (s.customers?.origin) continue
+    // Só conta se NÃO tiver origem real (do cliente OU declarada na venda)
+    if (s.customers?.origin || s.customer_origin) continue
     bump(s.sale_channel, s.total_cents ?? 0)
   }
   for (const o of (osRes.data ?? []) as OsRow[]) {
@@ -698,7 +701,7 @@ export async function getOriginChannelMatrix(period: ChannelAnalyticsPeriod = '3
 
   const [salesRes, osRes] = await Promise.all([
     sb.from('sales')
-      .select('total_cents, sale_channel, customers(origin)')
+      .select('total_cents, sale_channel, customer_origin, customers(origin)')
       .eq('tenant_id', tenantId)
       .gte('created_at', sinceIso)
       .neq('status', 'cancelled')
@@ -711,7 +714,7 @@ export async function getOriginChannelMatrix(period: ChannelAnalyticsPeriod = '3
       .limit(20000),
   ])
 
-  type SaleRow = { total_cents: number; sale_channel: string | null; customers: { origin: string | null } | null }
+  type SaleRow = { total_cents: number; sale_channel: string | null; customer_origin: string | null; customers: { origin: string | null } | null }
   type OsRow   = { total_price_cents: number|null; service_price_cents: number|null; parts_sale_cents: number|null; discount_cents: number|null; sale_channel: string | null; customers: { origin: string | null } | null }
 
   const cellMap = new Map<string, { totalCents: number; transactions: number }>()
@@ -734,7 +737,8 @@ export async function getOriginChannelMatrix(period: ChannelAnalyticsPeriod = '3
   }
 
   for (const s of (salesRes.data ?? []) as SaleRow[]) {
-    bump(s.customers?.origin ?? null, s.sale_channel, s.total_cents ?? 0)
+    // COALESCE: origem da venda > origem do cliente
+    bump(s.customer_origin ?? s.customers?.origin ?? null, s.sale_channel, s.total_cents ?? 0)
   }
   for (const o of (osRes.data ?? []) as OsRow[]) {
     const v = o.total_price_cents

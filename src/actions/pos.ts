@@ -63,6 +63,7 @@ export type CreateSaleInput = {
   items: SaleItem[]
   saleChannel?: string | null   // whatsapp | instagram_dm | delivery_online | fisica_balcao | fisica_retirada | outro
   deliveryType?: string | null  // counter | pickup | shipping
+  customerOrigin?: string | null // sobrepõe customer.origin (usado pra Consumidor Final)
 }
 
 // ── Actions ───────────────────────────────────────────────────────────────────
@@ -403,6 +404,7 @@ export async function createSale(input: CreateSaleInput): Promise<{ id: string }
       payment_details: input.paymentDetails,
       sale_channel:    input.saleChannel  ?? null,
       delivery_type:   input.deliveryType ?? null,
+      customer_origin: input.customerOrigin ?? null,
       cash_session_id: activeSession?.id ?? null,
     })
     .select('id')
