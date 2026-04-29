@@ -26,7 +26,7 @@ import {
 import { AddressCityState } from '@/components/ui/address-fields'
 import { CUSTOMER_ORIGIN_OPTIONS, originLabel } from '@/lib/customer-origin'
 import { CampaignCodePicker } from '@/components/meta-ads/campaign-code-picker'
-import { SALE_CHANNEL_OPTIONS_PICKABLE, DELIVERY_TYPE_OPTIONS, type SaleChannel, type DeliveryType } from '@/lib/sale-channels'
+import { SALE_CHANNEL_OPTIONS_PICKABLE, DELIVERY_TYPE_OPTIONS, channelLabel, channelColor, deliveryLabel, type SaleChannel, type DeliveryType } from '@/lib/sale-channels'
 import { updateServiceOrderChannel, updateSaleChannel } from '@/actions/sales-channels'
 import { emitNfceFromSale } from '@/actions/fiscal-emit'
 import {
@@ -42,6 +42,7 @@ export type FinanceiroRow = {
   date: Date; dateStr: string; customerName: string; description: string
   payment: string | null; osStatus: string | null; cancelled: boolean
   discount: number; total: number
+  profit: number    // total - custo (snapshot dos itens / parts_cost_cents)
   clienteType: 'novo' | 'recorrente' | null
   // ERP-only (for edit modal)
   customerId?: string | null
@@ -191,6 +192,16 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
   const [fromDate, setFromDate]         = useState('')
   const [toDate, setToDate]             = useState('')
   const [filterCustomer, setFilterCustomer] = useState('')
+  // Multi-select de canais e tipos de entrega (vazio = todos)
+  const [filterChannels, setFilterChannels]    = useState<string[]>([])
+  const [filterDeliveries, setFilterDeliveries] = useState<string[]>([])
+
+  function toggleChannel(c: string) {
+    setFilterChannels(prev => prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c])
+  }
+  function toggleDelivery(d: string) {
+    setFilterDeliveries(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d])
+  }
 
   // Modal editar venda cancelada (ERP) — formulário completo
   const [esRow, setEsRow]                     = useState<FinanceiroRow | null>(null)
@@ -389,8 +400,14 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
         r.description.toLowerCase().includes(q),
       )
     }
+    if (filterChannels.length > 0) {
+      result = result.filter(r => filterChannels.includes(r.saleChannel ?? '__none__'))
+    }
+    if (filterDeliveries.length > 0) {
+      result = result.filter(r => filterDeliveries.includes(r.deliveryType ?? '__none__'))
+    }
     return result
-  }, [rows, period, fromDate, toDate, filterCustomer])
+  }, [rows, period, fromDate, toDate, filterCustomer, filterChannels, filterDeliveries])
 
   const selectedRows      = rows.filter(r => selected.has(r.id))
   const selectedErpIds    = selectedRows.filter(r => r.source === 'erp').map(r => r.rawId)
@@ -1113,6 +1130,99 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
             </div>
           </div>
         )}
+
+        {/* Filtros: Canal de venda */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-[11px] font-medium uppercase tracking-wider text-muted mr-1">Canal:</span>
+          {SALE_CHANNEL_OPTIONS_PICKABLE.map(opt => {
+            const active = filterChannels.includes(opt.value)
+            return (
+              <button key={opt.value} onClick={() => toggleChannel(opt.value)}
+                className="rounded-full border px-2.5 py-1 text-[11px] font-medium transition-all flex items-center gap-1"
+                style={active
+                  ? { background: `${opt.color}22`, borderColor: opt.color, color: opt.color }
+                  : { borderColor: '#2A3650', color: '#94A3B8' }}>
+                <span className="h-1.5 w-1.5 rounded-full" style={{ background: opt.color }} />
+                {opt.label}
+              </button>
+            )
+          })}
+          <button onClick={() => toggleChannel('__none__')}
+            className="rounded-full border px-2.5 py-1 text-[11px] font-medium transition-all"
+            style={filterChannels.includes('__none__')
+              ? { background: 'rgba(148,163,184,.18)', borderColor: '#94A3B8', color: '#94A3B8' }
+              : { borderColor: '#2A3650', color: '#64748B' }}>
+            Sem canal
+          </button>
+          {filterChannels.length > 0 && (
+            <button onClick={() => setFilterChannels([])}
+              className="ml-1 text-[10px] uppercase tracking-wider text-muted hover:text-text">
+              limpar
+            </button>
+          )}
+        </div>
+
+        {/* Filtros: Tipo de entrega */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-[11px] font-medium uppercase tracking-wider text-muted mr-1">Entrega:</span>
+          {DELIVERY_TYPE_OPTIONS.map(opt => {
+            const active = filterDeliveries.includes(opt.value)
+            return (
+              <button key={opt.value} onClick={() => toggleDelivery(opt.value)}
+                className="rounded-full border px-2.5 py-1 text-[11px] font-medium transition-all"
+                style={active
+                  ? { background: 'rgba(6,182,212,.15)', borderColor: '#06B6D4', color: '#06B6D4' }
+                  : { borderColor: '#2A3650', color: '#94A3B8' }}>
+                {opt.label}
+              </button>
+            )
+          })}
+          <button onClick={() => toggleDelivery('__none__')}
+            className="rounded-full border px-2.5 py-1 text-[11px] font-medium transition-all"
+            style={filterDeliveries.includes('__none__')
+              ? { background: 'rgba(148,163,184,.18)', borderColor: '#94A3B8', color: '#94A3B8' }
+              : { borderColor: '#2A3650', color: '#64748B' }}>
+            Sem entrega
+          </button>
+          {filterDeliveries.length > 0 && (
+            <button onClick={() => setFilterDeliveries([])}
+              className="ml-1 text-[10px] uppercase tracking-wider text-muted hover:text-text">
+              limpar
+            </button>
+          )}
+        </div>
+
+        {/* Resumo do filtro: total + lucro do conjunto filtrado */}
+        {(filterChannels.length > 0 || filterDeliveries.length > 0 || period !== 'all' || filterCustomer.trim()) && filteredRows.length > 0 && (
+          <div className="flex flex-wrap items-center gap-4 rounded-lg border px-4 py-2.5"
+               style={{ background: 'rgba(16,185,129,.05)', borderColor: 'rgba(16,185,129,.25)' }}>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] uppercase tracking-wider text-muted">Resultado:</span>
+              <span className="text-sm font-bold text-text">
+                {filteredRows.filter(r => !r.cancelled).length} venda(s)
+              </span>
+            </div>
+            <span className="text-zinc-600">·</span>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] uppercase tracking-wider text-muted">Faturamento:</span>
+              <span className="text-sm font-bold" style={{ color: '#10B981' }}>
+                {BRL(filteredRows.filter(r => !r.cancelled).reduce((s, r) => s + r.total, 0))}
+              </span>
+            </div>
+            <span className="text-zinc-600">·</span>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] uppercase tracking-wider text-muted">Lucro:</span>
+              {(() => {
+                const profit = filteredRows.filter(r => !r.cancelled).reduce((s, r) => s + (r.profit || 0), 0)
+                return (
+                  <span className="text-sm font-bold" style={{ color: profit >= 0 ? '#10B981' : '#EF4444' }}>
+                    {BRL(profit)}
+                  </span>
+                )
+              })()}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Table — sem overflow-hidden no wrapper pra não cortar o dropdown
@@ -1150,12 +1260,15 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
           <>
             {/* Header: só desktop (mobile usa cards) */}
             <div className="hidden md:grid gap-4 px-5 py-3 border-b text-xs font-medium uppercase tracking-wider text-muted"
-              style={{ borderColor: '#2A3650', gridTemplateColumns: '32px 90px 1fr 150px 110px 100px 110px 40px' }}>
+              style={{ borderColor: '#2A3650', gridTemplateColumns: '32px 90px 1fr 130px 140px 100px 100px 100px 40px' }}>
               <input type="checkbox" checked={allSelected} onChange={toggleAll}
                 className="h-4 w-4 rounded accent-accent cursor-pointer" />
               <span>Origem</span><span>Cliente / Descrição</span><span>Data</span>
-              <span>Pagamento</span><span className="text-right">Desconto</span>
-              <span className="text-right">Total</span><span />
+              <span>Canal · Entrega</span>
+              <span>Pagamento</span>
+              <span className="text-right">Total</span>
+              <span className="text-right">Lucro</span>
+              <span />
             </div>
             {/* Mobile: header simples com seleção em massa */}
             <div className="md:hidden flex items-center gap-3 px-4 py-3 border-b" style={{ borderColor: '#2A3650' }}>
@@ -1208,13 +1321,18 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                       </div>
                       <div className="flex flex-col items-end gap-1 shrink-0">
                         <p className={`text-base font-bold ${row.cancelled ? 'line-through text-muted' : 'text-green'}`}>{BRL(row.total)}</p>
+                        {!row.cancelled && (
+                          <p className="text-[10px]" style={{ color: row.profit >= 0 ? '#10B981' : '#EF4444' }}>
+                            Lucro {BRL(row.profit ?? 0)}
+                          </p>
+                        )}
                         {row.discount > 0 && (
                           <p className="text-[10px] text-[#EF4444]">-{BRL(row.discount)}</p>
                         )}
                       </div>
                     </div>
                     <div className="flex items-center justify-between gap-2 text-[11px]">
-                      <div className="flex items-center gap-2 flex-wrap">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="text-muted">{row.dateStr}</span>
                         {row.payment ? (
                           <span className="inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-semibold"
@@ -1227,6 +1345,18 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                             {OS_STATUS_LABEL[row.osStatus] ?? row.osStatus}
                           </span>
                         ) : null}
+                        {row.saleChannel && (
+                          <span className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
+                            style={{ background: `${channelColor(row.saleChannel)}1A`, color: channelColor(row.saleChannel) }}>
+                            <span className="h-1 w-1 rounded-full" style={{ background: channelColor(row.saleChannel) }} />
+                            {channelLabel(row.saleChannel)}
+                          </span>
+                        )}
+                        {row.deliveryType && (
+                          <span className="text-[10px]" style={{ color: '#06B6D4' }}>
+                            → {deliveryLabel(row.deliveryType)}
+                          </span>
+                        )}
                       </div>
                       <button
                         type="button"
@@ -1239,7 +1369,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
 
                   {/* ── Desktop grid view ── (opacity individual pelo mesmo motivo) */}
                   <div className={`hidden md:grid gap-4 px-5 py-3.5 items-center transition-opacity ${row.cancelled ? 'opacity-60' : ''}`}
-                    style={{ gridTemplateColumns: '32px 90px 1fr 150px 110px 100px 110px 40px' }}>
+                    style={{ gridTemplateColumns: '32px 90px 1fr 130px 140px 100px 100px 100px 40px' }}>
                   <input type="checkbox" checked={selected.has(row.id)} onChange={() => toggleSelect(row.id)}
                     className="h-4 w-4 rounded accent-accent cursor-pointer" />
                   <div className="flex flex-col gap-1">
@@ -1270,6 +1400,20 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                     <p className="mt-0.5 text-xs text-muted truncate">{row.description}</p>
                   </div>
                   <p className="text-xs text-muted">{row.dateStr}</p>
+                  <div className="flex flex-col gap-0.5 min-w-0">
+                    {row.saleChannel ? (
+                      <span className="inline-flex w-fit items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                        style={{ background: `${channelColor(row.saleChannel)}1A`, color: channelColor(row.saleChannel) }}>
+                        <span className="h-1 w-1 rounded-full" style={{ background: channelColor(row.saleChannel) }} />
+                        {channelLabel(row.saleChannel)}
+                      </span>
+                    ) : <span className="text-[10px] text-muted">—</span>}
+                    {row.deliveryType && (
+                      <span className="text-[10px] truncate" style={{ color: '#06B6D4' }}>
+                        → {deliveryLabel(row.deliveryType)}
+                      </span>
+                    )}
+                  </div>
                   {row.payment ? (
                     <span className="inline-flex w-fit items-center rounded-md px-2 py-1 text-xs font-semibold"
                       style={{ background: `${pmColor}18`, color: pmColor }}>
@@ -1281,10 +1425,11 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                       {OS_STATUS_LABEL[row.osStatus] ?? row.osStatus}
                     </span>
                   ) : <span className="text-xs text-muted">—</span>}
-                  <p className="text-sm text-right" style={{ color: row.discount > 0 ? '#EF4444' : '#94A3B8' }}>
-                    {row.discount > 0 ? `- ${BRL(row.discount)}` : '—'}
-                  </p>
                   <p className={`text-sm font-bold text-right ${row.cancelled ? 'line-through text-muted' : 'text-green'}`}>{BRL(row.total)}</p>
+                  <p className={`text-sm font-bold text-right ${row.cancelled ? 'line-through text-muted' : ''}`}
+                    style={!row.cancelled ? { color: row.profit >= 0 ? '#10B981' : '#EF4444' } : {}}>
+                    {row.cancelled ? '—' : BRL(row.profit ?? 0)}
+                  </p>
                   <div className="flex items-center justify-center">
                     <button
                       type="button"
