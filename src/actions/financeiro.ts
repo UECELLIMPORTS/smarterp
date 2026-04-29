@@ -243,6 +243,7 @@ export type EditSaleInput = {
   saleDate:      string
   saleChannel?:  string | null
   deliveryType?: string | null
+  customerOrigin?: string | null  // só aplicado quando cliente é Consumidor Final
 }
 
 export async function updateCancelledSale(saleId: string, input: EditSaleInput): Promise<void> {
@@ -278,6 +279,7 @@ export async function updateCancelledSale(saleId: string, input: EditSaleInput):
       updated_at:     new Date().toISOString(),
       sale_channel:   input.saleChannel  ?? null,
       delivery_type:  input.deliveryType ?? null,
+      customer_origin: input.customerOrigin ?? null,
     })
     .eq('id', saleId)
     .eq('tenant_id', tenantId)

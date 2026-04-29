@@ -17,7 +17,7 @@ export default async function FinanceiroPage() {
       .from('sales')
       .select(`
         id, customer_id, total_cents, subtotal_cents, discount_cents, shipping_cents,
-        payment_method, status, created_at, sale_channel, delivery_type,
+        payment_method, status, created_at, sale_channel, delivery_type, customer_origin,
         customers ( full_name, cpf_cnpj, created_at ),
         sale_items ( name, quantity, unit_price_cents, product_id, cost_snapshot_cents )
       `)
@@ -44,6 +44,7 @@ export default async function FinanceiroPage() {
     discount_cents: number; shipping_cents: number
     payment_method: string; status: string; created_at: string
     sale_channel: string | null; delivery_type: string | null
+    customer_origin: string | null
     customers: { full_name: string; cpf_cnpj: string | null; created_at: string } | null
     sale_items: { name: string; quantity: number; unit_price_cents: number; product_id: string | null; cost_snapshot_cents: number | null }[]
   }
@@ -126,9 +127,10 @@ export default async function FinanceiroPage() {
       profit:       saleProfit(s),
       customerId:   s.customer_id ?? null,
       saleItems:    s.sale_items.map(i => ({ name: i.name, quantity: i.quantity, unitPriceCents: i.unit_price_cents })),
-      saleChannel:  s.sale_channel  ?? null,
-      deliveryType: s.delivery_type ?? null,
-      clienteType:  s.customer_id ? clienteType(s.customers?.created_at) : null,
+      saleChannel:    s.sale_channel    ?? null,
+      deliveryType:   s.delivery_type   ?? null,
+      customerOrigin: s.customer_origin ?? null,
+      clienteType:    s.customer_id ? clienteType(s.customers?.created_at) : null,
     })),
     ...orders.map(o => ({
       id:           `os-${o.id}`,

@@ -49,6 +49,7 @@ export type FinanceiroRow = {
   saleItems?: { name: string; quantity: number; unitPriceCents: number }[]
   saleChannel?: string | null
   deliveryType?: string | null
+  customerOrigin?: string | null
 }
 
 type CartItem = {
@@ -210,6 +211,8 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
   const [esPayMethod, setEsPayMethod]         = useState<string>('pix')
   const [esSaleChannel, setEsSaleChannel]     = useState<SaleChannel | ''>('')
   const [esDeliveryType, setEsDeliveryType]   = useState<DeliveryType | ''>('')
+  // Origem da venda — só editável quando cliente é Consumidor Final (ou sem cliente)
+  const [esConsumerOrigin, setEsConsumerOrigin] = useState<string>('passou_na_porta')
 
   // Reclassify channel modal (works for ERP sales AND CheckSmart OS)
   const [rcRow, setRcRow]                     = useState<FinanceiroRow | null>(null)
@@ -827,6 +830,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
     })))
     setEsSaleChannel((row.saleChannel as SaleChannel | undefined) ?? '')
     setEsDeliveryType((row.deliveryType as DeliveryType | undefined) ?? '')
+    setEsConsumerOrigin(row.customerOrigin ?? 'passou_na_porta')
     setEsPQuery(''); setEsMName(''); setEsMPrice(''); setEsMQty('1')
     setEsShowManual(false); setEsCustQuery(''); setEsCustDrop(false)
     setEsRow(row)
@@ -905,6 +909,9 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
   function doEditSale() {
     if (!esRow) return
     const row = esRow; setEsRow(null)
+    // Considera "Consumidor Final" pelo nome literal — esse é o registro fixo
+    // compartilhado. Em outros clientes, usa customer.origin direto.
+    const isConsumerFinal = (esCustomerName === 'Consumidor Final') || !esCustomerId
     startEsSave(async () => {
       try {
         const discountCents = parseCents(esDiscountStr)
@@ -916,6 +923,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
           saleDate:      esDate,
           saleChannel:   esSaleChannel  || null,
           deliveryType:  esDeliveryType || null,
+          customerOrigin: isConsumerFinal ? (esConsumerOrigin || null) : null,
         }
         await updateCancelledSale(row.rawId, input)
         const subtotal   = esCart.reduce((s, i) => s + i.unitPriceCents * i.quantity, 0)
@@ -924,15 +932,18 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
         const newDateStr = newDate.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })
         setRows(rs => rs.map(r => r.id === row.id ? {
           ...r,
-          date:         newDate,
-          dateStr:      newDateStr,
-          customerName: esCustomerName || 'Sem cliente',
-          description:  esCart.map(i => `${i.quantity}× ${i.name}`).join(', '),
-          payment:      esPayMethod,
-          discount:     discountCents,
-          total:        newTotal,
-          customerId:   esCustomerId,
-          saleItems:    esCart.map(i => ({ name: i.name, quantity: i.quantity, unitPriceCents: i.unitPriceCents })),
+          date:           newDate,
+          dateStr:        newDateStr,
+          customerName:   esCustomerName || 'Sem cliente',
+          description:    esCart.map(i => `${i.quantity}× ${i.name}`).join(', '),
+          payment:        esPayMethod,
+          discount:       discountCents,
+          total:          newTotal,
+          customerId:     esCustomerId,
+          saleItems:      esCart.map(i => ({ name: i.name, quantity: i.quantity, unitPriceCents: i.unitPriceCents })),
+          saleChannel:    esSaleChannel  || null,
+          deliveryType:   esDeliveryType || null,
+          customerOrigin: isConsumerFinal ? (esConsumerOrigin || null) : null,
         } : r))
         toast.success('Venda atualizada.')
       } catch (e) { toast.error(e instanceof Error ? e.message : 'Erro ao editar venda.') }
@@ -2048,6 +2059,28 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                     </select>
                   </div>
                 </div>
+
+                {/* Origem da venda — só pra Consumidor Final ou venda sem cliente.
+                    Quando há cliente cadastrado, a origem dele é usada nos relatórios. */}
+                {((esCustomerName === 'Consumidor Final') || !esCustomerId) && (
+                  <div className="rounded-lg border p-3" style={{ ...INP_S, background: 'rgba(168,139,250,.05)' }}>
+                    <label className="mb-1 block text-xs font-semibold" style={{ color: '#A78BFA' }}>
+                      Onde nos conheceu?
+                    </label>
+                    <select
+                      value={esConsumerOrigin}
+                      onChange={e => setEsConsumerOrigin(e.target.value)}
+                      className={INP} style={{ ...INP_S, appearance: 'none' }}
+                    >
+                      {CUSTOMER_ORIGIN_OPTIONS.map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                    <p className="mt-1 text-[11px] text-muted">
+                      Usado nos relatórios de origem mesmo sem cadastrar o cliente. Default: <strong>Passou na Porta</strong>.
+                    </p>
+                  </div>
+                )}
 
                 {esCart.length > 0 && (
                   <div className="rounded-lg border px-4 py-3 space-y-1" style={{ ...INP_S, background: '#1B2638' }}>
