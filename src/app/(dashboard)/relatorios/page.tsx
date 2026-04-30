@@ -7,6 +7,8 @@ import { originLabel } from '@/lib/customer-origin'
 import { RelatoriosClient } from './relatorios-client'
 import { getDetailedSalesReport, getProductsReport } from '@/actions/relatorios'
 import type { SalesReportData, ProductReportRow } from '@/actions/relatorios'
+import { getMonthlyFixedCostCents } from '@/actions/recurring-expenses'
+import { getVariableExpensesTotalCents } from '@/actions/variable-expenses'
 
 export type Tab = 'geral' | 'vendas' | 'produtos'
 
@@ -76,6 +78,11 @@ export type RelatoriosData = {
     marginPercent:   number
     transactions:    number
     uniqueCustomers: number
+    // Custos do período (estimados — fixos pro-rata + variáveis reais)
+    fixedCostCents:    number   // proporcional ao período (custo mensal fixo / 30 × dias)
+    variableCostCents: number   // soma dos gastos variáveis no período
+    netProfitCents:    number   // profit - fixedCost - variableCost
+    netMarginPercent:  number
   }
   origins:    OriginReportRow[]
   topClients: TopClientRow[]
@@ -246,6 +253,20 @@ export default async function RelatoriosPage({
   const resumoProfitCents = filtered.reduce((s, t) => s + t.profitCents, 0)
   const resumoCustomers   = new Set(filtered.filter(t => t.customerId).map(t => t.customerId as string))
 
+  // Custos do período pra calcular Lucro Líquido real:
+  //   - Fixed (recurring): custo mensal × (dias do período / 30)
+  //   - Variable: soma dos gastos variáveis no período
+  const periodDays = Math.max(1, Math.round((end.getTime() - start.getTime()) / 86400000) + 1)
+  const [monthlyFixedCents, variableCostCents] = await Promise.all([
+    getMonthlyFixedCostCents(),
+    getVariableExpensesTotalCents(start.toISOString().slice(0, 10), end.toISOString().slice(0, 10)),
+  ])
+  const fixedCostCents  = Math.round((monthlyFixedCents * periodDays) / 30)
+  const netProfitCents  = resumoProfitCents - fixedCostCents - variableCostCents
+  const netMarginPercent = resumoTotalCents > 0
+    ? Math.round((netProfitCents / resumoTotalCents) * 100)
+    : 0
+
   // Relatório por origem (sempre mostra todas, ignorando filtro de origem)
   const originMap = new Map<string, { totalCents: number; profitCents: number; tx: number; customers: Set<string> }>()
   const NO_ORIGIN = '__no_origin__'
@@ -347,6 +368,10 @@ export default async function RelatoriosPage({
       marginPercent:   resumoTotalCents > 0 ? Math.round((resumoProfitCents / resumoTotalCents) * 100) : 0,
       transactions:    filtered.length,
       uniqueCustomers: resumoCustomers.size,
+      fixedCostCents,
+      variableCostCents,
+      netProfitCents,
+      netMarginPercent,
     },
     origins,
     topClients,

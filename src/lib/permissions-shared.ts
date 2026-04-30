@@ -25,6 +25,7 @@ export type ModuleKey =
   | 'meta_ads'
   | 'crm'
   | 'notas_fiscais'
+  | 'gastos'
 
 export type ModuleInfo = {
   key:         ModuleKey
@@ -47,6 +48,7 @@ export const MODULES: ModuleInfo[] = [
   { key: 'meta_ads',         label: 'Meta Ads',            description: 'ROAS e CAC (Premium)',                  icon: 'TrendingUp',    route: '/meta-ads' },
   { key: 'crm',              label: 'CRM',                 description: 'Pipeline e Inbox (Premium)',            icon: 'MessageCircle', route: '/crm' },
   { key: 'notas_fiscais',    label: 'Notas Fiscais',       description: 'Emissão de NF-e, NFC-e e NFS-e',        icon: 'FileText',      route: '/notas-fiscais' },
+  { key: 'gastos',           label: 'Gastos',              description: 'Gastos variáveis com categorias e relatórios', icon: 'Wallet', route: '/gastos' },
 ]
 
 const MODULE_KEYS = new Set<string>(MODULES.map(m => m.key))

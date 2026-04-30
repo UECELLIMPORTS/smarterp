@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, ShoppingCart, Package, DollarSign,
-  Users, BarChart2, Target, TrendingUp, Settings, Zap, PieChart, Store, FileText,
+  Users, BarChart2, Target, TrendingUp, Settings, Zap, PieChart, Store, FileText, Wallet,
 } from 'lucide-react'
 import type { ModuleKey } from '@/lib/permissions-shared'
 
@@ -21,6 +21,7 @@ export const NAV: {
   { href: '/pos',               icon: ShoppingCart,    label: 'Frente de Caixa', moduleKey: 'pos' },
   { href: '/estoque',           icon: Package,         label: 'Estoque',         moduleKey: 'estoque' },
   { href: '/financeiro',        icon: DollarSign,      label: 'Financeiro',      moduleKey: 'financeiro' },
+  { href: '/gastos',            icon: Wallet,          label: 'Gastos',          moduleKey: 'gastos' },
   { href: '/clientes',          icon: Users,           label: 'Clientes',        moduleKey: 'clientes' },
   { href: '/erp-clientes',      icon: PieChart,        label: 'ERP Clientes',    moduleKey: 'erp_clientes' },
   { href: '/analytics/canais',  icon: Store,           label: 'Canais',          moduleKey: 'analytics_canais' },

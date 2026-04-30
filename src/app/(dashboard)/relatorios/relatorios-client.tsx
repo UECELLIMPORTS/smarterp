@@ -275,9 +275,43 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
       {/* Cards de resumo */}
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <SummaryCard label="Faturamento" value={BRL(resumo.totalCents)} color="#22C55E" icon={TrendingUp} />
-        <SummaryCard label="Lucro" value={BRL(resumo.profitCents)} sub={`margem ${resumo.marginPercent}%`} color="#10B981" icon={BarChart2} />
+        <SummaryCard label="Lucro bruto" value={BRL(resumo.profitCents)} sub={`margem ${resumo.marginPercent}%`} color="#10B981" icon={BarChart2} />
         <SummaryCard label="Transações" value={String(resumo.transactions)} color="#F8FAFC" icon={BarChart2} />
         <SummaryCard label="Clientes únicos" value={String(resumo.uniqueCustomers)} color="#8B5CF6" icon={Users} />
+      </div>
+
+      {/* Lucro Líquido — bruto − custo fixo − gastos variáveis */}
+      <div className="rounded-2xl border p-5"
+        style={{ background: 'linear-gradient(135deg, rgba(16,185,129,.08), rgba(6,182,212,.06))', borderColor: '#10B98140' }}>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <BarChart2 className="h-4 w-4" style={{ color: '#10B981' }} />
+              <h3 className="text-sm font-semibold uppercase tracking-wider" style={{ color: '#10B981' }}>Lucro Líquido do período</h3>
+            </div>
+            <p className="text-xs text-muted">Lucro bruto − custos fixos pro-rata − gastos variáveis registrados em /gastos</p>
+          </div>
+          <div className="text-right">
+            <p className="text-3xl font-bold" style={{ color: resumo.netProfitCents >= 0 ? '#10B981' : '#EF4444' }}>
+              {BRL(resumo.netProfitCents)}
+            </p>
+            <p className="text-xs text-muted">margem líquida {resumo.netMarginPercent}%</p>
+          </div>
+        </div>
+        <div className="mt-4 grid grid-cols-3 gap-3 text-xs">
+          <div className="rounded-lg p-3" style={{ background: '#0F172A' }}>
+            <p className="uppercase tracking-wider text-[10px] text-muted">Lucro bruto</p>
+            <p className="mt-1 font-bold" style={{ color: '#10B981' }}>+ {BRL(resumo.profitCents)}</p>
+          </div>
+          <div className="rounded-lg p-3" style={{ background: '#0F172A' }}>
+            <p className="uppercase tracking-wider text-[10px] text-muted">Custo fixo (pro-rata)</p>
+            <p className="mt-1 font-bold" style={{ color: '#F59E0B' }}>− {BRL(resumo.fixedCostCents)}</p>
+          </div>
+          <div className="rounded-lg p-3" style={{ background: '#0F172A' }}>
+            <p className="uppercase tracking-wider text-[10px] text-muted">Gastos variáveis</p>
+            <p className="mt-1 font-bold" style={{ color: '#EF4444' }}>− {BRL(resumo.variableCostCents)}</p>
+          </div>
+        </div>
       </div>
 
       {/* Relatório por Origem */}
