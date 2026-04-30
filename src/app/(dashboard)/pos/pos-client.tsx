@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import {
   Search, Plus, X, Loader2, ShoppingBag,
-  CheckCircle, User, Pencil, UserCheck, Calendar,
+  CheckCircle, User, Pencil, UserCheck, Calendar, Cake, Gift,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -15,6 +15,7 @@ import { AddressCityState } from '@/components/ui/address-fields'
 import { CUSTOMER_ORIGIN_OPTIONS, originLabel } from '@/lib/customer-origin'
 import { CampaignCodePicker } from '@/components/meta-ads/campaign-code-picker'
 import { SALE_CHANNEL_OPTIONS_PICKABLE, DELIVERY_TYPE_OPTIONS, type SaleChannel, type DeliveryType } from '@/lib/sale-channels'
+import { validateBirthdayCoupon, markBirthdayCouponUsed } from '@/actions/birthdays'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -92,6 +93,10 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
   // ── Adjustments ──
   const [shipping, setShipping] = useState('')
   const [discount, setDiscount] = useState('')
+  // Cupom de aniversário (estado: input + aplicado/inválido + percentual)
+  const [couponInput, setCouponInput]   = useState('')
+  const [couponApplied, setCouponApplied] = useState<{ percent: number; customerName: string } | null>(null)
+  const [validatingCoupon, setValidatingCoupon] = useState(false)
 
   // ── Payment ──
   const [method, setMethod] = useState<PaymentMethod>('pix')
@@ -279,6 +284,43 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
     } finally { setSavingCustomer(false) }
   }
 
+  // ── Aplicar cupom de aniversário ──
+  // Valida no servidor: cliente tem aniv. no mês corrente? não usou ainda?
+  // Se ok, calcula desconto sobre o subtotal e seta no campo `discount`.
+  async function applyBirthdayCoupon() {
+    if (isDefault) {
+      toast.error('Selecione um cliente cadastrado pra usar o cupom de aniversário.')
+      return
+    }
+    if (!couponInput.trim()) {
+      toast.error('Digite o código do cupom.')
+      return
+    }
+    setValidatingCoupon(true)
+    try {
+      const res = await validateBirthdayCoupon({
+        customerId: customer.id,
+        couponCode: couponInput.trim(),
+      })
+      if (!res.ok) { toast.error(res.error); return }
+
+      // Calcula desconto absoluto sobre o subtotal e preenche o campo
+      const discountCents = Math.round((subtotal * res.discountPercent) / 100)
+      const reais = (discountCents / 100).toFixed(2).replace('.', ',')
+      setDiscount(reais)
+      setCouponApplied({ percent: res.discountPercent, customerName: res.customerName })
+      toast.success(`🎂 Cupom aplicado: ${res.discountPercent}% de desconto!`)
+    } finally {
+      setValidatingCoupon(false)
+    }
+  }
+
+  function clearCoupon() {
+    setCouponApplied(null)
+    setCouponInput('')
+    setDiscount('')
+  }
+
   // ── Set origin for an existing customer selected in POS ──
   async function handleSetOrigin(origin: string) {
     if (!origin || isDefault) return
@@ -330,11 +372,16 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
           subtotalCents:  i.unitPriceCents * i.quantity,
         })),
       })
+      // Marca cupom de aniversário como usado (se aplicado nessa venda)
+      if (couponApplied && customer.id) {
+        await markBirthdayCouponUsed(customer.id).catch(() => null)
+      }
       toast.success('Venda finalizada com sucesso!')
       setCart([]); setShipping(''); setDiscount('')
       setMethod('pix'); setMxCash(''); setMxPix(''); setMxCard('')
       setSaleChannel(''); setDeliveryType('')
       setConsumerOrigin('passou_na_porta')
+      setCouponInput(''); setCouponApplied(null)
       setCustomer(consumidorFinal)
     } catch { toast.error('Erro ao finalizar venda') }
     finally { setFinalizing(false) }
@@ -878,6 +925,51 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
                 style={inputStyle}
               />
             </div>
+
+            {/* Cupom de aniversário — só pra cliente real */}
+            {!isDefault && !couponApplied && (
+              <div className="rounded-lg border p-2 space-y-1.5" style={{ borderColor: '#2A3650', background: 'rgba(228,64,95,.03)' }}>
+                <div className="flex items-center gap-1.5">
+                  <Cake className="h-3 w-3" style={{ color: '#E4405F' }} />
+                  <span className="text-[11px] uppercase tracking-wider" style={{ color: '#E4405F' }}>Cupom de aniversário</span>
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    value={couponInput}
+                    onChange={e => setCouponInput(e.target.value.toUpperCase())}
+                    placeholder={`ANIVER${new Date().getFullYear()}`}
+                    className="flex-1 rounded-lg border px-2.5 py-1 text-xs text-text outline-none focus:border-accent/60 placeholder:text-muted uppercase tracking-wider"
+                    style={inputStyle}
+                  />
+                  <button
+                    onClick={applyBirthdayCoupon}
+                    disabled={validatingCoupon || !couponInput.trim()}
+                    className="rounded-lg px-2.5 py-1 text-xs font-semibold disabled:opacity-50"
+                    style={{ background: '#E4405F', color: '#FFFFFF' }}
+                  >
+                    {validatingCoupon ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Aplicar'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {couponApplied && (
+              <div className="rounded-lg border p-2 flex items-center justify-between"
+                style={{ background: 'rgba(228,64,95,.08)', borderColor: '#E4405F' }}>
+                <div className="flex items-center gap-2">
+                  <Gift className="h-3.5 w-3.5" style={{ color: '#E4405F' }} />
+                  <div>
+                    <p className="text-[11px] font-bold" style={{ color: '#E4405F' }}>
+                      Cupom aplicado: {couponApplied.percent}% OFF
+                    </p>
+                    <p className="text-[10px] text-muted">Aniversariante: {couponApplied.customerName}</p>
+                  </div>
+                </div>
+                <button onClick={clearCoupon} className="text-muted hover:text-text">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            )}
 
             <div className="flex items-center justify-between border-t pt-3" style={{ borderColor: '#2A3650' }}>
               <span className="text-sm font-bold text-text">TOTAL</span>

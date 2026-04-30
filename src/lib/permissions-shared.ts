@@ -26,6 +26,7 @@ export type ModuleKey =
   | 'crm'
   | 'notas_fiscais'
   | 'gastos'
+  | 'aniversariantes'
 
 export type ModuleInfo = {
   key:         ModuleKey
@@ -49,6 +50,7 @@ export const MODULES: ModuleInfo[] = [
   { key: 'crm',              label: 'CRM',                 description: 'Pipeline e Inbox (Premium)',            icon: 'MessageCircle', route: '/crm' },
   { key: 'notas_fiscais',    label: 'Notas Fiscais',       description: 'Emissão de NF-e, NFC-e e NFS-e',        icon: 'FileText',      route: '/notas-fiscais' },
   { key: 'gastos',           label: 'Gastos',              description: 'Gastos variáveis com categorias e relatórios', icon: 'Wallet', route: '/gastos' },
+  { key: 'aniversariantes',  label: 'Aniversariantes',     description: 'Lista do dia/semana/mês + envio WhatsApp + cupom', icon: 'Cake', route: '/aniversariantes' },
 ]
 
 const MODULE_KEYS = new Set<string>(MODULES.map(m => m.key))

@@ -5,7 +5,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import {
   Package, CheckCircle, AlertTriangle, Ban, Loader2, Save,
-  Sparkles, ChevronRight, Users, FileText, ImageIcon, Shield, Trash2, Upload,
+  Sparkles, ChevronRight, Users, FileText, ImageIcon, Shield, Trash2, Upload, Cake,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { saveSettings, type TenantSettings, type StockControlMode } from '@/actions/settings'
@@ -13,14 +13,17 @@ import {
   saveBrandingSettings, uploadTenantLogo, removeTenantLogo,
   type BrandingSettings,
 } from '@/actions/comprovante'
+import { saveBirthdayConfig, type BirthdayConfig } from '@/actions/birthdays'
+import { DEFAULT_BIRTHDAY_TEMPLATE } from '@/lib/birthday-utils'
 import type { RecurringExpense } from '@/lib/expense-categories'
 import { RecurringExpensesSection } from './recurring-expenses-section'
 
 type Props = {
-  initialSettings: TenantSettings
-  isOwner?:        boolean
-  initialExpenses: RecurringExpense[]
-  initialBranding: BrandingSettings
+  initialSettings:       TenantSettings
+  isOwner?:              boolean
+  initialExpenses:       RecurringExpense[]
+  initialBranding:       BrandingSettings
+  initialBirthdayConfig: BirthdayConfig
 }
 
 const STOCK_OPTIONS: {
@@ -53,7 +56,7 @@ const STOCK_OPTIONS: {
   },
 ]
 
-export function ConfiguracoesClient({ initialSettings, isOwner = false, initialExpenses, initialBranding }: Props) {
+export function ConfiguracoesClient({ initialSettings, isOwner = false, initialExpenses, initialBranding, initialBirthdayConfig }: Props) {
   const [settings, setSettings] = useState<TenantSettings>(initialSettings)
   const [custoFixoStr, setCustoFixoStr] = useState(
     initialSettings.fisica_fixed_cost_cents != null
@@ -111,6 +114,26 @@ export function ConfiguracoesClient({ initialSettings, isOwner = false, initialE
     const res = await removeTenantLogo()
     if (res.ok) { setLogoUrl(null); toast.success('Logo removida.') }
     else toast.error(res.error)
+  }
+
+  // ── Aniversários (template + desconto) ────────────────────────────────
+  const [birthdayTemplate, setBirthdayTemplate] = useState<string>(initialBirthdayConfig.template ?? '')
+  const [birthdayDiscount, setBirthdayDiscount] = useState<number>(initialBirthdayConfig.discountPercent)
+  const [savingBirthday, startSaveBirthday]     = useTransition()
+
+  function handleSaveBirthday() {
+    startSaveBirthday(async () => {
+      const res = await saveBirthdayConfig({
+        template:        birthdayTemplate.trim() || null,
+        discountPercent: birthdayDiscount,
+      })
+      if (res.ok) toast.success('Configuração de aniversários salva.')
+      else toast.error(res.error)
+    })
+  }
+
+  function resetBirthdayTemplate() {
+    setBirthdayTemplate(DEFAULT_BIRTHDAY_TEMPLATE)
   }
 
   function handleSave() {
@@ -413,6 +436,78 @@ export function ConfiguracoesClient({ initialSettings, isOwner = false, initialE
             >
               {savingBranding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               {savingBranding ? 'Salvando…' : 'Salvar branding'}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Aniversariantes ─────────────────────────────────────────── */}
+      <div className="rounded-xl border overflow-hidden" style={{ background: '#1B2638', borderColor: '#2A3650' }}>
+        <div className="flex items-center gap-3 border-b px-5 py-4" style={{ borderColor: '#2A3650' }}>
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: 'rgba(228,64,95,.18)' }}>
+            <Cake className="h-4 w-4" style={{ color: '#E4405F' }} />
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold text-text">Aniversariantes</h2>
+            <p className="text-xs text-muted">Template da mensagem + percentual de desconto</p>
+          </div>
+        </div>
+
+        <div className="p-5 space-y-4">
+          <div>
+            <label className="mb-1 block text-xs font-medium text-muted">Desconto de aniversário (%)</label>
+            <input
+              type="number"
+              min={0} max={100}
+              value={birthdayDiscount}
+              onChange={e => setBirthdayDiscount(Math.max(0, Math.min(100, parseInt(e.target.value, 10) || 0)))}
+              className="w-full max-w-xs rounded-lg border bg-transparent px-3 py-2 text-sm text-text"
+              style={{ borderColor: '#2A3650' }}
+            />
+            <p className="mt-1 text-xs text-muted">
+              Aplicado ao usar o cupom <strong>ANIVER{new Date().getFullYear()}</strong> no PDV durante o mês de aniversário do cliente.
+            </p>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-xs font-medium text-muted">Template da mensagem (WhatsApp)</label>
+              <button onClick={resetBirthdayTemplate}
+                className="text-[11px] uppercase tracking-wider text-muted hover:text-text">
+                restaurar padrão
+              </button>
+            </div>
+            <textarea
+              value={birthdayTemplate}
+              onChange={e => setBirthdayTemplate(e.target.value)}
+              placeholder={DEFAULT_BIRTHDAY_TEMPLATE}
+              rows={12}
+              className="w-full rounded-lg border bg-transparent px-3 py-2 text-sm text-text font-mono"
+              style={{ borderColor: '#2A3650' }}
+            />
+            <div className="mt-2 rounded-lg p-2 text-[11px]" style={{ background: '#0F172A', color: '#94A3B8' }}>
+              <strong className="text-text">Variáveis disponíveis:</strong>{' '}
+              <code className="text-accent">{'{nome}'}</code>,{' '}
+              <code className="text-accent">{'{LOJA}'}</code>,{' '}
+              <code className="text-accent">{'{QUANDO}'}</code> (hoje · em DD/MM),{' '}
+              <code className="text-accent">{'{MES}'}</code>,{' '}
+              <code className="text-accent">{'{DESCONTO}'}</code>,{' '}
+              <code className="text-accent">{'{CUPOM}'}</code>,{' '}
+              <code className="text-accent">{'{ANO}'}</code>,{' '}
+              <code className="text-accent">{'{ULTIMO_DIA}'}</code>,{' '}
+              <code className="text-accent">{'{IDADE}'}</code>
+            </div>
+          </div>
+
+          <div className="flex justify-end">
+            <button
+              onClick={handleSaveBirthday}
+              disabled={savingBirthday}
+              className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-60"
+              style={{ background: '#E4405F', color: '#FFFFFF' }}
+            >
+              {savingBirthday ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {savingBirthday ? 'Salvando…' : 'Salvar aniversários'}
             </button>
           </div>
         </div>
