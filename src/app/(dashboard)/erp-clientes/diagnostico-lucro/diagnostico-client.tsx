@@ -532,8 +532,12 @@ function OrphanCard({
   const [search,    setSearch]    = useState('')
   const [selectedId, setSelectedId] = useState<string>('')
 
-  // Pré-filtra catálogo pela busca digitada (case/acento insensitive simples).
-  const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+  // Pré-filtra catálogo pela busca digitada. Normalização agressiva:
+  // remove TODOS os não-alfanuméricos (espaços, /, -, etc) e acentos. Isso
+  // garante match mesmo se nome do produto tem espaço/barra diferente do
+  // que o usuário digita (ex: "256/8RAM" vs "256 8RAM" vs "2568RAM").
+  const norm = (s: string) =>
+    s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '')
   const filtered = search.trim().length >= 1
     ? catalog.filter(c => norm(c.name).includes(norm(search)))
     : catalog

@@ -356,9 +356,25 @@ export function ProdutoModal({
 
               <div className="grid grid-cols-3 gap-3">
                 <PriceInput label="Preço de Compra" value={form.purchasePriceCents}
-                  onChange={v => set('purchasePriceCents', v)} />
-                <PriceInput label="Preço de Custo" value={form.costCents}
-                  onChange={v => set('costCents', v)} />
+                  onChange={v => {
+                    // Auto-popula Custo quando ainda está zerado — pra a maioria
+                    // dos lojistas o custo = preço de compra. Continuam podendo
+                    // editar manualmente depois (ex: somar frete/embalagem).
+                    setForm(prev => ({
+                      ...prev,
+                      purchasePriceCents: v,
+                      costCents: prev.costCents > 0 ? prev.costCents : v,
+                    }))
+                  }} />
+                <div>
+                  <PriceInput label="Preço de Custo" value={form.costCents}
+                    onChange={v => set('costCents', v)} />
+                  {form.costCents === 0 && form.priceCents > 0 && (
+                    <p className="mt-1 text-[10px]" style={{ color: '#F59E0B' }}>
+                      ⚠️ Custo zerado — lucro vai aparecer inflado nos relatórios.
+                    </p>
+                  )}
+                </div>
                 <div>
                   <label className="mb-1 block text-xs font-medium text-muted">Fornecedor</label>
                   <input value={form.supplier} onChange={e => set('supplier', e.target.value)}
