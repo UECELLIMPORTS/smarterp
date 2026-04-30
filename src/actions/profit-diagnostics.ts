@@ -442,16 +442,39 @@ export async function getAllCatalogItems(): Promise<CatalogItem[]> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any
 
-  const [prodRes, partRes] = await Promise.all([
-    sb.from('products').select('id, name, cost_cents').eq('tenant_id', tenantId).order('name').limit(10000),
-    sb.from('parts_catalog').select('id, name, cost_cents').eq('tenant_id', tenantId).order('name').limit(10000),
+  // PostgREST tem max_rows = 1000 por default — independente do .limit() pedido.
+  // Pra tenants com mais de 1000 produtos, precisa paginar com .range().
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async function fetchAll(table: string): Promise<any[]> {
+    const PAGE = 1000
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const out: any[] = []
+    for (let from = 0; from < 50000; from += PAGE) {
+      const { data, error } = await sb
+        .from(table)
+        .select('id, name, cost_cents')
+        .eq('tenant_id', tenantId)
+        .order('name')
+        .range(from, from + PAGE - 1)
+      if (error) throw new Error(error.message)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const rows = (data ?? []) as any[]
+      out.push(...rows)
+      if (rows.length < PAGE) break  // última página
+    }
+    return out
+  }
+
+  const [prodData, partData] = await Promise.all([
+    fetchAll('products'),
+    fetchAll('parts_catalog'),
   ])
 
   const items: CatalogItem[] = [
-    ...((prodRes.data ?? []) as { id: string; name: string; cost_cents: number | null }[]).map(p => ({
+    ...(prodData as { id: string; name: string; cost_cents: number | null }[]).map(p => ({
       id: p.id, name: p.name, costCents: p.cost_cents ?? 0, source: 'products' as const,
     })),
-    ...((partRes.data ?? []) as { id: string; name: string; cost_cents: number | null }[]).map(p => ({
+    ...(partData as { id: string; name: string; cost_cents: number | null }[]).map(p => ({
       id: p.id, name: p.name, costCents: p.cost_cents ?? 0, source: 'parts_catalog' as const,
     })),
   ]
