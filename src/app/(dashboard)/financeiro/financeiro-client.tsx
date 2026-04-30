@@ -1203,8 +1203,9 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
           )}
         </div>
 
-        {/* Resumo do filtro: total + lucro do conjunto filtrado */}
-        {(filterChannels.length > 0 || filterDeliveries.length > 0 || period !== 'all' || filterCustomer.trim()) && filteredRows.length > 0 && (
+        {/* Resumo: total + lucro das vendas atualmente exibidas (sempre visível
+            quando há ao menos uma transação — atualiza com filtros). */}
+        {filteredRows.length > 0 && (
           <div className="flex flex-wrap items-center gap-4 rounded-lg border px-4 py-2.5"
                style={{ background: 'rgba(16,185,129,.05)', borderColor: 'rgba(16,185,129,.25)' }}>
             <div className="flex items-center gap-2">
@@ -1232,6 +1233,23 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                 )
               })()}
             </div>
+            {/* Ticket médio só aparece quando há mais de 1 venda — útil pra ver
+                média sem precisar dividir mentalmente. */}
+            {(() => {
+              const activeRows = filteredRows.filter(r => !r.cancelled)
+              if (activeRows.length < 2) return null
+              const total = activeRows.reduce((s, r) => s + r.total, 0)
+              const avg   = Math.round(total / activeRows.length)
+              return (
+                <>
+                  <span className="text-zinc-600">·</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] uppercase tracking-wider text-muted">Ticket médio:</span>
+                    <span className="text-sm font-bold text-text">{BRL(avg)}</span>
+                  </div>
+                </>
+              )
+            })()}
           </div>
         )}
       </div>
