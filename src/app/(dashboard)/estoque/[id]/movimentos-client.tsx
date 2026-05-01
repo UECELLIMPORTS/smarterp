@@ -857,17 +857,27 @@ export function MovimentosClient({
                     {!isEntrada && m.sale_price_cents ? BRL(m.sale_price_cents) : '—'}
                   </span>
 
-                  {/* Pr. Compra (só em entrada) */}
-                  <span className="text-xs text-right tabular-nums"
-                    style={{ color: isEntrada && m.purchase_price_cents ? '#F8FAFC' : '#94A3B8' }}>
-                    {isEntrada && m.purchase_price_cents ? BRL(m.purchase_price_cents) : '—'}
-                  </span>
+                  {/* Pr. Compra (mostra também em saída — fallback pro produto atual) */}
+                  {(() => {
+                    const pc = m.purchase_price_cents || (!isEntrada ? product.purchase_price_cents : 0)
+                    return (
+                      <span className="text-xs text-right tabular-nums"
+                        style={{ color: pc ? '#F8FAFC' : '#94A3B8' }}>
+                        {pc ? BRL(pc) : '—'}
+                      </span>
+                    )
+                  })()}
 
-                  {/* Pr. Custo (só em entrada) */}
-                  <span className="text-xs text-right tabular-nums"
-                    style={{ color: isEntrada && m.cost_price_cents ? '#F8FAFC' : '#94A3B8' }}>
-                    {isEntrada && m.cost_price_cents ? BRL(m.cost_price_cents) : '—'}
-                  </span>
+                  {/* Pr. Custo (mostra também em saída — fallback pro produto atual) */}
+                  {(() => {
+                    const cc = m.cost_price_cents || (!isEntrada ? product.cost_cents : 0)
+                    return (
+                      <span className="text-xs text-right tabular-nums"
+                        style={{ color: cc ? '#F8FAFC' : '#94A3B8' }}>
+                        {cc ? BRL(cc) : '—'}
+                      </span>
+                    )
+                  })()}
 
                   {/* Saldo acumulado */}
                   <span className="text-sm font-semibold text-right tabular-nums text-text">
