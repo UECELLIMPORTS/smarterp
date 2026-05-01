@@ -398,6 +398,40 @@ export async function findLosingSales(period: DiagPeriod = '30d'): Promise<Losin
 }
 
 /** Desvincula um sale_item (volta product_id pra null e snapshot pra null). Útil pra desfazer um vínculo errado. */
+/**
+ * Edita o cost_snapshot_cents de UM sale_item específico (não mexe no
+ * produto do estoque). Útil quando o custo varia por venda — ex: vendas
+ * no cartão tem taxa, vendas à vista não, etc. Ou pra corrigir snapshot
+ * que ficou errado em venda antiga.
+ */
+export async function updateSaleItemCostSnapshot(saleItemId: string, costCents: number): Promise<{ ok: true }> {
+  const { supabase, user } = await requireAuth()
+  const tenantId = getTenantId(user)
+
+  if (!Number.isFinite(costCents) || costCents < 0) throw new Error('Custo inválido.')
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any
+  const { data: si, error: siErr } = await sb
+    .from('sale_items')
+    .select('id, sales!inner(tenant_id)')
+    .eq('id', saleItemId)
+    .eq('sales.tenant_id', tenantId)
+    .maybeSingle()
+  if (siErr || !si) throw new Error('Item de venda não encontrado.')
+
+  const { error } = await sb
+    .from('sale_items')
+    .update({ cost_snapshot_cents: costCents })
+    .eq('id', saleItemId)
+  if (error) throw new Error(error.message)
+
+  revalidatePath('/erp-clientes')
+  revalidatePath('/erp-clientes/diagnostico-lucro')
+  revalidatePath('/analytics/canais')
+  return { ok: true }
+}
+
 export async function unlinkSaleItem(saleItemId: string): Promise<{ ok: true }> {
   const { supabase, user } = await requireAuth()
   const tenantId = getTenantId(user)

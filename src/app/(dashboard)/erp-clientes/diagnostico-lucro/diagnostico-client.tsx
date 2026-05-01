@@ -6,8 +6,10 @@ import Link from 'next/link'
 import { ArrowLeft, AlertTriangle, CheckCircle2, ShoppingCart, Wrench, Package, Loader2, Link2, Unlink, TrendingDown } from 'lucide-react'
 import {
   backfillSaleItemsCostSnapshot, linkOrphanSaleItem, autoLinkExactMatches, unlinkSaleItem,
+  updateSaleItemCostSnapshot,
   type ProfitDiagnostics, type DiagPeriod, type OrphanSaleItem, type CatalogItem, type LosingSale,
 } from '@/actions/profit-diagnostics'
+import { toast } from 'sonner'
 
 const BRL = (c: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -56,6 +58,38 @@ export function DiagnosticoClient({
         router.refresh()
       } catch (e) {
         setLinkError(e instanceof Error ? e.message : 'Erro ao desvincular item.')
+      } finally {
+        setLinkPending(null)
+      }
+    })
+  }
+
+  // Edita o cost_snapshot do item específico (sem mexer no produto do estoque).
+  // Útil quando custo varia por venda (taxa de cartão, frete, etc).
+  const onEditSnapshot = (saleItemId: string, itemName: string, currentCents: number) => {
+    const currentReais = (currentCents / 100).toFixed(2).replace('.', ',')
+    const input = prompt(
+      `Editar custo desta venda específica\n\n` +
+      `Item: ${itemName}\n` +
+      `Custo atual: R$ ${currentReais}\n\n` +
+      `Digite o novo custo unitário (ex: 885,00):`,
+      currentReais,
+    )
+    if (input === null) return
+    const num = parseFloat(input.replace(/\./g, '').replace(',', '.'))
+    if (!Number.isFinite(num) || num < 0) {
+      toast.error('Valor inválido. Use formato 885,00')
+      return
+    }
+    const cents = Math.round(num * 100)
+    setLinkPending(saleItemId)
+    startTransition(async () => {
+      try {
+        await updateSaleItemCostSnapshot(saleItemId, cents)
+        toast.success(`Custo atualizado pra R$ ${input}`)
+        router.refresh()
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : 'Erro ao salvar custo.')
       } finally {
         setLinkPending(null)
       }
@@ -337,15 +371,25 @@ export function DiagnosticoClient({
                               {BRL(it.itemProfitCents)}
                             </td>
                             <td className="text-right">
-                              <div className="inline-flex gap-1">
+                              <div className="inline-flex gap-1 flex-wrap justify-end">
+                                {/* Edita o snapshot DESTA venda específica (não mexe no produto) */}
+                                <button
+                                  onClick={() => onEditSnapshot(it.saleItemId, it.name, it.snapshotCents ?? 0)}
+                                  disabled={linkPending === it.saleItemId || pending}
+                                  className="text-[10px] font-bold px-2 py-1 rounded hover:opacity-80 disabled:opacity-50"
+                                  style={{ background: 'rgba(34,197,94,.15)', color: '#22C55E' }}
+                                  title="Editar custo APENAS desta venda (não mexe no produto do estoque)"
+                                >
+                                  {linkPending === it.saleItemId ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Editar custo'}
+                                </button>
                                 {it.productId && (
                                   <Link
                                     href={`/estoque/${it.productId}`}
                                     className="text-[10px] font-bold px-2 py-1 rounded hover:opacity-80"
-                                    style={{ background: 'rgba(34,197,94,.15)', color: '#22C55E' }}
-                                    title="Editar custo do produto no estoque"
+                                    style={{ background: 'rgba(59,130,246,.15)', color: '#3B82F6' }}
+                                    title="Abrir produto no estoque pra editar o custo padrão"
                                   >
-                                    Editar custo
+                                    Estoque
                                   </Link>
                                 )}
                                 {it.productId && (
