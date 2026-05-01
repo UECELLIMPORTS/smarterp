@@ -7,6 +7,14 @@
     {
       "path": "/api/cron/emit-batch-nfce",
       "schedule": "0 1 * * *"
+    },
+    {
+      "path": "/api/cron/whatsapp-birthdays",
+      "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/cron/whatsapp-dispatch",
+      "schedule": "*/15 * * * *"
     }
   ]
 }

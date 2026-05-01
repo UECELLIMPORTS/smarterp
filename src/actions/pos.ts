@@ -4,6 +4,7 @@ import { after } from 'next/server'
 import { requireAuth } from '@/lib/supabase/server'
 import { getTenantId } from '@/lib/tenant'
 import { tryAutoEmitNfceForSale } from '@/lib/fiscal-emit-core'
+import { scheduleWhatsAppMessage } from '@/lib/whatsapp-scheduler'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -466,6 +467,25 @@ export async function createSale(input: CreateSaleInput): Promise<{ id: string }
   // tryAutoEmitNfceForSale retorna sem fazer nada. Erros são logados, não
   // jogados — venda já foi gravada e PDV não pode travar por falha fiscal.
   after(() => tryAutoEmitNfceForSale(tenantId, sale.id))
+
+  // WhatsApp pós-venda: agenda follow-up se template enabled e cliente cadastrado.
+  // Tudo silencioso — se falhar não trava a venda.
+  after(async () => {
+    if (input.customerId) {
+      const itemsLabel = input.items.length === 1
+        ? input.items[0].name
+        : `${input.items[0].name} e mais ${input.items.length - 1} item(s)`
+      const valorBRL = (input.totalCents / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 })
+
+      await scheduleWhatsAppMessage({
+        tenantId,
+        type:        'post_sale',
+        customerId:  input.customerId,
+        referenceId: sale.id,
+        vars:        { aparelho: itemsLabel, valor: `R$ ${valorBRL}` },
+      }).catch(() => null)
+    }
+  })
 
   return sale as { id: string }
 }
