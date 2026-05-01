@@ -231,17 +231,25 @@ export async function disconnectWhatsApp(opts: { hard?: boolean } = {}): Promise
 // ──────────────────────────────────────────────────────────────────────────
 
 export type TemplateRow = {
-  id:          string
-  type:        string
-  enabled:     boolean
-  delayHours:  number
-  body:        string
+  id:           string
+  type:         string
+  enabled:      boolean
+  delayMinutes: number
+  body:         string
+  sendEmail:    boolean
+  emailSubject: string | null
 }
 
 // Templates default por tipo (criados na primeira leitura se faltarem)
-const DEFAULT_TEMPLATES: Record<string, { delayHours: number; body: string }> = {
+const DEFAULT_TEMPLATES: Record<string, {
+  delayMinutes: number
+  body: string
+  sendEmail: boolean
+  emailSubject?: string
+}> = {
   post_sale: {
-    delayHours: 24,
+    delayMinutes: 24 * 60,
+    sendEmail:    false,
     body: `Olá {nome}, tudo bem? 😊
 
 Aqui é a {loja}, passando pra agradecer pela compra! Como tá sendo a experiência com o produto?
@@ -249,7 +257,8 @@ Aqui é a {loja}, passando pra agradecer pela compra! Como tá sendo a experiên
 Se precisar de qualquer coisa, é só chamar.`,
   },
   post_service: {
-    delayHours: 24 * 7, // 7 dias
+    delayMinutes: 7 * 24 * 60, // 7 dias
+    sendEmail:    false,
     body: `Olá {nome}! 🛠️
 
 Aqui é a {loja}. Faz uma semana que você retirou seu aparelho — está funcionando bem?
@@ -257,7 +266,9 @@ Aqui é a {loja}. Faz uma semana que você retirou seu aparelho — está funcio
 Lembrando que sua garantia segue ativa. Qualquer problema, é só voltar.`,
   },
   birthday_month: {
-    delayHours: 0,
+    delayMinutes: 0,
+    sendEmail:    true,
+    emailSubject: '🎁 Seu mês de aniversário começou!',
     body: `🎁 Olá {nome}! Seu mês de aniversário começou!
 
 Aqui na {loja} preparamos um cupom especial pra você usar até o fim do mês: *ANIV{ano}*
@@ -265,7 +276,9 @@ Aqui na {loja} preparamos um cupom especial pra você usar até o fim do mês: *
 Aproveite! 🎉`,
   },
   birthday_day: {
-    delayHours: 0,
+    delayMinutes: 0,
+    sendEmail:    true,
+    emailSubject: '🎂 Parabéns!',
     body: `🎂 Parabéns, {nome}!
 
 Hoje é seu dia! Aqui da {loja} desejamos muita felicidade e saúde.
@@ -286,11 +299,13 @@ async function ensureDefaults(tenantId: string, sb: unknown): Promise<void> {
   const missing = Object.entries(DEFAULT_TEMPLATES)
     .filter(([type]) => !existingTypes.has(type))
     .map(([type, cfg]) => ({
-      tenant_id:   tenantId,
+      tenant_id:     tenantId,
       type,
-      enabled:     true,
-      delay_hours: cfg.delayHours,
-      body:        cfg.body,
+      enabled:       true,
+      delay_minutes: cfg.delayMinutes,
+      body:          cfg.body,
+      send_email:    cfg.sendEmail,
+      email_subject: cfg.emailSubject ?? null,
     }))
 
   if (missing.length > 0) {
@@ -308,21 +323,32 @@ export async function listTemplates(): Promise<TemplateRow[]> {
 
   const { data } = await sb
     .from('whatsapp_templates')
-    .select('id, type, enabled, delay_hours, body')
+    .select('id, type, enabled, delay_minutes, body, send_email, email_subject')
     .eq('tenant_id', tenantId)
     .order('type')
 
-  type Row = { id: string; type: string; enabled: boolean; delay_hours: number; body: string }
+  type Row = {
+    id: string; type: string; enabled: boolean; delay_minutes: number; body: string
+    send_email: boolean; email_subject: string | null
+  }
   return ((data ?? []) as Row[]).map(r => ({
-    id: r.id, type: r.type, enabled: r.enabled, delayHours: r.delay_hours, body: r.body,
+    id:           r.id,
+    type:         r.type,
+    enabled:      r.enabled,
+    delayMinutes: r.delay_minutes,
+    body:         r.body,
+    sendEmail:    r.send_email,
+    emailSubject: r.email_subject,
   }))
 }
 
 const UpdateTemplateSchema = z.object({
-  id:         z.string().uuid(),
-  enabled:    z.boolean().optional(),
-  delayHours: z.number().int().min(0).max(720).optional(),  // até 30 dias
-  body:       z.string().min(5).max(2000).optional(),
+  id:           z.string().uuid(),
+  enabled:      z.boolean().optional(),
+  delayMinutes: z.number().int().min(0).max(43200).optional(),  // até 30 dias em minutos
+  body:         z.string().min(5).max(2000).optional(),
+  sendEmail:    z.boolean().optional(),
+  emailSubject: z.string().max(200).optional().nullable(),
 })
 
 export async function updateTemplate(input: unknown): Promise<Result> {
@@ -335,9 +361,11 @@ export async function updateTemplate(input: unknown): Promise<Result> {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const update: any = {}
-  if (v.enabled !== undefined)    update.enabled = v.enabled
-  if (v.delayHours !== undefined) update.delay_hours = v.delayHours
-  if (v.body !== undefined)       update.body = v.body.trim()
+  if (v.enabled !== undefined)      update.enabled = v.enabled
+  if (v.delayMinutes !== undefined) update.delay_minutes = v.delayMinutes
+  if (v.body !== undefined)         update.body = v.body.trim()
+  if (v.sendEmail !== undefined)    update.send_email = v.sendEmail
+  if (v.emailSubject !== undefined) update.email_subject = v.emailSubject?.trim() || null
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any
