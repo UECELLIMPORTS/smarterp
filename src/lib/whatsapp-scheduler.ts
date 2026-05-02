@@ -14,9 +14,16 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { normalizePhone } from '@/lib/evolution'
 
+export type WhatsAppMessageType =
+  | 'post_sale'
+  | 'post_service'
+  | 'birthday_month'
+  | 'birthday_day'
+  | 'inactive_customer'
+
 type ScheduleParams = {
   tenantId:    string
-  type:        'post_sale' | 'post_service' | 'birthday_month' | 'birthday_day'
+  type:        WhatsAppMessageType
   customerId:  string | null
   referenceId: string | null
   /** Variáveis pra interpolação dos placeholders. {nome}, {loja} são preenchidos automaticamente. */
