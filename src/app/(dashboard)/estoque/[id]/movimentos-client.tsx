@@ -784,7 +784,90 @@ export function MovimentosClient({
             </button>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          {/* ── Mobile cards (< md) ──────────────────────────────────────────── */}
+          <div className="md:hidden divide-y" style={{ borderColor: '#2A3650' }}>
+            {rows.map(m => {
+              const isBalanco = m.origin === 'balanco'
+              const isEntrada = m.type === 'entrada'
+              const typeColor = isBalanco ? '#F59E0B' : isEntrada ? '#10B981' : '#EF4444'
+              const typeLabel = isBalanco ? 'Balanço' : isEntrada ? 'Entrada' : 'Saída'
+              const originLabel = (() => {
+                const o = m.origin
+                if (!o || o === 'manual') return 'Manual'
+                if (o === 'balanco') return 'Balanço'
+                if (o.startsWith('sale:')) return 'Venda PDV'
+                if (o.startsWith('sale-cancel:')) return 'Venda cancelada'
+                if (o.startsWith('sale-reactivate:')) return 'Venda reativada'
+                return o
+              })()
+
+              return (
+                <div key={m.id} className="px-4 py-3" style={{ borderColor: '#2A3650', borderLeft: `3px solid ${typeColor}40` }}>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="rounded-full px-2 py-0.5 text-[10px] font-bold"
+                          style={{ background: `${typeColor}20`, color: typeColor, border: `1px solid ${typeColor}40` }}>
+                          {typeLabel} {isBalanco ? `(bal. ${m.quantity})` : `· ${m.quantity} ${product.unit}`}
+                        </span>
+                        <span className="text-[10px] text-muted">{originLabel}</span>
+                      </div>
+                      <p className="text-xs text-muted font-mono mt-1">{fmtDatetime(m.moved_at)}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-[10px] uppercase text-muted">Saldo</p>
+                      <p className="text-sm font-semibold text-text">
+                        {recalcing ? '…' : `${m.running_balance} ${product.unit}`}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
+                    {(() => {
+                      const sp = !isEntrada && m.sale_price_cents ? m.sale_price_cents : null
+                      const pc = m.purchase_price_cents || (!isEntrada ? product.purchase_price_cents : 0)
+                      const cc = m.cost_price_cents || (!isEntrada ? product.cost_cents : 0)
+                      return (
+                        <>
+                          <div>
+                            <p className="text-[10px] uppercase text-muted">Pr. Venda</p>
+                            <p className="text-text">{sp ? BRL(sp) : '—'}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] uppercase text-muted">Pr. Compra</p>
+                            <p className="text-text">{pc ? BRL(pc) : '—'}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] uppercase text-muted">Pr. Custo</p>
+                            <p className="text-text">{cc ? BRL(cc) : '—'}</p>
+                          </div>
+                        </>
+                      )
+                    })()}
+                  </div>
+
+                  {m.notes && (
+                    <p className="mt-2 text-xs text-muted truncate" title={m.notes}>📝 {m.notes}</p>
+                  )}
+
+                  <div className="mt-2 flex justify-end gap-1 pt-2 border-t" style={{ borderColor: '#2A3650' }}>
+                    <button onClick={() => openEdit(m)}
+                      className="flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:text-white hover:bg-white/10">
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                    <button onClick={() => setDeleteTarget(m)}
+                      className="flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:text-red-400 hover:bg-red-400/10">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* ── Desktop table (>= md) ────────────────────────────────────────── */}
+          <div className="hidden md:block overflow-x-auto">
             {/* Header */}
             <div
               className="grid items-center gap-3 border-b px-5 py-3 text-xs font-medium uppercase tracking-wider text-muted"
@@ -921,6 +1004,7 @@ export function MovimentosClient({
               )
             })}
           </div>
+          </>
         )}
       </div>
 

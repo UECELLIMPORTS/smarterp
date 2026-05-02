@@ -495,7 +495,75 @@ export function EstoqueClient({ initialProducts, initialTotal, brands: initialBr
             <p className="text-sm text-muted">Nenhum produto encontrado</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          {/* ── Mobile cards (< md) ──────────────────────────────────────────── */}
+          <div className="md:hidden divide-y" style={{ borderColor: '#2A3650' }}>
+            {products.map(p => (
+              <div key={p.id} className="px-4 py-3" style={{ borderColor: '#2A3650' }}>
+                <div className="flex items-start gap-3">
+                  {p.image_urls?.[0] ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={p.image_urls[0]} alt={p.name} className="h-12 w-12 rounded-lg object-cover shrink-0" style={{ border: '1px solid #2A3650' }} />
+                  ) : (
+                    <div className="h-12 w-12 rounded-lg flex items-center justify-center shrink-0" style={{ background: '#2A3650' }}>
+                      <Package className="h-5 w-5 text-muted" />
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-sm font-medium text-text break-words">{p.name}</p>
+                      <button onClick={() => handleToggle(p)} disabled={toggling} className="shrink-0">
+                        {p.active
+                          ? <ToggleRight className="h-5 w-5" style={{ color: '#10B981' }} />
+                          : <ToggleLeft className="h-5 w-5 text-muted" />}
+                      </button>
+                    </div>
+                    <p className="text-[11px] text-muted mt-0.5 break-words">
+                      {p.category ?? ''}{p.category && p.brand ? ' · ' : ''}{p.brand ?? ''}
+                      {p.code && <> · <span className="font-mono">{p.code}</span></>}
+                    </p>
+
+                    <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
+                      <div>
+                        <p className="text-[10px] uppercase text-muted">Custo</p>
+                        <p className="text-text">{BRL(p.cost_cents)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase text-muted">Venda</p>
+                        <InlinePrice product={p} onSaved={handlePriceUpdate} />
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase text-muted">Estoque</p>
+                        <StockPopover product={p} />
+                      </div>
+                    </div>
+
+                    <div className="mt-2 flex justify-end gap-1 pt-2 border-t" style={{ borderColor: '#2A3650' }}>
+                      <button onClick={() => router.push(`/estoque/${p.id}`)}
+                        className="flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:text-yellow-400 hover:bg-yellow-400/10"
+                        title="Histórico">
+                        <ClipboardList className="h-4 w-4" />
+                      </button>
+                      <button onClick={() => { setEditing(p); setModalOpen(true) }}
+                        className="flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:text-white hover:bg-white/10"
+                        title="Editar">
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                      <button onClick={() => { setDeleteError(''); setDeleteTarget(p) }}
+                        className="flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:text-red-400 hover:bg-red-400/10"
+                        title="Excluir">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                      <RowMenu product={p} onCloneForm={p => { setCloneTarget(p); setEditing(null); setModalOpen(true) }} onPrint={printLabel} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* ── Desktop table (>= md) ────────────────────────────────────────── */}
+          <div className="hidden md:block overflow-x-auto">
             <div className="grid gap-3 px-5 py-3 border-b text-xs font-medium uppercase tracking-wider text-muted"
               style={{ borderColor: '#2A3650', gridTemplateColumns: 'minmax(280px, 2fr) 100px 120px 110px 120px 80px 90px 152px', minWidth: '1100px' }}>
               <span>Nome</span><span>SKU</span><span>Marca</span>
@@ -571,6 +639,7 @@ export function EstoqueClient({ initialProducts, initialTotal, brands: initialBr
               </div>
             ))}
           </div>
+          </>
         )}
 
         {/* ── Paginação ──────────────────────────────────────────────────────── */}
