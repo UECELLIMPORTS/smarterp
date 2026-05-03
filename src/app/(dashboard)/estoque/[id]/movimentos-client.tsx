@@ -430,17 +430,46 @@ export function MovimentosClient({
   const [reconciling, setReconciling] = useState(false)
   const [modalError, setModalError]   = useState('')
 
-  // Calcula saldo acumulado — recalculado apenas quando movements muda
+  // Esconde pares cancel+reactivate da MESMA venda (resultado líquido = 0).
+  // Se uma venda foi cancelada e nunca reativada, o cancel continua visível
+  // (afetou estoque de verdade).
+  const [hideNoise, setHideNoise] = useState(true)
+
+  const displayMovements = useMemo(() => {
+    if (!hideNoise) return movements
+    const cancelIds = new Set<string>()
+    const reactivateIds = new Set<string>()
+    for (const m of movements) {
+      const o = m.origin ?? ''
+      if (o.startsWith('sale-cancel:'))      cancelIds.add(o.slice('sale-cancel:'.length))
+      else if (o.startsWith('sale-reactivate:')) reactivateIds.add(o.slice('sale-reactivate:'.length))
+    }
+    const paired = new Set([...cancelIds].filter(id => reactivateIds.has(id)))
+    return movements.filter(m => {
+      const o = m.origin ?? ''
+      if (o.startsWith('sale-cancel:'))      return !paired.has(o.slice('sale-cancel:'.length))
+      if (o.startsWith('sale-reactivate:'))  return !paired.has(o.slice('sale-reactivate:'.length))
+      return true
+    })
+  }, [movements, hideNoise])
+
+  const hiddenCount = movements.length - displayMovements.length
+
+  // Calcula saldo acumulado — usa lista exibida pra mostrar saldo coerente
   const rows: MovimentoRow[] = useMemo(
-    () => computeRunningBalance(movements),
-    [movements],
+    () => computeRunningBalance(displayMovements),
+    [displayMovements],
   )
 
   // Saldo calculado vs. saldo real do produto
   const computedTotal = rows.length > 0 ? rows[0].running_balance : 0
   const diverges      = movements.length > 0 && computedTotal !== product.stock_qty
 
-  // Totais Entradas / Saídas (quantidades e valores R$)
+  // Totais Entradas / Saídas (quantidades e valores R$).
+  // Quantidade conta TODOS os movimentos. Valor R$ conta APENAS movimentos
+  // que tem preço de fato registrado — não inventa preço pra saída sem
+  // sale_price_cents (devoluções, perdas, ajustes manuais não devem inflar
+  // o faturamento usando o preço atual do produto como proxy).
   const totals = useMemo(() => {
     let entradasQty = 0, entradasCents = 0
     let saidasQty   = 0, saidasCents   = 0
@@ -449,15 +478,15 @@ export function MovimentosClient({
       if (m.type === 'entrada') {
         entradasQty += m.quantity
         const unit = m.purchase_price_cents || m.cost_price_cents || 0
-        entradasCents += unit * m.quantity
+        if (unit > 0) entradasCents += unit * m.quantity
       } else {
         saidasQty += m.quantity
-        const unit = m.sale_price_cents || product.price_cents || 0
-        saidasCents += unit * m.quantity
+        const unit = m.sale_price_cents ?? 0
+        if (unit > 0) saidasCents += unit * m.quantity
       }
     }
     return { entradasQty, entradasCents, saidasQty, saidasCents }
-  }, [movements, product.price_cents])
+  }, [movements])
 
   // ── Modal helpers ───────────────────────────────────────────────────────
 
@@ -764,11 +793,24 @@ export function MovimentosClient({
       >
         {/* Título da tabela */}
         <div
-          className="flex items-center justify-between border-b px-5 py-3.5"
+          className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-3.5"
           style={{ borderColor: '#2A3650' }}
         >
           <h2 className="text-sm font-semibold text-text">Histórico de Movimentações</h2>
-          <span className="text-xs text-muted">{rows.length} {rows.length === 1 ? 'lançamento' : 'lançamentos'}</span>
+          <div className="flex items-center gap-3">
+            {hiddenCount > 0 && (
+              <label className="flex cursor-pointer items-center gap-1.5 text-[11px] text-muted hover:text-text">
+                <input
+                  type="checkbox"
+                  checked={hideNoise}
+                  onChange={(e) => setHideNoise(e.target.checked)}
+                  className="h-3 w-3 cursor-pointer accent-blue-500"
+                />
+                Ocultar cancel/reativ ({hiddenCount})
+              </label>
+            )}
+            <span className="text-xs text-muted">{rows.length} {rows.length === 1 ? 'lançamento' : 'lançamentos'}</span>
+          </div>
         </div>
 
         {rows.length === 0 ? (
