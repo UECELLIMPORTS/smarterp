@@ -5,8 +5,16 @@ import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, ShoppingCart, Package, DollarSign,
   Users, BarChart2, Target, TrendingUp, Settings, Zap, PieChart, Store, FileText, Wallet, Cake,
+  ExternalLink,
 } from 'lucide-react'
 import type { ModuleKey } from '@/lib/permissions-shared'
+
+export type OtherProduct = {
+  product: string
+  label:   string
+  url:     string
+  emoji:   string
+}
 
 // Exportado pra MobileNav reaproveitar a mesma lista
 // Cada item tem `moduleKey` opcional — se setado, item só aparece pra users
@@ -52,9 +60,10 @@ type Props = {
   hasFullAccess?: boolean
   allowedModules?: ModuleKey[]
   isOwner?:       boolean
+  otherProducts?: OtherProduct[]
 }
 
-export function Sidebar({ hasFullAccess = true, allowedModules = [], isOwner = true }: Props) {
+export function Sidebar({ hasFullAccess = true, allowedModules = [], isOwner = true, otherProducts = [] }: Props) {
   const pathname = usePathname()
   const visibleNav = filterNavByPermissions(hasFullAccess, allowedModules, isOwner)
 
@@ -105,6 +114,27 @@ export function Sidebar({ hasFullAccess = true, allowedModules = [], isOwner = t
           })}
         </ul>
       </nav>
+
+      {/* Outros sistemas (links cruzados via SSO) */}
+      {otherProducts.length > 0 && (
+        <div className="border-t px-3 py-3" style={{ borderColor: '#2A3650' }}>
+          <p className="px-2 mb-1 text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#64748B' }}>
+            Outros sistemas
+          </p>
+          {otherProducts.map(p => (
+            <a
+              key={p.product}
+              href={p.url}
+              className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm transition-colors hover:bg-slate-700/30"
+              style={{ color: '#94A3B8' }}
+            >
+              <span aria-hidden>{p.emoji}</span>
+              <span className="flex-1 truncate">{p.label}</span>
+              <ExternalLink className="h-3 w-3 opacity-60" />
+            </a>
+          ))}
+        </div>
+      )}
 
       {/* Footer */}
       <div className="border-t px-4 py-3" style={{ borderColor: '#2A3650' }}>

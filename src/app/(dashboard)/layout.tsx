@@ -48,9 +48,20 @@ export default async function DashboardLayout({ children }: { children: React.Re
     planBadge = { label, kind: gestaoSub.planName as 'basico' | 'pro' | 'premium' }
   }
 
+  // Outros sistemas que o tenant tem ativos (pra link cruzado na sidebar)
+  const PRODUCT_INFO: Record<string, { label: string; url: string; emoji: string }> = {
+    crm:        { label: 'CRM',        url: 'https://crm.gestaosmarterp.online',        emoji: '💬' },
+    checksmart: { label: 'CheckSmart', url: 'https://checksmart.gestaosmarterp.online', emoji: '🔧' },
+  }
+  const otherProducts = subs
+    .filter(s => s.product !== 'gestao_smart' && (s.status === 'trial' || s.status === 'active' || s.status === 'late'))
+    .map(s => PRODUCT_INFO[s.product])
+    .filter((x): x is NonNullable<typeof x> => Boolean(x))
+    .map(info => ({ ...info, product: info.label }))
+
   return (
     <div className="min-h-screen" style={{ background: '#131C2A' }}>
-      <Sidebar hasFullAccess={fullAccess} allowedModules={permissions} isOwner={isOwner} />
+      <Sidebar hasFullAccess={fullAccess} allowedModules={permissions} isOwner={isOwner} otherProducts={otherProducts} />
       <Topbar
         userName={userName}
         userEmail={userEmail}
