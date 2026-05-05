@@ -1,5 +1,5 @@
-import { ComingSoon } from '@/components/layout/coming-soon'
+import { redirect } from 'next/navigation'
 
 export default function Page() {
-  return <ComingSoon title="CRM" />
+  redirect('https://crm.gestaosmarterp.online')
 }
