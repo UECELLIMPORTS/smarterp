@@ -4,6 +4,7 @@ import { cache } from 'react'
 
 export async function createClient() {
   const cookieStore = await cookies()
+  const cookieDomain = process.env.NEXT_PUBLIC_COOKIE_DOMAIN
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -12,8 +13,12 @@ export async function createClient() {
       cookies: {
         getAll()      { return cookieStore.getAll() },
         setAll(toSet) {
-          try { toSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options)) }
-          catch { /* ignorado em Server Components */ }
+          try {
+            toSet.forEach(({ name, value, options }) => {
+              const finalOpts = cookieDomain ? { ...options, domain: cookieDomain } : options
+              cookieStore.set(name, value, finalOpts)
+            })
+          } catch { /* ignorado em Server Components */ }
         },
       },
     },
