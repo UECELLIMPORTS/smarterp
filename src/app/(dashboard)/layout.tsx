@@ -69,6 +69,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         hasFullAccess={fullAccess}
         allowedModules={permissions}
         isOwner={isOwner}
+        otherProducts={otherProducts}
       />
 
       {/* Conteúdo principal — sem margem em mobile, 240px em lg+ pra dar espaço pra Sidebar */}

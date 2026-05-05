@@ -3,18 +3,19 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Menu, X, Zap } from 'lucide-react'
-import { filterNavByPermissions } from './sidebar'
+import { Menu, X, Zap, ExternalLink } from 'lucide-react'
+import { filterNavByPermissions, type OtherProduct } from './sidebar'
 import type { ModuleKey } from '@/lib/permissions-shared'
 
 type Props = {
   hasFullAccess?: boolean
   allowedModules?: ModuleKey[]
   isOwner?:       boolean
+  otherProducts?: OtherProduct[]
 }
 
 /** Hamburger + drawer pra mobile. Só aparece em <lg. */
-export function MobileNav({ hasFullAccess = true, allowedModules = [], isOwner = true }: Props) {
+export function MobileNav({ hasFullAccess = true, allowedModules = [], isOwner = true, otherProducts = [] }: Props) {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
   const visibleNav = filterNavByPermissions(hasFullAccess, allowedModules, isOwner)
@@ -106,6 +107,27 @@ export function MobileNav({ hasFullAccess = true, allowedModules = [], isOwner =
                 })}
               </ul>
             </nav>
+
+            {/* Outros sistemas (links cruzados via SSO) */}
+            {otherProducts.length > 0 && (
+              <div className="border-t px-3 py-3" style={{ borderColor: '#2A3650' }}>
+                <p className="px-2 mb-1 text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#64748B' }}>
+                  Outros sistemas
+                </p>
+                {otherProducts.map(p => (
+                  <a
+                    key={p.product}
+                    href={p.url}
+                    className="flex items-center gap-2 rounded-lg px-2 py-2 text-sm transition-colors hover:bg-slate-700/30"
+                    style={{ color: '#94A3B8' }}
+                  >
+                    <span aria-hidden>{p.emoji}</span>
+                    <span className="flex-1 truncate">{p.label}</span>
+                    <ExternalLink className="h-3 w-3 opacity-60" />
+                  </a>
+                ))}
+              </div>
+            )}
 
             {/* Footer */}
             <div className="border-t px-4 py-3" style={{ borderColor: '#2A3650' }}>

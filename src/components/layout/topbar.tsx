@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 import { MobileNav } from './mobile-nav'
 import { NotificationsBell } from './notifications-bell'
 import type { ModuleKey } from '@/lib/permissions-shared'
+import type { OtherProduct } from './sidebar'
 
 export type PlanBadge = {
   label: string
@@ -21,6 +22,7 @@ type Props = {
   hasFullAccess?:  boolean
   allowedModules?: ModuleKey[]
   isOwner?:        boolean
+  otherProducts?:  OtherProduct[]
 }
 
 const BADGE_STYLES: Record<PlanBadge['kind'], { bg: string; color: string; border: string; icon: React.ElementType }> = {
@@ -35,6 +37,7 @@ const BADGE_STYLES: Record<PlanBadge['kind'], { bg: string; color: string; borde
 export function Topbar({
   userName, userEmail, planBadge,
   hasFullAccess = true, allowedModules = [], isOwner = true,
+  otherProducts = [],
 }: Props) {
   const router = useRouter()
 
@@ -59,7 +62,7 @@ export function Topbar({
       style={{ background: '#131C2A', borderColor: '#2A3650' }}
     >
       {/* Slot esquerdo: hamburger no mobile */}
-      <MobileNav hasFullAccess={hasFullAccess} allowedModules={allowedModules} isOwner={isOwner} />
+      <MobileNav hasFullAccess={hasFullAccess} allowedModules={allowedModules} isOwner={isOwner} otherProducts={otherProducts} />
 
       <div className="flex items-center gap-3">
         {/* Badge do plano atual — clicável vai pra página de assinatura */}
