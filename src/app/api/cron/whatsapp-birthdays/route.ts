@@ -21,6 +21,7 @@ import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { scheduleWhatsAppMessage } from '@/lib/whatsapp-scheduler'
 import { sendEmail } from '@/lib/email'
+import { loadSubscriptionsByTenantId, canUseAutomation } from '@/lib/subscription'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -95,6 +96,13 @@ export async function GET(request: Request) {
     result.tenants++
 
     try {
+      // ── Gate Premium: aniversário só nos tenants com Gestão Smart Premium ────
+      const subs = await loadSubscriptionsByTenantId(sb, t.id)
+      if (!canUseAutomation(subs)) {
+        result.skipped++
+        continue
+      }
+
       // Templates de aniversário
       const { data: tpls } = await sb
         .from('whatsapp_templates')

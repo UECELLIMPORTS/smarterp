@@ -11,6 +11,7 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { scheduleWhatsAppMessage } from '@/lib/whatsapp-scheduler'
+import { loadSubscriptionsByTenantId, canUseAutomation } from '@/lib/subscription'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -42,6 +43,13 @@ export async function GET(request: Request) {
 
   for (const t of tenantList) {
     try {
+      // ── Gate Premium: win-back só nos tenants com Gestão Smart Premium ────
+      const subs = await loadSubscriptionsByTenantId(sb, t.id)
+      if (!canUseAutomation(subs)) {
+        totalSkipped++
+        continue
+      }
+
       // Template inactive_customer
       const { data: tpl } = await sb
         .from('whatsapp_templates')

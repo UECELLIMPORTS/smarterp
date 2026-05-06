@@ -97,6 +97,49 @@ export function gestaoSmartPlanAtLeast(subs: Subscription[], minimum: Plan): boo
   return currentRank >= PLAN_RANK[minimum]
 }
 
+/**
+ * Carrega subscriptions diretamente pelo tenantId (sem precisar do User/JWT).
+ * Usar em crons / Server Actions onde o tenantId já é conhecido.
+ *
+ * `sb` deve ser o cliente admin/service-role pra ignorar RLS.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function loadSubscriptionsByTenantId(sb: any, tenantId: string): Promise<Subscription[]> {
+  const { data, error } = await sb
+    .from('subscriptions')
+    .select('product, status, plan_name, price_cents, trial_ends_at, current_period_end, billing_cycle')
+    .eq('tenant_id', tenantId)
+
+  if (error) {
+    console.error('[loadSubscriptionsByTenantId] erro:', error.message)
+    return []
+  }
+
+  type Row = {
+    product: Product; status: SubStatus; plan_name: string; price_cents: number
+    trial_ends_at: string | null; current_period_end: string | null
+    billing_cycle: 'MONTHLY' | 'YEARLY' | null
+  }
+  return ((data ?? []) as Row[]).map(r => ({
+    product:          r.product,
+    status:           r.status,
+    planName:         r.plan_name,
+    priceCents:       r.price_cents,
+    trialEndsAt:      r.trial_ends_at      ? new Date(r.trial_ends_at)      : null,
+    currentPeriodEnd: r.current_period_end ? new Date(r.current_period_end) : null,
+    billingCycle:     r.billing_cycle ?? 'MONTHLY',
+  }))
+}
+
+/**
+ * Gate de automação WhatsApp/email (aniversário, win-back).
+ * Disponível só pra tenants Premium do Gestão Smart. CheckSmart e Meta Ads
+ * isolados não destravam essas automações sozinhos.
+ */
+export function canUseAutomation(subs: Subscription[]): boolean {
+  return gestaoSmartPlanAtLeast(subs, 'premium')
+}
+
 /** Quantos dias faltam pro trial expirar. null se não está em trial. */
 export function daysUntilTrialEnds(subs: Subscription[]): number | null {
   const sub = getProductSubscription(subs, 'gestao_smart')

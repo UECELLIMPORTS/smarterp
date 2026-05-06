@@ -412,6 +412,29 @@ export async function updateTemplate(input: unknown): Promise<Result> {
   const v = parsed.data
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any
+
+  // ── Gate Premium: birthday/inactive_customer só com plano Premium ──────
+  // Bloqueia bypass de UI: mesmo se desativarem disabled=false no client, server
+  // não deixa habilitar template Premium pra plano não-Premium.
+  if (v.enabled === true) {
+    const { data: tpl } = await sb
+      .from('whatsapp_templates')
+      .select('type')
+      .eq('id', v.id)
+      .eq('tenant_id', tenantId)
+      .maybeSingle()
+    const tplType = tpl?.type as string | undefined
+    if (tplType && ['birthday_month', 'birthday_day', 'inactive_customer'].includes(tplType)) {
+      const { getTenantSubscriptions, canUseAutomation } = await import('@/lib/subscription')
+      const subs = await getTenantSubscriptions(user)
+      if (!canUseAutomation(subs)) {
+        return { ok: false, error: 'Esse recurso é exclusivo do plano Premium. Faça upgrade pra ativar.' }
+      }
+    }
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const update: any = {}
   if (v.enabled !== undefined)           update.enabled = v.enabled
   if (v.delayMinutes !== undefined)      update.delay_minutes = v.delayMinutes
@@ -423,8 +446,6 @@ export async function updateTemplate(input: unknown): Promise<Result> {
   if (v.couponDiscountPct !== undefined) update.coupon_discount_pct = v.couponDiscountPct
   if (v.couponValidDays !== undefined)   update.coupon_valid_days = v.couponValidDays
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const sb = supabase as any
   const { error } = await sb
     .from('whatsapp_templates')
     .update(update)

@@ -37,14 +37,19 @@ function fmtDateTime(iso: string | null): string {
   }).format(new Date(iso))
 }
 
+// Tipos de template que exigem Premium (automação avançada)
+const PREMIUM_TYPES = new Set(['birthday_month', 'birthday_day', 'inactive_customer'])
+
 export function WhatsAppClient({
   initialStatus,
   initialTemplates,
   initialMessages,
+  automationEnabled = true,
 }: {
-  initialStatus:    WhatsAppStatus
-  initialTemplates: TemplateRow[]
-  initialMessages:  SentMessageRow[]
+  initialStatus:      WhatsAppStatus
+  initialTemplates:   TemplateRow[]
+  initialMessages:    SentMessageRow[]
+  automationEnabled?: boolean
 }) {
   const [status, setStatus]     = useState<WhatsAppStatus>(initialStatus)
   const [templates, setTemplates] = useState<TemplateRow[]>(initialTemplates)
@@ -164,6 +169,7 @@ export function WhatsAppClient({
             <TemplateCard
               key={t.id}
               template={t}
+              locked={PREMIUM_TYPES.has(t.type) && !automationEnabled}
               onChange={updated => setTemplates(prev => prev.map(x => x.id === updated.id ? updated : x))}
             />
           ))
@@ -328,9 +334,11 @@ function ConnectionCard({
 function TemplateCard({
   template,
   onChange,
+  locked = false,
 }: {
   template: TemplateRow
   onChange: (t: TemplateRow) => void
+  locked?: boolean
 }) {
   const cfg = TEMPLATE_LABEL[template.type] ?? { title: template.type, subtitle: '', icon: '💬' }
   const [draft, setDraft] = useState(template)
@@ -385,7 +393,18 @@ function TemplateCard({
 
   return (
     <div className="rounded-2xl border border-zinc-800/60 bg-card overflow-hidden">
-      <div className="flex items-center justify-between gap-3 p-4">
+      {locked && (
+        <div className="border-b border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-xs flex items-center justify-between gap-3">
+          <span className="text-amber-300 font-medium">
+            🔒 Disponível só no plano Premium
+          </span>
+          <a href="/configuracoes/assinatura"
+            className="text-amber-400 underline-offset-2 hover:underline shrink-0">
+            Fazer upgrade →
+          </a>
+        </div>
+      )}
+      <div className={`flex items-center justify-between gap-3 p-4 ${locked ? 'opacity-60' : ''}`}>
         <div className="flex items-start gap-3 min-w-0">
           <span className="text-2xl">{cfg.icon}</span>
           <div>
@@ -398,10 +417,11 @@ function TemplateCard({
             <input
               type="checkbox"
               checked={draft.enabled}
+              disabled={locked}
               onChange={e => setDraft(d => ({ ...d, enabled: e.target.checked }))}
               className="peer sr-only"
             />
-            <div className="h-5 w-9 rounded-full bg-zinc-700 peer-checked:bg-emerald-500 transition-colors" />
+            <div className="h-5 w-9 rounded-full bg-zinc-700 peer-checked:bg-emerald-500 peer-disabled:opacity-50 transition-colors" />
             <div className="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white transition-transform peer-checked:translate-x-4" />
           </label>
           <button
