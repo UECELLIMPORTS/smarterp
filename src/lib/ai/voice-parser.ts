@@ -59,8 +59,8 @@ export type VoiceCommand =
     }
 
 export type ParseResult =
-  | { ok: true;  command: VoiceCommand; tokensIn: number; tokensOut: number; costMicrosUsd: number }
-  | { ok: false; error: string }
+  | { ok: true;  command: VoiceCommand; tokensIn: number; tokensOut: number; costMicrosUsd: number; raw: string }
+  | { ok: false; error: string; raw?: string }
 
 const PRICE_PER_1M_INPUT  = 0.15  // gpt-4o-mini input
 const PRICE_PER_1M_OUTPUT = 0.60  // gpt-4o-mini output
@@ -131,13 +131,40 @@ TIPOS DE COMANDO:
 
 REGRAS GERAIS:
 - Sempre PT-BR.
-- Se não tiver certeza do tipo, retorna { "type": "unknown", "reason": "explicação curta" }.
+- Use "unknown" APENAS se for IMPOSSÍVEL classificar (ex: "oi", "como vai"). Comandos relacionados a venda/gasto/estoque DEVEM ser tentados — confidence baixo é melhor que unknown.
+- Frase começa com "vendi" → quase sempre é "sale".
+- Frase tem "paguei", "gastei", "X reais de Y" → quase sempre "expense".
+- Frase tem "deu entrada", "chegou", "recebi", "comprei pra estoque" → "stock_in".
+- Frase tem "tem X no estoque", "balanço", "contagem", "fiz inventário" → "stock_balance".
 - confidence: 0.0 a 1.0. Use < 0.7 quando texto for ambíguo.
 - amountCents/purchasePriceCents/salePriceCents/newQty/totalCents/discountCents/shippingCents/unitPriceCents: SEMPRE inteiros.
   - "200 reais" = 20000, "1500" = 150000, "50 mil" = 5000000
   - Frações: "1,50" = 150
 - occurredAt OBRIGATÓRIO em "expense". Hoje = ${todayBR()}.
 - VENDAS: Se o usuário falar só 1 produto sem quantidade, assume quantity=1. Se não mencionar preço unitário mas mencionar total, deixa unitPriceCents null e preenche totalCents.
+
+EXEMPLOS:
+
+Input: "vendi um iPhone 13 pra Maria por 1500 pix"
+Output: {"type":"sale","items":[{"productQuery":"iPhone 13","quantity":1}],"customerQuery":"Maria","totalCents":150000,"paymentMethod":"pix","confidence":0.9}
+
+Input: "200 reais de tinta hoje"
+Output: {"type":"expense","occurredAt":"${todayBR()}","amountCents":20000,"category":"manutencao","description":"tinta","confidence":0.85}
+
+Input: "deu entrada de 5 capinhas a 15 reais cada"
+Output: {"type":"stock_in","productQuery":"capinhas","quantity":5,"purchasePriceCents":1500,"confidence":0.9}
+
+Input: "balanço, tem 3 iPhone 11 no estoque"
+Output: {"type":"stock_balance","productQuery":"iPhone 11","newQty":3,"confidence":0.95}
+
+Input: "vendi um carregador e duas películas pro José, total 80 reais cartão"
+Output: {"type":"sale","items":[{"productQuery":"carregador","quantity":1},{"productQuery":"película","quantity":2}],"customerQuery":"José","totalCents":8000,"paymentMethod":"card","confidence":0.85}
+
+Input: "paguei 50 de motoboy"
+Output: {"type":"expense","occurredAt":"${todayBR()}","amountCents":5000,"category":"motoboy","confidence":0.95}
+
+Input: "vendi um iPhone 13 128GB roxo seminovo pra cliente nova, 1800 metade pix metade dinheiro"
+Output: {"type":"sale","items":[{"productQuery":"iPhone 13 128GB roxo","quantity":1}],"customerQuery":null,"totalCents":180000,"paymentMethod":"mixed","confidence":0.8}
 
 OUTPUT: APENAS JSON (sem markdown, sem texto antes/depois).`
 
@@ -159,8 +186,8 @@ export async function parseVoiceCommand(transcript: string): Promise<ParseResult
   try {
     completion = await openai.chat.completions.create({
       model:       'gpt-4o-mini',
-      temperature: 0.1,
-      max_tokens:  300,
+      temperature: 0.2,
+      max_tokens:  500,
       response_format: { type: 'json_object' },
       messages: [
         { role: 'system', content: PROMPT_FILLED },
@@ -172,17 +199,19 @@ export async function parseVoiceCommand(transcript: string): Promise<ParseResult
   }
 
   const raw = completion.choices[0]?.message?.content?.trim() ?? ''
+  console.log('[voice-parser] input:', text, '| raw output:', raw)
+
   let parsed: VoiceCommand
   try {
     const obj = JSON.parse(raw)
     parsed = obj as VoiceCommand
   } catch {
-    return { ok: false, error: `IA retornou JSON inválido: ${raw.slice(0, 100)}` }
+    return { ok: false, error: `IA retornou JSON inválido: ${raw.slice(0, 200)}`, raw }
   }
 
   const tokensIn  = completion.usage?.prompt_tokens     ?? 0
   const tokensOut = completion.usage?.completion_tokens ?? 0
   const costMicrosUsd = Math.round(tokensIn * PRICE_PER_1M_INPUT + tokensOut * PRICE_PER_1M_OUTPUT)
 
-  return { ok: true, command: parsed, tokensIn, tokensOut, costMicrosUsd }
+  return { ok: true, command: parsed, tokensIn, tokensOut, costMicrosUsd, raw }
 }

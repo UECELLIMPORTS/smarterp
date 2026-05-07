@@ -13,8 +13,8 @@
  */
 
 import { useEffect, useRef, useState } from 'react'
-import { Mic, Square, X, Loader2, Check, AlertTriangle, Pencil, Plus, Trash2 } from 'lucide-react'
-import { processVoiceCommand, type VoiceProductMatch, type VoiceCustomerMatch, type VoiceSaleItemMatched } from '@/actions/voice-entry'
+import { Mic, Square, X, Loader2, Check, AlertTriangle, Pencil, Trash2, Type, Send } from 'lucide-react'
+import { processVoiceCommand, processTextCommand, type VoiceProductMatch, type VoiceCustomerMatch, type VoiceSaleItemMatched } from '@/actions/voice-entry'
 import { createVariableExpense } from '@/actions/variable-expenses'
 import { createMovement } from '@/actions/stock-movements'
 import { adjustStock } from '@/actions/products'
@@ -42,7 +42,10 @@ export function VoiceModal({ onClose }: { onClose: () => void }) {
 
   const [costUsd, setCostUsd]           = useState(0)
   const [errMsg, setErrMsg]             = useState<string | null>(null)
+  const [errRaw, setErrRaw]             = useState<string | null>(null)
   const [doneMsg, setDoneMsg]           = useState<string | null>(null)
+  const [inputMode, setInputMode]       = useState<'voice' | 'text'>('voice')
+  const [textInput, setTextInput]       = useState('')
 
   const recorderRef  = useRef<MediaRecorder | null>(null)
   const chunksRef    = useRef<Blob[]>([])
@@ -106,31 +109,55 @@ export function VoiceModal({ onClose }: { onClose: () => void }) {
     try {
       const base64 = await blobToBase64(blob)
       const res = await processVoiceCommand({ audioBase64: base64, mimetype: mimetypeRef.current })
-      if (!res.ok) {
-        setErrMsg(res.error)
-        setTranscript(res.transcript ?? '')
-        setPhase('error')
-        return
-      }
-      setTranscript(res.transcript)
-      setCommand(res.command)
-      setProductMatches(res.productMatches ?? [])
-      setChosenProductId(res.productMatches && res.productMatches.length > 0 ? res.productMatches[0].id : null)
-      setSaleItemsMatched(res.saleItemsMatched ?? [])
-      setChosenItemIds((res.saleItemsMatched ?? []).map(it => it.candidates[0]?.id ?? null))
-      setCustomerMatches(res.customerMatches ?? [])
-      setChosenCustomerId(res.customerMatches && res.customerMatches.length > 0 ? res.customerMatches[0].id : null)
-      setCashSessionOpen(res.cashSessionOpen ?? null)
-      setCostUsd(res.costs.totalUsd)
-      if (res.command.type === 'unknown') {
-        setErrMsg('Não consegui entender o comando. Tenta falar de novo, mais claro.')
-        setPhase('error')
-      } else {
-        setPhase('review')
-      }
+      handleProcessResult(res)
     } catch (e) {
       setErrMsg(e instanceof Error ? e.message : 'Erro ao processar áudio')
       setPhase('error')
+    }
+  }
+
+  async function sendText() {
+    const text = textInput.trim()
+    if (text.length < 3) {
+      setErrMsg('Digite ao menos 3 caracteres.')
+      setPhase('error')
+      return
+    }
+    setPhase('processing')
+    try {
+      const res = await processTextCommand(text)
+      handleProcessResult(res)
+    } catch (e) {
+      setErrMsg(e instanceof Error ? e.message : 'Erro ao processar texto')
+      setPhase('error')
+    }
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function handleProcessResult(res: any) {
+    if (!res.ok) {
+      setErrMsg(res.error)
+      setErrRaw(res.raw ?? null)
+      setTranscript(res.transcript ?? '')
+      setPhase('error')
+      return
+    }
+    setTranscript(res.transcript)
+    setCommand(res.command)
+    setProductMatches(res.productMatches ?? [])
+    setChosenProductId(res.productMatches && res.productMatches.length > 0 ? res.productMatches[0].id : null)
+    setSaleItemsMatched(res.saleItemsMatched ?? [])
+    setChosenItemIds((res.saleItemsMatched ?? []).map((it: VoiceSaleItemMatched) => it.candidates[0]?.id ?? null))
+    setCustomerMatches(res.customerMatches ?? [])
+    setChosenCustomerId(res.customerMatches && res.customerMatches.length > 0 ? res.customerMatches[0].id : null)
+    setCashSessionOpen(res.cashSessionOpen ?? null)
+    setCostUsd(res.costs.totalUsd)
+    if (res.command.type === 'unknown') {
+      setErrMsg(`Não consegui classificar o comando. Razão: ${res.command.reason ?? '—'}.`)
+      setErrRaw(res.raw ?? null)
+      setPhase('error')
+    } else {
+      setPhase('review')
     }
   }
 
@@ -212,8 +239,15 @@ export function VoiceModal({ onClose }: { onClose: () => void }) {
     setCommand(null)
     setProductMatches([])
     setChosenProductId(null)
+    setSaleItemsMatched([])
+    setChosenItemIds([])
+    setCustomerMatches([])
+    setChosenCustomerId(null)
+    setCashSessionOpen(null)
     setErrMsg(null)
+    setErrRaw(null)
     setDoneMsg(null)
+    setTextInput('')
   }
 
   return (
@@ -234,7 +268,14 @@ export function VoiceModal({ onClose }: { onClose: () => void }) {
 
         <div className="p-4 max-h-[80vh] overflow-y-auto">
           {phase === 'idle' && (
-            <IdleView onStart={startRecording} />
+            <IdleView
+              mode={inputMode}
+              setMode={setInputMode}
+              text={textInput}
+              setText={setTextInput}
+              onStartRecording={startRecording}
+              onSendText={sendText}
+            />
           )}
           {phase === 'recording' && (
             <RecordingView elapsed={recElapsed} onStop={stopRecording} />
@@ -289,7 +330,15 @@ export function VoiceModal({ onClose }: { onClose: () => void }) {
                   <p className="text-sm text-red-300">{errMsg}</p>
                 </div>
                 {transcript && (
-                  <p className="text-[11px] text-zinc-500 mt-2">Transcrição: &quot;{transcript}&quot;</p>
+                  <p className="text-[11px] text-zinc-500 mt-2">Você disse: <span className="italic">&quot;{transcript}&quot;</span></p>
+                )}
+                {errRaw && (
+                  <details className="mt-2">
+                    <summary className="text-[10px] text-zinc-500 cursor-pointer hover:text-zinc-300">Ver detalhe técnico (debug)</summary>
+                    <pre className="mt-2 text-[10px] text-zinc-400 bg-zinc-950 rounded p-2 overflow-x-auto max-h-32 whitespace-pre-wrap">
+{errRaw}
+                    </pre>
+                  </details>
                 )}
               </div>
               <div className="flex gap-2 justify-end">
@@ -310,23 +359,90 @@ export function VoiceModal({ onClose }: { onClose: () => void }) {
 
 // ──────────────────────────────────────────────────────────────────────────
 
-function IdleView({ onStart }: { onStart: () => void }) {
+function IdleView({
+  mode, setMode, text, setText, onStartRecording, onSendText,
+}: {
+  mode:             'voice' | 'text'
+  setMode:          (m: 'voice' | 'text') => void
+  text:             string
+  setText:          (t: string) => void
+  onStartRecording: () => void
+  onSendText:       () => void
+}) {
   return (
-    <div className="text-center py-4">
-      <p className="text-sm text-zinc-300 mb-1">Toque pra começar a gravar</p>
-      <p className="text-xs text-zinc-500 mb-5">Diga o que quer lançar — despesa, entrada de estoque ou balanço</p>
-      <button
-        type="button"
-        onClick={onStart}
-        className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500 text-white hover:bg-emerald-600 active:scale-95 transition-all shadow-lg shadow-emerald-500/30"
-      >
-        <Mic className="h-8 w-8" />
-      </button>
+    <div>
+      {/* Toggle voz/texto */}
+      <div className="flex items-center justify-center gap-1 mb-4 p-1 rounded-lg bg-zinc-950/50 border border-zinc-800 w-fit mx-auto">
+        <button
+          type="button"
+          onClick={() => setMode('voice')}
+          className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+            mode === 'voice' ? 'bg-emerald-500 text-white' : 'text-zinc-400 hover:text-zinc-200'
+          }`}
+        >
+          <Mic className="h-3 w-3" /> Voz
+        </button>
+        <button
+          type="button"
+          onClick={() => setMode('text')}
+          className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+            mode === 'text' ? 'bg-emerald-500 text-white' : 'text-zinc-400 hover:text-zinc-200'
+          }`}
+        >
+          <Type className="h-3 w-3" /> Texto
+        </button>
+      </div>
+
+      {mode === 'voice' ? (
+        <div className="text-center py-2">
+          <p className="text-sm text-zinc-300 mb-1">Toque pra começar a gravar</p>
+          <p className="text-xs text-zinc-500 mb-5">Diga o que quer lançar — venda, despesa, estoque ou balanço</p>
+          <button
+            type="button"
+            onClick={onStartRecording}
+            className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500 text-white hover:bg-emerald-600 active:scale-95 transition-all shadow-lg shadow-emerald-500/30"
+          >
+            <Mic className="h-8 w-8" />
+          </button>
+        </div>
+      ) : (
+        <div className="py-2">
+          <p className="text-sm text-zinc-300 mb-1">Digite o comando</p>
+          <p className="text-xs text-zinc-500 mb-3">Mesma linguagem natural que você usaria falando</p>
+          <textarea
+            autoFocus
+            rows={3}
+            value={text}
+            onChange={e => setText(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault()
+                onSendText()
+              }
+            }}
+            placeholder='Ex: "vendi um iPhone 13 pra Maria por 1500 pix"'
+            className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-emerald-500/60 resize-none"
+          />
+          <div className="flex justify-between items-center mt-2">
+            <p className="text-[10px] text-zinc-600">Ctrl+Enter envia</p>
+            <button
+              type="button"
+              onClick={onSendText}
+              disabled={text.trim().length < 3}
+              className="inline-flex items-center gap-1.5 rounded-md bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-600 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Send className="h-3 w-3" /> Enviar
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="mt-5 text-[11px] text-zinc-500 leading-relaxed text-left bg-zinc-950/50 rounded-lg p-3 border border-zinc-800">
         <p className="font-medium text-zinc-400 mb-1">Exemplos:</p>
         <ul className="space-y-0.5">
+          <li>🛒 &quot;vendi um iPhone 13 pra Maria, 1500 pix balcão&quot;</li>
           <li>💸 &quot;200 reais de tinta hoje&quot;</li>
-          <li>📦 &quot;deu entrada de 5 iPhone 13 a 1500 reais cada&quot;</li>
+          <li>📦 &quot;deu entrada de 5 iPhone 13 a 1500 cada&quot;</li>
           <li>📊 &quot;balanço, tem 3 capinhas no estoque&quot;</li>
         </ul>
       </div>

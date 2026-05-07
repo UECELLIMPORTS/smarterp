@@ -53,13 +53,14 @@ export type ProcessVoiceResult =
       saleItemsMatched?:  VoiceSaleItemMatched[] // sale
       customerMatches?:   VoiceCustomerMatch[]   // sale (top 5)
       cashSessionOpen?:   boolean                // sale
+      raw?:        string                        // raw JSON do LLM pra debug
       costs: {
         whisperUsd: number
         parserUsd:  number
         totalUsd:   number
       }
     }
-  | { ok: false; error: string; transcript?: string }
+  | { ok: false; error: string; transcript?: string; raw?: string }
 
 export async function processVoiceCommand(args: {
   audioBase64: string
@@ -79,9 +80,10 @@ export async function processVoiceCommand(args: {
 
   // 2. Parser
   const pr = await parseVoiceCommand(wh.text)
-  if (!pr.ok) return { ok: false, error: `Parser: ${pr.error}`, transcript: wh.text }
+  if (!pr.ok) return { ok: false, error: `Parser: ${pr.error}`, transcript: wh.text, raw: pr.raw }
 
   const cmd = pr.command
+  const rawJson = pr.raw
   let productMatches:   VoiceProductMatch[] | undefined
   let saleItemsMatched: VoiceSaleItemMatched[] | undefined
   let customerMatches:  VoiceCustomerMatch[] | undefined
@@ -139,10 +141,88 @@ export async function processVoiceCommand(args: {
     saleItemsMatched,
     customerMatches,
     cashSessionOpen,
+    raw:              rawJson,
     costs: {
       whisperUsd: wh.costMicrosUsd / 1_000_000,
       parserUsd:  pr.costMicrosUsd / 1_000_000,
       totalUsd:   (wh.costMicrosUsd + pr.costMicrosUsd) / 1_000_000,
+    },
+  }
+}
+
+/**
+ * Mesma coisa que processVoiceCommand mas pula Whisper (input já é texto).
+ */
+export async function processTextCommand(text: string): Promise<ProcessVoiceResult> {
+  const trimmed = (text || '').trim()
+  if (trimmed.length < 3) return { ok: false, error: 'Digite um comando.' }
+
+  const { supabase, user } = await requireAuth()
+  const tenantId = getTenantId(user)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any
+
+  const pr = await parseVoiceCommand(trimmed)
+  if (!pr.ok) return { ok: false, error: `Parser: ${pr.error}`, transcript: trimmed, raw: pr.raw }
+
+  const cmd = pr.command
+  let productMatches:   VoiceProductMatch[] | undefined
+  let saleItemsMatched: VoiceSaleItemMatched[] | undefined
+  let customerMatches:  VoiceCustomerMatch[] | undefined
+  let cashSessionOpen:  boolean | undefined
+
+  if (cmd.type === 'stock_in' || cmd.type === 'stock_balance') {
+    productMatches = await matchProducts(sb, tenantId, cmd.productQuery, 5)
+  }
+
+  if (cmd.type === 'sale') {
+    saleItemsMatched = []
+    for (const it of cmd.items) {
+      const candidates = await matchProducts(sb, tenantId, it.productQuery, 3)
+      saleItemsMatched.push({
+        productQuery:   it.productQuery,
+        quantity:       it.quantity,
+        unitPriceCents: it.unitPriceCents ?? null,
+        candidates,
+      })
+    }
+
+    if (cmd.customerQuery && cmd.customerQuery.trim().length >= 2) {
+      const q = cmd.customerQuery.trim()
+      const { data: custs } = await sb
+        .from('customers')
+        .select('id, full_name, whatsapp, cpf_cnpj')
+        .eq('tenant_id', tenantId)
+        .ilike('full_name', `%${q}%`)
+        .order('full_name', { ascending: true })
+        .limit(5)
+      customerMatches = (custs ?? []) as VoiceCustomerMatch[]
+    } else {
+      customerMatches = []
+    }
+
+    const { data: activeSession } = await sb
+      .from('cash_sessions')
+      .select('id')
+      .eq('tenant_id', tenantId)
+      .eq('status', 'open')
+      .maybeSingle()
+    cashSessionOpen = !!activeSession
+  }
+
+  return {
+    ok:               true,
+    transcript:       trimmed,
+    command:          cmd,
+    productMatches,
+    saleItemsMatched,
+    customerMatches,
+    cashSessionOpen,
+    raw:              pr.raw,
+    costs: {
+      whisperUsd: 0,
+      parserUsd:  pr.costMicrosUsd / 1_000_000,
+      totalUsd:   pr.costMicrosUsd / 1_000_000,
     },
   }
 }
