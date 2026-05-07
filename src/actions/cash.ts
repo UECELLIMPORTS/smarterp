@@ -17,6 +17,7 @@ import { revalidatePath } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireAuth } from '@/lib/supabase/server'
 import { getTenantId } from '@/lib/tenant'
+import { resolveActiveStoreId } from '@/lib/active-store'
 
 export type CashSession = {
   id:                   string
@@ -52,7 +53,7 @@ type Result<T = void> = { ok: true; data?: T } | { ok: false; error: string }
 // Queries
 // ──────────────────────────────────────────────────────────────────────────
 
-/** Sessão atualmente aberta no tenant (ou null se nenhuma). */
+/** Sessão atualmente aberta na LOJA ATIVA do tenant (ou null se nenhuma). */
 export async function getActiveCashSession(): Promise<CashSession | null> {
   const { user } = await requireAuth()
   const tenantId = getTenantId(user)
@@ -60,13 +61,16 @@ export async function getActiveCashSession(): Promise<CashSession | null> {
   const admin = createAdminClient()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = admin as any
-  const { data } = await sb
+  const storeId = await resolveActiveStoreId(sb, tenantId)
+
+  let q = sb
     .from('cash_sessions')
     .select('id, opened_at, closed_at, opened_by_user_id, closed_by_user_id, opening_balance_cents, closing_counted_cents, status, notes')
     .eq('tenant_id', tenantId)
     .eq('status', 'open')
-    .maybeSingle()
+  if (storeId) q = q.eq('store_id', storeId)
 
+  const { data } = await q.maybeSingle()
   if (!data) return null
   return mapSession(data)
 }
@@ -142,10 +146,13 @@ export async function openCashSession(input: {
   const admin = createAdminClient()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = admin as any
+  const storeId = await resolveActiveStoreId(sb, tenantId)
+
   const { data, error } = await sb
     .from('cash_sessions')
     .insert({
       tenant_id:             tenantId,
+      store_id:              storeId,
       opened_by_user_id:     user.id,
       opening_balance_cents: input.openingBalanceCents,
       notes:                 input.notes ?? null,

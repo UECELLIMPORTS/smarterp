@@ -6,10 +6,12 @@
  * vinculadas a uma loja específica via store_id.
  */
 
+import { cookies } from 'next/headers'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { requireAuth } from '@/lib/supabase/server'
 import { getTenantId } from '@/lib/tenant'
+import { ACTIVE_STORE_COOKIE } from '@/lib/active-store'
 
 export type Store = {
   id:         string
@@ -120,6 +122,33 @@ export async function updateStore(id: string, input: unknown): Promise<Result> {
     return { ok: false, error: error.message }
   }
   revalidatePath('/configuracoes/lojas')
+  return { ok: true }
+}
+
+// ── Set active store (cookie) ───────────────────────────────────────────
+export async function setActiveStoreCookie(storeId: string): Promise<Result> {
+  const { supabase, user } = await requireAuth()
+  const tenantId = getTenantId(user)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any
+
+  // Valida que a store pertence ao tenant
+  const { data } = await sb
+    .from('stores')
+    .select('id')
+    .eq('id', storeId)
+    .eq('tenant_id', tenantId)
+    .eq('is_active', true)
+    .maybeSingle()
+  if (!data) return { ok: false, error: 'Loja inválida ou inativa' }
+
+  const c = await cookies()
+  c.set(ACTIVE_STORE_COOKIE, storeId, {
+    path:     '/',
+    maxAge:   60 * 60 * 24 * 365,  // 1 ano
+    sameSite: 'lax',
+    httpOnly: false,                // client precisa ler também
+  })
   return { ok: true }
 }
 

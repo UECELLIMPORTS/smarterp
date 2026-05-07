@@ -23,6 +23,7 @@ import { transcribeAudio } from '@/lib/ai/whisper'
 import { parseVoiceCommand, parseConversation, type VoiceCommand, type ConversationTurn } from '@/lib/ai/voice-parser'
 import { getOperationalContext, formatContextForPrompt } from '@/lib/ai/voice-context'
 import { getRelevantMemories, formatMemoriesForPrompt, extractFactsFromCommand, saveFacts, type ExtractedFact } from '@/lib/ai/voice-memory'
+import { resolveActiveStoreId } from '@/lib/active-store'
 import type { VoiceSessionTurn } from '@/hooks/use-voice-session'
 
 export type VoiceProductMatch = {
@@ -188,9 +189,10 @@ export async function processConversation(args: {
   }
 
   // 2. Constrói contexto rico pra IA (operacional + sessão + memórias longo prazo)
+  const activeStoreId = await resolveActiveStoreId(sb, tenantId)
   const contextParts: string[] = []
   try {
-    const opContext = await getOperationalContext(sb, tenantId)
+    const opContext = await getOperationalContext(sb, tenantId, activeStoreId)
     contextParts.push(formatContextForPrompt(opContext))
   } catch (e) { console.warn('[voice-entry] op context failed', e) }
 

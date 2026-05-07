@@ -14,6 +14,7 @@ import { z } from 'zod'
 import { requireAuth } from '@/lib/supabase/server'
 import { getTenantId } from '@/lib/tenant'
 import { categoryLabel, isValidCategory } from '@/lib/variable-expense-categories'
+import { resolveActiveStoreId } from '@/lib/active-store'
 
 type Result<T = void> = { ok: true; data?: T } | { ok: false; error: string }
 
@@ -52,10 +53,13 @@ export async function createVariableExpense(input: unknown): Promise<Result<{ id
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any
+  const storeId = await resolveActiveStoreId(sb, tenantId)
+
   const { data, error } = await sb
     .from('variable_expenses')
     .insert({
       tenant_id:      tenantId,
+      store_id:       storeId,
       occurred_at:    v.occurredAt,
       amount_cents:   v.amountCents,
       category:       v.category,
@@ -128,6 +132,7 @@ export type ListFilters = {
   endISO?:    string
   category?:  string
   search?:    string
+  storeId?:   string | 'all'   // 'all' = todas as lojas; undefined = loja ativa
 }
 
 export async function listVariableExpenses(filters?: ListFilters): Promise<VariableExpense[]> {
@@ -143,6 +148,14 @@ export async function listVariableExpenses(filters?: ListFilters): Promise<Varia
     .order('occurred_at', { ascending: false })
     .order('created_at',  { ascending: false })
     .limit(2000)
+
+  // Filtro por loja: explícito > ativa > todas (fallback se sem ativa)
+  if (filters?.storeId && filters.storeId !== 'all') {
+    q = q.eq('store_id', filters.storeId)
+  } else if (filters?.storeId !== 'all') {
+    const activeStoreId = await resolveActiveStoreId(sb, tenantId)
+    if (activeStoreId) q = q.eq('store_id', activeStoreId)
+  }
 
   if (filters?.startISO) q = q.gte('occurred_at', filters.startISO)
   if (filters?.endISO)   q = q.lte('occurred_at', filters.endISO)
@@ -281,13 +294,17 @@ export async function exportVariableExpensesCsv(filters?: ListFilters): Promise<
 // Total no período (usado pelo /relatorios pra calcular Lucro Líquido)
 // ──────────────────────────────────────────────────────────────────────────
 
-export async function getVariableExpensesTotalCents(startISO: string, endISO: string): Promise<number> {
+export async function getVariableExpensesTotalCents(
+  startISO: string,
+  endISO: string,
+  opts?: { storeId?: string | 'all' },
+): Promise<number> {
   const { supabase, user } = await requireAuth()
   const tenantId = getTenantId(user)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any
-  const { data } = await sb
+  let q = sb
     .from('variable_expenses')
     .select('amount_cents')
     .eq('tenant_id', tenantId)
@@ -295,5 +312,13 @@ export async function getVariableExpensesTotalCents(startISO: string, endISO: st
     .lte('occurred_at', endISO)
     .limit(20000)
 
+  if (opts?.storeId && opts.storeId !== 'all') {
+    q = q.eq('store_id', opts.storeId)
+  } else if (opts?.storeId !== 'all') {
+    const activeStoreId = await resolveActiveStoreId(sb, tenantId)
+    if (activeStoreId) q = q.eq('store_id', activeStoreId)
+  }
+
+  const { data } = await q
   return ((data ?? []) as { amount_cents: number }[]).reduce((s, r) => s + r.amount_cents, 0)
 }

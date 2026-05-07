@@ -16,29 +16,33 @@ export type OperationalContext = {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function getOperationalContext(sb: any, tenantId: string): Promise<OperationalContext> {
+export async function getOperationalContext(sb: any, tenantId: string, storeId?: string | null): Promise<OperationalContext> {
   const today = new Date().toISOString().slice(0, 10)
   const todayStart = `${today}T00:00:00.000Z`
 
-  // Sales hoje (count + total)
-  const { data: salesData } = await sb
+  // Sales hoje (count + total) — filtra por loja se houver
+  let salesQ = sb
     .from('sales')
     .select('total_cents, customer_id, created_at')
     .eq('tenant_id', tenantId)
     .gte('created_at', todayStart)
     .neq('status', 'cancelled')
+  if (storeId) salesQ = salesQ.eq('store_id', storeId)
+  const { data: salesData } = await salesQ
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sales = (salesData ?? []) as any[]
   const salesCount = sales.length
   const salesTotalCents = sales.reduce((s, r) => s + (r.total_cents ?? 0), 0)
 
-  // Despesas hoje
-  const { data: expensesData } = await sb
+  // Despesas hoje — filtra por loja se houver
+  let expensesQ = sb
     .from('variable_expenses')
     .select('amount_cents')
     .eq('tenant_id', tenantId)
     .eq('occurred_at', today)
+  if (storeId) expensesQ = expensesQ.eq('store_id', storeId)
+  const { data: expensesData } = await expensesQ
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const expenses = (expensesData ?? []) as any[]

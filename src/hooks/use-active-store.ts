@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import type { Store } from '@/actions/stores'
+import { setActiveStoreCookie, type Store } from '@/actions/stores'
 
 const STORAGE_KEY = 'smarterp_active_store_v1'
 
@@ -20,13 +20,16 @@ export function useActiveStore(stores: Store[]) {
     }
   }, [stores])
 
-  const setActive = useCallback((id: string) => {
+  const setActive = useCallback(async (id: string) => {
     setActiveId(id)
     if (typeof window !== 'undefined') {
       localStorage.setItem(STORAGE_KEY, id)
     }
+    // Sincroniza com cookie no servidor (pra server actions filtrarem)
+    try {
+      await setActiveStoreCookie(id)
+    } catch { /* noop */ }
     // Hard reload pra todos os componentes refetcharem com nova store
-    // (mais simples que pub/sub manual em cada lista)
     if (typeof window !== 'undefined') {
       window.location.reload()
     }
