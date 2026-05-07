@@ -5,6 +5,7 @@ import { requireAuth } from '@/lib/supabase/server'
 import { getTenantId } from '@/lib/tenant'
 import { tryAutoEmitNfceForSale } from '@/lib/fiscal-emit-core'
 import { scheduleWhatsAppMessage } from '@/lib/whatsapp-scheduler'
+import { resolveActiveStoreId } from '@/lib/active-store'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -391,10 +392,14 @@ export async function createSale(input: CreateSaleInput): Promise<{ id: string }
     .eq('status', 'open')
     .maybeSingle()
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const storeId = await resolveActiveStoreId(supabase as any, tenantId)
+
   const { data: sale, error: saleError } = await supabase
     .from('sales')
     .insert({
       tenant_id:       tenantId,
+      store_id:        storeId,
       user_id:         user.id,
       customer_id:     input.customerId,
       subtotal_cents:  input.subtotalCents,
@@ -451,6 +456,7 @@ export async function createSale(input: CreateSaleInput): Promise<{ id: string }
     const { error: movError } = await supabase.from('stock_movements').insert(
       stockItems.map(item => ({
         tenant_id:        tenantId,
+        store_id:         storeId,
         product_id:       item.productId as string,
         type:             'saida',
         quantity:         item.quantity,

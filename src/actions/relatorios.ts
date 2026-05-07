@@ -8,6 +8,7 @@
  */
 
 import { requireAuth } from '@/lib/supabase/server'
+import { resolveActiveStoreId } from '@/lib/active-store'
 import { getTenantId } from '@/lib/tenant'
 import { createAdminClient } from '@/lib/supabase/admin'
 
@@ -39,6 +40,7 @@ export type SalesReportFilters = {
   status?:         'all' | 'completed' | 'cancelled'
   customerId?:     string
   userId?:         string
+  storeId?:        string | 'all'   // 'all' ou explícito; undefined = loja ativa
 }
 
 export type SalesReportData = {
@@ -65,6 +67,14 @@ export async function getDetailedSalesReport(filters: SalesReportFilters): Promi
     .gte('created_at', filters.start)
     .lte('created_at', filters.end)
     .order('created_at', { ascending: false })
+
+  // Filtro por loja: explícito > ativa > todas
+  if (filters.storeId && filters.storeId !== 'all') {
+    q = q.eq('store_id', filters.storeId)
+  } else if (filters.storeId !== 'all') {
+    const activeStoreId = await resolveActiveStoreId(sb, tenantId)
+    if (activeStoreId) q = q.eq('store_id', activeStoreId)
+  }
 
   if (filters.status === 'completed') q = q.neq('status', 'cancelled')
   else if (filters.status === 'cancelled') q = q.eq('status', 'cancelled')

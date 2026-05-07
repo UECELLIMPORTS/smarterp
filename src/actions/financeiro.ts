@@ -3,6 +3,7 @@
 import { requireAuth } from '@/lib/supabase/server'
 import { getTenantId } from '@/lib/tenant'
 import { revalidatePath } from 'next/cache'
+import { resolveActiveStoreId } from '@/lib/active-store'
 
 // ── Helper: busca cost_cents atual dos produtos/peças pra snapshot em sale_items
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -435,10 +436,14 @@ export async function createManualSale(input: ManualSaleInput): Promise<void> {
 
   const saleDate = new Date(input.saleDate + 'T12:00:00')
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const storeId = await resolveActiveStoreId(supabase as any, tenantId)
+
   const { data: sale, error: saleErr } = await supabase
     .from('sales')
     .insert({
       tenant_id:      tenantId,
+      store_id:       storeId,
       user_id:        user.id,
       customer_id:    input.customerId,
       subtotal_cents: subtotal,
@@ -474,6 +479,7 @@ export async function createManualSale(input: ManualSaleInput): Promise<void> {
     .filter(i => i.productId && i.source === 'products')
     .map(item => ({
       tenant_id:        tenantId,
+      store_id:         storeId,
       product_id:       item.productId as string,
       type:             'saida',
       quantity:         item.quantity,

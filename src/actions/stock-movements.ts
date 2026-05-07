@@ -3,6 +3,7 @@
 import { requireAuth } from '@/lib/supabase/server'
 import { getTenantId } from '@/lib/tenant'
 import { revalidatePath } from 'next/cache'
+import { resolveActiveStoreId } from '@/lib/active-store'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -139,10 +140,14 @@ export async function createMovement(input: StockMovementInput): Promise<StockMo
 
   if (input.quantity <= 0) throw new Error('Quantidade deve ser maior que zero.')
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const storeId = await resolveActiveStoreId(supabase as any, tenantId)
+
   const { data, error } = await supabase
     .from('stock_movements')
     .insert({
       tenant_id:            tenantId,
+      store_id:             storeId,
       product_id:           input.productId,
       type:                 input.type,
       quantity:             input.quantity,
