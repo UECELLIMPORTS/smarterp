@@ -8,6 +8,7 @@ import {
 import { TrialBanner } from '@/components/trial-banner'
 import { hasFullAccess, getUserPermissions } from '@/lib/permissions'
 import { VoiceFAB } from '@/components/voice-entry/voice-fab'
+import { listStores } from '@/actions/stores'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   let auth: Awaited<ReturnType<typeof requireAuth>>
@@ -60,6 +61,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
     .filter((x): x is NonNullable<typeof x> => Boolean(x))
     .map(info => ({ ...info, product: info.label }))
 
+  // Lojas (multi-store) pra selector no topbar
+  const stores = await listStores().catch(() => [])
+
   return (
     <div className="min-h-screen" style={{ background: '#131C2A' }}>
       <Sidebar hasFullAccess={fullAccess} allowedModules={permissions} isOwner={isOwner} otherProducts={otherProducts} />
@@ -71,6 +75,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         allowedModules={permissions}
         isOwner={isOwner}
         otherProducts={otherProducts}
+        stores={stores}
       />
 
       {/* Conteúdo principal — sem margem em mobile, 240px em lg+ pra dar espaço pra Sidebar */}

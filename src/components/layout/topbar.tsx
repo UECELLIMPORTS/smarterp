@@ -7,8 +7,10 @@ import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { MobileNav } from './mobile-nav'
 import { NotificationsBell } from './notifications-bell'
+import { StoreSelector } from './store-selector'
 import type { ModuleKey } from '@/lib/permissions-shared'
 import type { OtherProduct } from './sidebar'
+import type { Store } from '@/actions/stores'
 
 export type PlanBadge = {
   label: string
@@ -23,6 +25,7 @@ type Props = {
   allowedModules?: ModuleKey[]
   isOwner?:        boolean
   otherProducts?:  OtherProduct[]
+  stores?:         Store[]
 }
 
 const BADGE_STYLES: Record<PlanBadge['kind'], { bg: string; color: string; border: string; icon: React.ElementType }> = {
@@ -38,6 +41,7 @@ export function Topbar({
   userName, userEmail, planBadge,
   hasFullAccess = true, allowedModules = [], isOwner = true,
   otherProducts = [],
+  stores = [],
 }: Props) {
   const router = useRouter()
 
@@ -65,6 +69,9 @@ export function Topbar({
       <MobileNav hasFullAccess={hasFullAccess} allowedModules={allowedModules} isOwner={isOwner} otherProducts={otherProducts} />
 
       <div className="flex items-center gap-3">
+        {/* Selector de loja (multi-store) */}
+        <StoreSelector stores={stores} />
+
         {/* Badge do plano atual — clicável vai pra página de assinatura */}
         {planBadge && (() => {
           const s = BADGE_STYLES[planBadge.kind]
