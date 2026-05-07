@@ -170,7 +170,11 @@ export function VoiceModal({ onClose, initialText, autoStartConversation }: { on
     if (res.command.type === 'needs_clarification') {
       // IA quer mais info — fala e reabre mic
       const question: string = res.command.question
-      setConversationTurns([...updatedTurns, { role: 'assistant', content: question }])
+      // Anexa "partial" no histórico (não na voz) pra próximo turn não perder contexto
+      const partialTag = res.command.partial
+        ? ` [campos já entendidos: ${JSON.stringify(res.command.partial)}]`
+        : ''
+      setConversationTurns([...updatedTurns, { role: 'assistant', content: question + partialTag }])
       setPhase('processing')  // mantém cara de loading enquanto fala
       ttsSpeak(question, {
         onEnd: () => {

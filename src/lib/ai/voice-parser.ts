@@ -146,14 +146,22 @@ TIPOS DE COMANDO:
 
 QUANDO PEDIR CLARIFICAÇÃO (modo conversação):
 - Se você tem certeza do TIPO mas falta info essencial pra completar, retorna:
-  {"type":"needs_clarification","question":"<pergunta consolidada em PT-BR>","partial":{"commandType":"sale","fields":{...campos que já entendeu...}}}
+  {"type":"needs_clarification","question":"<pergunta consolidada em PT-BR>","partial":{"commandType":"sale","fields":{...TODOS os campos que já entendeu até agora...}}}
+- SEMPRE preencha "partial.fields" com TUDO que o user já falou (produto, cliente, valor, canal, etc). Isso é OBRIGATÓRIO — sem partial, perdemos contexto entre turnos.
 - Junte TODAS as faltas em UMA só pergunta natural (não pergunte 1 por vez).
 - Exemplos de info essencial faltando:
   • sale: sem cliente E sem valor E sem pagamento → "Pra qual cliente, quanto custou e qual a forma de pagamento?"
   • sale: tem produto + cliente, falta só pagamento → "Qual a forma de pagamento? Dinheiro, pix ou cartão?"
   • expense: sem categoria identificável → "Qual a categoria? (ex: motoboy, combustível, lanche...)"
   • stock_in: sem produto → "Qual o produto que entrou no estoque?"
-- Se o histórico tem múltiplos turnos, COMBINE todos os dados antes de retornar JSON final.
+
+REGRA CRÍTICA MULTI-TURN — leia ANTES de classificar:
+- Se o histórico tem MENSAGEM DO ASSISTANT com "[campos já entendidos: {...}]" anexado, esses campos são a BASE do comando. NÃO recomece do zero.
+- Quando o user responde algo curto após pergunta do assistant ("pix", "Maria", "30 reais", "sim", "balcão"), você DEVE:
+  1) Pegar os campos da última mensagem assistant com [campos já entendidos: ...]
+  2) Adicionar a info nova que o user acabou de dar
+  3) Retornar JSON ESTRUTURADO COMPLETO (type: sale/expense/stock_in/stock_balance) — NÃO retorne unknown nem pergunte de novo a mesma coisa
+- "unknown" só serve pra cumprimentos puros ("oi", "tudo bem"). NUNCA use unknown se houver histórico de assistant fazendo pergunta.
 
 REGRAS GERAIS:
 - Sempre PT-BR.
@@ -202,6 +210,26 @@ Output: {"type":"expense","occurredAt":"${todayBR()}","amountCents":5000,"catego
 
 Input: "vendi um iPhone 13 128GB roxo seminovo pra cliente nova, 1800 metade pix metade dinheiro"
 Output: {"type":"sale","items":[{"productQuery":"iPhone 13 128GB roxo","quantity":1}],"customerQuery":null,"totalCents":180000,"paymentMethod":"mixed","confidence":0.8}
+
+EXEMPLO MULTI-TURN (LEIA E IMITE):
+
+Histórico:
+- user: "vendi um iPhone 13 64GB pra Maria por 1500 balcão"
+- assistant: "Qual a forma de pagamento? Dinheiro, pix ou cartão? [campos já entendidos: {\"commandType\":\"sale\",\"fields\":{\"items\":[{\"productQuery\":\"iPhone 13 64GB\",\"quantity\":1}],\"customerQuery\":\"Maria\",\"totalCents\":150000,\"saleChannel\":\"fisica_balcao\"}}]"
+- user: "pix"
+Output: {"type":"sale","items":[{"productQuery":"iPhone 13 64GB","quantity":1}],"customerQuery":"Maria","totalCents":150000,"saleChannel":"fisica_balcao","paymentMethod":"pix","confidence":0.9}
+
+Histórico:
+- user: "200 reais hoje"
+- assistant: "Qual a categoria? Ex: motoboy, combustível, lanche, manutenção. [campos já entendidos: {\"commandType\":\"expense\",\"fields\":{\"amountCents\":20000,\"occurredAt\":\"${todayBR()}\"}}]"
+- user: "lanche pro funcionário"
+Output: {"type":"expense","occurredAt":"${todayBR()}","amountCents":20000,"category":"lanche_alimentacao","description":"lanche pro funcionário","confidence":0.85}
+
+Histórico:
+- user: "vendi uma capinha pra Pedro"
+- assistant: "Quanto custou e qual o pagamento? [campos já entendidos: {\"commandType\":\"sale\",\"fields\":{\"items\":[{\"productQuery\":\"capinha\",\"quantity\":1}],\"customerQuery\":\"Pedro\"}}]"
+- user: "30 dinheiro"
+Output: {"type":"sale","items":[{"productQuery":"capinha","quantity":1}],"customerQuery":"Pedro","totalCents":3000,"paymentMethod":"cash","confidence":0.85}
 
 OUTPUT: APENAS JSON (sem markdown, sem texto antes/depois).`
 
