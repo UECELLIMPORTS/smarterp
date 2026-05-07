@@ -383,17 +383,72 @@ export async function extractAndSaveMemories(args: {
   return { saved }
 }
 
+/**
+ * Match fuzzy de produto:
+ * 1. Busca em `products` E `parts_catalog` (igual ao searchProducts do POS)
+ * 2. Faz OR em name + code/sku
+ * 3. Tokeniza query: se a busca completa não acha, tenta com tokens
+ *    individuais (ex: "iPhone 13 Pro Max" → testa "iPhone", "13", "Pro", "Max")
+ */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function matchProducts(sb: any, tenantId: string, query: string, limit: number): Promise<VoiceProductMatch[]> {
   const q = query.trim()
   if (q.length < 2) return []
-  const { data } = await sb
-    .from('products')
-    .select('id, name, sku, stock_qty, price_cents')
-    .eq('tenant_id', tenantId)
-    .eq('active', true)
-    .ilike('name', `%${q}%`)
-    .order('stock_qty', { ascending: false })
-    .limit(limit)
-  return (data ?? []) as VoiceProductMatch[]
+
+  // Tenta com a query completa primeiro
+  const exact = await runProductSearch(sb, tenantId, q, limit)
+  if (exact.length > 0) return exact
+
+  // Fallback: pega o token mais distintivo (mais longo)
+  const tokens = q.split(/\s+/).filter(t => t.length >= 2)
+  // Ordena tokens do maior pro menor (mais distintivo primeiro)
+  tokens.sort((a, b) => b.length - a.length)
+  for (const token of tokens.slice(0, 3)) {
+    const partial = await runProductSearch(sb, tenantId, token, limit)
+    if (partial.length > 0) return partial
+  }
+
+  return []
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function runProductSearch(sb: any, tenantId: string, q: string, limit: number): Promise<VoiceProductMatch[]> {
+  // Busca em products (com code) + parts_catalog (com sku) em paralelo
+  const [productsRes, partsRes] = await Promise.all([
+    sb
+      .from('products')
+      .select('id, name, code, stock_qty, price_cents')
+      .eq('tenant_id', tenantId)
+      .eq('active', true)
+      .or(`name.ilike.%${q}%,code.ilike.%${q}%`)
+      .order('stock_qty', { ascending: false })
+      .limit(limit),
+    sb
+      .from('parts_catalog')
+      .select('id, name, sku, cost_cents')
+      .eq('tenant_id', tenantId)
+      .eq('is_active', true)
+      .or(`name.ilike.%${q}%,sku.ilike.%${q}%`)
+      .order('name')
+      .limit(limit),
+  ])
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const products: VoiceProductMatch[] = ((productsRes.data ?? []) as any[]).map(p => ({
+    id:          p.id,
+    name:        p.name,
+    sku:         p.code ?? null,
+    stock_qty:   p.stock_qty ?? 0,
+    price_cents: p.price_cents ?? null,
+  }))
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const parts: VoiceProductMatch[] = ((partsRes.data ?? []) as any[]).map(p => ({
+    id:          p.id,
+    name:        p.name,
+    sku:         p.sku ?? null,
+    stock_qty:   0,                   // peças não têm estoque rastreado
+    price_cents: p.cost_cents ?? null,
+  }))
+
+  return [...products, ...parts].slice(0, limit)
 }
