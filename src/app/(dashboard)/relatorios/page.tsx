@@ -11,6 +11,7 @@ import { getMonthlyFixedCostCents } from '@/actions/recurring-expenses'
 import { getVariableExpensesTotalCents } from '@/actions/variable-expenses'
 import { listStores } from '@/actions/stores'
 import { resolveActiveStoreId } from '@/lib/active-store'
+import { getStoreComparison, type StoreCompareRow } from '@/lib/store-comparison'
 
 export type Tab = 'geral' | 'vendas' | 'produtos'
 
@@ -91,9 +92,10 @@ export type RelatoriosData = {
   salesReport:    SalesReportData | null
   productsReport: ProductReportRow[] | null
   // Multi-store
-  stores:         { id: string; name: string; code: string; color: string; is_default: boolean }[]
+  stores:         { id: string; name: string; code: string; color: string; is_default: boolean; monthly_goal_cents: number }[]
   storeFilter:    string  // '', 'all' ou storeId
   activeStoreId:  string | null
+  storeComparison: StoreCompareRow[] | null   // populado quando storeFilter='all' E há 2+ lojas
 }
 
 export default async function RelatoriosPage({
@@ -372,6 +374,20 @@ export default async function RelatoriosPage({
   let salesReport: SalesReportData | null = null
   let productsReport: ProductReportRow[] | null = null
 
+  // Comparativo entre lojas (só quando user pediu "Todas" e tem 2+ lojas)
+  let storeComparison: StoreCompareRow[] | null = null
+  if (storeParam === 'all' && stores.length > 1) {
+    storeComparison = await getStoreComparison({
+      sb, tenantId,
+      startISO: start.toISOString(),
+      endISO:   end.toISOString(),
+      stores:   stores.map(s => ({
+        id: s.id, name: s.name, code: s.code, color: s.color,
+        monthly_goal_cents: s.monthly_goal_cents,
+      })),
+    }).catch(() => null)
+  }
+
   if (tab === 'vendas') {
     salesReport = await getDetailedSalesReport({
       start:          start.toISOString(),
@@ -415,9 +431,13 @@ export default async function RelatoriosPage({
     topClients,
     salesReport,
     productsReport,
-    stores: stores.map(s => ({ id: s.id, name: s.name, code: s.code, color: s.color, is_default: s.is_default })),
-    storeFilter:   storeParam,
-    activeStoreId: resolvedStoreId,
+    stores: stores.map(s => ({
+      id: s.id, name: s.name, code: s.code, color: s.color,
+      is_default: s.is_default, monthly_goal_cents: s.monthly_goal_cents,
+    })),
+    storeFilter:    storeParam,
+    activeStoreId:  resolvedStoreId,
+    storeComparison,
   }
 
   return <RelatoriosClient data={data} />

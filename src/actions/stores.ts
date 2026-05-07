@@ -14,13 +14,14 @@ import { getTenantId } from '@/lib/tenant'
 import { ACTIVE_STORE_COOKIE } from '@/lib/active-store'
 
 export type Store = {
-  id:         string
-  name:       string
-  code:       string
-  color:      string
-  is_default: boolean
-  is_active:  boolean
-  created_at: string
+  id:                  string
+  name:                string
+  code:                string
+  color:               string
+  is_default:          boolean
+  is_active:           boolean
+  monthly_goal_cents:  number
+  created_at:          string
 }
 
 export type Result<T = void> =
@@ -40,13 +41,32 @@ export async function listStores(): Promise<Store[]> {
   const tenantId = getTenantId(user)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any
+
   const { data } = await sb
     .from('stores')
-    .select('id, name, code, color, is_default, is_active, created_at')
+    .select('id, name, code, color, is_default, is_active, monthly_goal_cents, created_at')
     .eq('tenant_id', tenantId)
     .order('is_default', { ascending: false })
     .order('name', { ascending: true })
-  return ((data ?? []) as Store[])
+  let stores = ((data ?? []) as Store[])
+
+  // Filtra pelas lojas permitidas pro funcionário (owner vê tudo)
+  const role = user.app_metadata?.tenant_role
+  if (role !== 'owner') {
+    const { data: member } = await sb
+      .from('tenant_members')
+      .select('allowed_store_ids')
+      .eq('tenant_id', tenantId)
+      .eq('user_id', user.id)
+      .maybeSingle()
+    const allowed = (member?.allowed_store_ids as string[] | null) ?? []
+    if (allowed.length > 0) {
+      stores = stores.filter(s => allowed.includes(s.id))
+    }
+    // Se array vazio, vê todas (default)
+  }
+
+  return stores
 }
 
 // ── Default store ───────────────────────────────────────────────────────
@@ -57,7 +77,7 @@ export async function getDefaultStore(): Promise<Store | null> {
   const sb = supabase as any
   const { data } = await sb
     .from('stores')
-    .select('id, name, code, color, is_default, is_active, created_at')
+    .select('id, name, code, color, is_default, is_active, monthly_goal_cents, created_at')
     .eq('tenant_id', tenantId)
     .eq('is_default', true)
     .maybeSingle()
@@ -149,6 +169,28 @@ export async function setActiveStoreCookie(storeId: string): Promise<Result> {
     sameSite: 'lax',
     httpOnly: false,                // client precisa ler também
   })
+  return { ok: true }
+}
+
+// ── Update goal ─────────────────────────────────────────────────────────
+export async function updateStoreGoal(id: string, monthlyGoalCents: number): Promise<Result> {
+  if (!Number.isInteger(monthlyGoalCents) || monthlyGoalCents < 0) {
+    return { ok: false, error: 'Meta inválida' }
+  }
+  const { supabase, user } = await requireAuth()
+  const tenantId = getTenantId(user)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any
+
+  const { error } = await sb
+    .from('stores')
+    .update({ monthly_goal_cents: monthlyGoalCents, updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .eq('tenant_id', tenantId)
+
+  if (error) return { ok: false, error: error.message }
+  revalidatePath('/configuracoes/lojas')
+  revalidatePath('/relatorios')
   return { ok: true }
 }
 

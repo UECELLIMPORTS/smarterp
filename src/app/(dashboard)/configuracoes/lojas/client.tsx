@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Plus, Pencil, Store as StoreIcon, Loader2, Save, X } from 'lucide-react'
-import { createStore, updateStore, toggleStoreActive, type Store } from '@/actions/stores'
+import { createStore, updateStore, toggleStoreActive, updateStoreGoal, type Store } from '@/actions/stores'
 import { toast } from 'sonner'
 
 const PRESET_COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#A855F7', '#EC4899', '#06B6D4', '#84CC16']
@@ -48,6 +48,9 @@ export function LojasClient({ initial }: { initial: Store[] }) {
               key={s.id}
               store={s}
               onEdit={() => setEditingId(s.id)}
+              onSavedGoal={(cents) => {
+                setStores(stores.map(x => x.id === s.id ? { ...x, monthly_goal_cents: cents } : x))
+              }}
               onToggle={async (active) => {
                 const res = await toggleStoreActive(s.id, active)
                 if (res.ok) {
@@ -84,42 +87,85 @@ export function LojasClient({ initial }: { initial: Store[] }) {
   )
 }
 
-function StoreRow({ store, onEdit, onToggle }: {
+function StoreRow({ store, onEdit, onToggle, onSavedGoal }: {
   store: Store
   onEdit: () => void
   onToggle: (active: boolean) => void
+  onSavedGoal: (cents: number) => void
 }) {
+  const [goalInput, setGoalInput] = useState((store.monthly_goal_cents / 100).toFixed(2))
+  const [savingGoal, setSavingGoal] = useState(false)
+  const goalDirty = parseFloat(goalInput.replace(',', '.') || '0') !== (store.monthly_goal_cents / 100)
+
+  async function saveGoal() {
+    const cents = Math.round(parseFloat(goalInput.replace(',', '.') || '0') * 100)
+    if (Number.isNaN(cents) || cents < 0) return
+    setSavingGoal(true)
+    const res = await updateStoreGoal(store.id, cents)
+    setSavingGoal(false)
+    if (res.ok) {
+      toast.success('Meta atualizada')
+      onSavedGoal(cents)
+    } else {
+      toast.error(res.error)
+    }
+  }
+
   return (
-    <div className="flex items-center gap-3 rounded-lg border border-zinc-800 bg-zinc-900/40 p-3">
-      <span className="h-3 w-3 rounded-full flex-shrink-0" style={{ background: store.color }} />
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <span className={`text-sm font-medium ${store.is_active ? 'text-zinc-100' : 'text-zinc-500'}`}>
-            {store.name}
-          </span>
-          {store.is_default && (
-            <span className="text-[10px] uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">
-              padrão
+    <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-3 space-y-2">
+      <div className="flex items-center gap-3">
+        <span className="h-3 w-3 rounded-full flex-shrink-0" style={{ background: store.color }} />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className={`text-sm font-medium ${store.is_active ? 'text-zinc-100' : 'text-zinc-500'}`}>
+              {store.name}
             </span>
-          )}
-          {!store.is_active && (
-            <span className="text-[10px] uppercase tracking-wider text-zinc-500">inativa</span>
-          )}
+            {store.is_default && (
+              <span className="text-[10px] uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                padrão
+              </span>
+            )}
+            {!store.is_active && (
+              <span className="text-[10px] uppercase tracking-wider text-zinc-500">inativa</span>
+            )}
+          </div>
+          <p className="text-xs text-zinc-500 font-mono">{store.code}</p>
         </div>
-        <p className="text-xs text-zinc-500 font-mono">{store.code}</p>
-      </div>
-      <button onClick={onEdit} className="p-1.5 text-zinc-500 hover:text-zinc-200" title="Editar">
-        <Pencil className="h-3.5 w-3.5" />
-      </button>
-      {!store.is_default && (
-        <button
-          type="button"
-          onClick={() => onToggle(!store.is_active)}
-          className="text-[11px] text-zinc-500 hover:text-zinc-200 px-2"
-        >
-          {store.is_active ? 'Desativar' : 'Ativar'}
+        <button onClick={onEdit} className="p-1.5 text-zinc-500 hover:text-zinc-200" title="Editar">
+          <Pencil className="h-3.5 w-3.5" />
         </button>
-      )}
+        {!store.is_default && (
+          <button
+            type="button"
+            onClick={() => onToggle(!store.is_active)}
+            className="text-[11px] text-zinc-500 hover:text-zinc-200 px-2"
+          >
+            {store.is_active ? 'Desativar' : 'Ativar'}
+          </button>
+        )}
+      </div>
+
+      {/* Meta mensal inline */}
+      <div className="flex items-center gap-2 pt-2 border-t border-zinc-800">
+        <label className="text-[10px] uppercase tracking-wider text-zinc-500">Meta mensal R$</label>
+        <input
+          type="number" step="0.01" min={0}
+          value={goalInput}
+          onChange={e => setGoalInput(e.target.value)}
+          placeholder="0,00"
+          className="flex-1 max-w-[140px] rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1 text-xs text-zinc-100 tabular-nums"
+        />
+        {goalDirty && (
+          <button
+            type="button"
+            onClick={saveGoal}
+            disabled={savingGoal}
+            className="rounded-md bg-emerald-500 px-2 py-1 text-[10px] font-bold text-zinc-900 hover:bg-emerald-600 disabled:opacity-40"
+          >
+            {savingGoal ? '...' : 'Salvar meta'}
+          </button>
+        )}
+      </div>
     </div>
   )
 }

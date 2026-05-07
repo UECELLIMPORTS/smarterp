@@ -17,6 +17,7 @@ import { Mic, Square, X, Loader2, Check, AlertTriangle, Pencil, Trash2, Type, Se
 import { processVoiceCommand, processTextCommand, processConversation, extractAndSaveMemories, type VoiceProductMatch, type VoiceCustomerMatch, type VoiceSaleItemMatched } from '@/actions/voice-entry'
 import { ttsSpeak, ttsCancel, ttsWarmup } from '@/lib/ai/tts'
 import { voiceSession } from '@/hooks/use-voice-session'
+import { listStores } from '@/actions/stores'
 import { createVariableExpense } from '@/actions/variable-expenses'
 import { createMovement } from '@/actions/stock-movements'
 import { adjustStock } from '@/actions/products'
@@ -60,9 +61,21 @@ export function VoiceModal({ onClose }: { onClose: () => void }) {
   const intervalRef  = useRef<ReturnType<typeof setInterval> | null>(null)
   const mimetypeRef  = useRef<string>('audio/webm')
 
-  // Mount: warmup do TTS pra Chrome carregar vozes
+  // Loja ativa (badge no header)
+  const [activeStore, setActiveStore] = useState<{ name: string; color: string; code: string } | null>(null)
+
+  // Mount: warmup do TTS + descobre loja ativa
   useEffect(() => {
     ttsWarmup()
+    let cancelled = false
+    const ACTIVE_KEY = 'smarterp_active_store_v1'
+    listStores().then(stores => {
+      if (cancelled) return
+      const savedId = typeof window !== 'undefined' ? localStorage.getItem(ACTIVE_KEY) : null
+      const active = stores.find(s => s.id === savedId) ?? stores.find(s => s.is_default) ?? stores[0]
+      if (active) setActiveStore({ name: active.name, color: active.color, code: active.code })
+    }).catch(() => null)
+    return () => { cancelled = true }
   }, [])
 
   // Cleanup ao fechar
@@ -553,11 +566,21 @@ export function VoiceModal({ onClose }: { onClose: () => void }) {
         className="w-full sm:max-w-md bg-zinc-900 sm:rounded-xl border-t sm:border border-zinc-800 shadow-xl"
       >
         <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-3">
-          <div className="flex items-center gap-2">
-            <Mic className="h-4 w-4 text-emerald-400" />
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <Mic className="h-4 w-4 text-emerald-400 flex-shrink-0" />
             <h3 className="text-sm font-semibold text-zinc-100">Comando por voz</h3>
+            {activeStore && (
+              <span
+                className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium ml-2 truncate"
+                style={{ background: `${activeStore.color}20`, color: activeStore.color, border: `1px solid ${activeStore.color}40` }}
+                title={`Loja: ${activeStore.name}`}
+              >
+                <span className="h-1 w-1 rounded-full" style={{ background: activeStore.color }} />
+                {activeStore.code}
+              </span>
+            )}
           </div>
-          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-100" aria-label="Fechar">
+          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-100 flex-shrink-0" aria-label="Fechar">
             <X className="h-4 w-4" />
           </button>
         </div>

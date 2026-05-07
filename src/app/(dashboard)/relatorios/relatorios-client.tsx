@@ -263,6 +263,79 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
       {/* Conteúdo da aba Geral */}
       {tab === 'geral' && (
       <>
+
+      {/* Comparativo entre lojas (só aparece se user pediu "Todas" e há 2+ lojas) */}
+      {data.storeComparison && data.storeComparison.length > 1 && (
+        <div className="rounded-xl p-4" style={{ background: '#131C2A', border: '1px solid #2A3650' }}>
+          <div className="flex items-center gap-2 mb-3">
+            <h2 className="text-sm font-bold" style={{ color: '#F8FAFC' }}>Comparativo entre lojas</h2>
+            <span className="text-[10px]" style={{ color: '#64748B' }}>(período selecionado)</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {data.storeComparison.map(s => {
+              const lucroPeriodo = s.salesTotalCents - s.expensesTotalCents
+              return (
+                <div key={s.storeId} className="rounded-lg p-3 border" style={{ background: '#1B2638', borderColor: `${s.storeColor}40` }}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="h-2 w-2 rounded-full" style={{ background: s.storeColor }} />
+                    <h3 className="text-xs font-bold flex-1 truncate" style={{ color: s.storeColor }}>
+                      {s.storeName}
+                    </h3>
+                    <span className="text-[9px] font-mono" style={{ color: '#64748B' }}>{s.storeCode}</span>
+                  </div>
+                  <div className="space-y-1.5">
+                    <div className="flex items-baseline justify-between">
+                      <span className="text-[10px] uppercase tracking-wider" style={{ color: '#64748B' }}>Vendas</span>
+                      <span className="text-base font-bold tabular-nums" style={{ color: '#F8FAFC' }}>
+                        R$ {(s.salesTotalCents / 100).toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex items-baseline justify-between">
+                      <span className="text-[10px] uppercase tracking-wider" style={{ color: '#64748B' }}>Transações</span>
+                      <span className="text-xs font-medium tabular-nums" style={{ color: '#94A3B8' }}>{s.salesCount}</span>
+                    </div>
+                    <div className="flex items-baseline justify-between">
+                      <span className="text-[10px] uppercase tracking-wider" style={{ color: '#64748B' }}>Despesas</span>
+                      <span className="text-xs font-medium tabular-nums" style={{ color: '#EF4444' }}>
+                        R$ {(s.expensesTotalCents / 100).toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex items-baseline justify-between border-t pt-1.5 mt-1.5" style={{ borderColor: '#2A3650' }}>
+                      <span className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: '#94A3B8' }}>Lucro</span>
+                      <span className="text-sm font-bold tabular-nums" style={{ color: lucroPeriodo >= 0 ? '#10B981' : '#EF4444' }}>
+                        R$ {(lucroPeriodo / 100).toFixed(2)}
+                      </span>
+                    </div>
+                    {s.monthlyGoalCents > 0 && (
+                      <div className="pt-1.5 mt-1.5 border-t" style={{ borderColor: '#2A3650' }}>
+                        <div className="flex items-baseline justify-between mb-1">
+                          <span className="text-[10px] uppercase tracking-wider" style={{ color: '#64748B' }}>Meta do mês</span>
+                          <span className="text-[10px] font-bold tabular-nums" style={{ color: s.goalProgressPct >= 100 ? '#10B981' : s.storeColor }}>
+                            {s.goalProgressPct}%
+                          </span>
+                        </div>
+                        <div className="h-1.5 rounded overflow-hidden" style={{ background: '#0F172A' }}>
+                          <div
+                            className="h-full transition-all"
+                            style={{
+                              width: `${Math.min(100, s.goalProgressPct)}%`,
+                              background: s.goalProgressPct >= 100 ? '#10B981' : s.storeColor,
+                            }}
+                          />
+                        </div>
+                        <p className="text-[9px] mt-0.5" style={{ color: '#64748B' }}>
+                          R$ {(s.monthSalesCents / 100).toFixed(0)} / R$ {(s.monthlyGoalCents / 100).toFixed(0)}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center gap-3">
         {/* Sistema */}
         <div className="flex gap-1 rounded-lg p-1" style={{ background: '#131C2A', border: '1px solid #2A3650' }}>
