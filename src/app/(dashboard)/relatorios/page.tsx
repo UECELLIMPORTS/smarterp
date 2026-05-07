@@ -9,6 +9,8 @@ import { getDetailedSalesReport, getProductsReport } from '@/actions/relatorios'
 import type { SalesReportData, ProductReportRow } from '@/actions/relatorios'
 import { getMonthlyFixedCostCents } from '@/actions/recurring-expenses'
 import { getVariableExpensesTotalCents } from '@/actions/variable-expenses'
+import { listStores } from '@/actions/stores'
+import { resolveActiveStoreId } from '@/lib/active-store'
 
 export type Tab = 'geral' | 'vendas' | 'produtos'
 
@@ -88,6 +90,10 @@ export type RelatoriosData = {
   topClients: TopClientRow[]
   salesReport:    SalesReportData | null
   productsReport: ProductReportRow[] | null
+  // Multi-store
+  stores:         { id: string; name: string; code: string; color: string; is_default: boolean }[]
+  storeFilter:    string  // '', 'all' ou storeId
+  activeStoreId:  string | null
 }
 
 export default async function RelatoriosPage({
@@ -97,6 +103,7 @@ export default async function RelatoriosPage({
     tab?: string; period?: string; from?: string; to?: string;
     source?: string; origin?: string; channel?: string;
     payment?: string; status?: string; category?: string;
+    store?: string;
   }>
 }) {
   let auth: Awaited<ReturnType<typeof requireAuth>>
@@ -129,19 +136,45 @@ export default async function RelatoriosPage({
   const category      = params.category ?? 'all'
   const { start, end } = getPeriodRange(period, params.from, params.to)
 
+  // ── Multi-store: resolve qual loja filtrar
+  const stores = await listStores().catch(() => [])
+  const storeParam = params.store ?? '' // '', 'all', ou storeId
+  let resolvedStoreId: string | null = null
+  if (storeParam === 'all') {
+    resolvedStoreId = null  // consolidado de todas as lojas
+  } else if (storeParam) {
+    // ID explícito — valida se pertence ao tenant
+    if (stores.some(s => s.id === storeParam)) {
+      resolvedStoreId = storeParam
+    } else {
+      resolvedStoreId = await resolveActiveStoreId(sb, tenantId)
+    }
+  } else {
+    // Default: loja ativa (cookie) ou default do tenant
+    resolvedStoreId = await resolveActiveStoreId(sb, tenantId)
+  }
+
   const cols = 'customer_id, total_cents, sale_channel, customer_origin, created_at, sale_items(quantity, unit_price_cents, product_id, cost_snapshot_cents), customers(id, full_name, origin, whatsapp, phone)'
   const osCols = 'customer_id, total_price_cents, service_price_cents, parts_sale_cents, parts_cost_cents, discount_cents, sale_channel, received_at, customers(id, full_name, origin, whatsapp, phone)'
+
+  // Sales: aplica filtro de loja se houver
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const salesQuery = (() => {
+    let q = sb.from('sales')
+      .select(cols)
+      .eq('tenant_id', tenantId)
+      .gte('created_at', start.toISOString())
+      .lte('created_at', end.toISOString())
+      .neq('status', 'cancelled')
+      .limit(2000)
+    if (resolvedStoreId) q = q.eq('store_id', resolvedStoreId)
+    return q
+  })()
 
   const [salesRes, osRes] = await Promise.all([
     source === 'checksmart'
       ? Promise.resolve({ data: [] as unknown[] })
-      : sb.from('sales')
-          .select(cols)
-          .eq('tenant_id', tenantId)
-          .gte('created_at', start.toISOString())
-          .lte('created_at', end.toISOString())
-          .neq('status', 'cancelled')
-          .limit(2000),
+      : salesQuery,
     source === 'smarterp'
       ? Promise.resolve({ data: [] as unknown[] })
       : sb.from('service_orders')
@@ -259,7 +292,11 @@ export default async function RelatoriosPage({
   const periodDays = Math.max(1, Math.round((end.getTime() - start.getTime()) / 86400000) + 1)
   const [monthlyFixedCents, variableCostCents] = await Promise.all([
     getMonthlyFixedCostCents(),
-    getVariableExpensesTotalCents(start.toISOString().slice(0, 10), end.toISOString().slice(0, 10)),
+    getVariableExpensesTotalCents(
+      start.toISOString().slice(0, 10),
+      end.toISOString().slice(0, 10),
+      { storeId: resolvedStoreId ?? 'all' },
+    ),
   ])
   const fixedCostCents  = Math.round((monthlyFixedCents * periodDays) / 30)
   const netProfitCents  = resumoProfitCents - fixedCostCents - variableCostCents
@@ -342,6 +379,7 @@ export default async function RelatoriosPage({
       paymentMethods: paymentMethod !== 'all' ? [paymentMethod] : undefined,
       saleChannels:   channel !== 'all' ? [channel] : undefined,
       status,
+      storeId:        resolvedStoreId ?? 'all',
     })
   } else if (tab === 'produtos') {
     productsReport = await getProductsReport({
@@ -377,6 +415,9 @@ export default async function RelatoriosPage({
     topClients,
     salesReport,
     productsReport,
+    stores: stores.map(s => ({ id: s.id, name: s.name, code: s.code, color: s.color, is_default: s.is_default })),
+    storeFilter:   storeParam,
+    activeStoreId: resolvedStoreId,
   }
 
   return <RelatoriosClient data={data} />

@@ -49,6 +49,7 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
     const merged: Record<string, string | undefined> = {
       tab, period, source, origin, channel,
       payment: data.paymentMethod, status: data.status, category: data.category,
+      store: data.storeFilter,
       ...changes,
     }
     if (merged.tab && merged.tab !== 'geral') p.set('tab', merged.tab)
@@ -59,6 +60,7 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
     if (merged.payment && merged.payment !== 'all')   p.set('payment', merged.payment)
     if (merged.status && merged.status !== 'completed') p.set('status', merged.status)
     if (merged.category && merged.category !== 'all') p.set('category', merged.category)
+    if (merged.store) p.set('store', merged.store)
     if (merged.period === 'custom' && fromDate && toDate) {
       p.set('from', fromDate)
       p.set('to', toDate)
@@ -185,6 +187,39 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
           )}
         </div>
       </div>
+
+      {/* Filtro de loja (multi-store) — só aparece se tem 2+ lojas */}
+      {data.stores.length > 1 && (
+        <div className="flex items-center gap-2 flex-wrap rounded-xl p-2"
+          style={{ background: '#131C2A', border: '1px solid #2A3650' }}>
+          <span className="text-[10px] uppercase tracking-wider px-2" style={{ color: '#64748B' }}>Loja</span>
+          <button
+            onClick={() => updateQuery({ store: 'all' })}
+            className="rounded-lg px-3 py-1 text-xs font-bold transition-all"
+            style={data.storeFilter === 'all'
+              ? { background: '#3B82F6', color: '#FFF' }
+              : { color: '#94A3B8' }}
+          >
+            Todas
+          </button>
+          {data.stores.filter(s => s.id).map(s => {
+            const isActive = data.storeFilter === s.id || (!data.storeFilter && data.activeStoreId === s.id)
+            return (
+              <button
+                key={s.id}
+                onClick={() => updateQuery({ store: s.id })}
+                className="rounded-lg px-3 py-1 text-xs font-bold transition-all flex items-center gap-1.5"
+                style={isActive
+                  ? { background: s.color, color: '#FFF' }
+                  : { color: '#94A3B8' }}
+              >
+                <span className="h-1.5 w-1.5 rounded-full" style={{ background: s.color }} />
+                {s.name}
+              </button>
+            )
+          })}
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-1 rounded-xl p-1 w-fit"
