@@ -14,7 +14,8 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { Mic, Square, X, Loader2, Check, AlertTriangle, Pencil, Trash2, Type, Send } from 'lucide-react'
-import { processVoiceCommand, processTextCommand, type VoiceProductMatch, type VoiceCustomerMatch, type VoiceSaleItemMatched } from '@/actions/voice-entry'
+import { processVoiceCommand, processTextCommand, processConversation, type VoiceProductMatch, type VoiceCustomerMatch, type VoiceSaleItemMatched } from '@/actions/voice-entry'
+import { ttsSpeak, ttsCancel, ttsWarmup } from '@/lib/ai/tts'
 import { createVariableExpense } from '@/actions/variable-expenses'
 import { createMovement } from '@/actions/stock-movements'
 import { adjustStock } from '@/actions/products'
@@ -45,13 +46,23 @@ export function VoiceModal({ onClose }: { onClose: () => void }) {
   const [errMsg, setErrMsg]             = useState<string | null>(null)
   const [errRaw, setErrRaw]             = useState<string | null>(null)
   const [doneMsg, setDoneMsg]           = useState<string | null>(null)
-  const [inputMode, setInputMode]       = useState<'voice' | 'text'>('voice')
+  const [inputMode, setInputMode]       = useState<'voice' | 'text' | 'conversation'>('voice')
   const [textInput, setTextInput]       = useState('')
+
+  // Modo conversação multi-turn
+  const [conversationTurns, setConversationTurns] = useState<{ role: 'user' | 'assistant'; content: string }[]>([])
+  const conversationActiveRef = useRef(false)  // distingue conversa vs gravação one-shot
+  const [pendingCommand, setPendingCommand] = useState<CommandData | null>(null)  // command completo aguardando confirmação por voz
 
   const recorderRef  = useRef<MediaRecorder | null>(null)
   const chunksRef    = useRef<Blob[]>([])
   const intervalRef  = useRef<ReturnType<typeof setInterval> | null>(null)
   const mimetypeRef  = useRef<string>('audio/webm')
+
+  // Mount: warmup do TTS pra Chrome carregar vozes
+  useEffect(() => {
+    ttsWarmup()
+  }, [])
 
   // Cleanup ao fechar
   useEffect(() => {
@@ -61,8 +72,172 @@ export function VoiceModal({ onClose }: { onClose: () => void }) {
         try { recorderRef.current.stop() } catch { /* noop */ }
         recorderRef.current.stream.getTracks().forEach(t => t.stop())
       }
+      ttsCancel()
     }
   }, [])
+
+  // ── Modo conversação ─────────────────────────────────────────────────
+  function startConversationMode() {
+    setConversationTurns([])
+    setPendingCommand(null)
+    conversationActiveRef.current = true
+    void startRecording()
+  }
+
+  async function handleConversationAudio(blob: Blob) {
+    setPhase('processing')
+    try {
+      const base64 = await blobToBase64(blob)
+      const res = await processConversation({
+        audioBase64: base64,
+        mimetype:    mimetypeRef.current,
+        pastTurns:   conversationTurns,
+      })
+      handleConversationResult(res)
+    } catch (e) {
+      setErrMsg(e instanceof Error ? e.message : 'Erro ao processar áudio')
+      setPhase('error')
+    }
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function handleConversationResult(res: any) {
+    if (!res.ok) {
+      setErrMsg(res.error)
+      setErrRaw(res.raw ?? null)
+      setTranscript(res.transcript ?? '')
+      setPhase('error')
+      return
+    }
+
+    // Atualiza histórico com o turn do user
+    const updatedTurns = [...conversationTurns, { role: 'user' as const, content: res.transcript }]
+
+    if (res.command.type === 'needs_clarification') {
+      // IA quer mais info — fala e reabre mic
+      const question: string = res.command.question
+      setConversationTurns([...updatedTurns, { role: 'assistant', content: question }])
+      setPhase('processing')  // mantém cara de loading enquanto fala
+      ttsSpeak(question, {
+        onEnd: () => {
+          // Reabre mic automaticamente
+          if (conversationActiveRef.current) void startRecording()
+        },
+      })
+      return
+    }
+
+    if (res.command.type === 'unknown') {
+      setErrMsg(`Não consegui classificar: ${res.command.reason ?? '—'}`)
+      setErrRaw(res.raw ?? null)
+      setPhase('error')
+      return
+    }
+
+    // Comando completo — popula state e pede confirmação por voz
+    setConversationTurns(updatedTurns)
+    setTranscript(res.transcript)
+    setCommand(res.command)
+    setProductMatches(res.productMatches ?? [])
+    setChosenProductId(res.productMatches && res.productMatches.length > 0 ? res.productMatches[0].id : null)
+    setSaleItemsMatched(res.saleItemsMatched ?? [])
+    setChosenItemIds((res.saleItemsMatched ?? []).map((it: VoiceSaleItemMatched) => it.candidates[0]?.id ?? null))
+    setCustomerMatches(res.customerMatches ?? [])
+    setChosenCustomerId(res.customerMatches && res.customerMatches.length > 0 ? res.customerMatches[0].id : null)
+    setCashSessionOpen(res.cashSessionOpen ?? null)
+    setCostUsd(res.costs.totalUsd)
+    setPendingCommand(res.command)
+    setPhase('review')
+
+    // TTS pede confirmação após pequeno delay
+    const summary = summarizeForVoice(res.command, res.saleItemsMatched, res.customerMatches)
+    ttsSpeak(`${summary} Diga sim pra confirmar ou cancelar.`, {
+      onEnd: () => {
+        if (conversationActiveRef.current) {
+          // Reabre mic pra detectar sim/não
+          void startRecording()
+        }
+      },
+    })
+  }
+
+  // Detecta sim/não no transcript
+  function detectYesNo(text: string): 'yes' | 'no' | 'unclear' {
+    const t = text.toLowerCase().trim()
+    if (/\b(sim|confirmar|confirma|salvar|ok|okay|certo|isso|pode|tá|ta|positivo)\b/.test(t)) return 'yes'
+    if (/\b(não|nao|cancelar|cancela|errado|negativo|para|pare)\b/.test(t)) return 'no'
+    return 'unclear'
+  }
+
+  function summarizeForVoice(
+    cmd: CommandData,
+    saleItems: VoiceSaleItemMatched[] | undefined,
+    customers: VoiceCustomerMatch[] | undefined,
+  ): string {
+    if (cmd.type === 'expense') {
+      return `Despesa de ${formatBRLSpoken(cmd.amountCents)} na categoria ${cmd.category}.`
+    }
+    if (cmd.type === 'stock_in') {
+      return `Entrada de ${cmd.quantity} unidades de ${cmd.productQuery}.`
+    }
+    if (cmd.type === 'stock_balance') {
+      return `Balanço: ajustar ${cmd.productQuery} para ${cmd.newQty} unidades.`
+    }
+    if (cmd.type === 'sale') {
+      const itemNames = (saleItems ?? []).map(it => `${it.quantity} ${it.candidates[0]?.name ?? it.productQuery}`).join(', ')
+      const cust = customers && customers.length > 0 ? customers[0].full_name : (cmd.customerQuery || 'consumidor final')
+      const total = cmd.totalCents ?? (saleItems ?? []).reduce((s, it) => s + (it.unitPriceCents ?? it.candidates[0]?.price_cents ?? 0) * it.quantity, 0)
+      return `Venda de ${itemNames} para ${cust}, total ${formatBRLSpoken(total)} no ${paymentSpoken(cmd.paymentMethod ?? 'cash')}.`
+    }
+    return 'Pronto.'
+  }
+
+  function formatBRLSpoken(cents: number): string {
+    const v = (cents / 100).toFixed(2).replace('.', ',')
+    return `${v.split(',')[0]} reais` + (v.split(',')[1] !== '00' ? ` e ${v.split(',')[1]} centavos` : '')
+  }
+
+  function paymentSpoken(m: string): string {
+    if (m === 'cash')  return 'dinheiro'
+    if (m === 'pix')   return 'pix'
+    if (m === 'card')  return 'cartão'
+    if (m === 'mixed') return 'pagamento misto'
+    return m
+  }
+
+  async function handleConfirmationAudio(blob: Blob) {
+    // Vai pra processing brevemente, transcreve, decide
+    setPhase('processing')
+    try {
+      const base64 = await blobToBase64(blob)
+      // Transcreve direto via processConversation com expectativa de "sim"/"não"
+      const res = await processConversation({
+        audioBase64: base64,
+        mimetype:    mimetypeRef.current,
+        pastTurns:   [],  // não importa o histórico aqui
+      })
+      const userText = ('transcript' in res && res.transcript) ? res.transcript : ''
+      const yn = detectYesNo(userText)
+      if (yn === 'yes') {
+        conversationActiveRef.current = false
+        await confirmSubmit()
+      } else if (yn === 'no') {
+        conversationActiveRef.current = false
+        ttsSpeak('Cancelado.')
+        reset()
+      } else {
+        // Não entendeu — pergunta de novo
+        ttsSpeak('Não entendi. Diga sim para confirmar ou não para cancelar.', {
+          onEnd: () => {
+            if (conversationActiveRef.current) void startRecording()
+          },
+        })
+      }
+    } catch (e) {
+      setErrMsg(e instanceof Error ? e.message : 'Erro ao processar')
+      setPhase('error')
+    }
+  }
 
   async function startRecording() {
     setErrMsg(null)
@@ -98,7 +273,14 @@ export function VoiceModal({ onClose }: { onClose: () => void }) {
       r.addEventListener('stop', async () => {
         const blob = new Blob(chunksRef.current, { type: mimetypeRef.current })
         chunksRef.current = []
-        await sendAudio(blob)
+        // Roteia: confirmação por voz > conversação > one-shot
+        if (pendingCommand && conversationActiveRef.current) {
+          await handleConfirmationAudio(blob)
+        } else if (conversationActiveRef.current) {
+          await handleConversationAudio(blob)
+        } else {
+          await sendAudio(blob)
+        }
         resolve()
       }, { once: true })
       r.stop()
@@ -288,6 +470,10 @@ export function VoiceModal({ onClose }: { onClose: () => void }) {
     setErrRaw(null)
     setDoneMsg(null)
     setTextInput('')
+    setConversationTurns([])
+    setPendingCommand(null)
+    conversationActiveRef.current = false
+    ttsCancel()
   }
 
   return (
@@ -315,6 +501,7 @@ export function VoiceModal({ onClose }: { onClose: () => void }) {
               setText={setTextInput}
               onStartRecording={startRecording}
               onSendText={sendText}
+              onStartConversation={startConversationMode}
             />
           )}
           {phase === 'recording' && (
@@ -400,18 +587,19 @@ export function VoiceModal({ onClose }: { onClose: () => void }) {
 // ──────────────────────────────────────────────────────────────────────────
 
 function IdleView({
-  mode, setMode, text, setText, onStartRecording, onSendText,
+  mode, setMode, text, setText, onStartRecording, onSendText, onStartConversation,
 }: {
-  mode:             'voice' | 'text'
-  setMode:          (m: 'voice' | 'text') => void
-  text:             string
-  setText:          (t: string) => void
-  onStartRecording: () => void
-  onSendText:       () => void
+  mode:                'voice' | 'text' | 'conversation'
+  setMode:             (m: 'voice' | 'text' | 'conversation') => void
+  text:                string
+  setText:             (t: string) => void
+  onStartRecording:    () => void
+  onSendText:          () => void
+  onStartConversation: () => void
 }) {
   return (
     <div>
-      {/* Toggle voz/texto */}
+      {/* Toggle voz/texto/conversa */}
       <div className="flex items-center justify-center gap-1 mb-4 p-1 rounded-lg bg-zinc-950/50 border border-zinc-800 w-fit mx-auto">
         <button
           type="button"
@@ -431,6 +619,15 @@ function IdleView({
         >
           <Type className="h-3 w-3" /> Texto
         </button>
+        <button
+          type="button"
+          onClick={() => setMode('conversation')}
+          className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+            mode === 'conversation' ? 'bg-emerald-500 text-white' : 'text-zinc-400 hover:text-zinc-200'
+          }`}
+        >
+          💬 Conversa
+        </button>
       </div>
 
       {mode === 'voice' ? (
@@ -444,6 +641,21 @@ function IdleView({
           >
             <Mic className="h-8 w-8" />
           </button>
+        </div>
+      ) : mode === 'conversation' ? (
+        <div className="text-center py-2">
+          <p className="text-sm text-zinc-300 mb-1">Modo conversa <span className="text-emerald-400">hands-free</span></p>
+          <p className="text-xs text-zinc-500 mb-5">A IA fala com você. Toque o mic só uma vez. Confirme dizendo &quot;sim&quot; ou &quot;cancelar&quot;.</p>
+          <button
+            type="button"
+            onClick={onStartConversation}
+            className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500 text-white hover:bg-emerald-600 active:scale-95 transition-all shadow-lg shadow-emerald-500/30"
+          >
+            <Mic className="h-8 w-8" />
+          </button>
+          <p className="text-[10px] text-zinc-600 mt-3">
+            Funciona melhor em Chrome (Android/Desktop). iOS Safari tem voz mais robótica.
+          </p>
         </div>
       ) : (
         <div className="py-2">

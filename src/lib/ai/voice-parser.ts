@@ -55,6 +55,15 @@ export type VoiceCommand =
       confidence:     number
     }
   | {
+      type:     'needs_clarification'
+      question: string                              // pergunta consolidada pra ser falada/exibida
+      partial?: Partial<{                           // dados que já entendeu (pra preservar entre turnos)
+        commandType:    'expense' | 'sale' | 'stock_in' | 'stock_balance'
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        fields:         Record<string, any>
+      }>
+    }
+  | {
       type:    'unknown'
       reason:  string
     }
@@ -134,6 +143,17 @@ TIPOS DE COMANDO:
      • Se mencionar data passada ("ontem", "dia 15", "semana passada", "no domingo", "dia 02/05") → preenche YYYY-MM-DD
      • Hoje = ${todayBR()}. "ontem" = ${todayBR()} -1 dia.
      • Quando saleDate != null, vai pro fluxo "venda manual" (módulo financeiro), sem precisar caixa aberto.
+
+QUANDO PEDIR CLARIFICAÇÃO (modo conversação):
+- Se você tem certeza do TIPO mas falta info essencial pra completar, retorna:
+  {"type":"needs_clarification","question":"<pergunta consolidada em PT-BR>","partial":{"commandType":"sale","fields":{...campos que já entendeu...}}}
+- Junte TODAS as faltas em UMA só pergunta natural (não pergunte 1 por vez).
+- Exemplos de info essencial faltando:
+  • sale: sem cliente E sem valor E sem pagamento → "Pra qual cliente, quanto custou e qual a forma de pagamento?"
+  • sale: tem produto + cliente, falta só pagamento → "Qual a forma de pagamento? Dinheiro, pix ou cartão?"
+  • expense: sem categoria identificável → "Qual a categoria? (ex: motoboy, combustível, lanche...)"
+  • stock_in: sem produto → "Qual o produto que entrou no estoque?"
+- Se o histórico tem múltiplos turnos, COMBINE todos os dados antes de retornar JSON final.
 
 REGRAS GERAIS:
 - Sempre PT-BR.
@@ -222,6 +242,56 @@ export async function parseVoiceCommand(transcript: string): Promise<ParseResult
   try {
     const obj = JSON.parse(raw)
     parsed = obj as VoiceCommand
+  } catch {
+    return { ok: false, error: `IA retornou JSON inválido: ${raw.slice(0, 200)}`, raw }
+  }
+
+  const tokensIn  = completion.usage?.prompt_tokens     ?? 0
+  const tokensOut = completion.usage?.completion_tokens ?? 0
+  const costMicrosUsd = Math.round(tokensIn * PRICE_PER_1M_INPUT + tokensOut * PRICE_PER_1M_OUTPUT)
+
+  return { ok: true, command: parsed, tokensIn, tokensOut, costMicrosUsd, raw }
+}
+
+/**
+ * Versão multi-turn: aceita histórico de mensagens.
+ * Cada turn do user vai sendo concatenado pro LLM completar os dados aos poucos.
+ */
+export type ConversationTurn = { role: 'user' | 'assistant'; content: string }
+
+export async function parseConversation(turns: ConversationTurn[]): Promise<ParseResult> {
+  const apiKey = process.env.OPENAI_API_KEY
+  if (!apiKey) return { ok: false, error: 'OPENAI_API_KEY não configurada' }
+  if (turns.length === 0) return { ok: false, error: 'Histórico vazio' }
+
+  const openai = new OpenAI({ apiKey })
+
+  // System + histórico cru de turnos
+  const messages = [
+    { role: 'system' as const, content: PROMPT_FILLED },
+    ...turns.map(t => ({ role: t.role, content: t.content })),
+    { role: 'user' as const, content: 'Com base no acima, devolva o JSON (estruturado se completo, ou needs_clarification se faltar info).' },
+  ]
+
+  let completion
+  try {
+    completion = await openai.chat.completions.create({
+      model:       'gpt-4o-mini',
+      temperature: 0.2,
+      max_tokens:  500,
+      response_format: { type: 'json_object' },
+      messages,
+    })
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'Erro ao chamar OpenAI' }
+  }
+
+  const raw = completion.choices[0]?.message?.content?.trim() ?? ''
+  console.log('[voice-parser] conversation turns:', turns.length, '| raw:', raw)
+
+  let parsed: VoiceCommand
+  try {
+    parsed = JSON.parse(raw) as VoiceCommand
   } catch {
     return { ok: false, error: `IA retornou JSON inválido: ${raw.slice(0, 200)}`, raw }
   }

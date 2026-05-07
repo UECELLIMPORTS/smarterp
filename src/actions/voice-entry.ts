@@ -20,7 +20,7 @@
 import { requireAuth } from '@/lib/supabase/server'
 import { getTenantId } from '@/lib/tenant'
 import { transcribeAudio } from '@/lib/ai/whisper'
-import { parseVoiceCommand, type VoiceCommand } from '@/lib/ai/voice-parser'
+import { parseVoiceCommand, parseConversation, type VoiceCommand, type ConversationTurn } from '@/lib/ai/voice-parser'
 
 export type VoiceProductMatch = {
   id:        string
@@ -146,6 +146,102 @@ export async function processVoiceCommand(args: {
       whisperUsd: wh.costMicrosUsd / 1_000_000,
       parserUsd:  pr.costMicrosUsd / 1_000_000,
       totalUsd:   (wh.costMicrosUsd + pr.costMicrosUsd) / 1_000_000,
+    },
+  }
+}
+
+/**
+ * Versão multi-turn: aceita histórico de conversação.
+ * Útil pra IA pedir clarificação e completar dados aos poucos.
+ *
+ * audioBase64 é o áudio do TURN ATUAL do user (será transcrito).
+ * Se transcript for fornecido (modo texto), pula Whisper.
+ * pastTurns são os turnos anteriores (user + assistant).
+ */
+export async function processConversation(args: {
+  audioBase64?: string
+  mimetype?:    string
+  transcript?:  string
+  pastTurns:    ConversationTurn[]   // turnos anteriores (sem o atual)
+}): Promise<ProcessVoiceResult> {
+  const { supabase, user } = await requireAuth()
+  const tenantId = getTenantId(user)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any
+
+  // 1. Transcreve se for áudio
+  let userText = args.transcript?.trim() ?? ''
+  let whisperCostMicros = 0
+  if (!userText) {
+    if (!args.audioBase64) return { ok: false, error: 'Áudio ou texto obrigatório' }
+    const wh = await transcribeAudio(args.audioBase64, args.mimetype ?? 'audio/webm')
+    if (!wh.ok)        return { ok: false, error: `Whisper: ${wh.error}` }
+    if (!wh.text)      return { ok: false, error: 'Transcrição vazia.', transcript: '' }
+    userText = wh.text
+    whisperCostMicros = wh.costMicrosUsd
+  }
+
+  // 2. Adiciona turn atual do user no histórico e chama parser conversacional
+  const turns: ConversationTurn[] = [...args.pastTurns, { role: 'user', content: userText }]
+  const pr = await parseConversation(turns)
+  if (!pr.ok) return { ok: false, error: `Parser: ${pr.error}`, transcript: userText, raw: pr.raw }
+
+  const cmd = pr.command
+  let productMatches:   VoiceProductMatch[] | undefined
+  let saleItemsMatched: VoiceSaleItemMatched[] | undefined
+  let customerMatches:  VoiceCustomerMatch[] | undefined
+  let cashSessionOpen:  boolean | undefined
+
+  // 3. Match só se for tipo finalizado (não needs_clarification)
+  if (cmd.type === 'stock_in' || cmd.type === 'stock_balance') {
+    productMatches = await matchProducts(sb, tenantId, cmd.productQuery, 5)
+  }
+  if (cmd.type === 'sale') {
+    saleItemsMatched = []
+    for (const it of cmd.items) {
+      const candidates = await matchProducts(sb, tenantId, it.productQuery, 3)
+      saleItemsMatched.push({
+        productQuery:   it.productQuery,
+        quantity:       it.quantity,
+        unitPriceCents: it.unitPriceCents ?? null,
+        candidates,
+      })
+    }
+    if (cmd.customerQuery && cmd.customerQuery.trim().length >= 2) {
+      const q = cmd.customerQuery.trim()
+      const { data: custs } = await sb
+        .from('customers')
+        .select('id, full_name, whatsapp, cpf_cnpj')
+        .eq('tenant_id', tenantId)
+        .ilike('full_name', `%${q}%`)
+        .order('full_name', { ascending: true })
+        .limit(5)
+      customerMatches = (custs ?? []) as VoiceCustomerMatch[]
+    } else {
+      customerMatches = []
+    }
+    const { data: activeSession } = await sb
+      .from('cash_sessions')
+      .select('id')
+      .eq('tenant_id', tenantId)
+      .eq('status', 'open')
+      .maybeSingle()
+    cashSessionOpen = !!activeSession
+  }
+
+  return {
+    ok:               true,
+    transcript:       userText,
+    command:          cmd,
+    productMatches,
+    saleItemsMatched,
+    customerMatches,
+    cashSessionOpen,
+    raw:              pr.raw,
+    costs: {
+      whisperUsd: whisperCostMicros / 1_000_000,
+      parserUsd:  pr.costMicrosUsd / 1_000_000,
+      totalUsd:   (whisperCostMicros + pr.costMicrosUsd) / 1_000_000,
     },
   }
 }
