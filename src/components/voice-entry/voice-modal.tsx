@@ -30,7 +30,7 @@ type Phase = 'idle' | 'recording' | 'processing' | 'review' | 'submitting' | 'do
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type CommandData = any  // Mantido any local pra simplificar a edição inline; valida no envio
 
-export function VoiceModal({ onClose }: { onClose: () => void }) {
+export function VoiceModal({ onClose, initialText, autoStartConversation }: { onClose: () => void; initialText?: string; autoStartConversation?: boolean }) {
   const [phase, setPhase]               = useState<Phase>('idle')
   const [recElapsed, setRecElapsed]     = useState(0)
   const [transcript, setTranscript]     = useState('')
@@ -77,6 +77,26 @@ export function VoiceModal({ onClose }: { onClose: () => void }) {
     }).catch(() => null)
     return () => { cancelled = true }
   }, [])
+
+  // Wake word: se veio texto pré-detectado, processa direto
+  // Se veio só "smart" sem comando, abre direto em modo conversation
+  const autoFiredRef = useRef(false)
+  useEffect(() => {
+    if (autoFiredRef.current) return
+    const trimmed = (initialText ?? '').trim()
+    if (trimmed.length >= 3) {
+      autoFiredRef.current = true
+      setInputMode('text')
+      setTextInput(trimmed)
+      // Dispara sendText após o state assentar
+      setTimeout(() => { void sendTextWith(trimmed) }, 50)
+    } else if (autoStartConversation) {
+      autoFiredRef.current = true
+      setInputMode('conversation')
+      setTimeout(() => { startConversationMode() }, 100)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialText, autoStartConversation])
 
   // Cleanup ao fechar
   useEffect(() => {
@@ -322,9 +342,9 @@ export function VoiceModal({ onClose }: { onClose: () => void }) {
     }
   }
 
-  async function sendText() {
-    const text = textInput.trim()
-    if (text.length < 3) {
+  async function sendTextWith(text: string) {
+    const trimmed = text.trim()
+    if (trimmed.length < 3) {
       setErrMsg('Digite ao menos 3 caracteres.')
       setPhase('error')
       return
@@ -333,7 +353,7 @@ export function VoiceModal({ onClose }: { onClose: () => void }) {
     try {
       const sessionRecent = voiceSession.list()
       const res = await processConversation({
-        transcript:    text,
+        transcript:    trimmed,
         pastTurns:     [],
         sessionRecent,
       })
@@ -342,6 +362,10 @@ export function VoiceModal({ onClose }: { onClose: () => void }) {
       setErrMsg(e instanceof Error ? e.message : 'Erro ao processar texto')
       setPhase('error')
     }
+  }
+
+  async function sendText() {
+    return sendTextWith(textInput)
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
