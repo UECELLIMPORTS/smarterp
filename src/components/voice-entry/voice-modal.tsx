@@ -14,8 +14,9 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { Mic, Square, X, Loader2, Check, AlertTriangle, Pencil, Trash2, Type, Send } from 'lucide-react'
-import { processVoiceCommand, processTextCommand, processConversation, type VoiceProductMatch, type VoiceCustomerMatch, type VoiceSaleItemMatched } from '@/actions/voice-entry'
+import { processVoiceCommand, processTextCommand, processConversation, extractAndSaveMemories, type VoiceProductMatch, type VoiceCustomerMatch, type VoiceSaleItemMatched } from '@/actions/voice-entry'
 import { ttsSpeak, ttsCancel, ttsWarmup } from '@/lib/ai/tts'
+import { voiceSession } from '@/hooks/use-voice-session'
 import { createVariableExpense } from '@/actions/variable-expenses'
 import { createMovement } from '@/actions/stock-movements'
 import { adjustStock } from '@/actions/products'
@@ -88,10 +89,12 @@ export function VoiceModal({ onClose }: { onClose: () => void }) {
     setPhase('processing')
     try {
       const base64 = await blobToBase64(blob)
+      const sessionRecent = voiceSession.list()
       const res = await processConversation({
-        audioBase64: base64,
-        mimetype:    mimetypeRef.current,
-        pastTurns:   conversationTurns,
+        audioBase64:   base64,
+        mimetype:      mimetypeRef.current,
+        pastTurns:     conversationTurns,
+        sessionRecent,
       })
       handleConversationResult(res)
     } catch (e) {
@@ -291,7 +294,14 @@ export function VoiceModal({ onClose }: { onClose: () => void }) {
     setPhase('processing')
     try {
       const base64 = await blobToBase64(blob)
-      const res = await processVoiceCommand({ audioBase64: base64, mimetype: mimetypeRef.current })
+      const sessionRecent = voiceSession.list()
+      // Reaproveita processConversation (one-shot = pastTurns vazio) pra pegar contexto rico
+      const res = await processConversation({
+        audioBase64: base64,
+        mimetype:    mimetypeRef.current,
+        pastTurns:   [],
+        sessionRecent,
+      })
       handleProcessResult(res)
     } catch (e) {
       setErrMsg(e instanceof Error ? e.message : 'Erro ao processar áudio')
@@ -308,7 +318,12 @@ export function VoiceModal({ onClose }: { onClose: () => void }) {
     }
     setPhase('processing')
     try {
-      const res = await processTextCommand(text)
+      const sessionRecent = voiceSession.list()
+      const res = await processConversation({
+        transcript:    text,
+        pastTurns:     [],
+        sessionRecent,
+      })
       handleProcessResult(res)
     } catch (e) {
       setErrMsg(e instanceof Error ? e.message : 'Erro ao processar texto')
@@ -447,6 +462,61 @@ export function VoiceModal({ onClose }: { onClose: () => void }) {
         }
       }
       setPhase('done')
+
+      // Persiste no localStorage pra próximas referências ("mesmo cliente")
+      try {
+        if (command.type === 'sale') {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const itemNames = ((command.items ?? []) as any[]).map((it: any, idx: number) => {
+            const cand = saleItemsMatched[idx]?.candidates.find(c => c.id === chosenItemIds[idx])
+            return cand?.name ?? it.productQuery
+          })
+          const cust = customerMatches.find(c => c.id === chosenCustomerId)
+          voiceSession.append({
+            type:           'sale',
+            summary:        `${itemNames.join(' + ')} pra ${cust?.full_name ?? 'consumidor final'}`,
+            rawTranscript:  transcript,
+            customerName:   cust?.full_name ?? null,
+            customerId:     cust?.id ?? null,
+            productNames:   itemNames,
+            paymentMethod:  command.paymentMethod ?? null,
+            totalCents:     command.totalCents ?? null,
+          })
+        } else if (command.type === 'expense') {
+          voiceSession.append({
+            type:    'expense',
+            summary: `R$ ${(command.amountCents / 100).toFixed(2)} (${command.category})`,
+            rawTranscript: transcript,
+            paymentMethod: command.paymentMethod ?? null,
+            totalCents:    command.amountCents,
+          })
+        } else if (command.type === 'stock_in') {
+          voiceSession.append({
+            type:    'stock_in',
+            summary: `Entrada de ${command.quantity}x ${command.productQuery}`,
+            rawTranscript: transcript,
+            productNames:  [command.productQuery],
+          })
+        } else if (command.type === 'stock_balance') {
+          voiceSession.append({
+            type:    'stock_balance',
+            summary: `Balanço ${command.productQuery} → ${command.newQty}`,
+            rawTranscript: transcript,
+            productNames:  [command.productQuery],
+          })
+        }
+      } catch (e) { console.warn('[voice-modal] session save failed', e) }
+
+      // Extrai memória de longo prazo em background (não bloqueia)
+      try {
+        const cust = customerMatches.find(c => c.id === chosenCustomerId)
+        extractAndSaveMemories({
+          commandSummary: doneMsg ?? transcript,
+          customerName:   cust?.full_name ?? null,
+          customerId:     cust?.id ?? null,
+        }).catch(() => null)
+      } catch { /* noop */ }
+
       // Auto-fecha após 2.5s
       setTimeout(() => onClose(), 2500)
     } catch (e) {

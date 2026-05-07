@@ -256,19 +256,25 @@ export async function parseVoiceCommand(transcript: string): Promise<ParseResult
 /**
  * Versão multi-turn: aceita histórico de mensagens.
  * Cada turn do user vai sendo concatenado pro LLM completar os dados aos poucos.
+ *
+ * Aceita contexto opcional (sessão, operacional, memórias) que é prependado
+ * ao system prompt pra IA usar referências ("mesmo cliente", "mais 1 igual").
  */
 export type ConversationTurn = { role: 'user' | 'assistant'; content: string }
 
-export async function parseConversation(turns: ConversationTurn[]): Promise<ParseResult> {
+export async function parseConversation(turns: ConversationTurn[], contextBlock = ''): Promise<ParseResult> {
   const apiKey = process.env.OPENAI_API_KEY
   if (!apiKey) return { ok: false, error: 'OPENAI_API_KEY não configurada' }
   if (turns.length === 0) return { ok: false, error: 'Histórico vazio' }
 
   const openai = new OpenAI({ apiKey })
 
-  // System + histórico cru de turnos
+  const systemContent = contextBlock
+    ? `${PROMPT_FILLED}\n\n────────────\n${contextBlock}\n────────────\n\nUse o contexto acima quando o user fizer referências ("mesmo cliente", "mais 1 igual", "como ontem"). Se o user mencionar um cliente que aparece nas memórias, considere as preferências.`
+    : PROMPT_FILLED
+
   const messages = [
-    { role: 'system' as const, content: PROMPT_FILLED },
+    { role: 'system' as const, content: systemContent },
     ...turns.map(t => ({ role: t.role, content: t.content })),
     { role: 'user' as const, content: 'Com base no acima, devolva o JSON (estruturado se completo, ou needs_clarification se faltar info).' },
   ]

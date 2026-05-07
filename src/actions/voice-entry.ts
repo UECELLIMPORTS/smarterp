@@ -21,6 +21,9 @@ import { requireAuth } from '@/lib/supabase/server'
 import { getTenantId } from '@/lib/tenant'
 import { transcribeAudio } from '@/lib/ai/whisper'
 import { parseVoiceCommand, parseConversation, type VoiceCommand, type ConversationTurn } from '@/lib/ai/voice-parser'
+import { getOperationalContext, formatContextForPrompt } from '@/lib/ai/voice-context'
+import { getRelevantMemories, formatMemoriesForPrompt, extractFactsFromCommand, saveFacts, type ExtractedFact } from '@/lib/ai/voice-memory'
+import type { VoiceSessionTurn } from '@/hooks/use-voice-session'
 
 export type VoiceProductMatch = {
   id:        string
@@ -162,7 +165,10 @@ export async function processConversation(args: {
   audioBase64?: string
   mimetype?:    string
   transcript?:  string
-  pastTurns:    ConversationTurn[]   // turnos anteriores (sem o atual)
+  pastTurns:    ConversationTurn[]                     // turnos anteriores (sem o atual)
+  sessionRecent?: VoiceSessionTurn[]                   // últimos comandos do localStorage do user
+  customerHint?: string                                // pra recuperar memórias do cliente
+  productHint?:  string[]                              // pra recuperar memórias dos produtos
 }): Promise<ProcessVoiceResult> {
   const { supabase, user } = await requireAuth()
   const tenantId = getTenantId(user)
@@ -181,9 +187,32 @@ export async function processConversation(args: {
     whisperCostMicros = wh.costMicrosUsd
   }
 
-  // 2. Adiciona turn atual do user no histórico e chama parser conversacional
+  // 2. Constrói contexto rico pra IA (operacional + sessão + memórias longo prazo)
+  const contextParts: string[] = []
+  try {
+    const opContext = await getOperationalContext(sb, tenantId)
+    contextParts.push(formatContextForPrompt(opContext))
+  } catch (e) { console.warn('[voice-entry] op context failed', e) }
+
+  if (args.sessionRecent && args.sessionRecent.length > 0) {
+    const recent = args.sessionRecent.slice(-5).map((t, i) => `${i + 1}. (${t.type}) ${t.summary}`).join('\n')
+    contextParts.push(`COMANDOS RECENTES NESTA SESSÃO:\n${recent}`)
+  }
+
+  try {
+    const memories = await getRelevantMemories(sb, tenantId, {
+      customerName: args.customerHint,
+      productNames: args.productHint,
+    })
+    const memBlock = formatMemoriesForPrompt(memories)
+    if (memBlock) contextParts.push(memBlock)
+  } catch (e) { console.warn('[voice-entry] memories failed', e) }
+
+  const contextBlock = contextParts.join('\n\n')
+
+  // 3. Adiciona turn atual do user no histórico e chama parser
   const turns: ConversationTurn[] = [...args.pastTurns, { role: 'user', content: userText }]
-  const pr = await parseConversation(turns)
+  const pr = await parseConversation(turns, contextBlock)
   if (!pr.ok) return { ok: false, error: `Parser: ${pr.error}`, transcript: userText, raw: pr.raw }
 
   const cmd = pr.command
@@ -324,6 +353,33 @@ export async function processTextCommand(text: string): Promise<ProcessVoiceResu
 }
 
 // ──────────────────────────────────────────────────────────────────────────
+
+/**
+ * Extrai e grava memórias de longo prazo após confirmação de comando.
+ * Roda em background (UI não espera). Custo ~R$ 0,003 por chamada.
+ */
+export async function extractAndSaveMemories(args: {
+  commandSummary: string
+  customerName?: string | null
+  customerId?:   string | null
+}): Promise<{ saved: number }> {
+  const { supabase, user } = await requireAuth()
+  const tenantId = getTenantId(user)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any
+
+  const facts: ExtractedFact[] = await extractFactsFromCommand(args.commandSummary)
+  if (facts.length === 0) return { saved: 0 }
+
+  // Mapa pra resolver subject_id quando subject_name == customer name
+  const subjectIdMap: Record<string, string> = {}
+  if (args.customerName && args.customerId) {
+    subjectIdMap[args.customerName] = args.customerId
+  }
+
+  const saved = await saveFacts(sb, tenantId, facts, subjectIdMap)
+  return { saved }
+}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function matchProducts(sb: any, tenantId: string, query: string, limit: number): Promise<VoiceProductMatch[]> {
