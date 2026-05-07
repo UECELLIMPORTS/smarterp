@@ -19,6 +19,7 @@ import { createVariableExpense } from '@/actions/variable-expenses'
 import { createMovement } from '@/actions/stock-movements'
 import { adjustStock } from '@/actions/products'
 import { createSale, type SaleItem } from '@/actions/pos'
+import { createManualSale } from '@/actions/financeiro'
 import { VARIABLE_EXPENSE_CATEGORIES, type VariableExpenseCategory } from '@/lib/variable-expense-categories'
 
 type Phase = 'idle' | 'recording' | 'processing' | 'review' | 'submitting' | 'done' | 'error'
@@ -194,11 +195,20 @@ export function VoiceModal({ onClose }: { onClose: () => void }) {
         await adjustStock(chosenProductId, command.newQty)
         setDoneMsg(`Estoque ajustado pra ${command.newQty} unidade(s).`)
       } else if (command.type === 'sale') {
-        if (!cashSessionOpen) throw new Error('Caixa fechado. Abra o caixa em /pos antes de registrar venda.')
-        const items: SaleItem[] = command.items.map((it: { quantity: number; unitPriceCents?: number | null }, idx: number) => {
+        // Decide rota: manual (financeiro) se data passada; senão POS (precisa caixa)
+        const today = new Date().toLocaleString('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' })
+        const saleDate = command.saleDate as string | null | undefined
+        const isManual = saleDate && saleDate !== today
+
+        if (!isManual && !cashSessionOpen) {
+          throw new Error('Caixa fechado. Abra em /pos OU defina uma data de venda passada (vira venda manual).')
+        }
+
+        type BuiltItem = { productId: string; source: 'products'; name: string; quantity: number; unitPriceCents: number }
+        const items: BuiltItem[] = command.items.map((it: { quantity: number; unitPriceCents?: number | null }, idx: number) => {
           const productId = chosenItemIds[idx]
           if (!productId) throw new Error(`Escolha um produto pro item ${idx + 1}.`)
-          const cand = saleItemsMatched[idx]?.candidates.find(c => c.id === productId)
+          const cand = saleItemsMatched[idx]?.candidates.find((c: VoiceProductMatch) => c.id === productId)
           const unitPrice = it.unitPriceCents ?? cand?.price_cents ?? 0
           return {
             productId,
@@ -206,23 +216,53 @@ export function VoiceModal({ onClose }: { onClose: () => void }) {
             name:           cand?.name ?? 'Produto',
             quantity:       it.quantity,
             unitPriceCents: unitPrice,
-            subtotalCents:  unitPrice * it.quantity,
           }
         })
-        const subtotalCents = items.reduce((s, i) => s + i.subtotalCents, 0)
-        const totalCents = command.totalCents ?? (subtotalCents - (command.discountCents ?? 0) + (command.shippingCents ?? 0))
-        await createSale({
-          customerId:     chosenCustomerId,
-          subtotalCents,
-          discountCents:  command.discountCents ?? 0,
-          shippingCents:  command.shippingCents ?? 0,
-          totalCents,
-          paymentMethod:  command.paymentMethod ?? 'cash',
-          paymentDetails: null,
-          items,
-          saleChannel:    command.saleChannel ?? null,
-        })
-        setDoneMsg(`Venda de R$ ${(totalCents / 100).toFixed(2)} registrada (${items.length} item${items.length > 1 ? 's' : ''}).`)
+
+        if (isManual) {
+          // Venda manual via financeiro — usa saleDate, ignora caixa, ignora frete
+          await createManualSale({
+            saleDate:      saleDate as string,
+            customerId:    chosenCustomerId,
+            items:         items.map((i) => ({
+              productId:      i.productId,
+              source:         i.source,
+              name:           i.name,
+              quantity:       i.quantity,
+              unitPriceCents: i.unitPriceCents,
+            })),
+            discountCents: command.discountCents ?? 0,
+            paymentMethod: command.paymentMethod ?? 'cash',
+            saleChannel:   command.saleChannel ?? null,
+          })
+          const subtotal = items.reduce((s, i) => s + i.unitPriceCents * i.quantity, 0)
+          const total = subtotal - (command.discountCents ?? 0)
+          setDoneMsg(`Venda manual de R$ ${(total / 100).toFixed(2)} registrada (${items.length} item${items.length > 1 ? 's' : ''}, data ${saleDate}).`)
+        } else {
+          // Venda POS normal
+          const saleItems: SaleItem[] = items.map((i) => ({
+            productId:      i.productId,
+            source:         i.source,
+            name:           i.name,
+            quantity:       i.quantity,
+            unitPriceCents: i.unitPriceCents,
+            subtotalCents:  i.unitPriceCents * i.quantity,
+          }))
+          const subtotalCents = saleItems.reduce((s, i) => s + i.subtotalCents, 0)
+          const totalCents = command.totalCents ?? (subtotalCents - (command.discountCents ?? 0) + (command.shippingCents ?? 0))
+          await createSale({
+            customerId:     chosenCustomerId,
+            subtotalCents,
+            discountCents:  command.discountCents ?? 0,
+            shippingCents:  command.shippingCents ?? 0,
+            totalCents,
+            paymentMethod:  command.paymentMethod ?? 'cash',
+            paymentDetails: null,
+            items:          saleItems,
+            saleChannel:    command.saleChannel ?? null,
+          })
+          setDoneMsg(`Venda de R$ ${(totalCents / 100).toFixed(2)} registrada (${saleItems.length} item${saleItems.length > 1 ? 's' : ''}).`)
+        }
       }
       setPhase('done')
       // Auto-fecha após 2.5s
@@ -498,7 +538,10 @@ function ReviewView({
   onReset:              () => void
 }) {
   const isSale = command.type === 'sale'
-  const blockSave = isSale && cashSessionOpen === false
+  // Bloqueia salvar SÓ se for venda no caixa (sem saleDate ou hoje) E caixa fechado
+  const todayStr = new Date().toLocaleString('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' })
+  const isManualSale = isSale && command.saleDate && command.saleDate !== todayStr
+  const blockSave = isSale && !isManualSale && cashSessionOpen === false
 
   return (
     <div>
@@ -759,11 +802,21 @@ function SaleForm({
   }, 0)
   const totalCents = command.totalCents ?? (subtotalCents - (command.discountCents ?? 0) + (command.shippingCents ?? 0))
 
+  // Data da venda: detecta venda manual (data passada → usa createManualSale, sem precisar caixa)
+  const today = new Date().toLocaleString('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' })
+  const saleDate: string = command.saleDate ?? today
+  const isManual = saleDate !== today
+
   return (
     <div className="space-y-3">
-      {cashSessionOpen === false && (
+      {cashSessionOpen === false && !isManual && (
         <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-2.5 py-2 text-[11px] text-amber-300">
-          ⚠ Caixa fechado. Abra o caixa em <code>/pos</code> antes de confirmar.
+          ⚠ Caixa fechado. Abra em <code>/pos</code> OU mude a data pra venda passada (vira venda manual).
+        </div>
+      )}
+      {isManual && (
+        <div className="rounded-md border border-cyan-500/40 bg-cyan-500/10 px-2.5 py-2 text-[11px] text-cyan-300">
+          📅 Venda manual (data passada). Vai pro módulo Financeiro, não precisa caixa aberto.
         </div>
       )}
 
@@ -867,7 +920,23 @@ function SaleForm({
         )}
       </div>
 
-      {/* Pagamento + canal + desconto + frete */}
+      {/* Data + Pagamento + canal + desconto + frete */}
+      <div>
+        <label className="text-[10px] uppercase tracking-wider text-zinc-500 flex items-center gap-1">
+          Data da venda
+          {isManual && <span className="text-cyan-400 normal-case tracking-normal">📅 manual</span>}
+        </label>
+        <input
+          type="date"
+          value={saleDate}
+          max={today}
+          onChange={e => setCommand({ ...command, saleDate: e.target.value === today ? null : e.target.value })}
+          className="w-full mt-0.5 rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-sm text-zinc-100"
+        />
+        <p className="text-[10px] text-zinc-600 mt-0.5">
+          Hoje = caixa POS · Data passada = venda manual (financeiro)
+        </p>
+      </div>
       <div className="grid grid-cols-2 gap-2">
         <div>
           <label className="text-[10px] uppercase tracking-wider text-zinc-500">Pagamento</label>

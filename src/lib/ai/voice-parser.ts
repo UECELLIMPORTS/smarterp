@@ -51,6 +51,7 @@ export type VoiceCommand =
       shippingCents?: number | null
       paymentMethod:  'cash' | 'pix' | 'card' | 'mixed' | null
       saleChannel?:   'fisica_balcao' | 'whatsapp' | 'instagram_dm' | 'delivery_online' | 'fisica_retirada' | 'outro' | null
+      saleDate?:      string | null               // YYYY-MM-DD — null se for HOJE; preencha se mencionar data passada (ontem, dia 15, semana passada, etc)
       confidence:     number
     }
   | {
@@ -128,6 +129,11 @@ TIPOS DE COMANDO:
      • "Instagram", "DM" → instagram_dm
      • "delivery", "ifood", "site" → delivery_online
      • "retirada" → fisica_retirada
+   - saleDate: data da venda em YYYY-MM-DD (OPCIONAL)
+     • Se NÃO mencionar data ou disser "hoje" → deixa null (vai usar fluxo POS normal)
+     • Se mencionar data passada ("ontem", "dia 15", "semana passada", "no domingo", "dia 02/05") → preenche YYYY-MM-DD
+     • Hoje = ${todayBR()}. "ontem" = ${todayBR()} -1 dia.
+     • Quando saleDate != null, vai pro fluxo "venda manual" (módulo financeiro), sem precisar caixa aberto.
 
 REGRAS GERAIS:
 - Sempre PT-BR.
@@ -164,6 +170,12 @@ Output: {"type":"stock_balance","productQuery":"iPhone 11","newQty":3,"confidenc
 
 Input: "vendi um carregador e duas películas pro José, total 80 reais cartão"
 Output: {"type":"sale","items":[{"productQuery":"carregador","quantity":1},{"productQuery":"película","quantity":2}],"customerQuery":"José","totalCents":8000,"paymentMethod":"card","confidence":0.85}
+
+Input: "vendi ontem uma capinha pra Pedro por 30 dinheiro"
+Output: {"type":"sale","items":[{"productQuery":"capinha","quantity":1}],"customerQuery":"Pedro","totalCents":3000,"paymentMethod":"cash","saleDate":"<ontem>","confidence":0.85}
+
+Input: "venda do dia 15 do mês: 1 película iPhone 13 pro João, 25 pix"
+Output: {"type":"sale","items":[{"productQuery":"película iPhone 13","quantity":1}],"customerQuery":"João","totalCents":2500,"paymentMethod":"pix","saleDate":"<ano-mês-15>","confidence":0.85}
 
 Input: "paguei 50 de motoboy"
 Output: {"type":"expense","occurredAt":"${todayBR()}","amountCents":5000,"category":"motoboy","confidence":0.95}
