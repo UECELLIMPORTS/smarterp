@@ -7,6 +7,7 @@ import {
 } from '@/lib/subscription'
 import { TrialBanner } from '@/components/trial-banner'
 import { hasFullAccess, getUserPermissions } from '@/lib/permissions'
+import { VoiceFAB } from '@/components/voice-entry/voice-fab'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   let auth: Awaited<ReturnType<typeof requireAuth>>
@@ -79,6 +80,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
           {children}
         </div>
       </main>
+
+      {/* Voice Entry FAB — visível em todas as páginas do dashboard */}
+      <VoiceFAB />
     </div>
   )
 }
