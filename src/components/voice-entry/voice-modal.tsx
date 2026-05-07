@@ -821,7 +821,12 @@ function SaleForm({
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] uppercase tracking-wider text-zinc-500">Preço unit. (R$)</label>
+                    <label className="text-[10px] uppercase tracking-wider text-zinc-500 flex items-center gap-1">
+                      Preço unit. (R$)
+                      {it.unitPriceCents == null && (saleItemsMatched[idx]?.candidates.find(c => c.id === chosenItemIds[idx])?.price_cents ?? 0) > 0 && (
+                        <span className="text-emerald-400 normal-case tracking-normal" title="Valor preenchido a partir do cadastro do produto">💰 do cadastro</span>
+                      )}
+                    </label>
                     <input
                       type="number" step="0.01"
                       value={it.unitPriceCents != null ? (it.unitPriceCents / 100).toFixed(2) :

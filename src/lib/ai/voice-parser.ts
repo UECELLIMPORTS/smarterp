@@ -141,7 +141,12 @@ REGRAS GERAIS:
   - "200 reais" = 20000, "1500" = 150000, "50 mil" = 5000000
   - Frações: "1,50" = 150
 - occurredAt OBRIGATÓRIO em "expense". Hoje = ${todayBR()}.
-- VENDAS: Se o usuário falar só 1 produto sem quantidade, assume quantity=1. Se não mencionar preço unitário mas mencionar total, deixa unitPriceCents null e preenche totalCents.
+- VENDAS:
+  • Se o usuário falar só 1 produto sem quantidade, assume quantity=1.
+  • Se NÃO mencionar preço algum (nem unitário, nem total): deixa unitPriceCents=null E totalCents=null. O sistema vai usar o valor cadastrado do produto.
+  • Se mencionar SÓ total: deixa unitPriceCents=null e preenche totalCents.
+  • Se mencionar SÓ unitário ("a 30 reais cada"): preenche unitPriceCents, deixa totalCents=null (sistema calcula).
+  • Se mencionar AMBOS ("30 cada, total 60"): preenche os dois.
 
 EXEMPLOS:
 
