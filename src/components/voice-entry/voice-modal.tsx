@@ -14,7 +14,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { Mic, Square, X, Loader2, Check, AlertTriangle, Pencil, Trash2, Type, Send } from 'lucide-react'
-import { processVoiceCommand, processTextCommand, processConversation, extractAndSaveMemories, type VoiceProductMatch, type VoiceCustomerMatch, type VoiceSaleItemMatched } from '@/actions/voice-entry'
+import { processVoiceCommand, processTextCommand, processConversation, extractAndSaveMemories, createCustomerFromVoice, type VoiceProductMatch, type VoiceCustomerMatch, type VoiceSaleItemMatched } from '@/actions/voice-entry'
 import { ttsSpeak, ttsCancel, ttsWarmup } from '@/lib/ai/tts'
 import { voiceSession } from '@/hooks/use-voice-session'
 import { listStores } from '@/actions/stores'
@@ -247,6 +247,12 @@ export function VoiceModal({ onClose, initialText, autoStartConversation }: { on
       const total = cmd.totalCents ?? (saleItems ?? []).reduce((s, it) => s + (it.unitPriceCents ?? it.candidates[0]?.price_cents ?? 0) * it.quantity, 0)
       return `Venda de ${itemNames} para ${cust}, total ${formatBRLSpoken(total)} no ${paymentSpoken(cmd.paymentMethod ?? 'cash')}.`
     }
+    if (cmd.type === 'customer_create') {
+      const parts = [`Novo cliente ${cmd.fullName}`]
+      if (cmd.whatsapp) parts.push(`WhatsApp ${cmd.whatsapp}`)
+      if (cmd.email)    parts.push(`email ${cmd.email}`)
+      return parts.join(', ') + '.'
+    }
     return 'Pronto.'
   }
 
@@ -450,6 +456,17 @@ export function VoiceModal({ onClose, initialText, autoStartConversation }: { on
         if (!chosenProductId) throw new Error('Escolha um produto.')
         await adjustStock(chosenProductId, command.newQty)
         setDoneMsg(`Estoque ajustado pra ${command.newQty} unidade(s).`)
+      } else if (command.type === 'customer_create') {
+        const res = await createCustomerFromVoice({
+          fullName:  command.fullName,
+          whatsapp:  command.whatsapp ?? null,
+          email:     command.email ?? null,
+          cpfCnpj:   command.cpfCnpj ?? null,
+          birthDate: command.birthDate ?? null,
+          notes:     command.notes ?? null,
+        })
+        if (!res.ok) throw new Error(res.error)
+        setDoneMsg(`Cliente "${res.name}" cadastrado.`)
       } else if (command.type === 'sale') {
         // Decide rota: manual (financeiro) se data passada; senão POS (precisa caixa)
         const today = new Date().toLocaleString('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' })
@@ -909,6 +926,7 @@ function ReviewView({
             {command.type === 'stock_in'       && 'Entrada de estoque'}
             {command.type === 'stock_balance'  && 'Ajuste de balanço'}
             {command.type === 'sale'           && 'Venda identificada'}
+            {command.type === 'customer_create' && 'Novo cliente'}
           </p>
           {command.confidence < 0.7 && (
             <span className="ml-auto text-[10px] text-amber-400">⚠ Confira tudo</span>
@@ -926,6 +944,9 @@ function ReviewView({
             chosenProductId={chosenProductId}
             setChosenProductId={setChosenProductId}
           />
+        )}
+        {command.type === 'customer_create' && (
+          <CustomerForm command={command} setCommand={setCommand} />
         )}
         {command.type === 'sale' && (
           <SaleForm
@@ -1346,6 +1367,75 @@ function SaleForm({
         <span className="text-base font-semibold text-emerald-300 tabular-nums">
           R$ {(totalCents / 100).toFixed(2)}
         </span>
+      </div>
+    </div>
+  )
+}
+
+function CustomerForm({ command, setCommand }: { command: CommandData; setCommand: (c: CommandData) => void }) {
+  return (
+    <div className="space-y-2.5">
+      <div>
+        <label className="text-[10px] uppercase tracking-wider text-zinc-500">Nome completo</label>
+        <input
+          type="text"
+          value={command.fullName ?? ''}
+          onChange={e => setCommand({ ...command, fullName: e.target.value })}
+          className="w-full mt-0.5 rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-sm text-zinc-100"
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="text-[10px] uppercase tracking-wider text-zinc-500">WhatsApp</label>
+          <input
+            type="tel"
+            value={command.whatsapp ?? ''}
+            onChange={e => setCommand({ ...command, whatsapp: e.target.value || null })}
+            placeholder="79999887766"
+            className="w-full mt-0.5 rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-sm text-zinc-100"
+          />
+        </div>
+        <div>
+          <label className="text-[10px] uppercase tracking-wider text-zinc-500">CPF/CNPJ</label>
+          <input
+            type="text"
+            value={command.cpfCnpj ?? ''}
+            onChange={e => setCommand({ ...command, cpfCnpj: e.target.value || null })}
+            placeholder="Opcional"
+            className="w-full mt-0.5 rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-sm text-zinc-100"
+          />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="text-[10px] uppercase tracking-wider text-zinc-500">Email</label>
+          <input
+            type="email"
+            value={command.email ?? ''}
+            onChange={e => setCommand({ ...command, email: e.target.value || null })}
+            placeholder="Opcional"
+            className="w-full mt-0.5 rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-sm text-zinc-100"
+          />
+        </div>
+        <div>
+          <label className="text-[10px] uppercase tracking-wider text-zinc-500">Aniversário</label>
+          <input
+            type="date"
+            value={command.birthDate ?? ''}
+            onChange={e => setCommand({ ...command, birthDate: e.target.value || null })}
+            className="w-full mt-0.5 rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-sm text-zinc-100"
+          />
+        </div>
+      </div>
+      <div>
+        <label className="text-[10px] uppercase tracking-wider text-zinc-500">Observações</label>
+        <input
+          type="text"
+          value={command.notes ?? ''}
+          onChange={e => setCommand({ ...command, notes: e.target.value || null })}
+          placeholder="Opcional"
+          className="w-full mt-0.5 rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-sm text-zinc-100"
+        />
       </div>
     </div>
   )

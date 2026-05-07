@@ -383,6 +383,79 @@ export async function extractAndSaveMemories(args: {
   return { saved }
 }
 
+// ──────────────────────────────────────────────────────────────────────────
+
+/**
+ * Criação de cliente via comando de voz.
+ * Usa apenas os campos essenciais coletados pela IA + defaults sensatos.
+ * Reutiliza as validações de duplicidade (CPF/WhatsApp) feitas pelo Supabase.
+ */
+export async function createCustomerFromVoice(args: {
+  fullName:   string
+  whatsapp?:  string | null
+  email?:     string | null
+  cpfCnpj?:   string | null
+  birthDate?: string | null
+  notes?:     string | null
+}): Promise<{ ok: true; id: string; name: string } | { ok: false; error: string }> {
+  const { supabase, user } = await requireAuth()
+  const tenantId = getTenantId(user)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any
+
+  const name = args.fullName.trim()
+  if (name.length < 2) return { ok: false, error: 'Nome muito curto' }
+
+  const whatsDigits = (args.whatsapp ?? '').replace(/\D/g, '') || null
+  const cpfDigits   = (args.cpfCnpj  ?? '').replace(/\D/g, '') || null
+
+  // Checa duplicidade WhatsApp (se fornecido)
+  if (whatsDigits) {
+    const { data: dups } = await sb
+      .from('customers')
+      .select('id, full_name')
+      .eq('tenant_id', tenantId)
+      .eq('whatsapp', whatsDigits)
+      .limit(1)
+    if (dups && dups.length > 0) {
+      return { ok: false, error: `Esse WhatsApp já está cadastrado pra ${dups[0].full_name}` }
+    }
+  }
+
+  // Checa duplicidade CPF
+  if (cpfDigits) {
+    const { data: dups } = await sb
+      .from('customers')
+      .select('id, full_name')
+      .eq('tenant_id', tenantId)
+      .eq('cpf_cnpj', cpfDigits)
+      .limit(1)
+    if (dups && dups.length > 0) {
+      return { ok: false, error: `Esse CPF já está cadastrado pra ${dups[0].full_name}` }
+    }
+  }
+
+  const { data, error } = await sb
+    .from('customers')
+    .insert({
+      tenant_id:   tenantId,
+      full_name:   name,
+      person_type: 'fisica',
+      is_active:   true,
+      whatsapp:    whatsDigits,
+      email:       (args.email ?? '').trim() || null,
+      cpf_cnpj:    cpfDigits,
+      birth_date:  args.birthDate ?? null,
+      notes:       (args.notes ?? '').trim() || null,
+      origin:      'voice',
+    })
+    .select('id, full_name')
+    .single()
+
+  if (error) return { ok: false, error: error.message }
+  return { ok: true, id: data.id as string, name: data.full_name as string }
+}
+
 /**
  * Match fuzzy de produto:
  * 1. Busca em `products` E `parts_catalog` (igual ao searchProducts do POS)

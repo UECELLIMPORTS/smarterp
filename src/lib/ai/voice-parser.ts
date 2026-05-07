@@ -64,6 +64,16 @@ export type VoiceCommand =
       }>
     }
   | {
+      type:        'customer_create'
+      fullName:    string
+      whatsapp?:   string | null   // só dígitos, ex: "79999887766"
+      email?:      string | null
+      cpfCnpj?:    string | null   // só dígitos
+      birthDate?:  string | null   // YYYY-MM-DD
+      notes?:      string | null
+      confidence:  number
+    }
+  | {
       type:    'unknown'
       reason:  string
     }
@@ -82,7 +92,7 @@ function todayBR(): string {
 }
 
 const SYSTEM_PROMPT = `Você é um parser de comandos de voz pra um ERP de loja brasileira (UÉ Cell Imports).
-O usuário diz comandos em português brasileiro informal. Você classifica em 4 tipos e extrai campos estruturados.
+O usuário diz comandos em português brasileiro informal. Você classifica em 5 tipos e extrai campos estruturados.
 
 TIPOS DE COMANDO:
 
@@ -144,6 +154,27 @@ TIPOS DE COMANDO:
      • Hoje = ${todayBR()}. "ontem" = ${todayBR()} -1 dia.
      • Quando saleDate != null, vai pro fluxo "venda manual" (módulo financeiro), sem precisar caixa aberto.
 
+5) "customer_create" — cadastrar novo cliente
+   Frases:
+   - "cadastra a Maria, telefone 79 99988-7766"
+   - "novo cliente João da Silva, whats 11 98765-4321, email joao@gmail.com"
+   - "salva esse contato: Pedro Oliveira, CPF 123.456.789-00, aniversário 15 de março"
+   - "cliente novo: Ana Beatriz, 79 9 9999-8888"
+   Campos:
+   - fullName: nome completo do cliente (string, obrigatório)
+   - whatsapp: SÓ DÍGITOS, sem espaços/parênteses/traço (ex: "79999887766"). null se não falou.
+     • "79 99988-7766" → "79999887766"
+     • "11 98765-4321" → "11987654321"
+   - email: email completo, ou null
+   - cpfCnpj: SÓ DÍGITOS (11 pra CPF, 14 pra CNPJ), ou null
+     • "123.456.789-00" → "12345678900"
+   - birthDate: YYYY-MM-DD se mencionou aniversário/data nascimento, senão null
+     • "15 de março" → ano atual + "-03-15"
+     • "10/05/1990" → "1990-05-10"
+   - notes: observações livres opcionais
+   - confidence: 0..1
+   QUANDO USAR: frases que começam com "cadastra", "novo cliente", "salva contato", "adiciona cliente".
+
 QUANDO PEDIR CLARIFICAÇÃO (modo conversação):
 - Se você tem certeza do TIPO mas falta info essencial pra completar, retorna:
   {"type":"needs_clarification","question":"<pergunta consolidada em PT-BR>","partial":{"commandType":"sale","fields":{...TODOS os campos que já entendeu até agora...}}}
@@ -154,6 +185,8 @@ QUANDO PEDIR CLARIFICAÇÃO (modo conversação):
   • sale: tem produto + cliente, falta só pagamento → "Qual a forma de pagamento? Dinheiro, pix ou cartão?"
   • expense: sem categoria identificável → "Qual a categoria? (ex: motoboy, combustível, lanche...)"
   • stock_in: sem produto → "Qual o produto que entrou no estoque?"
+  • customer_create: tem nome mas faltou contato → "Qual o WhatsApp ou telefone da Maria?"
+  • customer_create: SÓ falou "novo cliente" sem nome → "Qual o nome completo do cliente?"
 
 REGRA CRÍTICA MULTI-TURN — leia ANTES de classificar:
 - Se o histórico tem MENSAGEM DO ASSISTANT com "[campos já entendidos: {...}]" anexado, esses campos são a BASE do comando. NÃO recomece do zero.
@@ -170,6 +203,7 @@ REGRAS GERAIS:
 - Frase tem "paguei", "gastei", "X reais de Y" → quase sempre "expense".
 - Frase tem "deu entrada", "chegou", "recebi", "comprei pra estoque" → "stock_in".
 - Frase tem "tem X no estoque", "balanço", "contagem", "fiz inventário" → "stock_balance".
+- Frase começa com "cadastra", "novo cliente", "salva esse contato", "adiciona cliente" → "customer_create".
 - confidence: 0.0 a 1.0. Use < 0.7 quando texto for ambíguo.
 - amountCents/purchasePriceCents/salePriceCents/newQty/totalCents/discountCents/shippingCents/unitPriceCents: SEMPRE inteiros.
   - "200 reais" = 20000, "1500" = 150000, "50 mil" = 5000000
@@ -211,6 +245,15 @@ Output: {"type":"expense","occurredAt":"${todayBR()}","amountCents":5000,"catego
 Input: "vendi um iPhone 13 128GB roxo seminovo pra cliente nova, 1800 metade pix metade dinheiro"
 Output: {"type":"sale","items":[{"productQuery":"iPhone 13 128GB roxo","quantity":1}],"customerQuery":null,"totalCents":180000,"paymentMethod":"mixed","confidence":0.8}
 
+Input: "cadastra Maria Silva, whats 79 99988-7766"
+Output: {"type":"customer_create","fullName":"Maria Silva","whatsapp":"79999887766","confidence":0.95}
+
+Input: "novo cliente João da Padaria, telefone 11 98765-4321, email joao@gmail.com"
+Output: {"type":"customer_create","fullName":"João da Padaria","whatsapp":"11987654321","email":"joao@gmail.com","confidence":0.9}
+
+Input: "salva contato Pedro Oliveira, CPF 123.456.789-00, aniversário 15 de março"
+Output: {"type":"customer_create","fullName":"Pedro Oliveira","cpfCnpj":"12345678900","birthDate":"<ano>-03-15","confidence":0.85}
+
 EXEMPLO MULTI-TURN (LEIA E IMITE):
 
 Histórico:
@@ -230,6 +273,14 @@ Histórico:
 - assistant: "Quanto custou e qual o pagamento? [campos já entendidos: {\"commandType\":\"sale\",\"fields\":{\"items\":[{\"productQuery\":\"capinha\",\"quantity\":1}],\"customerQuery\":\"Pedro\"}}]"
 - user: "30 dinheiro"
 Output: {"type":"sale","items":[{"productQuery":"capinha","quantity":1}],"customerQuery":"Pedro","totalCents":3000,"paymentMethod":"cash","confidence":0.85}
+
+Histórico:
+- user: "cadastra cliente novo"
+- assistant: "Qual o nome completo do cliente? [campos já entendidos: {\"commandType\":\"customer_create\",\"fields\":{}}]"
+- user: "Ana Beatriz"
+- assistant: "Qual o WhatsApp da Ana Beatriz? [campos já entendidos: {\"commandType\":\"customer_create\",\"fields\":{\"fullName\":\"Ana Beatriz\"}}]"
+- user: "79 99988-7766"
+Output: {"type":"customer_create","fullName":"Ana Beatriz","whatsapp":"79999887766","confidence":0.9}
 
 OUTPUT: APENAS JSON (sem markdown, sem texto antes/depois).`
 
