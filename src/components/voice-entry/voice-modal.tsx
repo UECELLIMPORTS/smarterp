@@ -78,18 +78,19 @@ export function VoiceModal({ onClose, initialText, autoStartConversation }: { on
     return () => { cancelled = true }
   }, [])
 
-  // Wake word: se veio texto pré-detectado, processa direto
-  // Se veio só "smart" sem comando, abre direto em modo conversation
+  // Wake word: rota sempre passa pelo modo conversation pra IA falar (TTS).
+  // Com texto: processa o texto direto, mas vai pelo handleConversationResult (com voz).
+  // Sem texto: abre mic em modo conversation, IA pergunta o que fazer.
   const autoFiredRef = useRef(false)
   useEffect(() => {
     if (autoFiredRef.current) return
     const trimmed = (initialText ?? '').trim()
     if (trimmed.length >= 3) {
       autoFiredRef.current = true
-      setInputMode('text')
-      setTextInput(trimmed)
-      // Dispara sendText após o state assentar
-      setTimeout(() => { void sendTextWith(trimmed) }, 50)
+      setInputMode('conversation')
+      conversationActiveRef.current = true
+      // Processa o texto via fluxo de conversation (com TTS no resultado)
+      setTimeout(() => { void handleConversationText(trimmed) }, 50)
     } else if (autoStartConversation) {
       autoFiredRef.current = true
       setInputMode('conversation')
@@ -132,6 +133,23 @@ export function VoiceModal({ onClose, initialText, autoStartConversation }: { on
       handleConversationResult(res)
     } catch (e) {
       setErrMsg(e instanceof Error ? e.message : 'Erro ao processar áudio')
+      setPhase('error')
+    }
+  }
+
+  // Pra wake word: processa texto pré-transcrito mas mantém TTS+confirmação por voz
+  async function handleConversationText(text: string) {
+    setPhase('processing')
+    try {
+      const sessionRecent = voiceSession.list()
+      const res = await processConversation({
+        transcript: text,
+        pastTurns:  conversationTurns,
+        sessionRecent,
+      })
+      handleConversationResult(res)
+    } catch (e) {
+      setErrMsg(e instanceof Error ? e.message : 'Erro ao processar')
       setPhase('error')
     }
   }
