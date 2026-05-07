@@ -13,11 +13,12 @@
  */
 
 import { useEffect, useRef, useState } from 'react'
-import { Mic, Square, X, Loader2, Check, AlertTriangle, Pencil } from 'lucide-react'
-import { processVoiceCommand, type VoiceProductMatch } from '@/actions/voice-entry'
+import { Mic, Square, X, Loader2, Check, AlertTriangle, Pencil, Plus, Trash2 } from 'lucide-react'
+import { processVoiceCommand, type VoiceProductMatch, type VoiceCustomerMatch, type VoiceSaleItemMatched } from '@/actions/voice-entry'
 import { createVariableExpense } from '@/actions/variable-expenses'
 import { createMovement } from '@/actions/stock-movements'
 import { adjustStock } from '@/actions/products'
+import { createSale, type SaleItem } from '@/actions/pos'
 import { VARIABLE_EXPENSE_CATEGORIES, type VariableExpenseCategory } from '@/lib/variable-expense-categories'
 
 type Phase = 'idle' | 'recording' | 'processing' | 'review' | 'submitting' | 'done' | 'error'
@@ -32,6 +33,13 @@ export function VoiceModal({ onClose }: { onClose: () => void }) {
   const [command, setCommand]           = useState<CommandData | null>(null)
   const [productMatches, setProductMatches] = useState<VoiceProductMatch[]>([])
   const [chosenProductId, setChosenProductId] = useState<string | null>(null)
+  // Pra vendas (sale)
+  const [saleItemsMatched, setSaleItemsMatched]   = useState<VoiceSaleItemMatched[]>([])
+  const [chosenItemIds, setChosenItemIds]         = useState<(string | null)[]>([])  // 1 escolha por item, mesma ordem
+  const [customerMatches, setCustomerMatches]     = useState<VoiceCustomerMatch[]>([])
+  const [chosenCustomerId, setChosenCustomerId]   = useState<string | null>(null)
+  const [cashSessionOpen, setCashSessionOpen]     = useState<boolean | null>(null)
+
   const [costUsd, setCostUsd]           = useState(0)
   const [errMsg, setErrMsg]             = useState<string | null>(null)
   const [doneMsg, setDoneMsg]           = useState<string | null>(null)
@@ -108,6 +116,11 @@ export function VoiceModal({ onClose }: { onClose: () => void }) {
       setCommand(res.command)
       setProductMatches(res.productMatches ?? [])
       setChosenProductId(res.productMatches && res.productMatches.length > 0 ? res.productMatches[0].id : null)
+      setSaleItemsMatched(res.saleItemsMatched ?? [])
+      setChosenItemIds((res.saleItemsMatched ?? []).map(it => it.candidates[0]?.id ?? null))
+      setCustomerMatches(res.customerMatches ?? [])
+      setChosenCustomerId(res.customerMatches && res.customerMatches.length > 0 ? res.customerMatches[0].id : null)
+      setCashSessionOpen(res.cashSessionOpen ?? null)
       setCostUsd(res.costs.totalUsd)
       if (res.command.type === 'unknown') {
         setErrMsg('Não consegui entender o comando. Tenta falar de novo, mais claro.')
@@ -153,6 +166,36 @@ export function VoiceModal({ onClose }: { onClose: () => void }) {
         if (!chosenProductId) throw new Error('Escolha um produto.')
         await adjustStock(chosenProductId, command.newQty)
         setDoneMsg(`Estoque ajustado pra ${command.newQty} unidade(s).`)
+      } else if (command.type === 'sale') {
+        if (!cashSessionOpen) throw new Error('Caixa fechado. Abra o caixa em /pos antes de registrar venda.')
+        const items: SaleItem[] = command.items.map((it: { quantity: number; unitPriceCents?: number | null }, idx: number) => {
+          const productId = chosenItemIds[idx]
+          if (!productId) throw new Error(`Escolha um produto pro item ${idx + 1}.`)
+          const cand = saleItemsMatched[idx]?.candidates.find(c => c.id === productId)
+          const unitPrice = it.unitPriceCents ?? cand?.price_cents ?? 0
+          return {
+            productId,
+            source:         'products',
+            name:           cand?.name ?? 'Produto',
+            quantity:       it.quantity,
+            unitPriceCents: unitPrice,
+            subtotalCents:  unitPrice * it.quantity,
+          }
+        })
+        const subtotalCents = items.reduce((s, i) => s + i.subtotalCents, 0)
+        const totalCents = command.totalCents ?? (subtotalCents - (command.discountCents ?? 0) + (command.shippingCents ?? 0))
+        await createSale({
+          customerId:     chosenCustomerId,
+          subtotalCents,
+          discountCents:  command.discountCents ?? 0,
+          shippingCents:  command.shippingCents ?? 0,
+          totalCents,
+          paymentMethod:  command.paymentMethod ?? 'cash',
+          paymentDetails: null,
+          items,
+          saleChannel:    command.saleChannel ?? null,
+        })
+        setDoneMsg(`Venda de R$ ${(totalCents / 100).toFixed(2)} registrada (${items.length} item${items.length > 1 ? 's' : ''}).`)
       }
       setPhase('done')
       // Auto-fecha após 2.5s
@@ -211,6 +254,13 @@ export function VoiceModal({ onClose }: { onClose: () => void }) {
               productMatches={productMatches}
               chosenProductId={chosenProductId}
               setChosenProductId={setChosenProductId}
+              saleItemsMatched={saleItemsMatched}
+              chosenItemIds={chosenItemIds}
+              setChosenItemIds={setChosenItemIds}
+              customerMatches={customerMatches}
+              chosenCustomerId={chosenCustomerId}
+              setChosenCustomerId={setChosenCustomerId}
+              cashSessionOpen={cashSessionOpen}
               costUsd={costUsd}
               onConfirm={confirmSubmit}
               onReset={reset}
@@ -309,18 +359,31 @@ function RecordingView({ elapsed, onStop }: { elapsed: number; onStop: () => voi
 
 function ReviewView({
   transcript, command, setCommand, productMatches, chosenProductId, setChosenProductId,
+  saleItemsMatched, chosenItemIds, setChosenItemIds,
+  customerMatches, chosenCustomerId, setChosenCustomerId,
+  cashSessionOpen,
   costUsd, onConfirm, onReset,
 }: {
-  transcript:        string
-  command:           CommandData
-  setCommand:        (c: CommandData) => void
-  productMatches:    VoiceProductMatch[]
-  chosenProductId:   string | null
-  setChosenProductId: (id: string | null) => void
-  costUsd:           number
-  onConfirm:         () => void
-  onReset:           () => void
+  transcript:           string
+  command:              CommandData
+  setCommand:           (c: CommandData) => void
+  productMatches:       VoiceProductMatch[]
+  chosenProductId:      string | null
+  setChosenProductId:   (id: string | null) => void
+  saleItemsMatched:     VoiceSaleItemMatched[]
+  chosenItemIds:        (string | null)[]
+  setChosenItemIds:     (ids: (string | null)[]) => void
+  customerMatches:      VoiceCustomerMatch[]
+  chosenCustomerId:     string | null
+  setChosenCustomerId:  (id: string | null) => void
+  cashSessionOpen:      boolean | null
+  costUsd:              number
+  onConfirm:            () => void
+  onReset:              () => void
 }) {
+  const isSale = command.type === 'sale'
+  const blockSave = isSale && cashSessionOpen === false
+
   return (
     <div>
       <div className="rounded-lg bg-zinc-950/50 border border-zinc-800 p-2.5 mb-3">
@@ -335,6 +398,7 @@ function ReviewView({
             {command.type === 'expense'        && 'Despesa identificada'}
             {command.type === 'stock_in'       && 'Entrada de estoque'}
             {command.type === 'stock_balance'  && 'Ajuste de balanço'}
+            {command.type === 'sale'           && 'Venda identificada'}
           </p>
           {command.confidence < 0.7 && (
             <span className="ml-auto text-[10px] text-amber-400">⚠ Confira tudo</span>
@@ -353,6 +417,19 @@ function ReviewView({
             setChosenProductId={setChosenProductId}
           />
         )}
+        {command.type === 'sale' && (
+          <SaleForm
+            command={command}
+            setCommand={setCommand}
+            saleItemsMatched={saleItemsMatched}
+            chosenItemIds={chosenItemIds}
+            setChosenItemIds={setChosenItemIds}
+            customerMatches={customerMatches}
+            chosenCustomerId={chosenCustomerId}
+            setChosenCustomerId={setChosenCustomerId}
+            cashSessionOpen={cashSessionOpen}
+          />
+        )}
       </div>
 
       <div className="flex items-center justify-between gap-2">
@@ -363,7 +440,9 @@ function ReviewView({
           </button>
           <button
             onClick={onConfirm}
-            className="px-4 py-1.5 text-xs rounded-md bg-emerald-500 text-white font-medium hover:bg-emerald-600"
+            disabled={blockSave}
+            className="px-4 py-1.5 text-xs rounded-md bg-emerald-500 text-white font-medium hover:bg-emerald-600 disabled:opacity-40 disabled:cursor-not-allowed"
+            title={blockSave ? 'Caixa fechado — abra o caixa em /pos primeiro' : ''}
           >
             Confirmar e salvar
           </button>
@@ -514,6 +593,219 @@ function StockForm({
           })()}
         </div>
       )}
+    </div>
+  )
+}
+
+// ── SaleForm ─────────────────────────────────────────────────────────────
+
+function SaleForm({
+  command, setCommand,
+  saleItemsMatched, chosenItemIds, setChosenItemIds,
+  customerMatches, chosenCustomerId, setChosenCustomerId,
+  cashSessionOpen,
+}: {
+  command:             CommandData
+  setCommand:          (c: CommandData) => void
+  saleItemsMatched:    VoiceSaleItemMatched[]
+  chosenItemIds:       (string | null)[]
+  setChosenItemIds:    (ids: (string | null)[]) => void
+  customerMatches:     VoiceCustomerMatch[]
+  chosenCustomerId:    string | null
+  setChosenCustomerId: (id: string | null) => void
+  cashSessionOpen:     boolean | null
+}) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const items: any[] = command.items ?? []
+
+  function updateItem(idx: number, patch: Partial<{ quantity: number; unitPriceCents: number | null }>) {
+    const next = items.map((it, i) => i === idx ? { ...it, ...patch } : it)
+    setCommand({ ...command, items: next })
+  }
+
+  function removeItem(idx: number) {
+    const next = items.filter((_, i) => i !== idx)
+    setCommand({ ...command, items: next })
+    setChosenItemIds(chosenItemIds.filter((_, i) => i !== idx))
+  }
+
+  function setItemId(idx: number, id: string | null) {
+    const copy = [...chosenItemIds]
+    copy[idx] = id
+    setChosenItemIds(copy)
+  }
+
+  // Soma subtotal a partir dos itens (com fallback do price_cents do produto)
+  const subtotalCents = items.reduce((acc, it, idx) => {
+    const cand = saleItemsMatched[idx]?.candidates.find(c => c.id === chosenItemIds[idx])
+    const unit = it.unitPriceCents ?? cand?.price_cents ?? 0
+    return acc + unit * (it.quantity || 1)
+  }, 0)
+  const totalCents = command.totalCents ?? (subtotalCents - (command.discountCents ?? 0) + (command.shippingCents ?? 0))
+
+  return (
+    <div className="space-y-3">
+      {cashSessionOpen === false && (
+        <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-2.5 py-2 text-[11px] text-amber-300">
+          ⚠ Caixa fechado. Abra o caixa em <code>/pos</code> antes de confirmar.
+        </div>
+      )}
+
+      {/* Itens */}
+      <div>
+        <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-1.5">
+          Itens ({items.length})
+        </p>
+        <div className="space-y-2">
+          {items.map((it, idx) => {
+            const matched = saleItemsMatched[idx]
+            const candidates = matched?.candidates ?? []
+            return (
+              <div key={idx} className="rounded-md border border-zinc-700 bg-zinc-950/50 p-2">
+                <div className="flex items-start gap-2 mb-2">
+                  <div className="flex-1">
+                    <p className="text-[10px] text-zinc-500 mb-0.5">
+                      Você falou: <span className="text-zinc-300">&quot;{matched?.productQuery ?? it.productQuery}&quot;</span>
+                    </p>
+                    {candidates.length > 0 ? (
+                      <select
+                        value={chosenItemIds[idx] ?? ''}
+                        onChange={e => setItemId(idx, e.target.value || null)}
+                        className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1 text-xs text-zinc-100"
+                      >
+                        {candidates.map(p => (
+                          <option key={p.id} value={p.id}>
+                            {p.name} {p.sku ? `(${p.sku})` : ''} — R$ {((p.price_cents ?? 0) / 100).toFixed(2)} · estoque: {p.stock_qty}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <p className="text-[11px] text-amber-400">Produto não encontrado no estoque.</p>
+                    )}
+                  </div>
+                  {items.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeItem(idx)}
+                      className="rounded p-1 text-zinc-500 hover:bg-zinc-800 hover:text-red-400"
+                      aria-label="Remover item"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[10px] uppercase tracking-wider text-zinc-500">Qtd</label>
+                    <input
+                      type="number" min={1}
+                      value={it.quantity}
+                      onChange={e => updateItem(idx, { quantity: parseInt(e.target.value || '1') })}
+                      className="w-full mt-0.5 rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1 text-xs text-zinc-100"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase tracking-wider text-zinc-500">Preço unit. (R$)</label>
+                    <input
+                      type="number" step="0.01"
+                      value={it.unitPriceCents != null ? (it.unitPriceCents / 100).toFixed(2) :
+                             (saleItemsMatched[idx]?.candidates.find(c => c.id === chosenItemIds[idx])?.price_cents ?? 0) / 100}
+                      onChange={e => updateItem(idx, { unitPriceCents: e.target.value ? Math.round(parseFloat(e.target.value) * 100) : null })}
+                      className="w-full mt-0.5 rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1 text-xs text-zinc-100"
+                    />
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Cliente */}
+      <div>
+        <label className="text-[10px] uppercase tracking-wider text-zinc-500">Cliente</label>
+        {customerMatches.length > 0 ? (
+          <select
+            value={chosenCustomerId ?? ''}
+            onChange={e => setChosenCustomerId(e.target.value || null)}
+            className="w-full mt-0.5 rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-sm text-zinc-100"
+          >
+            <option value="">— Consumidor final —</option>
+            {customerMatches.map(c => (
+              <option key={c.id} value={c.id}>
+                {c.full_name} {c.whatsapp ? `· ${c.whatsapp}` : ''}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <p className="text-xs text-zinc-500 mt-0.5">
+            {command.customerQuery
+              ? <>Você falou: <strong className="text-zinc-300">{command.customerQuery}</strong>. Não achei nenhum cliente — venda vai como Consumidor Final.</>
+              : 'Consumidor Final (sem cliente cadastrado)'}
+          </p>
+        )}
+      </div>
+
+      {/* Pagamento + canal + desconto + frete */}
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="text-[10px] uppercase tracking-wider text-zinc-500">Pagamento</label>
+          <select
+            value={command.paymentMethod ?? 'cash'}
+            onChange={e => setCommand({ ...command, paymentMethod: e.target.value })}
+            className="w-full mt-0.5 rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-sm text-zinc-100"
+          >
+            <option value="cash">Dinheiro</option>
+            <option value="pix">PIX</option>
+            <option value="card">Cartão</option>
+            <option value="mixed">Misto</option>
+          </select>
+        </div>
+        <div>
+          <label className="text-[10px] uppercase tracking-wider text-zinc-500">Canal</label>
+          <select
+            value={command.saleChannel ?? ''}
+            onChange={e => setCommand({ ...command, saleChannel: e.target.value || null })}
+            className="w-full mt-0.5 rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-sm text-zinc-100"
+          >
+            <option value="">—</option>
+            <option value="fisica_balcao">Balcão (loja)</option>
+            <option value="whatsapp">WhatsApp</option>
+            <option value="instagram_dm">Instagram</option>
+            <option value="delivery_online">Delivery / Site</option>
+            <option value="fisica_retirada">Retirada na loja</option>
+            <option value="outro">Outro</option>
+          </select>
+        </div>
+        <div>
+          <label className="text-[10px] uppercase tracking-wider text-zinc-500">Desconto (R$)</label>
+          <input
+            type="number" step="0.01" min={0}
+            value={command.discountCents ? (command.discountCents / 100).toFixed(2) : ''}
+            onChange={e => setCommand({ ...command, discountCents: e.target.value ? Math.round(parseFloat(e.target.value) * 100) : 0 })}
+            placeholder="0,00"
+            className="w-full mt-0.5 rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-sm text-zinc-100"
+          />
+        </div>
+        <div>
+          <label className="text-[10px] uppercase tracking-wider text-zinc-500">Frete (R$)</label>
+          <input
+            type="number" step="0.01" min={0}
+            value={command.shippingCents ? (command.shippingCents / 100).toFixed(2) : ''}
+            onChange={e => setCommand({ ...command, shippingCents: e.target.value ? Math.round(parseFloat(e.target.value) * 100) : 0 })}
+            placeholder="0,00"
+            className="w-full mt-0.5 rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-sm text-zinc-100"
+          />
+        </div>
+      </div>
+
+      {/* Total */}
+      <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 flex items-center justify-between">
+        <span className="text-xs text-zinc-300">Total da venda</span>
+        <span className="text-base font-semibold text-emerald-300 tabular-nums">
+          R$ {(totalCents / 100).toFixed(2)}
+        </span>
+      </div>
     </div>
   )
 }

@@ -10,6 +10,12 @@
 import OpenAI from 'openai'
 import { VARIABLE_EXPENSE_CATEGORIES, type VariableExpenseCategory } from '@/lib/variable-expense-categories'
 
+export type VoiceSaleItem = {
+  productQuery:    string  // texto livre, ex: "iPhone 13", "capinha samsung"
+  quantity:        number
+  unitPriceCents?: number | null  // se mencionou preço unitário
+}
+
 export type VoiceCommand =
   | {
       type:           'expense'
@@ -37,6 +43,17 @@ export type VoiceCommand =
       confidence:   number
     }
   | {
+      type:           'sale'
+      items:          VoiceSaleItem[]
+      customerQuery?: string | null               // "Maria", "João da padaria", null se "consumidor final"
+      totalCents?:    number | null               // se mencionou total geral
+      discountCents?: number | null
+      shippingCents?: number | null
+      paymentMethod:  'cash' | 'pix' | 'card' | 'mixed' | null
+      saleChannel?:   'fisica_balcao' | 'whatsapp' | 'instagram_dm' | 'delivery_online' | 'fisica_retirada' | 'outro' | null
+      confidence:     number
+    }
+  | {
       type:    'unknown'
       reason:  string
     }
@@ -55,7 +72,7 @@ function todayBR(): string {
 }
 
 const SYSTEM_PROMPT = `Você é um parser de comandos de voz pra um ERP de loja brasileira (UÉ Cell Imports).
-O usuário diz comandos em português brasileiro informal. Você classifica em 3 tipos e extrai campos estruturados.
+O usuário diz comandos em português brasileiro informal. Você classifica em 4 tipos e extrai campos estruturados.
 
 TIPOS DE COMANDO:
 
@@ -85,14 +102,42 @@ TIPOS DE COMANDO:
    - newQty: quantidade FINAL contada (não o delta)
    - notes: observação
 
+4) "sale" — lançar VENDA (saída de produto + entrada de receita)
+   Frases:
+   - "vendi um iPhone 13 pra Maria, 1500 reais pix balcão"
+   - "vendi 2 capinhas a 30 reais cada, total 60, dinheiro, consumidor final"
+   - "vendi um carregador e uma película pro João da padaria, 80 reais cartão WhatsApp"
+   - "vendi um iPhone 11 e uma capinha pro José, 1200 com 50 de desconto, frete 20, pix"
+   Campos:
+   - items: ARRAY de itens. Cada item:
+     • productQuery: nome do produto (string)
+     • quantity: quantos (1 se não disse)
+     • unitPriceCents: preço unitário em centavos (opcional, só se mencionou explicitamente "a 30 cada", "a 1500 cada")
+   - customerQuery: nome do cliente (string ou null se "consumidor final"/"balcão"/sem nome)
+   - totalCents: valor total da venda em centavos (se mencionou)
+   - discountCents: desconto em centavos (se mencionou "X de desconto")
+   - shippingCents: frete em centavos (se mencionou)
+   - paymentMethod: "cash" | "pix" | "card" | "mixed" | null
+     • "dinheiro" → cash
+     • "pix" → pix
+     • "cartão", "cartão de crédito", "cartão de débito" → card
+     • "metade dinheiro metade pix" / múltiplas formas → mixed
+   - saleChannel: canal de venda (opcional)
+     • "balcão", "loja física", "presencial" → fisica_balcao
+     • "WhatsApp" → whatsapp
+     • "Instagram", "DM" → instagram_dm
+     • "delivery", "ifood", "site" → delivery_online
+     • "retirada" → fisica_retirada
+
 REGRAS GERAIS:
 - Sempre PT-BR.
 - Se não tiver certeza do tipo, retorna { "type": "unknown", "reason": "explicação curta" }.
 - confidence: 0.0 a 1.0. Use < 0.7 quando texto for ambíguo.
-- amountCents/purchasePriceCents/salePriceCents/newQty: SEMPRE inteiros.
+- amountCents/purchasePriceCents/salePriceCents/newQty/totalCents/discountCents/shippingCents/unitPriceCents: SEMPRE inteiros.
   - "200 reais" = 20000, "1500" = 150000, "50 mil" = 5000000
   - Frações: "1,50" = 150
 - occurredAt OBRIGATÓRIO em "expense". Hoje = ${todayBR()}.
+- VENDAS: Se o usuário falar só 1 produto sem quantidade, assume quantity=1. Se não mencionar preço unitário mas mencionar total, deixa unitPriceCents null e preenche totalCents.
 
 OUTPUT: APENAS JSON (sem markdown, sem texto antes/depois).`
 
