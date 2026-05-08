@@ -128,13 +128,22 @@ export default async function AdminPage() {
           style={{ color: '#94A3B8' }}>
           <ArrowLeft className="h-3.5 w-3.5" /> Voltar pro Dashboard
         </Link>
-        <h1 className="text-2xl font-bold flex items-center gap-2" style={{ color: '#F8FAFC' }}>
-          <Crown className="h-5 w-5" style={{ color: '#F59E0B' }} />
-          Admin — Métricas SaaS
-        </h1>
-        <p className="mt-1 text-sm" style={{ color: '#94A3B8' }}>
-          Visão geral da receita, clientes e churn da plataforma.
-        </p>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold flex items-center gap-2" style={{ color: '#F8FAFC' }}>
+              <Crown className="h-5 w-5" style={{ color: '#F59E0B' }} />
+              Admin — Métricas SaaS
+            </h1>
+            <p className="mt-1 text-sm" style={{ color: '#94A3B8' }}>
+              Visão geral da receita, clientes e churn da plataforma.
+            </p>
+          </div>
+          <Link href="/admin/afiliados"
+            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium hover:opacity-80 self-center"
+            style={{ background: 'rgba(16,185,129,.1)', border: '1px solid rgba(16,185,129,.3)', color: '#10B981' }}>
+            Afiliados →
+          </Link>
+        </div>
       </div>
 
       {/* KPIs principais */}
