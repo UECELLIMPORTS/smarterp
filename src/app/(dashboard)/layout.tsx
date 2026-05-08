@@ -3,9 +3,11 @@ import { requireAuth } from '@/lib/supabase/server'
 import { Sidebar } from '@/components/layout/sidebar'
 import { Topbar, type PlanBadge } from '@/components/layout/topbar'
 import {
-  getTenantSubscriptions, daysUntilTrialEnds, getProductSubscription,
+  getTenantSubscriptions, daysUntilTrialEnds, getProductSubscription, isGestaoFree,
 } from '@/lib/subscription'
 import { TrialBanner } from '@/components/trial-banner'
+import Link from 'next/link'
+import { ChevronRight } from 'lucide-react'
 import { hasFullAccess, getUserPermissions } from '@/lib/permissions'
 import { VoiceFAB } from '@/components/voice-entry/voice-fab'
 import { listStores } from '@/actions/stores'
@@ -45,10 +47,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
       kind:  'trial',
     }
   } else if (gestaoSub?.status === 'active' && gestaoSub.planName) {
-    const labels: Record<string, string> = { basico: 'BÁSICO', pro: 'PRO', premium: 'PREMIUM' }
+    const labels: Record<string, string> = { free: 'GRÁTIS', basico: 'BÁSICO', pro: 'PRO', premium: 'PREMIUM' }
     const label = labels[gestaoSub.planName] ?? gestaoSub.planName.toUpperCase()
     planBadge = { label, kind: gestaoSub.planName as 'basico' | 'pro' | 'premium' }
   }
+
+  const onFree = isGestaoFree(subs)
 
   // Outros sistemas que o tenant tem ativos (pra link cruzado na sidebar)
   const PRODUCT_INFO: Record<string, { label: string; url: string; emoji: string }> = {
@@ -81,6 +85,20 @@ export default async function DashboardLayout({ children }: { children: React.Re
       {/* Conteúdo principal — sem margem em mobile, 240px em lg+ pra dar espaço pra Sidebar */}
       <main className="pt-16 lg:ml-60">
         {trialDays !== null && <TrialBanner daysLeft={trialDays} />}
+        {onFree && (
+          <div className="flex items-center gap-2 px-4 sm:px-6 py-2.5 text-sm border-b bg-amber-950/40 border-amber-500/20 text-amber-200">
+            <span className="text-base">⚡</span>
+            <span className="flex-1">
+              <strong>Plano Grátis</strong> — 50 vendas/mês, 1 usuário, sem CRM/Meta Ads/relatórios.
+              Faça upgrade pra desbloquear tudo.
+            </span>
+            <Link
+              href="/configuracoes/assinatura"
+              className="flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded bg-amber-500 text-zinc-900 hover:bg-amber-400">
+              Ver planos <ChevronRight className="h-3 w-3" />
+            </Link>
+          </div>
+        )}
         <div className="min-h-[calc(100vh-4rem)] p-4 sm:p-6">
           {children}
         </div>

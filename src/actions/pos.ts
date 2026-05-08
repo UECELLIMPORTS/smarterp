@@ -6,6 +6,7 @@ import { getTenantId } from '@/lib/tenant'
 import { tryAutoEmitNfceForSale } from '@/lib/fiscal-emit-core'
 import { scheduleWhatsAppMessage } from '@/lib/whatsapp-scheduler'
 import { resolveActiveStoreId } from '@/lib/active-store'
+import { checkSalesQuota } from '@/lib/subscription'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -379,6 +380,16 @@ export async function updateCustomerOrigin(id: string, origin: string): Promise<
 export async function createSale(input: CreateSaleInput): Promise<{ id: string }> {
   const { supabase, user } = await requireAuth()
   const tenantId = getTenantId(user)
+
+  // Gate Free: 50 vendas/mês. Pago/trial: ilimitado.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const quota = await checkSalesQuota(supabase as any, tenantId!)
+  if (!quota.allowed) {
+    if (quota.reason === 'free_limit') {
+      throw new Error(`Limite de ${quota.limit} vendas/mês do plano Grátis atingido (${quota.used}/${quota.limit}). Faça upgrade pra Básico/Pro/Premium em Configurações → Assinatura.`)
+    }
+    throw new Error('Sem assinatura ativa. Acesse Configurações → Assinatura.')
+  }
 
   // Pega sessão de caixa aberta (se houver) pra associar a venda. Se caixa
   // fechado, a venda fica com cash_session_id=null — POS UI já bloqueia

@@ -12,8 +12,19 @@ import type { User } from '@supabase/supabase-js'
  */
 
 export type Product   = 'gestao_smart' | 'checksmart' | 'crm' | 'meta_ads'
-export type Plan      = 'basico' | 'pro' | 'premium'
-export type SubStatus = 'trial' | 'active' | 'late' | 'inactive' | 'cancelled'
+export type Plan      = 'free' | 'basico' | 'pro' | 'premium'
+export type SubStatus = 'trial' | 'trialing' | 'active' | 'late' | 'inactive' | 'cancelled'
+
+/** Limites do plano Free do Gestão Smart. */
+export const GESTAO_FREE_LIMITS = {
+  maxSalesPerMonth:    50,
+  maxUsers:            1,
+  allowReports:        false,
+  allowCrm:            false,
+  allowMetaAds:        false,
+  allowAutomation:     false,
+  allowAdvancedFiscal: false,
+} as const
 
 export type Subscription = {
   product:           Product
@@ -26,13 +37,21 @@ export type Subscription = {
 }
 
 /** Status que liberam acesso ao produto (trial e active). */
-const ACTIVE_STATUSES: SubStatus[] = ['trial', 'active']
+const ACTIVE_STATUSES: SubStatus[] = ['trial', 'trialing', 'active']
 
 /** Hierarquia de planos pra Gestão Smart — quanto maior, mais features libera. */
 const PLAN_RANK: Record<Plan, number> = {
-  basico:  0,
-  pro:     1,
-  premium: 2,
+  free:    -1,
+  basico:   0,
+  pro:      1,
+  premium:  2,
+}
+
+/** True se o tenant está no plano Free do Gestão Smart. */
+export function isGestaoFree(subs: Subscription[]): boolean {
+  const sub = getProductSubscription(subs, 'gestao_smart')
+  if (!sub) return false
+  return sub.status === 'active' && sub.planName === 'free'
 }
 
 /**
@@ -143,9 +162,48 @@ export function canUseAutomation(subs: Subscription[]): boolean {
 /** Quantos dias faltam pro trial expirar. null se não está em trial. */
 export function daysUntilTrialEnds(subs: Subscription[]): number | null {
   const sub = getProductSubscription(subs, 'gestao_smart')
-  if (!sub || sub.status !== 'trial' || !sub.trialEndsAt) return null
+  if (!sub || (sub.status !== 'trial' && sub.status !== 'trialing') || !sub.trialEndsAt) return null
   const ms = sub.trialEndsAt.getTime() - Date.now()
   return Math.max(0, Math.ceil(ms / (1000 * 60 * 60 * 24)))
+}
+
+// ── Sales quota (Free) ────────────────────────────────────────────────────
+
+export type SalesQuotaCheck =
+  | { allowed: true;  remaining: number | null }
+  | { allowed: false; reason: 'free_limit' | 'no_subscription'; used: number; limit: number }
+
+/**
+ * Verifica se o tenant pode registrar mais uma venda. Plano Free tem limite
+ * mensal; demais planos são ilimitados.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function checkSalesQuota(sb: any, tenantId: string): Promise<SalesQuotaCheck> {
+  const subs = await loadSubscriptionsByTenantId(sb, tenantId)
+  const sub = getProductSubscription(subs, 'gestao_smart')
+  if (!sub || !ACTIVE_STATUSES.includes(sub.status)) {
+    return { allowed: false, reason: 'no_subscription', used: 0, limit: 0 }
+  }
+  // Trial e qualquer plano pago: sem limite
+  if (sub.status === 'trial' || sub.status === 'trialing' || sub.planName !== 'free') {
+    return { allowed: true, remaining: null }
+  }
+  // Free: conta vendas do mês corrente
+  const now = new Date()
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+
+  const { count } = await sb
+    .from('sales')
+    .select('id', { count: 'exact', head: true })
+    .eq('tenant_id', tenantId)
+    .gte('created_at', monthStart)
+
+  const used = count ?? 0
+  const limit = GESTAO_FREE_LIMITS.maxSalesPerMonth
+  if (used >= limit) {
+    return { allowed: false, reason: 'free_limit', used, limit }
+  }
+  return { allowed: true, remaining: limit - used }
 }
 
 // ── Mapeamento de rotas → requisito mínimo ────────────────────────────────

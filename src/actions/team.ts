@@ -158,6 +158,16 @@ export async function inviteMember(input: {
   const tenantId = getTenantId(user)
   if (!isOwner(user)) return { ok: false, error: 'Apenas o dono pode convidar membros.' }
 
+  // Gate Free: equipe é feature dos planos pagos
+  {
+    const { loadSubscriptionsByTenantId, isGestaoFree } = await import('@/lib/subscription')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const subs = await loadSubscriptionsByTenantId(supabase as any, tenantId!)
+    if (isGestaoFree(subs)) {
+      return { ok: false, error: 'Cadastro de equipe é parte dos planos pagos. Faça upgrade em Configurações → Assinatura.' }
+    }
+  }
+
   const email = input.email.trim().toLowerCase()
   if (!/^\S+@\S+\.\S+$/.test(email)) return { ok: false, error: 'E-mail inválido.' }
   if (input.role !== 'manager' && input.role !== 'employee') {
