@@ -63,6 +63,11 @@ export async function proxy(request: NextRequest) {
     return response
   }
 
+  // Captação pública de afiliados — não exige auth
+  if (pathname === '/seja-afiliado' || pathname.startsWith('/afiliado-confirmado') || pathname === '/termos-afiliado') {
+    return response
+  }
+
   // Rotas protegidas — redireciona não-autenticado pro login
   if (!user) {
     return NextResponse.redirect(new URL('/login', request.url))

@@ -98,6 +98,13 @@ export default function LoginPage() {
           Criar grátis (7 dias)
         </a>
       </p>
+
+      <p className="mt-3 text-center text-xs" style={{ color: '#64748B' }}>
+        Quer indicar e ganhar comissão?{' '}
+        <a href="/seja-afiliado" className="hover:underline" style={{ color: '#94A3B8' }}>
+          Seja afiliado →
+        </a>
+      </p>
     </AuthShell>
   )
 }
