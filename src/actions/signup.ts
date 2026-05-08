@@ -12,16 +12,19 @@
  * Erros são tratados e retornados como string amigável (não joga exception).
  */
 
+import { headers } from 'next/headers'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { sendWelcomeEmail } from '@/lib/email'
 import { createNotification } from '@/lib/notifications'
+import { attributeAffiliate } from '@/lib/affiliates'
 
 export type SignupInput = {
   fullName:   string
   email:      string
   password:   string
   tenantName: string   // nome da empresa/loja
+  refCode?:   string   // ?ref= via cookie/query (opcional)
 }
 
 export type SignupResult =
@@ -92,6 +95,29 @@ export async function signupTenant(input: SignupInput): Promise<SignupResult> {
   if (metaErr) {
     console.error('[signupTenant] updateUserById (app_metadata) falhou:', metaErr)
     return { ok: false, error: 'Conta criada parcialmente. Contate o suporte.' }
+  }
+
+  // ── 5. Atribuição de afiliado (best-effort — não falha o signup) ─────────
+  if (input.refCode) {
+    try {
+      const hdrs = await headers()
+      const ipHeader = hdrs.get('x-forwarded-for') ?? hdrs.get('x-real-ip') ?? null
+      const ip = ipHeader ? ipHeader.split(',')[0].trim() : null
+      const ua = hdrs.get('user-agent')
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const sb = admin as any
+      const res = await attributeAffiliate(sb, {
+        refCode:        input.refCode,
+        tenantId:       tenantId,
+        signupEmail:    email,
+        fingerprintIp:  ip,
+        fingerprintUa:  ua,
+      })
+      if (!res.ok) console.warn('[signupTenant] attributeAffiliate ignorado:', res.reason)
+    } catch (e) {
+      console.error('[signupTenant] attributeAffiliate falhou:', e)
+    }
   }
 
   // Email de boas-vindas (best-effort — não falha o signup se email não rolar)

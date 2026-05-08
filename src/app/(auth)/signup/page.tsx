@@ -7,6 +7,12 @@ import { Eye, EyeOff, Loader2, ArrowRight, Check, AlertCircle } from 'lucide-rea
 import { signupTenant, loginAfterSignup } from '@/actions/signup'
 import { AuthShell } from '@/components/auth-shell'
 
+function readCookie(name: string): string | undefined {
+  if (typeof document === 'undefined') return undefined
+  const match = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'))
+  return match ? decodeURIComponent(match[1]) : undefined
+}
+
 export default function SignupPage() {
   const router = useRouter()
   const [fullName, setFullName]     = useState('')
@@ -22,7 +28,10 @@ export default function SignupPage() {
     setError(null)
     setLoading(true)
 
-    const result = await signupTenant({ fullName, tenantName, email, password })
+    // Lê cookie de afiliado seteado pelo proxy (?ref=CODIGO)
+    const refCode = readCookie('smartgestao_ref')
+
+    const result = await signupTenant({ fullName, tenantName, email, password, refCode })
     if (!result.ok) {
       setLoading(false)
       setError(result.error)

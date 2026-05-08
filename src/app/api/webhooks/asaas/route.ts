@@ -17,6 +17,7 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createNotification } from '@/lib/notifications'
+import { createCommissionFromPayment } from '@/lib/affiliates'
 
 // Force dynamic — webhook não pode ser cacheado
 export const dynamic = 'force-dynamic'
@@ -195,6 +196,21 @@ async function handlePaymentReceived(sb: any, payment?: AsaasPayment): Promise<v
       link:     '/configuracoes/assinatura',
     })
   }
+
+  // ── Comissão de afiliado (best-effort — não falha o webhook) ──────────────
+  // Se este tenant veio via afiliado, cria comissão initial (1ª venda) ou
+  // recurring (vendas seguintes até recurring_months). Idempotente via
+  // UNIQUE(payment_id, type) na tabela.
+  try {
+    await createCommissionFromPayment(sb, {
+      tenantId:        sub.tenant_id,
+      paymentId:       payment.id,
+      amountCents:     Math.round((payment.netValue ?? payment.value) * 100),
+      subscriptionId:  sub.id,
+    })
+  } catch (e) {
+    console.error('[handlePaymentReceived] createCommissionFromPayment falhou:', e)
+  }
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -238,6 +254,19 @@ async function handlePaymentRefunded(sb: any, payment?: AsaasPayment): Promise<v
   await sb.from('subscriptions')
     .update({ status: 'cancelled' })
     .eq('asaas_subscription_id', payment.subscription)
+
+  // Cancela qualquer comissão vinculada a esse payment (em hold ou já paga
+  // que ainda não foi paga). Só atinge as não-pagas pra evitar reverter PIX já transferido.
+  if (payment.id) {
+    await sb.from('affiliate_commissions')
+      .update({
+        status:        'cancelled',
+        cancelled_at:  new Date().toISOString(),
+        cancel_reason: 'payment_refunded',
+      })
+      .eq('payment_id', payment.id)
+      .in('status', ['pending_approval', 'under_review', 'payable'])
+  }
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
