@@ -6,7 +6,7 @@ import Link from 'next/link'
 import {
   Package, CheckCircle, AlertTriangle, Ban, Loader2, Save,
   Sparkles, ChevronRight, Users, FileText, ImageIcon, Shield, Trash2, Upload, Cake,
-  MessageCircle,
+  MessageCircle, Store as StoreIcon,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { saveSettings, type TenantSettings, type StockControlMode } from '@/actions/settings'
@@ -208,6 +208,24 @@ export function ConfiguracoesClient({ initialSettings, isOwner = false, initialE
                 <h2 className="text-sm font-semibold text-text">Equipe</h2>
                 <p className="text-xs text-muted mt-0.5">
                   Convide membros pra trabalhar com você na mesma conta
+                </p>
+              </div>
+              <ChevronRight className="h-5 w-5 shrink-0" style={{ color: '#94A3B8' }} />
+            </div>
+          </Link>
+
+          <Link href="/configuracoes/lojas"
+            className="block rounded-xl border p-4 transition-all hover:border-purple-400/40"
+            style={{ background: '#1B2638', borderColor: '#2A3650' }}>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg shrink-0"
+                style={{ background: 'rgba(168,85,247,.15)' }}>
+                <StoreIcon className="h-5 w-5" style={{ color: '#A855F7' }} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h2 className="text-sm font-semibold text-text">Lojas</h2>
+                <p className="text-xs text-muted mt-0.5">
+                  Cadastre múltiplas lojas/marcas. Vendas e caixas separados, produtos compartilhados
                 </p>
               </div>
               <ChevronRight className="h-5 w-5 shrink-0" style={{ color: '#94A3B8' }} />
