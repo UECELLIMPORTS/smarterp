@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Inter, DM_Sans, JetBrains_Mono } from 'next/font/google'
 import { Toaster } from 'sonner'
+import { TawkWidget } from '@/components/tawk-widget'
 import './globals.css'
 
 // Body: Inter (legibilidade impecável em telas)
@@ -41,6 +42,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             style: { background: '#131C2A', border: '1px solid #2A3650', color: '#F8FAFC' },
           }}
         />
+        <TawkWidget />
       </body>
     </html>
   )
