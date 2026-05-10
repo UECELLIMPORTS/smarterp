@@ -41,7 +41,7 @@ export type FinanceiroRow = {
   id: string; rawId: string; source: 'erp' | 'checksmart'
   date: Date; dateStr: string; customerName: string; description: string
   payment: string | null; osStatus: string | null; cancelled: boolean
-  discount: number; total: number
+  discount: number; shipping: number; total: number
   profit: number    // total - custo (snapshot dos itens / parts_cost_cents)
   clienteType: 'novo' | 'recorrente' | null
   // ERP-only (for edit modal)
@@ -208,6 +208,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
   const [esRow, setEsRow]                     = useState<FinanceiroRow | null>(null)
   const [esDate, setEsDate]                   = useState('')
   const [esDiscountStr, setEsDiscountStr]     = useState('')
+  const [esShippingStr, setEsShippingStr]     = useState('')
   const [esPayMethod, setEsPayMethod]         = useState<string>('pix')
   const [esSaleChannel, setEsSaleChannel]     = useState<SaleChannel | ''>('')
   const [esDeliveryType, setEsDeliveryType]   = useState<DeliveryType | ''>('')
@@ -590,6 +591,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
   const [nvSaleChannel, setNvSaleChannel] = useState<SaleChannel | ''>('')
   const [nvDeliveryType, setNvDeliveryType] = useState<DeliveryType | ''>('')
   const [discountStr, setDiscountStr]     = useState('')
+  const [shippingStr, setShippingStr]     = useState('')
   const [nvSaving, startNvSave]           = useTransition()
   const [nvError, setNvError]             = useState('')
 
@@ -597,7 +599,8 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
   const [cart, setCart]     = useState<CartItem[]>([])
   const subtotal = cart.reduce((s, i) => s + i.unitPriceCents * i.quantity, 0)
   const discount = parseCents(discountStr)
-  const total    = Math.max(0, subtotal - discount)
+  const shipping = parseCents(shippingStr)
+  const total    = Math.max(0, subtotal + shipping - discount)
 
   // Product search
   const [pQuery, setPQuery]       = useState('')
@@ -696,7 +699,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
   }, [])
 
   function resetNovaVenda() {
-    setCart([]); setPQuery(''); setDiscountStr(''); setSaleDate(new Date().toISOString().slice(0, 10))
+    setCart([]); setPQuery(''); setDiscountStr(''); setShippingStr(''); setSaleDate(new Date().toISOString().slice(0, 10))
     setPayMethod('pix'); setCustomer(null); setCustQuery(''); setShowCustForm(false)
     setNc(EMPTY_NC); setNvError(''); setShowManual(false)
     setNvSaleChannel(''); setNvDeliveryType('')
@@ -821,6 +824,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
     const dateObj = row.date instanceof Date ? row.date : new Date(row.date as unknown as string)
     setEsDate(!isNaN(dateObj.getTime()) ? dateObj.toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10))
     setEsDiscountStr(row.discount > 0 ? fmtBRL(row.discount) : '')
+    setEsShippingStr(row.shipping > 0 ? fmtBRL(row.shipping) : '')
     setEsPayMethod(row.payment ?? 'pix')
     setEsCustomerId(row.customerId ?? null)
     setEsCustomerName(row.customerName !== 'Sem cliente' ? row.customerName : '')
@@ -919,10 +923,12 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
     startEsSave(async () => {
       try {
         const discountCents = parseCents(esDiscountStr)
+        const shippingCents = parseCents(esShippingStr)
         const input: EditSaleInput = {
           customerId:    esCustomerId,
           items:         esCart.map(i => ({ productId: i.productId, name: i.name, quantity: i.quantity, unitPriceCents: i.unitPriceCents })),
           discountCents,
+          shippingCents,
           paymentMethod: esPayMethod,
           saleDate:      esDate,
           saleChannel:   esSaleChannel  || null,
@@ -931,7 +937,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
         }
         await updateCancelledSale(row.rawId, input)
         const subtotal   = esCart.reduce((s, i) => s + i.unitPriceCents * i.quantity, 0)
-        const newTotal   = Math.max(0, subtotal - discountCents)
+        const newTotal   = Math.max(0, subtotal + shippingCents - discountCents)
         const newDate    = new Date(esDate + 'T12:00:00')
         const newDateStr = newDate.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })
         setRows(rs => rs.map(r => r.id === row.id ? {
@@ -942,6 +948,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
           description:    esCart.map(i => `${i.quantity}× ${i.name}`).join(', '),
           payment:        esPayMethod,
           discount:       discountCents,
+          shipping:       shippingCents,
           total:          newTotal,
           customerId:     esCustomerId,
           saleItems:      esCart.map(i => ({ name: i.name, quantity: i.quantity, unitPriceCents: i.unitPriceCents })),
@@ -1039,6 +1046,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
           customerId:    customer?.id ?? null,
           items,
           discountCents: discount,
+          shippingCents: shipping,
           paymentMethod: payMethod,
           saleChannel:   nvSaleChannel  || null,
           deliveryType:  nvDeliveryType || null,
@@ -1827,7 +1835,8 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
       {esRow && (() => {
         const esSubtotal = esCart.reduce((s, i) => s + i.unitPriceCents * i.quantity, 0)
         const esDiscount = parseCents(esDiscountStr)
-        const esTotal    = Math.max(0, esSubtotal - esDiscount)
+        const esShipping = parseCents(esShippingStr)
+        const esTotal    = Math.max(0, esSubtotal + esShipping - esDiscount)
         return (
           <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4" style={{ background: 'rgba(0,0,0,0.7)' }}>
             <div className="relative w-full max-w-2xl rounded-2xl border my-8" style={{ background: '#131C2A', borderColor: '#2A3650' }}>
@@ -2039,7 +2048,7 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                 </div>
 
                 {/* Pagamento + Desconto */}
-                <div className="grid grid-cols-[1fr_auto] gap-4 items-start">
+                <div className="grid grid-cols-[1fr_auto_auto] gap-4 items-start">
                   <div>
                     <label className="mb-1 block text-xs font-medium text-muted">Forma de Pagamento</label>
                     <div className="grid grid-cols-4 gap-2">
@@ -2063,6 +2072,16 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted">R$</span>
                       <input type="text" inputMode="numeric" value={esDiscountStr}
                         onChange={e => setEsDiscountStr(e.target.value)} placeholder="0,00"
+                        className={INP} style={{ ...INP_S, paddingLeft: '2.25rem' }} />
+                    </div>
+                  </div>
+                  <div className="min-w-32">
+                    <label className="mb-1 block text-xs font-medium text-muted">Frete / Entrega (R$)</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted">R$</span>
+                      <input type="text" inputMode="numeric" value={esShippingStr}
+                        onChange={e => setEsShippingStr(e.target.value)} placeholder="0,00"
+                        title="Valor do motoboy / frete cobrado do cliente"
                         className={INP} style={{ ...INP_S, paddingLeft: '2.25rem' }} />
                     </div>
                   </div>
@@ -2128,6 +2147,11 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                     {esDiscount > 0 && (
                       <div className="flex items-center justify-between text-xs" style={{ color: '#EF4444' }}>
                         <span>Desconto</span><span>- {BRL(esDiscount)}</span>
+                      </div>
+                    )}
+                    {esShipping > 0 && (
+                      <div className="flex items-center justify-between text-xs text-muted">
+                        <span>Frete / Entrega</span><span>+ {BRL(esShipping)}</span>
                       </div>
                     )}
                     <div className="flex items-center justify-between font-bold border-t pt-1" style={{ borderColor: '#2A3650' }}>
@@ -2477,8 +2501,8 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                 )}
               </div>
 
-              {/* ── Desconto + Pagamento ─────────────────────────────────────── */}
-              <div className="grid grid-cols-[1fr_auto] gap-4 items-start">
+              {/* ── Desconto + Frete + Pagamento ─────────────────────────────── */}
+              <div className="grid grid-cols-[1fr_auto_auto] gap-4 items-start">
                 <div>
                   <label className="mb-1 block text-xs font-medium text-muted">Forma de Pagamento</label>
                   <div className="grid grid-cols-4 gap-2">
@@ -2502,6 +2526,16 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted">R$</span>
                     <input type="text" inputMode="numeric" value={discountStr}
                       onChange={e => setDiscountStr(e.target.value)} placeholder="0,00"
+                      className={INP} style={{ ...INP_S, paddingLeft: '2.25rem' }} />
+                  </div>
+                </div>
+                <div className="min-w-32">
+                  <label className="mb-1 block text-xs font-medium text-muted">Frete / Entrega (R$)</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted">R$</span>
+                    <input type="text" inputMode="numeric" value={shippingStr}
+                      onChange={e => setShippingStr(e.target.value)} placeholder="0,00"
+                      title="Valor do motoboy / frete cobrado do cliente"
                       className={INP} style={{ ...INP_S, paddingLeft: '2.25rem' }} />
                   </div>
                 </div>
@@ -2546,6 +2580,11 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                   {discount > 0 && (
                     <div className="flex items-center justify-between text-xs" style={{ color: '#EF4444' }}>
                       <span>Desconto</span><span>- {BRL(discount)}</span>
+                    </div>
+                  )}
+                  {shipping > 0 && (
+                    <div className="flex items-center justify-between text-xs text-muted">
+                      <span>Frete / Entrega</span><span>+ {BRL(shipping)}</span>
                     </div>
                   )}
                   <div className="flex items-center justify-between font-bold border-t pt-1" style={{ borderColor: '#2A3650' }}>

@@ -240,6 +240,7 @@ export type EditSaleInput = {
   customerId:    string | null
   items:         { productId: string | null; name: string; quantity: number; unitPriceCents: number }[]
   discountCents: number
+  shippingCents?: number
   paymentMethod: string
   saleDate:      string
   saleChannel?:  string | null
@@ -264,9 +265,10 @@ export async function updateCancelledSale(saleId: string, input: EditSaleInput):
   // NOTA: items vazios são permitidos — útil pra reclassificar canal/entrega de vendas legadas
   // que não têm sale_items no banco. Nesse caso, só os fields da venda são atualizados.
 
-  const subtotal     = input.items.reduce((s, i) => s + i.unitPriceCents * i.quantity, 0)
-  const total        = Math.max(0, subtotal - input.discountCents)
-  const newCreatedAt = new Date(input.saleDate + 'T12:00:00').toISOString()
+  const shippingCents = input.shippingCents ?? 0
+  const subtotal      = input.items.reduce((s, i) => s + i.unitPriceCents * i.quantity, 0)
+  const total         = Math.max(0, subtotal + shippingCents - input.discountCents)
+  const newCreatedAt  = new Date(input.saleDate + 'T12:00:00').toISOString()
 
   const { error } = await supabase
     .from('sales')
@@ -275,6 +277,7 @@ export async function updateCancelledSale(saleId: string, input: EditSaleInput):
       total_cents:    total,
       subtotal_cents: subtotal,
       discount_cents: input.discountCents,
+      shipping_cents: shippingCents,
       payment_method: input.paymentMethod,
       created_at:     newCreatedAt,
       updated_at:     new Date().toISOString(),
@@ -420,6 +423,7 @@ export type ManualSaleInput = {
   customerId:    string | null
   items:         ManualSaleItem[]
   discountCents: number
+  shippingCents?: number
   paymentMethod: 'cash' | 'pix' | 'card' | 'mixed'
   saleChannel?:  string | null
   deliveryType?: string | null
@@ -431,8 +435,9 @@ export async function createManualSale(input: ManualSaleInput): Promise<void> {
 
   if (!input.items.length) throw new Error('Adicione ao menos um item.')
 
-  const subtotal = input.items.reduce((s, i) => s + i.unitPriceCents * i.quantity, 0)
-  const total    = Math.max(0, subtotal - input.discountCents)
+  const shippingCents = input.shippingCents ?? 0
+  const subtotal      = input.items.reduce((s, i) => s + i.unitPriceCents * i.quantity, 0)
+  const total         = Math.max(0, subtotal + shippingCents - input.discountCents)
 
   const saleDate = new Date(input.saleDate + 'T12:00:00')
 
@@ -448,7 +453,7 @@ export async function createManualSale(input: ManualSaleInput): Promise<void> {
       customer_id:    input.customerId,
       subtotal_cents: subtotal,
       discount_cents: input.discountCents,
-      shipping_cents: 0,
+      shipping_cents: shippingCents,
       total_cents:    total,
       payment_method: input.paymentMethod,
       status:         'completed',
