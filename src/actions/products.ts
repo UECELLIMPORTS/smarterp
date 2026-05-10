@@ -314,7 +314,9 @@ export async function updateProduct(id: string, input: ProductInput): Promise<Pr
   if (error) throw new Error(error.message)
   revalidatePath('/estoque')
   revalidatePath('/erp-clientes')
+  revalidatePath('/erp-clientes/diagnostico-lucro')
   revalidatePath('/financeiro')
+  revalidatePath('/relatorios')
   return data as unknown as ProductRow
 }
 
