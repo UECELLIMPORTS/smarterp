@@ -906,6 +906,10 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
     setEsCart(prev => prev.map(i => i.key === key ? { ...i, quantity: q } : i))
   }
 
+  function setEsItemPrice(key: string, priceCents: number) {
+    setEsCart(prev => prev.map(i => i.key === key ? { ...i, unitPriceCents: Math.max(0, priceCents) } : i))
+  }
+
   function doEditSale() {
     if (!esRow) return
     const row = esRow; setEsRow(null)
@@ -975,6 +979,10 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
   function setItemQty(key: string, q: number) {
     if (q <= 0) { setCart(prev => prev.filter(i => i.key !== key)); return }
     setCart(prev => prev.map(i => i.key === key ? { ...i, quantity: q } : i))
+  }
+
+  function setItemPrice(key: string, priceCents: number) {
+    setCart(prev => prev.map(i => i.key === key ? { ...i, unitPriceCents: Math.max(0, priceCents) } : i))
   }
 
   // ── Customer search ───────────────────────────────────────────────────────
@@ -2006,7 +2014,19 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                             <button onClick={() => setEsItemQty(item.key, item.quantity + 1)}
                               className="h-6 w-6 rounded border flex items-center justify-center text-xs text-muted hover:bg-white/5" style={INP_S}>+</button>
                           </div>
-                          <p className="text-sm font-semibold text-accent shrink-0 w-24 text-right">{BRL(item.unitPriceCents * item.quantity)}</p>
+                          <div className="relative shrink-0 w-24">
+                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-muted">R$</span>
+                            <input
+                              type="text" inputMode="decimal"
+                              value={fmtBRL(item.unitPriceCents)}
+                              onChange={e => setEsItemPrice(item.key, parseCents(e.target.value))}
+                              onFocus={e => e.target.select()}
+                              title="Preço unitário"
+                              className="w-full rounded border bg-transparent pl-7 pr-2 py-1 text-xs text-right tabular-nums text-text focus:outline-none focus:ring-1 focus:ring-accent"
+                              style={INP_S}
+                            />
+                          </div>
+                          <p className="text-sm font-semibold text-accent shrink-0 w-24 text-right tabular-nums">{BRL(item.unitPriceCents * item.quantity)}</p>
                           <button onClick={() => setEsCart(prev => prev.filter(i => i.key !== item.key))} className="text-muted hover:text-red-400 shrink-0">
                             <Trash2 className="h-3.5 w-3.5" />
                           </button>
@@ -2431,7 +2451,19 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                           <button onClick={() => setItemQty(item.key, item.quantity + 1)}
                             className="h-6 w-6 rounded border flex items-center justify-center text-xs text-muted hover:bg-white/5" style={INP_S}>+</button>
                         </div>
-                        <p className="text-sm font-semibold text-accent shrink-0 w-24 text-right">{BRL(item.unitPriceCents * item.quantity)}</p>
+                        <div className="relative shrink-0 w-24">
+                          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-muted">R$</span>
+                          <input
+                            type="text" inputMode="decimal"
+                            value={fmtBRL(item.unitPriceCents)}
+                            onChange={e => setItemPrice(item.key, parseCents(e.target.value))}
+                            onFocus={e => e.target.select()}
+                            title="Preço unitário"
+                            className="w-full rounded border bg-transparent pl-7 pr-2 py-1 text-xs text-right tabular-nums text-text focus:outline-none focus:ring-1 focus:ring-accent"
+                            style={INP_S}
+                          />
+                        </div>
+                        <p className="text-sm font-semibold text-accent shrink-0 w-24 text-right tabular-nums">{BRL(item.unitPriceCents * item.quantity)}</p>
                         <button onClick={() => setCart(prev => prev.filter(i => i.key !== item.key))} className="text-muted hover:text-red-400 shrink-0">
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
