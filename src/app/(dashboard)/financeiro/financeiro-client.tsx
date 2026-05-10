@@ -5,7 +5,7 @@ import {
   Receipt, TrendingUp, ShoppingCart, CreditCard, Wrench,
   XCircle, RefreshCw, Plus, Loader2, X, AlertTriangle, Search,
   Trash2, UserPlus, Calendar, CalendarDays, MoreVertical, Filter, Pencil, FileText,
-  Download, Mail, MessageCircle, Copy, Link as LinkIcon,
+  Download, Mail, MessageCircle, Copy, Link as LinkIcon, Calculator,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -13,7 +13,7 @@ import {
   cancelServiceOrder, reactivateServiceOrder,
   createManualSale, updateSaleDate, deleteSale,
   updateServiceOrderPayment, bulkCancel, bulkDeleteSales, bulkDeleteServiceOrders,
-  updateCancelledSale,
+  updateCancelledSale, recalcSaleCost,
   updateServiceOrder, getServiceOrderParts,
   type ManualSaleItem,
   type EditSaleInput,
@@ -725,6 +725,20 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
         setRows(rs => rs.map(r => r.id === row.id ? { ...r, cancelled: true } : r))
         toast.success('Transação cancelada.')
       } catch (e) { toast.error(e instanceof Error ? e.message : 'Erro ao cancelar.') }
+    })
+  }
+
+  function doRecalcCost(row: FinanceiroRow) {
+    startAction(async () => {
+      try {
+        const r = await recalcSaleCost(row.rawId)
+        if (r.updated === 0) {
+          toast.info('Nenhum item atualizado (venda sem produtos vinculados ou produtos sem custo cadastrado).')
+        } else {
+          toast.success(`Custo recalculado em ${r.updated} item(ns). Recarregando…`)
+          setTimeout(() => window.location.reload(), 600)
+        }
+      } catch (e) { toast.error(e instanceof Error ? e.message : 'Erro ao recalcular custo.') }
     })
   }
 
@@ -1535,6 +1549,16 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
                             label="Editar venda"
                             accentColor="#22C55E"
                             onClick={() => { setOpenMenu(null); openEditSale(row) }}
+                          />
+                        )}
+                        {/* Recalcular custo / lucro — ERP (qualquer status). Útil quando o
+                            custo do produto foi editado depois da venda. */}
+                        {row.source === 'erp' && (
+                          <MenuItem
+                            icon={<Calculator className="h-5 w-5 shrink-0 pointer-events-none" style={{ color: '#06B6D4' }} />}
+                            label="Recalcular lucro"
+                            accentColor="#06B6D4"
+                            onClick={() => { setOpenMenu(null); doRecalcCost(row) }}
                           />
                         )}
                         {/* Alterar data — só ERP ativo */}

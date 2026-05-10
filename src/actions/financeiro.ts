@@ -21,6 +21,53 @@ async function fetchCostMap(supabase: any, productIds: (string | null)[]): Promi
   return costMap
 }
 
+// ── Recalcular snapshot de custo de uma venda específica ────────────────────
+// Atualiza sale_items.cost_snapshot_cents pegando o cost_cents ATUAL do produto.
+// Usado quando o lojista cadastra/corrige o custo DEPOIS da venda — sem isso,
+// o lucro fica congelado no valor errado de quando a venda foi feita.
+export async function recalcSaleCost(saleId: string): Promise<{ updated: number }> {
+  const { supabase, user } = await requireAuth()
+  const tenantId = getTenantId(user)
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any
+
+  // 1) Confirma que a venda pertence ao tenant + pega items com product_id
+  const { data: items, error: itemsErr } = await sb
+    .from('sale_items')
+    .select('id, product_id, sales!inner(tenant_id)')
+    .eq('sale_id', saleId)
+    .eq('sales.tenant_id', tenantId)
+    .not('product_id', 'is', null)
+
+  if (itemsErr) throw new Error(itemsErr.message)
+  type ItemRow = { id: string; product_id: string }
+  const rows = (items ?? []) as ItemRow[]
+  if (rows.length === 0) return { updated: 0 }
+
+  // 2) Pega cost_cents atual de cada produto
+  const productIds = Array.from(new Set(rows.map(r => r.product_id)))
+  const costMap = await fetchCostMap(supabase, productIds)
+
+  // 3) Recompute total da venda também (caso shipping/discount tenham mudado)
+  let updated = 0
+  for (const r of rows) {
+    const cost = costMap.get(r.product_id) ?? 0
+    const { error } = await sb
+      .from('sale_items')
+      .update({ cost_snapshot_cents: cost })
+      .eq('id', r.id)
+    if (!error) updated++
+  }
+
+  revalidatePath('/financeiro')
+  revalidatePath('/relatorios')
+  revalidatePath('/erp-clientes')
+  revalidatePath('/erp-clientes/diagnostico-lucro')
+
+  return { updated }
+}
+
 // ── Cancel ERP sale + restore stock ──────────────────────────────────────────
 
 export async function cancelSale(saleId: string): Promise<void> {
