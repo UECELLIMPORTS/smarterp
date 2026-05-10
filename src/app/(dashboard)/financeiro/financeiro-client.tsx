@@ -732,11 +732,16 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
     startAction(async () => {
       try {
         const r = await recalcSaleCost(row.rawId)
-        if (r.updated === 0) {
-          toast.info('Nenhum item atualizado (venda sem produtos vinculados ou produtos sem custo cadastrado).')
+        if (r.updated === 0 && r.unlinked > 0) {
+          toast.error(`Nenhum item atualizado: ${r.unlinked} item(ns) não vinculados ao catálogo (cadastrados como "Manual"). Edite a venda e re-busque os produtos pelo nome, ou cadastre os produtos no estoque.`)
+        } else if (r.updated === 0) {
+          toast.info('Nenhum item atualizado (produtos sem custo cadastrado).')
         } else {
-          toast.success(`Custo recalculado em ${r.updated} item(ns). Recarregando…`)
-          setTimeout(() => window.location.reload(), 600)
+          const parts = [`Custo recalculado em ${r.updated} item(ns)`]
+          if (r.linked > 0)   parts.push(`${r.linked} vinculado(s) automaticamente pelo nome`)
+          if (r.unlinked > 0) parts.push(`${r.unlinked} ainda sem vínculo`)
+          toast.success(parts.join(' · ') + '. Recarregando…')
+          setTimeout(() => window.location.reload(), 800)
         }
       } catch (e) { toast.error(e instanceof Error ? e.message : 'Erro ao recalcular custo.') }
     })

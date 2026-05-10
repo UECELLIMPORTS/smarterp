@@ -25,37 +25,85 @@ async function fetchCostMap(supabase: any, productIds: (string | null)[]): Promi
 // Atualiza sale_items.cost_snapshot_cents pegando o cost_cents ATUAL do produto.
 // Usado quando o lojista cadastra/corrige o custo DEPOIS da venda — sem isso,
 // o lucro fica congelado no valor errado de quando a venda foi feita.
-export async function recalcSaleCost(saleId: string): Promise<{ updated: number }> {
+//
+// Bonus: se o item NÃO tem product_id (foi cadastrado como "Manual" no PDV),
+// tenta vincular automaticamente pelo nome (match exato case-insensitive).
+// Se só 1 produto bater, vincula + atualiza snapshot. Se 0 ou múltiplos,
+// pula esse item e retorna no campo `unlinked`.
+export async function recalcSaleCost(saleId: string): Promise<{ updated: number; linked: number; unlinked: number }> {
   const { supabase, user } = await requireAuth()
   const tenantId = getTenantId(user)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any
 
-  // 1) Confirma que a venda pertence ao tenant + pega items com product_id
+  // 1) Pega TODOS os items da venda (com e sem product_id)
   const { data: items, error: itemsErr } = await sb
     .from('sale_items')
-    .select('id, product_id, sales!inner(tenant_id)')
+    .select('id, product_id, name, sales!inner(tenant_id)')
     .eq('sale_id', saleId)
     .eq('sales.tenant_id', tenantId)
-    .not('product_id', 'is', null)
 
   if (itemsErr) throw new Error(itemsErr.message)
-  type ItemRow = { id: string; product_id: string }
+  type ItemRow = { id: string; product_id: string | null; name: string }
   const rows = (items ?? []) as ItemRow[]
-  if (rows.length === 0) return { updated: 0 }
+  if (rows.length === 0) return { updated: 0, linked: 0, unlinked: 0 }
 
-  // 2) Pega cost_cents atual de cada produto
-  const productIds = Array.from(new Set(rows.map(r => r.product_id)))
+  // 2) Pra items sem product_id, tenta achar pelo nome (1 match exato).
+  const orphanRows = rows.filter(r => !r.product_id)
+  const linkedIds = new Map<string, string>()  // sale_item.id → product.id
+  if (orphanRows.length > 0) {
+    const orphanNames = Array.from(new Set(orphanRows.map(r => r.name.trim())))
+    // Busca por igualdade exata (case-insensitive) usando ilike sem wildcard
+    const matches = await Promise.all(
+      orphanNames.map(async n => {
+        const { data } = await sb
+          .from('products')
+          .select('id, name')
+          .eq('tenant_id', tenantId)
+          .ilike('name', n)
+          .limit(2)
+        return { name: n, products: (data ?? []) as { id: string; name: string }[] }
+      }),
+    )
+    const nameToProduct = new Map<string, string>()
+    for (const m of matches) {
+      if (m.products.length === 1) nameToProduct.set(m.name.toLowerCase(), m.products[0].id)
+    }
+    for (const r of orphanRows) {
+      const pid = nameToProduct.get(r.name.trim().toLowerCase())
+      if (pid) linkedIds.set(r.id, pid)
+    }
+  }
+
+  // 3) Pega cost_cents atual dos produtos envolvidos (já vinculados + recém-linkados).
+  const productIds = Array.from(new Set([
+    ...rows.filter(r => r.product_id).map(r => r.product_id as string),
+    ...Array.from(linkedIds.values()),
+  ]))
   const costMap = await fetchCostMap(supabase, productIds)
 
-  // 3) Recompute total da venda também (caso shipping/discount tenham mudado)
+  // 4) Atualiza cada item.
   let updated = 0
+  let linked  = 0
+  let unlinked = 0
   for (const r of rows) {
-    const cost = costMap.get(r.product_id) ?? 0
+    let pid = r.product_id
+    const newPid = linkedIds.get(r.id)
+    const patch: { cost_snapshot_cents?: number; product_id?: string } = {}
+    if (newPid && !pid) {
+      patch.product_id = newPid
+      pid = newPid
+      linked++
+    } else if (!pid) {
+      unlinked++
+      continue
+    }
+    const cost = costMap.get(pid as string) ?? 0
+    patch.cost_snapshot_cents = cost
     const { error } = await sb
       .from('sale_items')
-      .update({ cost_snapshot_cents: cost })
+      .update(patch)
       .eq('id', r.id)
     if (!error) updated++
   }
@@ -65,7 +113,7 @@ export async function recalcSaleCost(saleId: string): Promise<{ updated: number 
   revalidatePath('/erp-clientes')
   revalidatePath('/erp-clientes/diagnostico-lucro')
 
-  return { updated }
+  return { updated, linked, unlinked }
 }
 
 // ── Cancel ERP sale + restore stock ──────────────────────────────────────────
