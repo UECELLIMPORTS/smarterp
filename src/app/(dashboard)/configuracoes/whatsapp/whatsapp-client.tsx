@@ -615,9 +615,34 @@ function QrModal({
   status:    WhatsAppStatus
 }) {
   const [refreshing, setRefreshing] = useState(false)
+  const [countdown, setCountdown]   = useState(25)
+
+  // Renova QR automaticamente a cada 25s (QR do Baileys expira ~30s)
+  useEffect(() => {
+    if (status.state === 'connected') return
+    setCountdown(25)
+    const tick = setInterval(() => {
+      setCountdown(c => {
+        if (c <= 1) {
+          onRefresh()
+          return 25
+        }
+        return c - 1
+      })
+    }, 1000)
+    return () => clearInterval(tick)
+  }, [onRefresh, status.state])
+
+  // Polling quando QR ainda é null (Baileys leva ~3s pra gerar na primeira vez)
+  useEffect(() => {
+    if (qr.qrBase64 !== null || status.state === 'connected') return
+    const id = setInterval(() => onRefresh(), 3000)
+    return () => clearInterval(id)
+  }, [qr.qrBase64, onRefresh, status.state])
 
   async function handleRefresh() {
     setRefreshing(true)
+    setCountdown(25)
     await onRefresh()
     setRefreshing(false)
   }
@@ -672,12 +697,12 @@ function QrModal({
               className="inline-flex items-center gap-1 text-emerald-400 hover:underline"
             >
               <RefreshCw className={`h-3 w-3 ${refreshing ? 'animate-spin' : ''}`} />
-              Renovar QR
+              Renovar QR {status.state !== 'connected' && `(${countdown}s)`}
             </button>
           </div>
 
           <p className="text-[11px] text-muted text-center">
-            ⚡ Conectando automaticamente quando você escanear. Se não acontecer em 10s, clique em "Renovar QR".
+            ⚡ QR renova automaticamente. Escaneie rápido antes do contador chegar a zero.
           </p>
         </div>
       </div>

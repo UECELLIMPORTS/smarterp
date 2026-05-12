@@ -19,6 +19,14 @@ import {
 
 type Result<T = void> = { ok: true; data?: T } | { ok: false; error: string }
 
+/** Verifica se instância existe na Evolution sem jogar exceção. */
+async function instanceExistsInEvolution(instanceName: string): Promise<boolean> {
+  const res = await getInstanceState(instanceName)
+  // HTTP 404 = instância não existe na Evolution
+  if (!res.ok && res.error.includes('404')) return false
+  return true
+}
+
 export type WhatsAppStatus = {
   configured:   boolean   // env vars setadas no Vercel
   hasInstance:  boolean   // tenant já tem instância criada
@@ -91,8 +99,23 @@ export async function connectWhatsApp(): Promise<Result<{ instanceName: string }
     .eq('id', tenantId)
     .maybeSingle()
 
-  // Reusa instância se já existir
+  // Reutiliza instância se já existir E ainda existir na Evolution.
+  // Se o nome está no banco mas a Evolution retorna 404 (instância deletada/expirada),
+  // limpa o banco e cria uma nova — isso é o que causava o QR aparecer mas não conectar.
   let instanceName: string = (tenant as { whatsapp_instance_name: string | null } | null)?.whatsapp_instance_name ?? ''
+  if (instanceName) {
+    const exists = await instanceExistsInEvolution(instanceName)
+    if (!exists) {
+      // Instância não existe mais na Evolution — zera e recria
+      instanceName = ''
+      await sb.from('tenants').update({
+        whatsapp_instance_name: null,
+        whatsapp_status:        'disconnected',
+        whatsapp_phone:         null,
+        whatsapp_connected_at:  null,
+      }).eq('id', tenantId)
+    }
+  }
   if (!instanceName) {
     instanceName = `tenant-${tenantId.slice(0, 8)}-${Date.now().toString(36)}`
     const created = await createInstance(instanceName)
