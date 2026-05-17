@@ -8,9 +8,13 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { openCashSession, type CashSessionSummary } from '@/actions/cash'
+import { setActiveStoreCookie, type Store } from '@/actions/stores'
+import { Store as StoreIcon } from 'lucide-react'
 
 type Props = {
   lastSummary: CashSessionSummary | null
+  activeStoreName: string | null
+  stores: Store[]
 }
 
 const BRL = (c: number) =>
@@ -36,11 +40,18 @@ const PAYMENT_LABELS: Record<string, string> = {
   outros:      'Outros',
 }
 
-export function CaixaFechado({ lastSummary }: Props) {
+export function CaixaFechado({ lastSummary, activeStoreName, stores }: Props) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
   const [openingValue, setOpeningValue] = useState('0,00')
   const [notes, setNotes] = useState('')
+  const [switchingStore, setSwitchingStore] = useState(false)
+
+  async function handleStoreChange(storeId: string) {
+    setSwitchingStore(true)
+    await setActiveStoreCookie(storeId)
+    router.refresh()
+  }
 
   function parseValue(): number {
     const cleaned = openingValue.replace(/\./g, '').replace(',', '.')
@@ -73,6 +84,35 @@ export function CaixaFechado({ lastSummary }: Props) {
           Abra o caixa pra começar a vender. Informe o valor inicial em dinheiro
           (troco pra primeiras vendas).
         </p>
+
+        {/* Seletor de loja — só aparece quando tem mais de 1 loja */}
+        {stores.length > 1 && (
+          <div className="mt-3 flex items-center gap-2 flex-wrap">
+            <StoreIcon className="h-3.5 w-3.5 shrink-0" style={{ color: '#94A3B8' }} />
+            <span className="text-xs" style={{ color: '#94A3B8' }}>Abrir caixa da loja:</span>
+            {stores.filter(s => s.is_active).map(s => (
+              <button
+                key={s.id}
+                onClick={() => handleStoreChange(s.id)}
+                disabled={switchingStore}
+                className="flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors disabled:opacity-50"
+                style={s.name === activeStoreName
+                  ? { background: s.color, color: '#131C2A' }
+                  : { background: '#1B2638', color: '#94A3B8', border: '1px solid #2A3650' }
+                }
+              >
+                <span className="h-2 w-2 rounded-full shrink-0" style={{ background: s.color }} />
+                {s.name}
+              </button>
+            ))}
+          </div>
+        )}
+        {stores.length <= 1 && activeStoreName && (
+          <p className="mt-2 flex items-center gap-1.5 text-xs" style={{ color: '#94A3B8' }}>
+            <StoreIcon className="h-3 w-3" />
+            Loja: <span className="font-medium" style={{ color: '#F8FAFC' }}>{activeStoreName}</span>
+          </p>
+        )}
       </div>
 
       {/* Resultado do dia anterior */}
