@@ -76,14 +76,19 @@ export async function searchProducts(query: string): Promise<Product[]> {
 
   const { supabase, user } = await requireAuth()
   const tenantId = getTenantId(user)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const storeId = await resolveActiveStoreId(supabase as any, tenantId)
   const q = query.trim()
 
   const [productsRes, partsRes] = await Promise.all([
     supabase
       .from('products')
-      .select('id, code, name, price_cents, stock_qty')
+      // Traz estoque da loja ativa via product_store_stock (left join implícito do PostgREST)
+      .select('id, code, name, price_cents, product_store_stock(qty)')
       .eq('tenant_id', tenantId)
       .eq('active', true)
+      // Filtra o join por loja; produtos sem row em pss terão array vazio → qty = 0
+      .eq('product_store_stock.store_id', storeId)
       .or(`name.ilike.%${q}%,code.ilike.%${q}%`)
       .order('name')
       .limit(8),
@@ -102,7 +107,8 @@ export async function searchProducts(query: string): Promise<Product[]> {
     code:        p.code ?? null,
     name:        p.name,
     price_cents: p.price_cents,
-    stock_qty:   p.stock_qty,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    stock_qty:   ((p as any).product_store_stock as { qty: number }[] | null)?.[0]?.qty ?? 0,
     source:      'products' as const,
   }))
 

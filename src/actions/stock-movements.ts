@@ -61,36 +61,67 @@ const MOVEMENT_COLS = `
   notes, origin, depot, moved_at, created_at
 `
 
-// ── Helper: recalcula stock_qty do produto a partir de todas as movimentações ─
+// ── Helper: recalcula estoque por loja e o total global do produto ────────────
+// Chamado após editar ou deletar um movimento, quando o trigger de DB não
+// consegue fazer delta correto (UPDATE/DELETE não recalculam por si só).
 
 async function recalcStock(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
   productId: string,
   tenantId: string,
+  storeId?: string | null,
 ): Promise<number> {
-  const { data } = await supabase
-    .from('stock_movements')
-    .select('type, quantity')
-    .eq('product_id', productId)
-    .eq('tenant_id', tenantId)
+  // 1) Recalcula o estoque da loja afetada a partir dos movimentos restantes
+  if (storeId) {
+    const { data: storeMvmts } = await supabase
+      .from('stock_movements')
+      .select('type, quantity')
+      .eq('product_id', productId)
+      .eq('tenant_id', tenantId)
+      .eq('store_id', storeId)
 
-  const newQty = Math.max(
+    const storeQty = Math.max(
+      0,
+      (storeMvmts ?? []).reduce(
+        (sum: number, m: { type: string; quantity: number }) =>
+          sum + (m.type === 'entrada' ? Number(m.quantity) : -Number(m.quantity)),
+        0,
+      ),
+    )
+
+    await supabase
+      .from('product_store_stock')
+      .upsert({
+        product_id: productId,
+        store_id:   storeId,
+        tenant_id:  tenantId,
+        qty:        storeQty,
+        updated_at: new Date().toISOString(),
+      })
+  }
+
+  // 2) Soma todos os estoques por loja → total global do produto
+  const { data: allStocks } = await supabase
+    .from('product_store_stock')
+    .select('qty')
+    .eq('product_id', productId)
+
+  const globalQty = Math.max(
     0,
-    (data ?? []).reduce(
-      (sum: number, m: { type: string; quantity: number }) =>
-        sum + (m.type === 'entrada' ? Number(m.quantity) : -Number(m.quantity)),
+    (allStocks ?? []).reduce(
+      (sum: number, s: { qty: number }) => sum + Number(s.qty),
       0,
     ),
   )
 
   await supabase
     .from('products')
-    .update({ stock_qty: newQty, updated_at: new Date().toISOString() })
+    .update({ stock_qty: globalQty, updated_at: new Date().toISOString() })
     .eq('id', productId)
     .eq('tenant_id', tenantId)
 
-  return newQty
+  return globalQty
 }
 
 // ── List movements by product ─────────────────────────────────────────────────
@@ -179,7 +210,7 @@ export async function updateMovement(
   // Busca lançamento atual para calcular delta de quantidade
   const { data: current, error: fetchErr } = await supabase
     .from('stock_movements')
-    .select('product_id, type, quantity')
+    .select('product_id, type, quantity, store_id')
     .eq('id', id)
     .eq('tenant_id', tenantId)
     .single()
@@ -234,7 +265,7 @@ export async function updateMovement(
   const typeChanged = input.type     !== undefined && input.type     !== current.type
   let newStockQty: number
   if (qtyChanged || typeChanged) {
-    newStockQty = await recalcStock(supabase, current.product_id, tenantId)
+    newStockQty = await recalcStock(supabase, current.product_id, tenantId, current.store_id)
   } else {
     const { data: prod } = await supabase
       .from('products')
@@ -258,7 +289,7 @@ export async function deleteMovement(id: string): Promise<{ newStockQty: number 
 
   const { data: movement, error: fetchErr } = await supabase
     .from('stock_movements')
-    .select('product_id')
+    .select('product_id, store_id')
     .eq('id', id)
     .eq('tenant_id', tenantId)
     .single()
@@ -273,7 +304,7 @@ export async function deleteMovement(id: string): Promise<{ newStockQty: number 
 
   if (error) throw new Error(error.message)
 
-  const newStockQty = await recalcStock(supabase, movement.product_id, tenantId)
+  const newStockQty = await recalcStock(supabase, movement.product_id, tenantId, movement.store_id)
 
   revalidatePath('/estoque')
   return { newStockQty }
