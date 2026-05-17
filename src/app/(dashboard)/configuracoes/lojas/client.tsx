@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Plus, Pencil, Store as StoreIcon, Loader2, Save, X } from 'lucide-react'
-import { createStore, updateStore, toggleStoreActive, updateStoreGoal, type Store } from '@/actions/stores'
+import { createStore, updateStore, toggleStoreActive, updateStoreGoal, updateStockSource, type Store } from '@/actions/stores'
 import { toast } from 'sonner'
 
 const PRESET_COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#A855F7', '#EC4899', '#06B6D4', '#84CC16']
@@ -47,9 +47,13 @@ export function LojasClient({ initial }: { initial: Store[] }) {
             <StoreRow
               key={s.id}
               store={s}
+              allStores={stores}
               onEdit={() => setEditingId(s.id)}
               onSavedGoal={(cents) => {
                 setStores(stores.map(x => x.id === s.id ? { ...x, monthly_goal_cents: cents } : x))
+              }}
+              onStockSourceChanged={(sourceId) => {
+                setStores(stores.map(x => x.id === s.id ? { ...x, stock_source_store_id: sourceId } : x))
               }}
               onToggle={async (active) => {
                 const res = await toggleStoreActive(s.id, active)
@@ -87,15 +91,21 @@ export function LojasClient({ initial }: { initial: Store[] }) {
   )
 }
 
-function StoreRow({ store, onEdit, onToggle, onSavedGoal }: {
+function StoreRow({ store, allStores, onEdit, onToggle, onSavedGoal, onStockSourceChanged }: {
   store: Store
+  allStores: Store[]
   onEdit: () => void
   onToggle: (active: boolean) => void
   onSavedGoal: (cents: number) => void
+  onStockSourceChanged: (sourceId: string | null) => void
 }) {
   const [goalInput, setGoalInput] = useState((store.monthly_goal_cents / 100).toFixed(2))
   const [savingGoal, setSavingGoal] = useState(false)
+  const [savingStock, setSavingStock] = useState(false)
   const goalDirty = parseFloat(goalInput.replace(',', '.') || '0') !== (store.monthly_goal_cents / 100)
+
+  // Lojas que podem ser fonte de estoque: todas exceto esta própria e lojas que já apontam pra alguma outra
+  const stockOptions = allStores.filter(s => s.id !== store.id && s.stock_source_store_id === null)
 
   async function saveGoal() {
     const cents = Math.round(parseFloat(goalInput.replace(',', '.') || '0') * 100)
@@ -106,6 +116,19 @@ function StoreRow({ store, onEdit, onToggle, onSavedGoal }: {
     if (res.ok) {
       toast.success('Meta atualizada')
       onSavedGoal(cents)
+    } else {
+      toast.error(res.error)
+    }
+  }
+
+  async function handleStockSourceChange(value: string) {
+    const sourceId = value === '' ? null : value
+    setSavingStock(true)
+    const res = await updateStockSource(store.id, sourceId)
+    setSavingStock(false)
+    if (res.ok) {
+      toast.success(sourceId ? 'Estoque compartilhado configurado' : 'Loja voltou a ter estoque próprio')
+      onStockSourceChanged(sourceId)
     } else {
       toast.error(res.error)
     }
@@ -123,6 +146,11 @@ function StoreRow({ store, onEdit, onToggle, onSavedGoal }: {
             {store.is_default && (
               <span className="text-[10px] uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">
                 padrão
+              </span>
+            )}
+            {store.stock_source_store_id && (
+              <span className="text-[10px] uppercase tracking-wider text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded">
+                estoque compartilhado
               </span>
             )}
             {!store.is_active && (
@@ -144,6 +172,27 @@ function StoreRow({ store, onEdit, onToggle, onSavedGoal }: {
           </button>
         )}
       </div>
+
+      {/* Estoque compartilhado — só para lojas não-padrão */}
+      {!store.is_default && (
+        <div className="flex items-center gap-2 pt-2 border-t border-zinc-800">
+          <label className="text-[10px] uppercase tracking-wider text-zinc-500 shrink-0">Estoque</label>
+          <select
+            value={store.stock_source_store_id ?? ''}
+            onChange={e => handleStockSourceChange(e.target.value)}
+            disabled={savingStock}
+            className="flex-1 rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1 text-xs text-zinc-100 disabled:opacity-50"
+          >
+            <option value="">Próprio (independente)</option>
+            {stockOptions.map(s => (
+              <option key={s.id} value={s.id}>
+                Compartilhar com {s.name}
+              </option>
+            ))}
+          </select>
+          {savingStock && <Loader2 className="h-3.5 w-3.5 animate-spin text-zinc-400" />}
+        </div>
+      )}
 
       {/* Meta mensal inline */}
       <div className="flex items-center gap-2 pt-2 border-t border-zinc-800">

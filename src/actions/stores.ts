@@ -14,14 +14,15 @@ import { getTenantId } from '@/lib/tenant'
 import { ACTIVE_STORE_COOKIE } from '@/lib/active-store'
 
 export type Store = {
-  id:                  string
-  name:                string
-  code:                string
-  color:               string
-  is_default:          boolean
-  is_active:           boolean
-  monthly_goal_cents:  number
-  created_at:          string
+  id:                    string
+  name:                  string
+  code:                  string
+  color:                 string
+  is_default:            boolean
+  is_active:             boolean
+  monthly_goal_cents:    number
+  stock_source_store_id: string | null
+  created_at:            string
 }
 
 export type Result<T = void> =
@@ -44,7 +45,7 @@ export async function listStores(): Promise<Store[]> {
 
   const { data } = await sb
     .from('stores')
-    .select('id, name, code, color, is_default, is_active, monthly_goal_cents, created_at')
+    .select('id, name, code, color, is_default, is_active, monthly_goal_cents, stock_source_store_id, created_at')
     .eq('tenant_id', tenantId)
     .order('is_default', { ascending: false })
     .order('name', { ascending: true })
@@ -77,7 +78,7 @@ export async function getDefaultStore(): Promise<Store | null> {
   const sb = supabase as any
   const { data } = await sb
     .from('stores')
-    .select('id, name, code, color, is_default, is_active, monthly_goal_cents, created_at')
+    .select('id, name, code, color, is_default, is_active, monthly_goal_cents, stock_source_store_id, created_at')
     .eq('tenant_id', tenantId)
     .eq('is_default', true)
     .maybeSingle()
@@ -212,6 +213,39 @@ export async function toggleStoreActive(id: string, active: boolean): Promise<Re
     .update({ is_active: active, updated_at: new Date().toISOString() })
     .eq('id', id)
     .eq('tenant_id', tenantId)
+  if (error) return { ok: false, error: error.message }
+  revalidatePath('/configuracoes/lojas')
+  return { ok: true }
+}
+
+// ── Update stock source (estoque compartilhado) ─────────────────────────
+// stockSourceId = null → estoque próprio
+// stockSourceId = uuid → compartilha pool com essa loja
+export async function updateStockSource(id: string, stockSourceId: string | null): Promise<Result> {
+  const { supabase, user } = await requireAuth()
+  const tenantId = getTenantId(user)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any
+
+  if (stockSourceId === id) return { ok: false, error: 'Uma loja não pode apontar para ela mesma' }
+
+  // Valida que a loja de destino pertence ao mesmo tenant
+  if (stockSourceId) {
+    const { data } = await sb
+      .from('stores')
+      .select('id')
+      .eq('id', stockSourceId)
+      .eq('tenant_id', tenantId)
+      .maybeSingle()
+    if (!data) return { ok: false, error: 'Loja de estoque não encontrada' }
+  }
+
+  const { error } = await sb
+    .from('stores')
+    .update({ stock_source_store_id: stockSourceId, updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .eq('tenant_id', tenantId)
+
   if (error) return { ok: false, error: error.message }
   revalidatePath('/configuracoes/lojas')
   return { ok: true }
