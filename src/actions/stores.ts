@@ -43,28 +43,74 @@ export async function listStores(): Promise<Store[]> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any
 
-  const { data, error } = await sb
+  // Tenta query completa, com fallbacks progressivos pra colunas que podem
+  // ainda não existir no banco (stock_source_store_id, monthly_goal_cents).
+  let rawStores: Store[] | null = null
+
+  const q1 = await sb
     .from('stores')
     .select('id, name, code, color, is_default, is_active, monthly_goal_cents, stock_source_store_id, created_at')
     .eq('tenant_id', tenantId)
     .order('is_default', { ascending: false })
     .order('name', { ascending: true })
 
-  if (error) {
-    console.error('[listStores] erro na query:', error.message, error.code)
-    // Se a coluna stock_source_store_id ainda não existe no banco, faz fallback sem ela
-    if (error.code === '42703' || error.message?.includes('stock_source_store_id')) {
-      const { data: fallback } = await sb
+  if (!q1.error) {
+    rawStores = (q1.data ?? []) as Store[]
+  } else {
+    console.error('[listStores] q1 falhou:', q1.error.code, q1.error.message)
+    // Fallback sem stock_source_store_id
+    const q2 = await sb
+      .from('stores')
+      .select('id, name, code, color, is_default, is_active, monthly_goal_cents, created_at')
+      .eq('tenant_id', tenantId)
+      .order('is_default', { ascending: false })
+      .order('name', { ascending: true })
+
+    if (!q2.error) {
+      rawStores = ((q2.data ?? []) as Store[]).map((s: Store) => ({ ...s, stock_source_store_id: null }))
+    } else {
+      console.error('[listStores] q2 falhou:', q2.error.code, q2.error.message)
+      // Fallback sem monthly_goal_cents nem stock_source_store_id
+      const q3 = await sb
         .from('stores')
-        .select('id, name, code, color, is_default, is_active, monthly_goal_cents, created_at')
+        .select('id, name, code, color, is_default, is_active, created_at')
         .eq('tenant_id', tenantId)
         .order('is_default', { ascending: false })
         .order('name', { ascending: true })
-      return ((fallback ?? []) as Store[]).map(s => ({ ...s, stock_source_store_id: null }))
+
+      if (!q3.error) {
+        rawStores = ((q3.data ?? []) as Store[]).map((s: Store) => ({
+          ...s,
+          monthly_goal_cents: 0,
+          stock_source_store_id: null,
+        }))
+      } else {
+        console.error('[listStores] q3 falhou:', q3.error.code, q3.error.message)
+        rawStores = []
+      }
     }
   }
 
-  let stores = ((data ?? []) as Store[])
+  // Se não existe nenhuma loja, cria a padrão automaticamente
+  if (rawStores.length === 0) {
+    const { data: newStore } = await sb
+      .from('stores')
+      .insert({
+        tenant_id:  tenantId,
+        name:       'Loja Principal',
+        code:       'PRINCIPAL',
+        color:      '#3B82F6',
+        is_default: true,
+        is_active:  true,
+      })
+      .select('id, name, code, color, is_default, is_active, created_at')
+      .single()
+    if (newStore) {
+      rawStores = [{ ...newStore, monthly_goal_cents: 0, stock_source_store_id: null }]
+    }
+  }
+
+  let stores = rawStores
 
   // Filtra pelas lojas permitidas pro funcionário (owner vê tudo)
   const role = user.app_metadata?.tenant_role
