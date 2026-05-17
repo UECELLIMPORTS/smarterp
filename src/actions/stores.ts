@@ -285,6 +285,34 @@ export async function toggleStoreActive(id: string, active: boolean): Promise<Re
   return { ok: true }
 }
 
+// ── Delete ──────────────────────────────────────────────────────────────
+export async function deleteStore(id: string): Promise<Result> {
+  const { supabase, user } = await requireAuth()
+  const tenantId = getTenantId(user)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any
+
+  // Não permite excluir loja padrão
+  const { data: store } = await sb
+    .from('stores')
+    .select('is_default')
+    .eq('id', id)
+    .eq('tenant_id', tenantId)
+    .maybeSingle()
+  if (!store) return { ok: false, error: 'Loja não encontrada' }
+  if (store.is_default) return { ok: false, error: 'Não é possível excluir a loja padrão' }
+
+  const { error } = await sb
+    .from('stores')
+    .delete()
+    .eq('id', id)
+    .eq('tenant_id', tenantId)
+
+  if (error) return { ok: false, error: error.message }
+  revalidatePath('/configuracoes/lojas')
+  return { ok: true }
+}
+
 // ── Update stock source (estoque compartilhado) ─────────────────────────
 // stockSourceId = null → estoque próprio
 // stockSourceId = uuid → compartilha pool com essa loja

@@ -3,8 +3,8 @@
 import { useState, useTransition, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Plus, Pencil, Store as StoreIcon, Loader2, Save, X, Users } from 'lucide-react'
-import { createStore, updateStore, toggleStoreActive, updateStoreGoal, updateStockSource, type Store } from '@/actions/stores'
+import { ArrowLeft, Plus, Pencil, Store as StoreIcon, Loader2, Save, X, Users, Trash2 } from 'lucide-react'
+import { createStore, updateStore, toggleStoreActive, updateStoreGoal, updateStockSource, deleteStore, type Store } from '@/actions/stores'
 import { toast } from 'sonner'
 
 const PRESET_COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#A855F7', '#EC4899', '#06B6D4', '#84CC16']
@@ -75,6 +75,7 @@ export function LojasClient({ initial }: { initial: Store[] }) {
                   toast.error(res.error)
                 }
               }}
+              onDelete={() => setStores(stores.filter(x => x.id !== s.id))}
             />
           )
         ))}
@@ -101,17 +102,32 @@ export function LojasClient({ initial }: { initial: Store[] }) {
   )
 }
 
-function StoreRow({ store, allStores, onEdit, onToggle, onSavedGoal, onStockSourceChanged }: {
+function StoreRow({ store, allStores, onEdit, onToggle, onSavedGoal, onStockSourceChanged, onDelete }: {
   store: Store
   allStores: Store[]
   onEdit: () => void
   onToggle: (active: boolean) => void
   onSavedGoal: (cents: number) => void
   onStockSourceChanged: (sourceId: string | null) => void
+  onDelete: () => void
 }) {
   const [goalInput, setGoalInput] = useState((store.monthly_goal_cents / 100).toFixed(2))
   const [savingGoal, setSavingGoal] = useState(false)
   const [savingStock, setSavingStock] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+
+  async function handleDelete() {
+    if (!confirm(`Excluir a loja "${store.name}"? Vendas e movimentos vinculados ficam sem loja (não são apagados).`)) return
+    setDeleting(true)
+    const res = await deleteStore(store.id)
+    setDeleting(false)
+    if (res.ok) {
+      toast.success('Loja excluída')
+      onDelete()
+    } else {
+      toast.error(res.error)
+    }
+  }
   const goalDirty = parseFloat(goalInput.replace(',', '.') || '0') !== (store.monthly_goal_cents / 100)
 
   // Lojas que podem ser fonte de estoque: todas exceto esta própria e lojas que já apontam pra alguma outra
@@ -173,13 +189,24 @@ function StoreRow({ store, allStores, onEdit, onToggle, onSavedGoal, onStockSour
           <Pencil className="h-3.5 w-3.5" />
         </button>
         {!store.is_default && (
-          <button
-            type="button"
-            onClick={() => onToggle(!store.is_active)}
-            className="text-[11px] text-zinc-500 hover:text-zinc-200 px-2"
-          >
-            {store.is_active ? 'Desativar' : 'Ativar'}
-          </button>
+          <>
+            <button
+              type="button"
+              onClick={() => onToggle(!store.is_active)}
+              className="text-[11px] text-zinc-500 hover:text-zinc-200 px-2"
+            >
+              {store.is_active ? 'Desativar' : 'Ativar'}
+            </button>
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={deleting}
+              className="p-1.5 text-zinc-600 hover:text-red-400 disabled:opacity-40"
+              title="Excluir loja"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </>
         )}
       </div>
 
