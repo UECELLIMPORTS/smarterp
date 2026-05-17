@@ -1,6 +1,7 @@
 import { requireAuth } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { listTeamMembers, listPendingInvites } from '@/actions/team'
+import { listStores } from '@/actions/stores'
 import { EquipeClient } from './equipe-client'
 import Link from 'next/link'
 import { ArrowLeft, Lock } from 'lucide-react'
@@ -36,10 +37,11 @@ export default async function EquipePage() {
     )
   }
 
-  const [members, invites] = await Promise.all([
+  const [members, invites, stores] = await Promise.all([
     listTeamMembers(),
     listPendingInvites(),
+    listStores(),
   ])
 
-  return <EquipeClient members={members} invites={invites} ownerEmail={auth.user.email ?? ''} />
+  return <EquipeClient members={members} invites={invites} stores={stores} ownerEmail={auth.user.email ?? ''} />
 }

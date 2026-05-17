@@ -8,9 +8,10 @@ import {
   Copy, Check, Clock, X, Edit2, Shield,
 } from 'lucide-react'
 import {
-  inviteMember, removeMember, cancelInvite, updateMemberPermissions,
+  inviteMember, removeMember, cancelInvite, updateMemberPermissions, updateAllowedStores,
   type TeamMember, type PendingInvite, type TeamRole,
 } from '@/actions/team'
+import { type Store } from '@/actions/stores'
 import { MODULES, MODULE_FEATURES, featureKey, type ModuleKey } from '@/lib/permissions-shared'
 import { toast } from 'sonner'
 
@@ -25,10 +26,11 @@ const DT = (iso: string) => {
 type Props = {
   members:    TeamMember[]
   invites:    PendingInvite[]
+  stores:     Store[]
   ownerEmail: string
 }
 
-export function EquipeClient({ members, invites, ownerEmail }: Props) {
+export function EquipeClient({ members, invites, stores, ownerEmail }: Props) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
   const [error, setError]         = useState<string | null>(null)
@@ -36,14 +38,16 @@ export function EquipeClient({ members, invites, ownerEmail }: Props) {
   // Form de convite — permissions agora pode conter módulos OU feature keys ('dashboard:kpis')
   const [email, setEmail] = useState('')
   const [role, setRole]   = useState<Exclude<TeamRole, 'owner'>>('employee')
-  const [permissions, setPermissions] = useState<string[]>(['pos', 'estoque'])  // defaults sensatos — sem dashboard
+  const [permissions, setPermissions]           = useState<string[]>(['pos', 'estoque'])
+  const [inviteStoreIds, setInviteStoreIds]     = useState<string[]>([])  // [] = todas as lojas
   const [limitManagerAccess, setLimitManagerAccess] = useState(false)
   const [showInviteUrl, setShowInviteUrl] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
 
   // Edição de permissions de membro existente
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null)
-  const [editPerms, setEditPerms] = useState<string[]>([])
+  const [editPerms, setEditPerms]         = useState<string[]>([])
+  const [editStoreIds, setEditStoreIds]   = useState<string[]>([])
 
   /**
    * Toggle de módulo. Se módulo TEM features, ao marcar adiciona o módulo +
@@ -101,16 +105,18 @@ export function EquipeClient({ members, invites, ownerEmail }: Props) {
   function startEditMember(m: TeamMember) {
     setEditingMember(m)
     setEditPerms(m.permissions ?? [])
+    setEditStoreIds(m.allowedStoreIds ?? [])
   }
 
   function handleSaveEditPerms() {
     if (!editingMember) return
     startTransition(async () => {
-      const res = await updateMemberPermissions({
-        userId: editingMember.userId,
-        permissions: editPerms,
-      })
-      if (!res.ok) { toast.error(res.error ?? 'Erro'); return }
+      const [permsRes, storesRes] = await Promise.all([
+        updateMemberPermissions({ userId: editingMember.userId, permissions: editPerms }),
+        updateAllowedStores({ userId: editingMember.userId, allowedStoreIds: editStoreIds }),
+      ])
+      if (!permsRes.ok) { toast.error(permsRes.error ?? 'Erro'); return }
+      if (!storesRes.ok) { toast.error(storesRes.error ?? 'Erro ao salvar lojas'); return }
       toast.success('Permissões atualizadas')
       setEditingMember(null)
       router.refresh()
@@ -216,6 +222,40 @@ export function EquipeClient({ members, invites, ownerEmail }: Props) {
               </select>
             </div>
           </div>
+
+          {/* Lojas permitidas — só aparece se há mais de 1 loja */}
+          {stores.length > 1 && (
+            <div>
+              <label className="text-[10px] font-bold uppercase tracking-widest mb-2 block"
+                style={{ color: '#94A3B8' }}>
+                Lojas que pode acessar
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {stores.map(s => {
+                  const checked = inviteStoreIds.includes(s.id)
+                  return (
+                    <label key={s.id}
+                      className="flex items-center gap-2.5 rounded-lg border p-2.5 cursor-pointer transition-colors"
+                      style={{
+                        background: checked ? 'rgba(34,197,94,.06)' : '#131C2A',
+                        borderColor: checked ? '#22C55E' : '#2A3650',
+                      }}>
+                      <input type="checkbox" checked={checked}
+                        onChange={() => setInviteStoreIds(prev =>
+                          prev.includes(s.id) ? prev.filter(id => id !== s.id) : [...prev, s.id]
+                        )}
+                        className="h-3.5 w-3.5 cursor-pointer" />
+                      <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: s.color }} />
+                      <span className="text-xs font-medium" style={{ color: '#F8FAFC' }}>{s.name}</span>
+                    </label>
+                  )
+                })}
+              </div>
+              <p className="text-[10px] mt-1.5" style={{ color: '#94A3B8' }}>
+                Sem nenhuma marcada, o membro acessa <strong>todas as lojas</strong>.
+              </p>
+            </div>
+          )}
 
           {/* Toggle "Limitar acessos" — só aparece se manager */}
           {role === 'manager' && (
@@ -429,6 +469,39 @@ export function EquipeClient({ members, invites, ownerEmail }: Props) {
                 onToggleModule={(k) => toggleModule(k, editPerms, setEditPerms)}
                 onToggleFeature={(k) => toggleFeature(k, editPerms, setEditPerms)}
               />
+
+              {/* Lojas permitidas no modal de edição */}
+              {stores.length > 1 && (
+                <div className="border-t pt-3 mt-1" style={{ borderColor: '#2A3650' }}>
+                  <p className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: '#94A3B8' }}>
+                    Lojas que pode acessar
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {stores.map(s => {
+                      const checked = editStoreIds.includes(s.id)
+                      return (
+                        <label key={s.id}
+                          className="flex items-center gap-2.5 rounded-lg border p-2.5 cursor-pointer transition-colors"
+                          style={{
+                            background: checked ? 'rgba(34,197,94,.06)' : '#131C2A',
+                            borderColor: checked ? '#22C55E' : '#2A3650',
+                          }}>
+                          <input type="checkbox" checked={checked}
+                            onChange={() => setEditStoreIds(prev =>
+                              prev.includes(s.id) ? prev.filter(id => id !== s.id) : [...prev, s.id]
+                            )}
+                            className="h-3.5 w-3.5 cursor-pointer" />
+                          <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: s.color }} />
+                          <span className="text-xs font-medium" style={{ color: '#F8FAFC' }}>{s.name}</span>
+                        </label>
+                      )
+                    })}
+                  </div>
+                  <p className="text-[10px] mt-1.5" style={{ color: '#94A3B8' }}>
+                    Sem nenhuma marcada, acessa <strong>todas as lojas</strong>.
+                  </p>
+                </div>
+              )}
 
               <div className="flex gap-2 pt-2">
                 <button onClick={() => setEditingMember(null)} disabled={pending}

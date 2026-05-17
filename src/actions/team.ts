@@ -25,12 +25,13 @@ import { randomBytes } from 'crypto'
 export type TeamRole = 'owner' | 'manager' | 'employee'
 
 export type TeamMember = {
-  userId:      string
-  email:       string
-  fullName:    string | null
-  role:        TeamRole
-  permissions: string[]                // só relevante pra employees
-  createdAt:   string
+  userId:          string
+  email:           string
+  fullName:        string | null
+  role:            TeamRole
+  permissions:     string[]            // módulos liberados (employee/manager limitado)
+  allowedStoreIds: string[]            // lojas permitidas; [] = todas
+  createdAt:       string
 }
 
 export type PendingInvite = {
@@ -72,35 +73,46 @@ export async function listTeamMembers(): Promise<TeamMember[]> {
 
   const members = data.users.filter(u => u.app_metadata?.tenant_id === tenantId)
 
-  // Carrega permissions de TODOS os não-owners (manager + employee) em 1 query.
-  // Manager sem rows = acesso total (compat). Manager com rows = limitado.
+  // Carrega permissions e allowed_store_ids de TODOS os não-owners em 2 queries paralelas.
   const nonOwnerIds = members
     .filter(u => (u.app_metadata?.tenant_role as TeamRole) !== 'owner')
     .map(u => u.id)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = admin as any
-  const permsByUser: Record<string, string[]> = {}
+  const permsByUser:   Record<string, string[]>   = {}
+  const storesByUser:  Record<string, string[]>   = {}
+
   if (nonOwnerIds.length > 0) {
-    const { data: perms } = await sb
-      .from('tenant_member_permissions')
-      .select('user_id, module_key')
-      .in('user_id', nonOwnerIds)
-      .eq('tenant_id', tenantId)
-    type Row = { user_id: string; module_key: string }
-    for (const r of (perms ?? []) as Row[]) {
+    const [permsRes, membersRes] = await Promise.all([
+      sb.from('tenant_member_permissions')
+        .select('user_id, module_key')
+        .in('user_id', nonOwnerIds)
+        .eq('tenant_id', tenantId),
+      sb.from('tenant_members')
+        .select('user_id, allowed_store_ids')
+        .in('user_id', nonOwnerIds)
+        .eq('tenant_id', tenantId),
+    ])
+    type PermRow   = { user_id: string; module_key: string }
+    type MemberRow = { user_id: string; allowed_store_ids: string[] | null }
+    for (const r of (permsRes.data ?? []) as PermRow[]) {
       ;(permsByUser[r.user_id] ??= []).push(r.module_key)
+    }
+    for (const r of (membersRes.data ?? []) as MemberRow[]) {
+      storesByUser[r.user_id] = r.allowed_store_ids ?? []
     }
   }
 
   return members
     .map(u => ({
-      userId:      u.id,
-      email:       u.email ?? '',
-      fullName:    (u.user_metadata?.full_name as string | undefined) ?? null,
-      role:        (u.app_metadata?.tenant_role as TeamRole) ?? 'manager',
-      permissions: permsByUser[u.id] ?? [],
-      createdAt:   u.created_at,
+      userId:          u.id,
+      email:           u.email ?? '',
+      fullName:        (u.user_metadata?.full_name as string | undefined) ?? null,
+      role:            (u.app_metadata?.tenant_role as TeamRole) ?? 'manager',
+      permissions:     permsByUser[u.id]  ?? [],
+      allowedStoreIds: storesByUser[u.id] ?? [],
+      createdAt:       u.created_at,
     }))
     .sort((a, b) => {
       if (a.role === 'owner' && b.role !== 'owner') return -1
@@ -386,4 +398,33 @@ export async function removeMember(targetUserId: string): Promise<void> {
   if (error) throw new Error(error.message)
 
   revalidatePath('/configuracoes/equipe')
+}
+
+// ── Atualizar lojas permitidas do membro ────────────────────────────────────
+// allowedStoreIds = [] → acesso a todas as lojas (sem restrição)
+// allowedStoreIds = [uuid, ...] → só essas lojas
+
+export async function updateAllowedStores(input: {
+  userId:          string
+  allowedStoreIds: string[]
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { user } = await requireAuth()
+  const tenantId = getTenantId(user)
+  if (user.app_metadata?.tenant_role !== 'owner') {
+    return { ok: false, error: 'Apenas o dono pode alterar permissões de loja.' }
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = createAdminClient() as any
+  const { error } = await sb
+    .from('tenant_members')
+    .upsert({
+      tenant_id:        tenantId,
+      user_id:          input.userId,
+      allowed_store_ids: input.allowedStoreIds,
+    }, { onConflict: 'tenant_id,user_id' })
+
+  if (error) return { ok: false, error: error.message }
+  revalidatePath('/configuracoes/equipe')
+  return { ok: true }
 }

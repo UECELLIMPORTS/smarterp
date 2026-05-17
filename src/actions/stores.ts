@@ -43,12 +43,27 @@ export async function listStores(): Promise<Store[]> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any
 
-  const { data } = await sb
+  const { data, error } = await sb
     .from('stores')
     .select('id, name, code, color, is_default, is_active, monthly_goal_cents, stock_source_store_id, created_at')
     .eq('tenant_id', tenantId)
     .order('is_default', { ascending: false })
     .order('name', { ascending: true })
+
+  if (error) {
+    console.error('[listStores] erro na query:', error.message, error.code)
+    // Se a coluna stock_source_store_id ainda não existe no banco, faz fallback sem ela
+    if (error.code === '42703' || error.message?.includes('stock_source_store_id')) {
+      const { data: fallback } = await sb
+        .from('stores')
+        .select('id, name, code, color, is_default, is_active, monthly_goal_cents, created_at')
+        .eq('tenant_id', tenantId)
+        .order('is_default', { ascending: false })
+        .order('name', { ascending: true })
+      return ((fallback ?? []) as Store[]).map(s => ({ ...s, stock_source_store_id: null }))
+    }
+  }
+
   let stores = ((data ?? []) as Store[])
 
   // Filtra pelas lojas permitidas pro funcionário (owner vê tudo)
@@ -76,12 +91,18 @@ export async function getDefaultStore(): Promise<Store | null> {
   const tenantId = getTenantId(user)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any
-  const { data } = await sb
+  const { data, error } = await sb
     .from('stores')
     .select('id, name, code, color, is_default, is_active, monthly_goal_cents, stock_source_store_id, created_at')
     .eq('tenant_id', tenantId)
     .eq('is_default', true)
     .maybeSingle()
+  if (error && (error.code === '42703' || error.message?.includes('stock_source_store_id'))) {
+    const { data: fallback } = await sb
+      .from('stores').select('id, name, code, color, is_default, is_active, monthly_goal_cents, created_at')
+      .eq('tenant_id', tenantId).eq('is_default', true).maybeSingle()
+    return fallback ? { ...fallback, stock_source_store_id: null } : null
+  }
   return data as Store | null
 }
 
