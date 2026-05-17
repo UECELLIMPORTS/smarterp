@@ -5,7 +5,7 @@ import { requireAuth } from '@/lib/supabase/server'
 import { getTenantId } from '@/lib/tenant'
 import { tryAutoEmitNfceForSale } from '@/lib/fiscal-emit-core'
 import { scheduleWhatsAppMessage } from '@/lib/whatsapp-scheduler'
-import { resolveActiveStoreId } from '@/lib/active-store'
+import { resolveActiveStoreId, resolveStockStoreId } from '@/lib/active-store'
 import { checkSalesQuota } from '@/lib/subscription'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -77,22 +77,24 @@ export async function searchProducts(query: string): Promise<Product[]> {
   const { supabase, user } = await requireAuth()
   const tenantId = getTenantId(user)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const storeId = await resolveActiveStoreId(supabase as any, tenantId)
+  const sb = supabase as any
+  const storeId     = await resolveActiveStoreId(sb, tenantId)
+  // Segue stock_source_store_id se a loja compartilha estoque com outra
+  const stockStoreId = storeId ? await resolveStockStoreId(sb, storeId) : null
   const q = query.trim()
 
   const [productsRes, partsRes] = await Promise.all([
     supabase
       .from('products')
-      // Traz estoque da loja ativa via product_store_stock (left join implícito do PostgREST)
+      // Traz estoque da loja de estoque efetiva (pode ser compartilhada)
       .select('id, code, name, price_cents, product_store_stock(qty)')
       .eq('tenant_id', tenantId)
       .eq('active', true)
-      // Filtra o join por loja; produtos sem row em pss terão array vazio → qty = 0
-      .eq('product_store_stock.store_id', storeId)
+      .eq('product_store_stock.store_id', stockStoreId)
       .or(`name.ilike.%${q}%,code.ilike.%${q}%`)
       .order('name')
       .limit(8),
-    supabase
+    (supabase as any)
       .from('parts_catalog')
       .select('id, sku, name, cost_cents')
       .eq('tenant_id', tenantId)

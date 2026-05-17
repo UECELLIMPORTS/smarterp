@@ -3,7 +3,7 @@
 import { requireAuth } from '@/lib/supabase/server'
 import { getTenantId } from '@/lib/tenant'
 import { revalidatePath } from 'next/cache'
-import { resolveActiveStoreId } from '@/lib/active-store'
+import { resolveActiveStoreId, resolveStockStoreId } from '@/lib/active-store'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -64,6 +64,10 @@ const MOVEMENT_COLS = `
 // ── Helper: recalcula estoque por loja e o total global do produto ────────────
 // Chamado após editar ou deletar um movimento, quando o trigger de DB não
 // consegue fazer delta correto (UPDATE/DELETE não recalculam por si só).
+//
+// Respeita estoque compartilhado: se a loja aponta para outra via
+// stock_source_store_id, recalcula o pool efetivo somando movimentos de
+// todas as lojas que pertencem ao mesmo pool.
 
 async function recalcStock(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -72,14 +76,28 @@ async function recalcStock(
   tenantId: string,
   storeId?: string | null,
 ): Promise<number> {
-  // 1) Recalcula o estoque da loja afetada a partir dos movimentos restantes
   if (storeId) {
+    // 1a) Resolve a loja efetiva de estoque (segue stock_source_store_id)
+    const effectiveStoreId = await resolveStockStoreId(supabase, storeId)
+
+    // 1b) Encontra todas as lojas que contribuem para este pool:
+    //     - a própria loja efetiva
+    //     - todas as lojas que apontam para ela via stock_source_store_id
+    const { data: siblings } = await supabase
+      .from('stores')
+      .select('id')
+      .or(`id.eq.${effectiveStoreId},stock_source_store_id.eq.${effectiveStoreId}`)
+      .eq('tenant_id', tenantId)
+
+    const siblingIds: string[] = (siblings ?? []).map((s: { id: string }) => s.id)
+
+    // 1c) Soma todos os movimentos das lojas irmãs
     const { data: storeMvmts } = await supabase
       .from('stock_movements')
       .select('type, quantity')
       .eq('product_id', productId)
       .eq('tenant_id', tenantId)
-      .eq('store_id', storeId)
+      .in('store_id', siblingIds.length > 0 ? siblingIds : [effectiveStoreId])
 
     const storeQty = Math.max(
       0,
@@ -90,18 +108,19 @@ async function recalcStock(
       ),
     )
 
+    // 1d) Atualiza product_store_stock com a loja efetiva
     await supabase
       .from('product_store_stock')
       .upsert({
         product_id: productId,
-        store_id:   storeId,
+        store_id:   effectiveStoreId,
         tenant_id:  tenantId,
         qty:        storeQty,
         updated_at: new Date().toISOString(),
       })
   }
 
-  // 2) Soma todos os estoques por loja → total global do produto
+  // 2) Soma todos os pools → total global do produto
   const { data: allStocks } = await supabase
     .from('product_store_stock')
     .select('qty')
