@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Plus, Pencil, Store as StoreIcon, Loader2, Save, X } from 'lucide-react'
+import { ArrowLeft, Plus, Pencil, Store as StoreIcon, Loader2, Save, X, Users } from 'lucide-react'
 import { createStore, updateStore, toggleStoreActive, updateStoreGoal, updateStockSource, type Store } from '@/actions/stores'
 import { toast } from 'sonner'
 
@@ -15,6 +15,9 @@ export function LojasClient({ initial }: { initial: Store[] }) {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [creating, setCreating]   = useState(false)
 
+  // Sincroniza quando router.refresh() atualiza os dados do servidor
+  useEffect(() => { setStores(initial) }, [initial])
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 md:px-6">
       <div className="flex items-center gap-3 mb-6">
@@ -25,11 +28,18 @@ export function LojasClient({ initial }: { initial: Store[] }) {
         <h1 className="text-lg font-semibold text-zinc-100">Lojas</h1>
       </div>
 
-      <p className="text-xs text-zinc-500 mb-4 leading-relaxed">
+      <p className="text-xs text-zinc-500 mb-2 leading-relaxed">
         Cadastre lojas virtuais dentro do mesmo sistema. Vendas, despesas e caixas ficam separados
         por loja, mas <strong>produtos e clientes são compartilhados</strong> entre todas. Útil pra empresas
         com mais de uma marca/divisão (ex: UÉ Cell Imports + UÉ Celulares).
       </p>
+      <Link
+        href="/configuracoes/equipe"
+        className="inline-flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 mb-4"
+      >
+        <Users className="h-3.5 w-3.5" />
+        Definir quais lojas cada membro da equipe pode acessar → Configurações de Equipe
+      </Link>
 
       <div className="space-y-2 mb-4">
         {stores.map(s => (
