@@ -114,7 +114,7 @@ export async function searchProducts(query: string): Promise<Product[]> {
     source:      'products' as const,
   }))
 
-  const parts: Product[] = (partsRes.data ?? []).map(p => ({
+  const parts: Product[] = (partsRes.data ?? []).map((p: { id: string; sku: string | null; name: string; cost_cents: number }) => ({
     id:          p.id,
     code:        p.sku ?? null,
     name:        p.name,
