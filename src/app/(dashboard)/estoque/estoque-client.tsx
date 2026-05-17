@@ -32,6 +32,7 @@ type Props = {
   initialTotal:    number
   brands:          string[]
   categories:      string[]
+  activeStoreName: string | null
 }
 
 // ── Inline price cell ─────────────────────────────────────────────────────────
@@ -185,7 +186,7 @@ function printLabel(product: ProductRow) {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export function EstoqueClient({ initialProducts, initialTotal, brands: initialBrands, categories: initialCategories }: Props) {
+export function EstoqueClient({ initialProducts, initialTotal, brands: initialBrands, categories: initialCategories, activeStoreName }: Props) {
   const router = useRouter()
   const [products, setProducts]     = useState<ProductRow[]>(initialProducts)
   const [brands, setBrands]         = useState<string[]>(initialBrands)
@@ -425,6 +426,11 @@ export function EstoqueClient({ initialProducts, initialTotal, brands: initialBr
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-text">Estoque</h1>
+          {activeStoreName && (
+            <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              {activeStoreName}
+            </span>
+          )}
           <p className="mt-1 text-sm text-muted">Cadastro e controle de produtos</p>
         </div>
         <div className="flex items-center gap-2">

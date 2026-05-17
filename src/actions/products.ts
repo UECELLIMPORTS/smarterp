@@ -3,6 +3,7 @@
 import { requireAuth } from '@/lib/supabase/server'
 import { getTenantId } from '@/lib/tenant'
 import { revalidatePath } from 'next/cache'
+import { resolveActiveStoreId } from '@/lib/active-store'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -110,13 +111,17 @@ export type ListParams = {
 // ── List + brands + categories (initial page load) ────────────────────────────
 
 export async function listProductsWithMeta(): Promise<{
-  products:   ProductRow[]
-  total:      number
-  brands:     string[]
-  categories: string[]
+  products:        ProductRow[]
+  total:           number
+  brands:          string[]
+  categories:      string[]
+  activeStoreId:   string | null
+  activeStoreName: string | null
 }> {
   const { supabase, user } = await requireAuth()
   const tenantId = getTenantId(user)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any
 
   const [productsRes, brandsRes, catsRes] = await Promise.all([
     supabase
@@ -131,12 +136,32 @@ export async function listProductsWithMeta(): Promise<{
 
   if (productsRes.error) throw new Error(productsRes.error.message)
 
-  const products   = (productsRes.data ?? []) as unknown as ProductRow[]
+  let products   = (productsRes.data ?? []) as unknown as ProductRow[]
   const total      = productsRes.count ?? 0
   const brands     = [...new Set((brandsRes.data ?? []).map(r => r.brand as string))].sort()
   const categories = [...new Set((catsRes.data ?? []).map(r => r.category as string))].sort()
 
-  return { products, total, brands, categories }
+  // Sobrepõe stock_qty com estoque da loja ativa (product_store_stock)
+  const activeStoreId = await resolveActiveStoreId(sb, tenantId)
+  let activeStoreName: string | null = null
+
+  if (activeStoreId && products.length > 0) {
+    const [storeStocksRes, storeRes] = await Promise.all([
+      sb.from('product_store_stock')
+        .select('product_id, qty')
+        .eq('store_id', activeStoreId)
+        .in('product_id', products.map((p: ProductRow) => p.id)),
+      sb.from('stores').select('name').eq('id', activeStoreId).maybeSingle(),
+    ])
+    activeStoreName = storeRes.data?.name ?? null
+    const stockMap = new Map<string, number>()
+    for (const s of (storeStocksRes.data ?? []) as { product_id: string; qty: number }[]) {
+      stockMap.set(s.product_id, s.qty)
+    }
+    products = products.map((p: ProductRow) => ({ ...p, stock_qty: stockMap.get(p.id) ?? 0 }))
+  }
+
+  return { products, total, brands, categories, activeStoreId, activeStoreName }
 }
 
 // ── Client-side pagination (sem brands/categories) ────────────────────────────
@@ -169,10 +194,27 @@ export async function fetchProductsPage(params: ListParams): Promise<{
 
   const { data, count, error } = await query
   if (error) throw new Error(error.message)
-  return {
-    products: (data ?? []) as unknown as ProductRow[],
-    total:    count ?? 0,
+
+  let products = (data ?? []) as unknown as ProductRow[]
+
+  // Sobrepõe stock_qty com estoque da loja ativa
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any
+  const activeStoreId = await resolveActiveStoreId(sb, tenantId)
+  if (activeStoreId && products.length > 0) {
+    const { data: storeStocks } = await sb
+      .from('product_store_stock')
+      .select('product_id, qty')
+      .eq('store_id', activeStoreId)
+      .in('product_id', products.map((p: ProductRow) => p.id))
+    const stockMap = new Map<string, number>()
+    for (const s of (storeStocks ?? []) as { product_id: string; qty: number }[]) {
+      stockMap.set(s.product_id, s.qty)
+    }
+    products = products.map((p: ProductRow) => ({ ...p, stock_qty: stockMap.get(p.id) ?? 0 }))
   }
+
+  return { products, total: count ?? 0 }
 }
 
 // ── Get single product by ID ──────────────────────────────────────────────────

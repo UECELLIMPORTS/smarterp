@@ -188,7 +188,7 @@ function periodToSince(period: ChannelAnalyticsPeriod): string {
   return d.toISOString()
 }
 
-export async function getChannelAnalytics(period: ChannelAnalyticsPeriod = '30d'): Promise<ChannelAnalytics> {
+export async function getChannelAnalytics(period: ChannelAnalyticsPeriod = '30d', storeId?: string | null): Promise<ChannelAnalytics> {
   const { supabase, user } = await requireAuth()
   const tenantId = getTenantId(user)
   const sinceIso = periodToSince(period)
@@ -197,13 +197,16 @@ export async function getChannelAnalytics(period: ChannelAnalyticsPeriod = '30d'
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any
 
+  let salesQuery = sb.from('sales')
+    .select('id, total_cents, sale_channel, delivery_type, created_at, sale_items(quantity, product_id, cost_snapshot_cents)')
+    .eq('tenant_id', tenantId)
+    .gte('created_at', sinceIso)
+    .neq('status', 'cancelled')
+    .limit(20000)
+  if (storeId) salesQuery = salesQuery.eq('store_id', storeId)
+
   const [salesRes, osRes] = await Promise.all([
-    sb.from('sales')
-      .select('id, total_cents, sale_channel, delivery_type, created_at, sale_items(quantity, product_id, cost_snapshot_cents)')
-      .eq('tenant_id', tenantId)
-      .gte('created_at', sinceIso)
-      .neq('status', 'cancelled')
-      .limit(20000),
+    salesQuery,
     sb.from('service_orders')
       .select('id, total_price_cents, service_price_cents, parts_sale_cents, parts_cost_cents, discount_cents, sale_channel, delivery_type, received_at')
       .eq('tenant_id', tenantId)
@@ -521,7 +524,7 @@ const ORIGIN_COLORS: Record<string, string> = {
   nao_informado:      '#5A7A9A',
 }
 
-export async function getOriginAnalytics(period: ChannelAnalyticsPeriod = '30d'): Promise<OriginMetric[]> {
+export async function getOriginAnalytics(period: ChannelAnalyticsPeriod = '30d', storeId?: string | null): Promise<OriginMetric[]> {
   const { supabase, user } = await requireAuth()
   const tenantId = getTenantId(user)
   const sinceIso = periodToSince(period)
@@ -529,13 +532,16 @@ export async function getOriginAnalytics(period: ChannelAnalyticsPeriod = '30d')
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any
 
+  let salesQuery = sb.from('sales')
+    .select('customer_id, total_cents, customer_origin, customers(origin)')
+    .eq('tenant_id', tenantId)
+    .gte('created_at', sinceIso)
+    .neq('status', 'cancelled')
+    .limit(20000)
+  if (storeId) salesQuery = salesQuery.eq('store_id', storeId)
+
   const [salesRes, osRes] = await Promise.all([
-    sb.from('sales')
-      .select('customer_id, total_cents, customer_origin, customers(origin)')
-      .eq('tenant_id', tenantId)
-      .gte('created_at', sinceIso)
-      .neq('status', 'cancelled')
-      .limit(20000),
+    salesQuery,
     sb.from('service_orders')
       .select('customer_id, total_price_cents, service_price_cents, parts_sale_cents, discount_cents, customers(origin)')
       .eq('tenant_id', tenantId)
@@ -607,7 +613,7 @@ const INFERRED_LABEL_OVERRIDE: Record<string, string> = {
   nao_informado:   'Sem canal informado',
 }
 
-export async function getInferredOriginAnalytics(period: ChannelAnalyticsPeriod = '30d'): Promise<InferredOriginMetric[]> {
+export async function getInferredOriginAnalytics(period: ChannelAnalyticsPeriod = '30d', storeId?: string | null): Promise<InferredOriginMetric[]> {
   const { supabase, user } = await requireAuth()
   const tenantId = getTenantId(user)
   const sinceIso = periodToSince(period)
@@ -615,13 +621,16 @@ export async function getInferredOriginAnalytics(period: ChannelAnalyticsPeriod 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any
 
+  let salesQuery = sb.from('sales')
+    .select('customer_id, total_cents, sale_channel, customer_origin, customers(origin)')
+    .eq('tenant_id', tenantId)
+    .gte('created_at', sinceIso)
+    .neq('status', 'cancelled')
+    .limit(20000)
+  if (storeId) salesQuery = salesQuery.eq('store_id', storeId)
+
   const [salesRes, osRes] = await Promise.all([
-    sb.from('sales')
-      .select('customer_id, total_cents, sale_channel, customer_origin, customers(origin)')
-      .eq('tenant_id', tenantId)
-      .gte('created_at', sinceIso)
-      .neq('status', 'cancelled')
-      .limit(20000),
+    salesQuery,
     sb.from('service_orders')
       .select('customer_id, total_price_cents, service_price_cents, parts_sale_cents, discount_cents, sale_channel, customers(origin)')
       .eq('tenant_id', tenantId)
@@ -691,7 +700,7 @@ export type OriginChannelMatrix = {
   grandTotal: number
 }
 
-export async function getOriginChannelMatrix(period: ChannelAnalyticsPeriod = '30d'): Promise<OriginChannelMatrix> {
+export async function getOriginChannelMatrix(period: ChannelAnalyticsPeriod = '30d', storeId?: string | null): Promise<OriginChannelMatrix> {
   const { supabase, user } = await requireAuth()
   const tenantId = getTenantId(user)
   const sinceIso = periodToSince(period)
@@ -699,13 +708,16 @@ export async function getOriginChannelMatrix(period: ChannelAnalyticsPeriod = '3
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any
 
+  let salesQuery = sb.from('sales')
+    .select('total_cents, sale_channel, customer_origin, customers(origin)')
+    .eq('tenant_id', tenantId)
+    .gte('created_at', sinceIso)
+    .neq('status', 'cancelled')
+    .limit(20000)
+  if (storeId) salesQuery = salesQuery.eq('store_id', storeId)
+
   const [salesRes, osRes] = await Promise.all([
-    sb.from('sales')
-      .select('total_cents, sale_channel, customer_origin, customers(origin)')
-      .eq('tenant_id', tenantId)
-      .gte('created_at', sinceIso)
-      .neq('status', 'cancelled')
-      .limit(20000),
+    salesQuery,
     sb.from('service_orders')
       .select('total_price_cents, service_price_cents, parts_sale_cents, discount_cents, sale_channel, customers(origin)')
       .eq('tenant_id', tenantId)
@@ -811,7 +823,7 @@ const CHANNEL_PERIOD_TO_META: Partial<Record<ChannelAnalyticsPeriod, MetaAdsPeri
   '90d': '90d',
 }
 
-export async function getCacByChannel(period: ChannelAnalyticsPeriod = '30d'): Promise<CacByChannel> {
+export async function getCacByChannel(period: ChannelAnalyticsPeriod = '30d', storeId?: string | null): Promise<CacByChannel> {
   const empty: CacByChannel = {
     available: false,
     spendCents: 0, metaCustomerCount: 0, cacCents: 0,
@@ -844,14 +856,17 @@ export async function getCacByChannel(period: ChannelAnalyticsPeriod = '30d'): P
   }
 
   // 2) Vendas + OS atribuídas a clientes com campaign_code preenchido
+  let cacSalesQuery = sb.from('sales')
+    .select('customer_id, total_cents, sale_channel, customers!inner(campaign_code)')
+    .eq('tenant_id', tenantId)
+    .gte('created_at', sinceIso)
+    .neq('status', 'cancelled')
+    .not('customers.campaign_code', 'is', null)
+    .limit(20000)
+  if (storeId) cacSalesQuery = cacSalesQuery.eq('store_id', storeId)
+
   const [salesRes, osRes] = await Promise.all([
-    sb.from('sales')
-      .select('customer_id, total_cents, sale_channel, customers!inner(campaign_code)')
-      .eq('tenant_id', tenantId)
-      .gte('created_at', sinceIso)
-      .neq('status', 'cancelled')
-      .not('customers.campaign_code', 'is', null)
-      .limit(20000),
+    cacSalesQuery,
     sb.from('service_orders')
       .select('customer_id, total_price_cents, service_price_cents, parts_sale_cents, discount_cents, sale_channel, customers!inner(campaign_code)')
       .eq('tenant_id', tenantId)

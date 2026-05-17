@@ -2,29 +2,48 @@ import { requireAuth } from '@/lib/supabase/server'
 import { getTenantId } from '@/lib/tenant'
 import { redirect } from 'next/navigation'
 import { FinanceiroClient, type FinanceiroRow } from './financeiro-client'
+import { listStores } from '@/actions/stores'
 
 export const metadata = { title: 'Financeiro — Smart ERP' }
+export const dynamic = 'force-dynamic'
 
-export default async function FinanceiroPage() {
+export default async function FinanceiroPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ store?: string }>
+}) {
   let auth: Awaited<ReturnType<typeof requireAuth>>
   try { auth = await requireAuth() } catch { redirect('/login') }
 
   const { supabase, user } = auth
   const tenantId = getTenantId(user)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any
+
+  const { store: storeParam } = await searchParams
+  const stores = await listStores()
+
+  // Resolve loja ativa: param URL > primeira loja (sem filtro = todas)
+  const activeStoreId = (storeParam && storeParam !== 'all' && stores.find(s => s.id === storeParam))
+    ? storeParam
+    : null
+
+  let salesQuery = sb
+    .from('sales')
+    .select(`
+      id, store_id, customer_id, total_cents, subtotal_cents, discount_cents, shipping_cents,
+      payment_method, status, created_at, sale_channel, delivery_type, customer_origin,
+      customers ( full_name, cpf_cnpj, created_at ),
+      sale_items ( name, quantity, unit_price_cents, product_id, cost_snapshot_cents )
+    `)
+    .eq('tenant_id', tenantId)
+    .order('created_at', { ascending: false })
+    .limit(300)
+
+  if (activeStoreId) salesQuery = salesQuery.eq('store_id', activeStoreId)
 
   const [salesRes, ordersRes] = await Promise.all([
-    supabase
-      .from('sales')
-      .select(`
-        id, customer_id, total_cents, subtotal_cents, discount_cents, shipping_cents,
-        payment_method, status, created_at, sale_channel, delivery_type, customer_origin,
-        customers ( full_name, cpf_cnpj, created_at ),
-        sale_items ( name, quantity, unit_price_cents, product_id, cost_snapshot_cents )
-      `)
-      .eq('tenant_id', tenantId)
-      .order('created_at', { ascending: false })
-      .limit(300),
-
+    salesQuery,
     supabase
       .from('service_orders')
       .select(`
@@ -158,5 +177,11 @@ export default async function FinanceiroPage() {
     })),
   ].sort((a, b) => b.date.getTime() - a.date.getTime())
 
-  return <FinanceiroClient initialRows={allRows} />
+  return (
+    <FinanceiroClient
+      initialRows={allRows}
+      stores={stores}
+      activeStoreId={activeStoreId}
+    />
+  )
 }

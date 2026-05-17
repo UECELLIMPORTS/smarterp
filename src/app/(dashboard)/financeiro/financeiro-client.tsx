@@ -1,11 +1,12 @@
 'use client'
 
 import { useState, useMemo, useTransition, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   Receipt, TrendingUp, ShoppingCart, CreditCard, Wrench,
   XCircle, RefreshCw, Plus, Loader2, X, AlertTriangle, Search,
   Trash2, UserPlus, Calendar, CalendarDays, MoreVertical, Filter, Pencil, FileText,
-  Download, Mail, MessageCircle, Copy, Link as LinkIcon, Calculator,
+  Download, Mail, MessageCircle, Copy, Link as LinkIcon, Calculator, Store,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -180,8 +181,24 @@ const EMPTY_NC = {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[] }) {
+import { type Store as StoreType } from '@/actions/stores'
+
+export function FinanceiroClient({ initialRows, stores = [], activeStoreId = null }: {
+  initialRows:   FinanceiroRow[]
+  stores?:       StoreType[]
+  activeStoreId?: string | null
+}) {
+  const router = useRouter()
   const [rows, setRows]           = useState<FinanceiroRow[]>(initialRows)
+
+  useEffect(() => { setRows(initialRows) }, [initialRows])
+
+  function setStoreFilter(storeId: string | null) {
+    const url = new URL(window.location.href)
+    if (storeId) url.searchParams.set('store', storeId)
+    else         url.searchParams.delete('store')
+    router.push(url.toString())
+  }
   const [actioning, startAction]  = useTransition()
 
   // Modais de cancelar / reativar
@@ -1094,6 +1111,34 @@ export function FinanceiroClient({ initialRows }: { initialRows: FinanceiroRow[]
           <Plus className="h-4 w-4" /> Nova Venda
         </button>
       </div>
+
+      {/* Seletor de loja — só aparece se tiver mais de 1 loja */}
+      {stores.length > 1 && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <Store className="h-3.5 w-3.5 text-muted shrink-0" />
+          <button
+            onClick={() => setStoreFilter(null)}
+            className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+              !activeStoreId ? 'bg-emerald-500 text-black' : 'bg-surface text-muted hover:text-text border border-border'
+            }`}
+          >
+            Todas
+          </button>
+          {stores.map(s => (
+            <button
+              key={s.id}
+              onClick={() => setStoreFilter(s.id)}
+              className={`px-3 py-1 rounded-full text-xs font-medium transition-colors flex items-center gap-1.5 ${
+                activeStoreId === s.id ? 'text-black' : 'bg-surface text-muted hover:text-text border border-border'
+              }`}
+              style={activeStoreId === s.id ? { background: s.color } : {}}
+            >
+              <span className="h-2 w-2 rounded-full shrink-0" style={{ background: s.color }} />
+              {s.name}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">

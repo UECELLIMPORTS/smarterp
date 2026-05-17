@@ -8,7 +8,15 @@ export const metadata = { title: 'Estoque — Smart ERP' }
 export default async function EstoquePage() {
   try { await requireAuth() } catch { redirect('/login') }
 
-  const { products, total, brands, categories } = await listProductsWithMeta()
+  const { products, total, brands, categories, activeStoreName } = await listProductsWithMeta()
 
-  return <EstoqueClient initialProducts={products} initialTotal={total} brands={brands} categories={categories} />
+  return (
+    <EstoqueClient
+      initialProducts={products}
+      initialTotal={total}
+      brands={brands}
+      categories={categories}
+      activeStoreName={activeStoreName}
+    />
+  )
 }

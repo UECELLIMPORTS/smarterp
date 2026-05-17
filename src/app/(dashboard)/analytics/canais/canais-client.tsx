@@ -11,6 +11,7 @@ import type {
   ChannelAnalytics, ChannelAnalyticsPeriod, ChannelMetric,
   OriginMetric, OriginChannelMatrix, CacByChannel, InferredOriginMetric,
 } from '@/actions/sales-channels'
+import type { Store as StoreType } from '@/actions/stores'
 
 const BRL = (c: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -27,6 +28,8 @@ type Props = {
   originChannelMatrix: OriginChannelMatrix
   cac: CacByChannel
   fixedCostMonthlyCents: number | null
+  stores?: StoreType[]
+  activeStoreId?: string | null
 }
 
 /** Quantos dias o período cobre (pra pro-ratear custo fixo mensal). null pra 'all'. */
@@ -50,8 +53,15 @@ const PERIOD_OPTIONS: { v: ChannelAnalyticsPeriod; label: string }[] = [
   { v: 'all',  label: 'Tudo' },
 ]
 
-export function CanaisClient({ data, origins, inferredOrigins, originChannelMatrix, cac, fixedCostMonthlyCents }: Props) {
+export function CanaisClient({ data, origins, inferredOrigins, originChannelMatrix, cac, fixedCostMonthlyCents, stores = [], activeStoreId }: Props) {
   const router = useRouter()
+
+  const setStoreFilter = (storeId: string | null) => {
+    const params = new URLSearchParams()
+    params.set('period', data.period)
+    if (storeId) params.set('store', storeId)
+    router.push(`/analytics/canais?${params.toString()}`)
+  }
 
   return (
     <div className="space-y-6">
@@ -70,7 +80,12 @@ export function CanaisClient({ data, origins, inferredOrigins, originChannelMatr
           {PERIOD_OPTIONS.map(p => (
             <button
               key={p.v}
-              onClick={() => router.push(`/analytics/canais?period=${p.v}`)}
+              onClick={() => {
+                const params = new URLSearchParams()
+                params.set('period', p.v)
+                if (activeStoreId) params.set('store', activeStoreId)
+                router.push(`/analytics/canais?${params.toString()}`)
+              }}
               className="rounded-lg px-3 py-1.5 text-xs font-bold transition-all"
               style={data.period === p.v
                 ? { background: '#22C55E', color: '#131C2A' }
@@ -82,6 +97,37 @@ export function CanaisClient({ data, origins, inferredOrigins, originChannelMatr
           ))}
         </div>
       </div>
+
+      {/* Seletor de loja — só aparece se tiver mais de 1 loja */}
+      {stores.length > 1 && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <Store className="h-3.5 w-3.5 shrink-0" style={{ color: '#94A3B8' }} />
+          <button
+            onClick={() => setStoreFilter(null)}
+            className="rounded-full px-3 py-1 text-xs font-medium transition-colors"
+            style={!activeStoreId
+              ? { background: '#22C55E', color: '#131C2A' }
+              : { background: '#1B2638', color: '#94A3B8', border: '1px solid #2A3650' }
+            }
+          >
+            Todas
+          </button>
+          {stores.map(s => (
+            <button
+              key={s.id}
+              onClick={() => setStoreFilter(s.id)}
+              className="rounded-full px-3 py-1 text-xs font-medium transition-colors flex items-center gap-1.5"
+              style={activeStoreId === s.id
+                ? { background: s.color, color: '#131C2A' }
+                : { background: '#1B2638', color: '#94A3B8', border: '1px solid #2A3650' }
+              }
+            >
+              <span className="h-2 w-2 rounded-full shrink-0" style={{ background: s.color }} />
+              {s.name}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Alert se muitas vendas sem canal */}
       {data.naoInformadoCount > 0 && data.totalTxCount > 0 && (
