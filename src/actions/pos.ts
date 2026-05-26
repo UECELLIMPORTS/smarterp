@@ -178,35 +178,46 @@ export async function getOrCreateConsumidorFinal(): Promise<Customer> {
 
 export type CustomerResult =
   | { ok: true;  customer: Customer }
-  | { ok: false; error: string }
+  | { ok: false; error: string; existingCustomer?: Customer }
 
 export async function createCustomer(input: CreateCustomerInput): Promise<CustomerResult> {
   const { supabase, user } = await requireAuth()
   const tenantId = getTenantId(user)
 
-  // Duplicate CPF check (returns error result em vez de throw — Next 16 mascara
-  // throw em produção e mostra mensagem genérica "Server Components render")
+  // Duplicate CPF check — retorna cliente existente para auto-seleção no POS
   const cpfDigits = input.cpf.replace(/\D/g, '')
   if (cpfDigits) {
     const { data: dups } = await supabase
       .from('customers')
-      .select('full_name')
+      .select('id, full_name, cpf_cnpj, whatsapp, email, origin, campaign_code')
       .eq('tenant_id', tenantId)
       .eq('cpf_cnpj', cpfDigits)
       .limit(1)
-    if (dups && dups.length > 0) return { ok: false, error: `CPF já cadastrado para: ${dups[0].full_name}` }
+    if (dups && dups.length > 0) {
+      return {
+        ok: false,
+        error: `CPF já cadastrado para: ${dups[0].full_name}`,
+        existingCustomer: dups[0] as Customer,
+      }
+    }
   }
 
-  // Duplicate WhatsApp check
+  // Duplicate WhatsApp check — retorna cliente existente para auto-seleção no POS
   const whatsDigits = input.whatsapp.replace(/\D/g, '')
   if (whatsDigits) {
     const { data: dups } = await supabase
       .from('customers')
-      .select('full_name')
+      .select('id, full_name, cpf_cnpj, whatsapp, email, origin, campaign_code')
       .eq('tenant_id', tenantId)
       .eq('whatsapp', whatsDigits)
       .limit(1)
-    if (dups && dups.length > 0) return { ok: false, error: `WhatsApp já cadastrado para: ${dups[0].full_name}` }
+    if (dups && dups.length > 0) {
+      return {
+        ok: false,
+        error: `WhatsApp já cadastrado para: ${dups[0].full_name}`,
+        existingCustomer: dups[0] as Customer,
+      }
+    }
   }
 
   const creditCents = Math.round(parseFloat(input.creditLimitStr.replace(',', '.') || '0') * 100) || 0

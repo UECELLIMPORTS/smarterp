@@ -284,10 +284,19 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
     try {
       const result = await createCustomer(nc)
       if (!result.ok) {
-        toast.error(result.error)
+        if (result.existingCustomer) {
+          // Cliente já existe — auto-seleciona para não perder o vínculo com a venda
+          setCustomer(result.existingCustomer)
+          setShowForm(false); setSearchQuery('')
+          toast.info(`${result.error} — cliente selecionado automaticamente.`)
+        } else {
+          toast.error(result.error)
+        }
         return
       }
       setCustomer(result.customer); setShowForm(false); setSearchQuery('')
+      // Reseta o formulário para a próxima vez que for aberto
+      setNc({ name: '', tradeName: '', personType: 'fisica', cpf: '', ieRg: '', isActive: true, whatsapp: '', phone: '', email: '', nfeEmail: '', website: '', birthDate: '', gender: '', maritalStatus: '', profession: '', fatherName: '', fatherCpf: '', motherName: '', motherCpf: '', salesperson: '', contactType: '', creditLimitStr: '', notes: '', cep: '', addressStreet: '', addressDistrict: '', addressNumber: '', addressComplement: '', addressCity: '', addressState: '', origin: '' })
       toast.success('Cliente cadastrado!')
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erro ao cadastrar cliente')
