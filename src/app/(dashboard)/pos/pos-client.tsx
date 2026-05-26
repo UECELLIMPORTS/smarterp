@@ -370,6 +370,12 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
   // ── Finalize sale ──
   async function handleFinalize() {
     if (cart.length === 0) { toast.error('Adicione ao menos um item'); return }
+    if (showForm && nc.name.trim()) {
+      toast.error('Salve o cliente antes de finalizar a venda.', {
+        description: 'Você preencheu os dados do cliente mas não clicou em "Salvar".',
+      })
+      return
+    }
     if (!isDefault && !customer.origin) {
       toast.error('Informe como o cliente te conheceu antes de finalizar')
       return
@@ -1142,9 +1148,10 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
           {/* Finalize */}
           <button
             onClick={handleFinalize}
-            disabled={finalizing || cart.length === 0}
+            disabled={finalizing || cart.length === 0 || (showForm && !!nc.name.trim())}
             className="w-full flex items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold transition-opacity disabled:opacity-50"
             style={{ background: 'linear-gradient(135deg, #22C55E, #10B981)', color: '#131C2A' }}
+            title={showForm && nc.name.trim() ? 'Salve o cliente antes de finalizar' : undefined}
           >
             {finalizing
               ? <><Loader2 className="h-4 w-4 animate-spin" /> Finalizando...</>
@@ -1250,9 +1257,10 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
             </div>
             <button
               onClick={handleFinalize}
-              disabled={finalizing || cart.length === 0}
+              disabled={finalizing || cart.length === 0 || (showForm && !!nc.name.trim())}
               className="flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-bold transition-opacity disabled:opacity-50 shrink-0"
               style={{ background: 'linear-gradient(135deg, #22C55E, #10B981)', color: '#131C2A' }}
+              title={showForm && nc.name.trim() ? 'Salve o cliente antes de finalizar' : undefined}
             >
               {finalizing
                 ? <><Loader2 className="h-4 w-4 animate-spin" /> Finalizando...</>
