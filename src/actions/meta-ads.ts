@@ -110,6 +110,30 @@ export type MetaAdsTimeseriesPoint = {
 
 export type MetaAdsPeriod = '7d' | '30d' | '90d' | 'today' | 'yesterday'
 
+export type MetaAdsAdSet = {
+  id:              string
+  name:            string
+  status:          string   // ACTIVE | PAUSED | DELETED | ARCHIVED
+  effectiveStatus: string
+}
+
+export type MetaAdsAd = {
+  id:              string
+  name:            string
+  status:          string
+  effectiveStatus: string
+}
+
+// Atribuição completa campanha → conjunto → anúncio (salva na venda)
+export type MetaAttribution = {
+  campaignId:   string
+  campaignName: string
+  adsetId:      string | null
+  adsetName:    string | null
+  adId:         string | null
+  adName:       string | null
+}
+
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 function toCents(strValue: string | number | undefined | null): number {
@@ -734,6 +758,58 @@ export async function fetchCampaignTimeseries(
     const msg = err instanceof Error ? err.message : 'Erro desconhecido'
     await recordSync(resolved.accountPk, false, msg)
     throw err
+  }
+}
+
+// ── Fetch ad sets de uma campanha (para picker em cascata) ────────────────
+
+export async function fetchAdSetsForCampaign(campaignId: string, adAccountId?: string): Promise<MetaAdsAdSet[]> {
+  const resolved = await resolveAccount(adAccountId)
+  if (!resolved) return []
+
+  try {
+    type AdSetRow = { id: string; name: string; status: string; effective_status?: string }
+    const res = await metaApi<{ data: AdSetRow[] }>(
+      `/${campaignId}/adsets`,
+      { fields: 'id,name,status,effective_status', limit: '100' },
+      resolved.accessToken,
+    )
+    return (res.data ?? [])
+      .filter(s => s.status === 'ACTIVE' || s.status === 'PAUSED')
+      .map(s => ({
+        id:              s.id,
+        name:            s.name,
+        status:          s.status,
+        effectiveStatus: s.effective_status ?? s.status,
+      }))
+  } catch {
+    return []
+  }
+}
+
+// ── Fetch ads de um conjunto de anúncios (para picker em cascata) ──────────
+
+export async function fetchAdsForAdSet(adsetId: string, adAccountId?: string): Promise<MetaAdsAd[]> {
+  const resolved = await resolveAccount(adAccountId)
+  if (!resolved) return []
+
+  try {
+    type AdRow = { id: string; name: string; status: string; effective_status?: string }
+    const res = await metaApi<{ data: AdRow[] }>(
+      `/${adsetId}/ads`,
+      { fields: 'id,name,status,effective_status', limit: '100' },
+      resolved.accessToken,
+    )
+    return (res.data ?? [])
+      .filter(a => a.status === 'ACTIVE' || a.status === 'PAUSED')
+      .map(a => ({
+        id:              a.id,
+        name:            a.name,
+        status:          a.status,
+        effectiveStatus: a.effective_status ?? a.status,
+      }))
+  } catch {
+    return []
   }
 }
 

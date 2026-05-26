@@ -13,7 +13,8 @@ import {
 import type { StockControlMode } from '@/actions/settings'
 import { AddressCityState } from '@/components/ui/address-fields'
 import { CUSTOMER_ORIGIN_OPTIONS, originLabel } from '@/lib/customer-origin'
-import { CampaignCodePicker } from '@/components/meta-ads/campaign-code-picker'
+import { MetaAttributionPicker } from '@/components/meta-ads/meta-attribution-picker'
+import type { MetaAttribution } from '@/actions/meta-ads'
 import { SALE_CHANNEL_OPTIONS_PICKABLE, DELIVERY_TYPE_OPTIONS, type SaleChannel, type DeliveryType } from '@/lib/sale-channels'
 import { validateBirthdayCoupon, markBirthdayCouponUsed } from '@/actions/birthdays'
 import { validateCoupon, markCouponUsed } from '@/actions/coupons'
@@ -141,6 +142,9 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
 
   // whether the current customer is the default consumidor final
   const isDefault = customer.id === consumidorFinal.id
+
+  // ── Meta Ads attribution (campanha → conjunto → anúncio) ──
+  const [metaAttribution, setMetaAttribution] = useState<MetaAttribution | null>(null)
 
   // ── Finalize ──
   const [finalizing, setFinalizing] = useState(false)
@@ -380,9 +384,10 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
         paymentDetails: method === 'mixed'
           ? { cash: parseCents(mxCash), pix: parseCents(mxPix), card: parseCents(mxCard) }
           : null,
-        saleChannel:    saleChannel  || null,
-        deliveryType:   deliveryType || null,
-        customerOrigin: isDefault ? (consumerOrigin || null) : null,
+        saleChannel:      saleChannel  || null,
+        deliveryType:     deliveryType || null,
+        customerOrigin:   isDefault ? (consumerOrigin || null) : null,
+        metaAttribution:  metaAttribution,
         items: cart.map(i => ({
           productId:      i.productId,
           source:         i.source,
@@ -406,6 +411,7 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
       setSaleChannel(''); setDeliveryType('')
       setConsumerOrigin('passou_na_porta')
       setCouponInput(''); setCouponApplied(null)
+      setMetaAttribution(null)
       setCustomer(consumidorFinal)
     } catch { toast.error('Erro ao finalizar venda') }
     finally { setFinalizing(false) }
@@ -676,18 +682,17 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
               )
             )}
 
-            {/* ── Código da campanha (só pra origens Meta) ── */}
+            {/* ── Atribuição Meta Ads (só pra origens Meta) ── */}
             {!isDefault && customer.origin && (customer.origin === 'instagram_pago' || customer.origin === 'facebook') && (
               <div className="rounded-lg border px-3 py-2 flex items-center justify-between gap-2"
                 style={{ background: '#131C2A', borderColor: '#2A3650' }}>
                 <span className="text-[10px] font-semibold uppercase tracking-wider shrink-0" style={{ color: '#94A3B8' }}>
                   Campanha
                 </span>
-                <CampaignCodePicker
-                  customerId={customer.id}
-                  currentCode={customer.campaign_code}
+                <MetaAttributionPicker
+                  current={metaAttribution}
                   origin={customer.origin}
-                  onUpdated={code => setCustomer({ ...customer, campaign_code: code })}
+                  onUpdated={setMetaAttribution}
                   compact
                 />
               </div>

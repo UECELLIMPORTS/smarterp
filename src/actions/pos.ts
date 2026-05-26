@@ -7,6 +7,7 @@ import { tryAutoEmitNfceForSale } from '@/lib/fiscal-emit-core'
 import { scheduleWhatsAppMessage } from '@/lib/whatsapp-scheduler'
 import { resolveActiveStoreId, resolveStockStoreId } from '@/lib/active-store'
 import { checkSalesQuota } from '@/lib/subscription'
+import type { MetaAttribution } from '@/actions/meta-ads'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -67,6 +68,7 @@ export type CreateSaleInput = {
   saleChannel?: string | null   // whatsapp | instagram_dm | delivery_online | fisica_balcao | fisica_retirada | outro
   deliveryType?: string | null  // counter | pickup | shipping
   customerOrigin?: string | null // sobrepõe customer.origin (usado pra Consumidor Final)
+  metaAttribution?: MetaAttribution | null // campanha → conjunto → anúncio Meta Ads
 }
 
 // ── Actions ───────────────────────────────────────────────────────────────────
@@ -427,10 +429,16 @@ export async function createSale(input: CreateSaleInput): Promise<{ id: string }
       total_cents:     input.totalCents,
       payment_method:  input.paymentMethod,
       payment_details: input.paymentDetails,
-      sale_channel:    input.saleChannel  ?? null,
-      delivery_type:   input.deliveryType ?? null,
-      customer_origin: input.customerOrigin ?? null,
-      cash_session_id: activeSession?.id ?? null,
+      sale_channel:         input.saleChannel  ?? null,
+      delivery_type:        input.deliveryType ?? null,
+      customer_origin:      input.customerOrigin ?? null,
+      cash_session_id:      activeSession?.id ?? null,
+      meta_campaign_id:     input.metaAttribution?.campaignId   ?? null,
+      meta_campaign_name:   input.metaAttribution?.campaignName ?? null,
+      meta_adset_id:        input.metaAttribution?.adsetId      ?? null,
+      meta_adset_name:      input.metaAttribution?.adsetName    ?? null,
+      meta_ad_id:           input.metaAttribution?.adId         ?? null,
+      meta_ad_name:         input.metaAttribution?.adName       ?? null,
     })
     .select('id')
     .single()
