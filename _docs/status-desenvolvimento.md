@@ -22,7 +22,7 @@
 | **ERP Clientes** | ✅ Concluído | Dashboard analítico completo com filtros Ambos/SmartERP/CheckSmart + Faturamento/Lucro + datas customizadas. Seções: Comparativo de Sistemas, Origem dos Clientes, KPIs Recorrentes vs Novos, Evolução Mensal, RFM, Heatmap, Clientes em Risco (com WhatsApp clicável + CSV + threshold), Top Clientes | 24/04/2026 |
 | **CRM** | ⏳ Não iniciado | Exibe placeholder "Em breve" | — |
 | **Relatórios** | ⏳ Não iniciado | Exibe placeholder "Em breve" — falta filtro por origem | — |
-| **Meta Ads** | ⏳ Não iniciado | Exibe placeholder "Em breve" | — |
+| **Meta Ads** | ✅ Concluído | Picker cascata 3 níveis (Campanha → Conjunto → Anúncio) no POS; atribuição salva em `sales`; CAPI envia evento `Purchase` automático ao Meta após cada venda de origem Meta | 26/05/2026 |
 | **Configurações** | 🔄 Em andamento | Parcialmente implementado | — |
 | **Autenticação** | ✅ Concluído | Login/logout via Supabase Auth, middleware de proteção de rotas | — |
 
@@ -57,7 +57,7 @@
 |----|--------|------------|
 | `customers` | ✅ OK | Coluna `origin` adicionada (migração 007); CHECK constraint com 7 valores válidos; índice parcial |
 | `service_orders` | ✅ OK | Status usados: `received`, `diagnosing`, `waiting_parts`, `in_repair`, `ready`, `delivered`, `cancelled` |
-| `sales` | ✅ OK | Vendas do POS; `sale_items` com `product_id` aponta pra `products` OU `parts_catalog` |
+| `sales` | ✅ OK | Vendas do POS; `sale_items` com `product_id` aponta pra `products` OU `parts_catalog`; colunas `meta_campaign_id/name`, `meta_adset_id/name`, `meta_ad_id/name` adicionadas em 26/05/2026 (migration 052) |
 | `products` | ✅ OK | Catálogo de produtos/estoque; `cost_cents` usado pelo ERP Clientes para calcular lucro |
 | `parts_catalog` | ✅ OK | Peças de OS, separado de `products` |
 | `stock_movements` | ✅ OK | Toda venda agora cria movement `saida` com origem `sale:{id}`; trigger faz decremento automático |

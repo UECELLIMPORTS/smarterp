@@ -1,6 +1,6 @@
 # Decisões Técnicas — SmartERP / CheckSmart
 
-> Atualizado em: **24/04/2026**
+> Atualizado em: **26/05/2026**
 
 ---
 
@@ -144,3 +144,21 @@
 - 🎯 Contexto: Editar custo de produto ou movement não invalidava o cache do dashboard
 - ✅ O que foi escolhido: Adicionar `revalidatePath('/erp-clientes')` em `updateProduct`, `updateProductPrice`, `updateMovement`
 - ⚡ Impacto: ERP Clientes sempre reflete mudanças recentes. Custo: próximo request refaz toda a query do dashboard — aceitável.
+
+---
+
+**DECISÃO-017 — Atribuição Meta Ads por venda (não por cliente)**
+- 📅 Data: 26/05/2026
+- 🎯 Contexto: O picker antigo (`CampaignCodePicker`) salvava `campaign_code` na tabela `customers` — um cliente que comprasse duas vezes de campanhas diferentes perderia a atribuição anterior
+- ✅ O que foi escolhido: 6 colunas na tabela `sales` (`meta_campaign_id/name`, `meta_adset_id/name`, `meta_ad_id/name`). Atribuição por transação, não por cliente. Picker cascata 3 níveis: Campanha → Conjunto de Anúncio → Anúncio, carregamento progressivo via Meta Graph API
+- ❌ O que foi descartado: Continuar salvando em `customers.campaign_code` — correto para o primeiro acesso, mas quebra no caso de clientes recorrentes vindo de campanhas diferentes
+- ⚡ Impacto: Migration `052_sale_meta_attribution.sql`. Componente `MetaAttributionPicker` substitui `CampaignCodePicker` no POS. `customers.campaign_code` mantido para retrocompatibilidade de dados históricos, mas novas atribuições ficam em `sales`. Analytics de ROAS pode ser feito por campanha, conjunto e anúncio individualmente.
+
+---
+
+**DECISÃO-018 — Meta Conversions API (CAPI) via after() — não bloqueia POS**
+- 📅 Data: 26/05/2026
+- 🎯 Contexto: Enviar evento `Purchase` ao Meta após cada venda de cliente com origem `instagram_pago` ou `facebook`, para alimentar o algoritmo de otimização de anúncios
+- ✅ O que foi escolhido: `after()` do Next.js dispara `sendPurchaseConversion()` após a resposta do POS ser entregue ao usuário. Email e telefone são hasheados com SHA-256 antes do envio. `action_source: "physical_store"` (venda offline). Dataset ID + token nas env vars (`META_DATASET_ID`, `META_CONVERSIONS_TOKEN`)
+- ❌ O que foi descartado: Meta Pixel (requer site/e-commerce, não se aplica a vendas por WhatsApp/Instagram DM). Offline Conversions API separada (a própria Conversions API já suporta `physical_store` como action_source). Envio síncrono bloqueando a resposta — inaceitável para UX do POS
+- ⚡ Impacto: Toda venda com origem Meta envia automaticamente um evento `Purchase` hasheado ao Gerenciador de Eventos. Aparece no Gerenciador de Anúncios como "Compra offline". Taxa de match esperada: 40–70% (depende de clientes usarem mesmo email/telefone no Meta). Falha silenciosa — CAPI nunca trava uma venda.
