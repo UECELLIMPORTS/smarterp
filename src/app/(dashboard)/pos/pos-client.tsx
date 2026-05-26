@@ -699,11 +699,13 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
 
             {/* ── Atribuição Meta Ads (só pra origens Meta) ── */}
             {!isDefault && customer.origin && (customer.origin === 'instagram_pago' || customer.origin === 'facebook') && (
-              <div className="rounded-lg border px-3 py-2 flex items-center justify-between gap-2"
-                style={{ background: '#131C2A', borderColor: '#2A3650' }}>
-                <span className="text-[10px] font-semibold uppercase tracking-wider shrink-0" style={{ color: '#94A3B8' }}>
-                  Campanha
-                </span>
+              <div className="rounded-lg border px-3 py-3 space-y-2"
+                style={{ background: '#131C2A', borderColor: 'rgba(245,158,11,.2)' }}>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: '#F59E0B' }}>
+                    Campanha Meta Ads
+                  </span>
+                </div>
                 <MetaAttributionPicker
                   current={metaAttribution}
                   origin={customer.origin}
