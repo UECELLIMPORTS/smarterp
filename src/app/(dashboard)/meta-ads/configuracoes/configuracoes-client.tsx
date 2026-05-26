@@ -29,11 +29,13 @@ type Props = {
 export function ConfiguracoesClient({ current, accounts }: Props) {
   const router = useRouter()
   const [form, setForm] = useState({
-    appId:       current?.appId ?? '',
-    appSecret:   '',  // nunca pré-populado (segurança)
-    accessToken: '',  // nunca pré-populado
-    adAccountId: current?.adAccountId ?? '',
-    businessId:  current?.businessId ?? '',
+    appId:         current?.appId ?? '',
+    appSecret:     '',  // nunca pré-populado (segurança)
+    accessToken:   '',  // nunca pré-populado
+    adAccountId:   current?.adAccountId ?? '',
+    businessId:    current?.businessId ?? '',
+    capiDatasetId: current?.capiDatasetId ?? '',
+    capiToken:     '',  // nunca pré-populado (segurança)
   })
   const [saving, setSaving]     = useState(false)
   const [testing, setTesting]   = useState(false)
@@ -46,7 +48,15 @@ export function ConfiguracoesClient({ current, accounts }: Props) {
     }
     setSaving(true)
     try {
-      await saveMetaAdsCredentials(form)
+      await saveMetaAdsCredentials({
+        appId:         form.appId,
+        appSecret:     form.appSecret,
+        accessToken:   form.accessToken,
+        adAccountId:   form.adAccountId,
+        businessId:    form.businessId,
+        capiDatasetId: form.capiDatasetId,
+        capiToken:     form.capiToken,
+      })
       toast.success('Credenciais salvas!')
       router.refresh()
     } catch (err) {
@@ -76,7 +86,7 @@ export function ConfiguracoesClient({ current, accounts }: Props) {
     try {
       await deleteMetaAdsCredentials()
       toast.success('Credenciais removidas')
-      setForm({ appId: '', appSecret: '', accessToken: '', adAccountId: '', businessId: '' })
+      setForm({ appId: '', appSecret: '', accessToken: '', adAccountId: '', businessId: '', capiDatasetId: '', capiToken: '' })
       router.refresh()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erro')
@@ -237,6 +247,42 @@ export function ConfiguracoesClient({ current, accounts }: Props) {
           placeholder="1234567890"
           mono
         />
+
+        {/* ── API de Conversões (CAPI) ── */}
+        <div className="border-t pt-5 space-y-4" style={{ borderColor: '#2A3650' }}>
+          <div>
+            <h3 className="text-sm font-semibold" style={{ color: '#F8FAFC' }}>API de Conversões (CAPI)</h3>
+            <p className="mt-0.5 text-xs" style={{ color: '#94A3B8' }}>
+              Envia eventos de venda/OS para o Meta para treinar o algoritmo de anúncios. Opcional mas recomendado.
+            </p>
+          </div>
+
+          <Field
+            label="Dataset ID"
+            hint="Gerenciador de Eventos → seu Dataset → Configurações → ID do Dataset"
+            value={form.capiDatasetId}
+            onChange={v => setForm(f => ({ ...f, capiDatasetId: v }))}
+            placeholder="453628598327504"
+            mono
+          />
+
+          <Field
+            label="Token da API de Conversões"
+            hint={current?.hasCapiToken ? 'Em branco = manter o atual; preencha só para alterar' : 'Gerenciador de Eventos → seu Dataset → Configurações → API de Conversões → Gerar token'}
+            value={form.capiToken}
+            onChange={v => setForm(f => ({ ...f, capiToken: v }))}
+            placeholder="EAAxxxxxxxxxxxx..."
+            type="password"
+            mono
+          />
+
+          {current?.hasCapiToken && (
+            <div className="flex items-center gap-2 text-xs" style={{ color: '#10B981' }}>
+              <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+              Token da API de Conversões configurado
+            </div>
+          )}
+        </div>
 
         {/* Resultado do teste */}
         {testResult && (

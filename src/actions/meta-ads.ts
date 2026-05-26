@@ -37,6 +37,8 @@ export type MetaAdsCredentialsInput = {
   accessToken:  string
   adAccountId:  string
   businessId?:  string
+  capiDatasetId?: string
+  capiToken?:     string
 }
 
 export type MetaAdsCredentialsSafe = {
@@ -47,6 +49,8 @@ export type MetaAdsCredentialsSafe = {
   lastSyncAt:     string | null
   lastError:      string | null
   hasToken:       boolean
+  hasCapiToken:   boolean
+  capiDatasetId:  string | null
   createdAt:      string
   updatedAt:      string
 }
@@ -209,21 +213,28 @@ export async function saveMetaAdsCredentials(input: MetaAdsCredentialsInput): Pr
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any
 
+  const upsertPayload: Record<string, unknown> = {
+    tenant_id:     tenantId,
+    app_id:        input.appId.trim(),
+    app_secret:    input.appSecret.trim(),
+    access_token:  input.accessToken.trim(),
+    ad_account_id: normalizedAdAccount,
+    business_id:   input.businessId?.trim() || null,
+    updated_at:    new Date().toISOString(),
+    last_error:    null,
+  }
+
+  // Só sobrescreve CAPI se o tenant informou o campo (em branco = manter)
+  if (input.capiDatasetId !== undefined) {
+    upsertPayload.capi_dataset_id = input.capiDatasetId.trim() || null
+  }
+  if (input.capiToken !== undefined && input.capiToken.trim() !== '') {
+    upsertPayload.capi_token = input.capiToken.trim()
+  }
+
   const { data: credRow, error: credErr } = await sb
     .from('meta_ads_credentials')
-    .upsert(
-      {
-        tenant_id:     tenantId,
-        app_id:        input.appId.trim(),
-        app_secret:    input.appSecret.trim(),
-        access_token:  input.accessToken.trim(),
-        ad_account_id: normalizedAdAccount,
-        business_id:   input.businessId?.trim() || null,
-        updated_at:    new Date().toISOString(),
-        last_error:    null,
-      },
-      { onConflict: 'tenant_id' },
-    )
+    .upsert(upsertPayload, { onConflict: 'tenant_id' })
     .select('id')
     .single()
 
@@ -269,7 +280,7 @@ export async function getMetaAdsCredentials(): Promise<MetaAdsCredentialsSafe | 
   const sb = supabase as any
   const { data } = await sb
     .from('meta_ads_credentials')
-    .select('app_id, ad_account_id, business_id, token_expires_at, last_sync_at, last_error, access_token, created_at, updated_at')
+    .select('app_id, ad_account_id, business_id, token_expires_at, last_sync_at, last_error, access_token, capi_dataset_id, capi_token, created_at, updated_at')
     .eq('tenant_id', tenantId)
     .maybeSingle()
 
@@ -283,6 +294,8 @@ export async function getMetaAdsCredentials(): Promise<MetaAdsCredentialsSafe | 
     lastSyncAt:     data.last_sync_at,
     lastError:      data.last_error,
     hasToken:       !!data.access_token,
+    hasCapiToken:   !!data.capi_token,
+    capiDatasetId:  data.capi_dataset_id ?? null,
     createdAt:      data.created_at,
     updatedAt:      data.updated_at,
   }
@@ -1136,10 +1149,30 @@ function normalizePhone(raw: string): string {
 }
 
 export async function sendPurchaseConversion(input: PurchaseEventInput): Promise<void> {
-  const datasetId = process.env.META_DATASET_ID
-  const token     = process.env.META_CONVERSIONS_TOKEN
+  // Busca dataset_id e token do banco (multi-tenant)
+  // Fallback para env vars por compatibilidade (tenant próprio do Felipe)
+  let datasetId: string | null = null
+  let token: string | null     = null
 
-  if (!datasetId || !token) return // silencioso — env não configurado
+  try {
+    const { supabase, user } = await requireAuth()
+    const tenantId = getTenantId(user)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: creds } = await (supabase as any)
+      .from('meta_ads_credentials')
+      .select('capi_dataset_id, capi_token')
+      .eq('tenant_id', tenantId)
+      .maybeSingle()
+
+    datasetId = creds?.capi_dataset_id ?? process.env.META_DATASET_ID ?? null
+    token     = creds?.capi_token      ?? process.env.META_CONVERSIONS_TOKEN ?? null
+  } catch {
+    // Se auth falhar (ex: chamado de after()), tenta env vars
+    datasetId = process.env.META_DATASET_ID ?? null
+    token     = process.env.META_CONVERSIONS_TOKEN ?? null
+  }
+
+  if (!datasetId || !token) return // silencioso — CAPI não configurado
 
   const userData: Record<string, string[]> = {}
   if (input.email) userData.em = [sha256(input.email)]
