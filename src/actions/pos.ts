@@ -8,6 +8,7 @@ import { scheduleWhatsAppMessage } from '@/lib/whatsapp-scheduler'
 import { resolveActiveStoreId, resolveStockStoreId } from '@/lib/active-store'
 import { checkSalesQuota } from '@/lib/subscription'
 import type { MetaAttribution } from '@/actions/meta-ads'
+import { sendPurchaseConversion } from '@/actions/meta-ads'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -518,6 +519,32 @@ export async function createSale(input: CreateSaleInput): Promise<{ id: string }
         vars:        { aparelho: itemsLabel, valor: `R$ ${valorBRL}` },
       }).catch(() => null)
     }
+  })
+
+  // Meta Conversions API: envia evento Purchase se cliente tem email/telefone.
+  // Só dispara para origens Meta (instagram_pago / facebook). Silencioso.
+  after(async () => {
+    if (!input.customerId) return
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sb = supabase as any
+    const { data: cust } = await sb
+      .from('customers')
+      .select('email, whatsapp, origin')
+      .eq('id', input.customerId)
+      .eq('tenant_id', tenantId)
+      .maybeSingle()
+
+    const isMetaOrigin = cust?.origin === 'instagram_pago' || cust?.origin === 'facebook'
+    if (!isMetaOrigin) return
+
+    await sendPurchaseConversion({
+      totalCents:  input.totalCents,
+      email:       cust?.email    ?? null,
+      phone:       cust?.whatsapp ?? null,
+      saleId:      sale.id,
+      occurredAt:  new Date(),
+    }).catch(() => null)
   })
 
   return sale as { id: string }

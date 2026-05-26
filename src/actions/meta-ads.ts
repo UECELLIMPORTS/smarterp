@@ -21,6 +21,7 @@
  *   - fetchMetaAdsCampaigns()
  */
 
+import { createHash } from 'crypto'
 import { requireAuth } from '@/lib/supabase/server'
 import { getTenantId } from '@/lib/tenant'
 import { revalidatePath } from 'next/cache'
@@ -1105,5 +1106,72 @@ export async function duplicateCampaign(
     const msg = err instanceof Error ? err.message : 'Erro desconhecido'
     await recordSync(resolved.accountPk, false, msg)
     throw err
+  }
+}
+
+// ── Conversions API — envio de evento Purchase após venda ─────────────────
+//
+// Disparado via after() no createSale — não bloqueia a resposta do POS.
+// Envia email e telefone hasheados (SHA-256) para o Meta fazer o match.
+// Requer META_DATASET_ID e META_CONVERSIONS_TOKEN no .env.local / Vercel.
+
+type PurchaseEventInput = {
+  totalCents:   number
+  email:        string | null
+  phone:        string | null
+  saleId:       string
+  occurredAt:   Date
+}
+
+function sha256(value: string): string {
+  return createHash('sha256')
+    .update(value.trim().toLowerCase())
+    .digest('hex')
+}
+
+function normalizePhone(raw: string): string {
+  // Remove tudo que não for dígito e garante código do país Brasil
+  const digits = raw.replace(/\D/g, '')
+  return digits.startsWith('55') ? digits : `55${digits}`
+}
+
+export async function sendPurchaseConversion(input: PurchaseEventInput): Promise<void> {
+  const datasetId = process.env.META_DATASET_ID
+  const token     = process.env.META_CONVERSIONS_TOKEN
+
+  if (!datasetId || !token) return // silencioso — env não configurado
+
+  const userData: Record<string, string[]> = {}
+  if (input.email) userData.em = [sha256(input.email)]
+  if (input.phone) userData.ph = [sha256(normalizePhone(input.phone))]
+
+  // Sem dados de identificação → match rate zero, não vale enviar
+  if (Object.keys(userData).length === 0) return
+
+  const payload = {
+    data: [{
+      event_name:    'Purchase',
+      event_time:    Math.floor(input.occurredAt.getTime() / 1000),
+      action_source: 'physical_store',
+      event_id:      input.saleId,   // deduplicação
+      user_data:     userData,
+      custom_data: {
+        value:    (input.totalCents / 100).toFixed(2),
+        currency: 'BRL',
+      },
+    }],
+  }
+
+  try {
+    await fetch(
+      `${META_BASE}/${datasetId}/events?access_token=${token}`,
+      {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(payload),
+      },
+    )
+  } catch {
+    // Silencioso — falha no CAPI não pode travar a venda
   }
 }
