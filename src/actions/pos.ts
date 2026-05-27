@@ -533,21 +533,31 @@ export async function createSale(input: CreateSaleInput): Promise<{ id: string }
   })
 
   // Meta Conversions API: envia evento Purchase se cliente tem email/telefone.
-  // Só dispara para origens Meta (instagram_pago / facebook). Silencioso.
+  // Dispara para origens Meta (instagram_pago / facebook) OU se a venda tem atribuição Meta.
+  // Credenciais CAPI buscadas aqui (enquanto supabase está disponível) e passadas adiante.
   after(async () => {
     if (!input.customerId) return
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sb = supabase as any
-    const { data: cust } = await sb
-      .from('customers')
-      .select('email, whatsapp, origin')
-      .eq('id', input.customerId)
-      .eq('tenant_id', tenantId)
-      .maybeSingle()
+    const [custResult, capiResult] = await Promise.all([
+      sb.from('customers')
+        .select('email, whatsapp, origin')
+        .eq('id', input.customerId)
+        .eq('tenant_id', tenantId)
+        .maybeSingle(),
+      sb.from('meta_ads_credentials')
+        .select('capi_dataset_id, capi_token')
+        .eq('tenant_id', tenantId)
+        .maybeSingle(),
+    ])
 
-    const isMetaOrigin = cust?.origin === 'instagram_pago' || cust?.origin === 'facebook'
-    if (!isMetaOrigin) return
+    const cust      = custResult.data
+    const capiCreds = capiResult.data
+
+    const isMetaOrigin     = cust?.origin === 'instagram_pago' || cust?.origin === 'facebook'
+    const hasMetaAttrib    = !!input.metaAttribution?.campaignId
+    if (!isMetaOrigin && !hasMetaAttrib) return
 
     await sendPurchaseConversion({
       totalCents:  input.totalCents,
@@ -555,6 +565,8 @@ export async function createSale(input: CreateSaleInput): Promise<{ id: string }
       phone:       cust?.whatsapp ?? null,
       saleId:      sale.id,
       occurredAt:  new Date(),
+      datasetId:   capiCreds?.capi_dataset_id ?? process.env.META_DATASET_ID ?? null,
+      token:       capiCreds?.capi_token      ?? process.env.META_CONVERSIONS_TOKEN ?? null,
     }).catch(() => null)
   })
 

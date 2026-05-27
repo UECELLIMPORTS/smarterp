@@ -1134,6 +1134,8 @@ type PurchaseEventInput = {
   phone:        string | null
   saleId:       string
   occurredAt:   Date
+  datasetId?:   string | null  // pré-resolvido em pos.ts (evita requireAuth no after())
+  token?:       string | null
 }
 
 function sha256(value: string): string {
@@ -1149,27 +1151,28 @@ function normalizePhone(raw: string): string {
 }
 
 export async function sendPurchaseConversion(input: PurchaseEventInput): Promise<void> {
-  // Busca dataset_id e token do banco (multi-tenant)
-  // Fallback para env vars por compatibilidade (tenant próprio do Felipe)
-  let datasetId: string | null = null
-  let token: string | null     = null
+  // Usa credenciais pré-resolvidas (passadas por pos.ts no after()) ou busca do banco
+  let datasetId: string | null = input.datasetId ?? null
+  let token: string | null     = input.token     ?? null
 
-  try {
-    const { supabase, user } = await requireAuth()
-    const tenantId = getTenantId(user)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: creds } = await (supabase as any)
-      .from('meta_ads_credentials')
-      .select('capi_dataset_id, capi_token')
-      .eq('tenant_id', tenantId)
-      .maybeSingle()
+  if (!datasetId || !token) {
+    try {
+      const { supabase, user } = await requireAuth()
+      const tenantId = getTenantId(user)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: creds } = await (supabase as any)
+        .from('meta_ads_credentials')
+        .select('capi_dataset_id, capi_token')
+        .eq('tenant_id', tenantId)
+        .maybeSingle()
 
-    datasetId = creds?.capi_dataset_id ?? process.env.META_DATASET_ID ?? null
-    token     = creds?.capi_token      ?? process.env.META_CONVERSIONS_TOKEN ?? null
-  } catch {
-    // Se auth falhar (ex: chamado de after()), tenta env vars
-    datasetId = process.env.META_DATASET_ID ?? null
-    token     = process.env.META_CONVERSIONS_TOKEN ?? null
+      datasetId = creds?.capi_dataset_id ?? process.env.META_DATASET_ID ?? null
+      token     = creds?.capi_token      ?? process.env.META_CONVERSIONS_TOKEN ?? null
+    } catch {
+      // Se auth falhar (ex: chamado de after() sem credenciais pré-resolvidas), tenta env vars
+      datasetId = process.env.META_DATASET_ID ?? null
+      token     = process.env.META_CONVERSIONS_TOKEN ?? null
+    }
   }
 
   if (!datasetId || !token) return // silencioso — CAPI não configurado
