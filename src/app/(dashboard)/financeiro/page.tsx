@@ -48,12 +48,12 @@ export default async function FinanceiroPage({
       .from('service_orders')
       .select(`
         id, customer_id, total_price_cents, service_price_cents, parts_sale_cents,
-        parts_cost_cents, discount_cents, status, payment_method, received_at,
+        parts_cost_cents, discount_cents, status, payment_method, received_at, delivered_at,
         sale_channel, delivery_type,
         customers ( full_name, cpf_cnpj, created_at )
       `)
       .eq('tenant_id', tenantId)
-      .order('received_at', { ascending: false })
+      .order('delivered_at', { ascending: false, nullsFirst: false })
       .limit(300),
   ])
 
@@ -71,7 +71,7 @@ export default async function FinanceiroPage({
     id: string; customer_id: string | null
     total_price_cents: number; service_price_cents: number
     parts_sale_cents: number; parts_cost_cents: number | null; discount_cents: number
-    status: string; payment_method: string | null; received_at: string
+    status: string; payment_method: string | null; received_at: string; delivered_at: string | null
     sale_channel: string | null; delivery_type: string | null
     customers: { full_name: string; cpf_cnpj: string | null; created_at: string } | null
   }
@@ -156,8 +156,8 @@ export default async function FinanceiroPage({
       id:           `os-${o.id}`,
       rawId:        o.id,
       source:       'checksmart' as const,
-      date:         new Date(o.received_at),
-      dateStr:      new Date(o.received_at).toLocaleString('pt-BR', {
+      date:         new Date(o.delivered_at ?? o.received_at),
+      dateStr:      new Date(o.delivered_at ?? o.received_at).toLocaleString('pt-BR', {
         day: '2-digit', month: '2-digit', year: '2-digit',
         hour: '2-digit', minute: '2-digit',
       }),
