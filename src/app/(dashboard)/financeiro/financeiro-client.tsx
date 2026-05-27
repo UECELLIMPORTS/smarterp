@@ -26,7 +26,8 @@ import {
 } from '@/actions/pos'
 import { AddressCityState } from '@/components/ui/address-fields'
 import { CUSTOMER_ORIGIN_OPTIONS, originLabel } from '@/lib/customer-origin'
-import { CampaignCodePicker } from '@/components/meta-ads/campaign-code-picker'
+import { MetaAttributionPicker } from '@/components/meta-ads/meta-attribution-picker'
+import type { MetaAttribution } from '@/actions/meta-ads'
 import { SALE_CHANNEL_OPTIONS_PICKABLE, DELIVERY_TYPE_OPTIONS, channelLabel, channelColor, deliveryLabel, type SaleChannel, type DeliveryType } from '@/lib/sale-channels'
 import { updateServiceOrderChannel, updateSaleChannel } from '@/actions/sales-channels'
 import { emitNfceFromSale } from '@/actions/fiscal-emit'
@@ -605,8 +606,9 @@ export function FinanceiroClient({ initialRows, stores = [], activeStoreId = nul
   const [novaVendaOpen, setNovaVendaOpen] = useState(false)
   const [saleDate, setSaleDate]           = useState(new Date().toISOString().slice(0, 10))
   const [payMethod, setPayMethod]         = useState<'cash'|'pix'|'card'|'mixed'>('pix')
-  const [nvSaleChannel, setNvSaleChannel] = useState<SaleChannel | ''>('')
-  const [nvDeliveryType, setNvDeliveryType] = useState<DeliveryType | ''>('')
+  const [nvSaleChannel, setNvSaleChannel]     = useState<SaleChannel | ''>('')
+  const [nvDeliveryType, setNvDeliveryType]   = useState<DeliveryType | ''>('')
+  const [nvMetaAttrib, setNvMetaAttrib]       = useState<MetaAttribution | null>(null)
   const [discountStr, setDiscountStr]     = useState('')
   const [shippingStr, setShippingStr]     = useState('')
   const [nvSaving, startNvSave]           = useTransition()
@@ -719,7 +721,7 @@ export function FinanceiroClient({ initialRows, stores = [], activeStoreId = nul
     setCart([]); setPQuery(''); setDiscountStr(''); setShippingStr(''); setSaleDate(new Date().toISOString().slice(0, 10))
     setPayMethod('pix'); setCustomer(null); setCustQuery(''); setShowCustForm(false)
     setNc(EMPTY_NC); setNvError(''); setShowManual(false)
-    setNvSaleChannel(''); setNvDeliveryType('')
+    setNvSaleChannel(''); setNvDeliveryType(''); setNvMetaAttrib(null)
     setEsSaleChannel(''); setEsDeliveryType('')
   }
 
@@ -1079,13 +1081,14 @@ export function FinanceiroClient({ initialRows, stores = [], activeStoreId = nul
         }))
         await createManualSale({
           saleDate,
-          customerId:    customer?.id ?? null,
+          customerId:      customer?.id ?? null,
           items,
-          discountCents: discount,
-          shippingCents: shipping,
-          paymentMethod: payMethod,
-          saleChannel:   nvSaleChannel  || null,
-          deliveryType:  nvDeliveryType || null,
+          discountCents:   discount,
+          shippingCents:   shipping,
+          paymentMethod:   payMethod,
+          saleChannel:     nvSaleChannel  || null,
+          deliveryType:    nvDeliveryType || null,
+          metaAttribution: nvMetaAttrib   ?? null,
         })
         toast.success('Venda registrada com sucesso!')
         setNovaVendaOpen(false)
@@ -2344,18 +2347,13 @@ export function FinanceiroClient({ initialRows, stores = [], activeStoreId = nul
                       </div>
                     )}
 
-                    {/* ── Código da campanha (origens Meta) ── */}
+                    {/* ── Atribuição Meta Ads (origens Meta) ── */}
                     {customer.origin && (customer.origin === 'instagram_pago' || customer.origin === 'facebook') && (
-                      <div className="rounded-lg border px-3 py-2 flex items-center justify-between gap-2"
-                        style={{ background: '#131C2A', borderColor: '#2A3650' }}>
-                        <span className="text-[10px] font-semibold uppercase tracking-wider shrink-0" style={{ color: '#94A3B8' }}>
-                          Campanha
-                        </span>
-                        <CampaignCodePicker
-                          customerId={customer.id}
-                          currentCode={customer.campaign_code}
+                      <div className="rounded-lg border px-3 py-2" style={{ background: '#131C2A', borderColor: '#2A3650' }}>
+                        <MetaAttributionPicker
+                          current={nvMetaAttrib}
                           origin={customer.origin}
-                          onUpdated={code => setCustomer(customer ? { ...customer, campaign_code: code } : null)}
+                          onUpdated={setNvMetaAttrib}
                           compact
                         />
                       </div>

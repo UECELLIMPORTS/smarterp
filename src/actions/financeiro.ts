@@ -1,9 +1,12 @@
 'use server'
 
+import { after } from 'next/server'
 import { requireAuth } from '@/lib/supabase/server'
 import { getTenantId } from '@/lib/tenant'
 import { revalidatePath } from 'next/cache'
 import { resolveActiveStoreId } from '@/lib/active-store'
+import type { MetaAttribution } from '@/actions/meta-ads'
+import { sendPurchaseConversion } from '@/actions/meta-ads'
 
 // ── Helper: busca cost_cents atual dos produtos/peças pra snapshot em sale_items
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -514,14 +517,15 @@ export type ManualSaleItem = {
 }
 
 export type ManualSaleInput = {
-  saleDate:      string
-  customerId:    string | null
-  items:         ManualSaleItem[]
-  discountCents: number
-  shippingCents?: number
-  paymentMethod: 'cash' | 'pix' | 'card' | 'mixed'
-  saleChannel?:  string | null
-  deliveryType?: string | null
+  saleDate:         string
+  customerId:       string | null
+  items:            ManualSaleItem[]
+  discountCents:    number
+  shippingCents?:   number
+  paymentMethod:    'cash' | 'pix' | 'card' | 'mixed'
+  saleChannel?:     string | null
+  deliveryType?:    string | null
+  metaAttribution?: MetaAttribution | null
 }
 
 export async function createManualSale(input: ManualSaleInput): Promise<void> {
@@ -553,8 +557,14 @@ export async function createManualSale(input: ManualSaleInput): Promise<void> {
       payment_method: input.paymentMethod,
       status:         'completed',
       created_at:     saleDate.toISOString(),
-      sale_channel:   input.saleChannel  ?? null,
-      delivery_type:  input.deliveryType ?? null,
+      sale_channel:       input.saleChannel  ?? null,
+      delivery_type:      input.deliveryType ?? null,
+      meta_campaign_id:   input.metaAttribution?.campaignId   ?? null,
+      meta_campaign_name: input.metaAttribution?.campaignName ?? null,
+      meta_adset_id:      input.metaAttribution?.adsetId      ?? null,
+      meta_adset_name:    input.metaAttribution?.adsetName    ?? null,
+      meta_ad_id:         input.metaAttribution?.adId         ?? null,
+      meta_ad_name:       input.metaAttribution?.adName       ?? null,
     })
     .select('id')
     .single()
@@ -593,6 +603,35 @@ export async function createManualSale(input: ManualSaleInput): Promise<void> {
 
   revalidatePath('/financeiro')
   revalidatePath('/estoque')
+
+  // Meta CAPI — envia Purchase se cliente de origem Meta ou venda com atribuição Meta
+  after(async () => {
+    if (!input.customerId) return
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sbAny = supabase as any
+    const [custResult, capiResult] = await Promise.all([
+      sbAny.from('customers').select('email, whatsapp, origin').eq('id', input.customerId).eq('tenant_id', tenantId).maybeSingle(),
+      sbAny.from('meta_ads_credentials').select('capi_dataset_id, capi_token').eq('tenant_id', tenantId).maybeSingle(),
+    ])
+
+    const cust      = custResult.data
+    const capiCreds = capiResult.data
+
+    const isMetaOrigin  = cust?.origin === 'instagram_pago' || cust?.origin === 'facebook'
+    const hasMetaAttrib = !!input.metaAttribution?.campaignId
+    if (!isMetaOrigin && !hasMetaAttrib) return
+
+    await sendPurchaseConversion({
+      totalCents:  total,
+      email:       cust?.email    ?? null,
+      phone:       cust?.whatsapp ?? null,
+      saleId:      sale.id,
+      occurredAt:  saleDate,
+      datasetId:   capiCreds?.capi_dataset_id ?? process.env.META_DATASET_ID ?? null,
+      token:       capiCreds?.capi_token      ?? process.env.META_CONVERSIONS_TOKEN ?? null,
+    }).catch(() => null)
+  })
 }
 
 // ── Bulk cancel (ERP sales + CheckSmart OS) ───────────────────────────────────
