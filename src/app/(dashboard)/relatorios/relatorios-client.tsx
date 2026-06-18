@@ -11,6 +11,7 @@ import { CUSTOMER_ORIGIN_OPTIONS, originLabel } from '@/lib/customer-origin'
 import { SALE_CHANNEL_OPTIONS_PICKABLE, channelLabel } from '@/lib/sale-channels'
 import { VendasTab } from './vendas-tab'
 import { ProdutosTab } from './produtos-tab'
+import { PagoOrganicoTab } from './trafego-tab'
 
 const BRL = (c: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(c / 100)
@@ -126,9 +127,10 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
   }
 
   const TABS: { v: Tab; label: string; icon: React.ElementType }[] = [
-    { v: 'geral',    label: 'Visão geral', icon: BarChart2 },
-    { v: 'vendas',   label: 'Vendas',      icon: ShoppingCart },
-    { v: 'produtos', label: 'Produtos',    icon: Package },
+    { v: 'geral',    label: 'Visão geral',    icon: BarChart2 },
+    { v: 'vendas',   label: 'Vendas',         icon: ShoppingCart },
+    { v: 'produtos', label: 'Produtos',       icon: Package },
+    { v: 'trafego',  label: 'Pago vs Orgân.', icon: TrendingUp },
   ]
 
   return (
@@ -141,6 +143,7 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
             {tab === 'geral'    && 'Análise consolidada por origem dos clientes'}
             {tab === 'vendas'   && 'Tabela detalhada de cada venda com filtros e export'}
             {tab === 'produtos' && 'Ranking de produtos: faturamento, lucro e margem'}
+            {tab === 'trafego'  && 'Comparativo entre vendas de tráfego pago e vendas orgânicas'}
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -241,6 +244,11 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
           )
         })}
       </div>
+
+      {/* Aba Pago vs Orgânico */}
+      {tab === 'trafego' && (
+        <PagoOrganicoTab rows={data.trafegoRows} />
+      )}
 
       {/* Conteúdo das abas Vendas/Produtos */}
       {tab === 'vendas' && data.salesReport && (

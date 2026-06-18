@@ -13,7 +13,18 @@ import { listStores } from '@/actions/stores'
 import { resolveActiveStoreId } from '@/lib/active-store'
 import { getStoreComparison, type StoreCompareRow } from '@/lib/store-comparison'
 
-export type Tab = 'geral' | 'vendas' | 'produtos'
+export type Tab = 'geral' | 'vendas' | 'produtos' | 'trafego'
+
+export type TrafegoRow = {
+  month:          string         // 'yyyy-MM'
+  totalCents:     number
+  profitCents:    number
+  isPaid:         boolean
+  campaignId:     string | null
+  campaignName:   string | null
+  customerOrigin: string | null
+  source:         'erp' | 'checksmart'
+}
 
 export const metadata = { title: 'Relatórios — Smart ERP' }
 
@@ -91,6 +102,7 @@ export type RelatoriosData = {
   topClients: TopClientRow[]
   salesReport:    SalesReportData | null
   productsReport: ProductReportRow[] | null
+  trafegoRows:    TrafegoRow[]
   // Multi-store
   stores:         { id: string; name: string; code: string; color: string; is_default: boolean; monthly_goal_cents: number }[]
   storeFilter:    string  // '', 'all' ou storeId
@@ -124,7 +136,7 @@ export default async function RelatoriosPage({
   const sb = supabase as any
 
   const params = await searchParams
-  const tab = (['geral', 'vendas', 'produtos'].includes(params.tab ?? '') ? params.tab : 'geral') as Tab
+  const tab = (['geral', 'vendas', 'produtos', 'trafego'].includes(params.tab ?? '') ? params.tab : 'geral') as Tab
   const period = (['7d', '30d', '90d', '6m', 'custom'].includes(params.period ?? '')
     ? params.period
     : '30d') as Period
@@ -156,8 +168,8 @@ export default async function RelatoriosPage({
     resolvedStoreId = await resolveActiveStoreId(sb, tenantId)
   }
 
-  const cols = 'customer_id, total_cents, sale_channel, customer_origin, created_at, sale_items(quantity, unit_price_cents, product_id, cost_snapshot_cents), customers(id, full_name, origin, whatsapp, phone)'
-  const osCols = 'customer_id, total_price_cents, service_price_cents, parts_sale_cents, parts_cost_cents, discount_cents, sale_channel, received_at, customers(id, full_name, origin, whatsapp, phone)'
+  const cols = 'customer_id, total_cents, sale_channel, customer_origin, created_at, meta_campaign_id, meta_campaign_name, sale_items(quantity, unit_price_cents, product_id, cost_snapshot_cents), customers(id, full_name, origin, whatsapp, phone)'
+  const osCols = 'customer_id, total_price_cents, service_price_cents, parts_sale_cents, parts_cost_cents, discount_cents, sale_channel, received_at, meta_campaign_id, meta_campaign_name, customers(id, full_name, origin, whatsapp, phone)'
 
   // Sales: aplica filtro de loja se houver
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -193,6 +205,9 @@ export default async function RelatoriosPage({
     total_cents: number
     sale_channel: string | null
     customer_origin: string | null
+    created_at: string
+    meta_campaign_id: string | null
+    meta_campaign_name: string | null
     sale_items: { quantity: number; unit_price_cents: number; product_id: string | null; cost_snapshot_cents: number | null }[] | null
     customers: { id: string; full_name: string; origin: string | null; whatsapp: string | null; phone: string | null } | null
   }
@@ -204,6 +219,9 @@ export default async function RelatoriosPage({
     parts_cost_cents: number | null
     discount_cents: number | null
     sale_channel: string | null
+    received_at: string
+    meta_campaign_id: string | null
+    meta_campaign_name: string | null
     customers: { id: string; full_name: string; origin: string | null; whatsapp: string | null; phone: string | null } | null
   }
   const salesData = (salesRes.data ?? []) as SalesRow[]
@@ -369,6 +387,50 @@ export default async function RelatoriosPage({
     .sort((a, b) => b.totalCents - a.totalCents)
     .slice(0, 10)
 
+  // Tráfego pago vs orgânico — rows compactas para o tab de comparativo
+  const trafegoRows: TrafegoRow[] = [
+    ...salesData.map(s => {
+      const items = s.sale_items ?? []
+      const cost  = items.reduce((sum, i) => {
+        const c = i.cost_snapshot_cents ?? (i.product_id ? (costMap.get(i.product_id) ?? 0) : 0)
+        return sum + (i.quantity ?? 0) * c
+      }, 0)
+      const isPaid = !!(s.meta_campaign_id) ||
+        s.customer_origin === 'instagram_pago' ||
+        s.customer_origin === 'facebook'
+      const d = new Date(s.created_at)
+      return {
+        month:          `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
+        totalCents:     s.total_cents ?? 0,
+        profitCents:    (s.total_cents ?? 0) - cost,
+        isPaid,
+        campaignId:     s.meta_campaign_id ?? null,
+        campaignName:   s.meta_campaign_name ?? null,
+        customerOrigin: s.customer_origin ?? s.customers?.origin ?? null,
+        source:         'erp' as const,
+      }
+    }),
+    ...osData.map(o => {
+      const total     = osTotal(o)
+      const partsCost = o.parts_cost_cents ?? 0
+      const origin    = o.customers?.origin ?? null
+      const isPaid    = !!(o.meta_campaign_id) ||
+        origin === 'instagram_pago' ||
+        origin === 'facebook'
+      const d = new Date(o.received_at)
+      return {
+        month:          `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
+        totalCents:     total,
+        profitCents:    total - partsCost,
+        isPaid,
+        campaignId:     o.meta_campaign_id ?? null,
+        campaignName:   o.meta_campaign_name ?? null,
+        customerOrigin: origin,
+        source:         'checksmart' as const,
+      }
+    }),
+  ]
+
   // Carrega dados das abas Vendas/Produtos sob demanda (evita query pesada
   // se o user só está olhando a Visão Geral)
   let salesReport: SalesReportData | null = null
@@ -431,6 +493,7 @@ export default async function RelatoriosPage({
     topClients,
     salesReport,
     productsReport,
+    trafegoRows,
     stores: stores.map(s => ({
       id: s.id, name: s.name, code: s.code, color: s.color,
       is_default: s.is_default, monthly_goal_cents: s.monthly_goal_cents,
