@@ -18,7 +18,7 @@ import {
   type MetaAdsInsights, type MetaAdsCampaign, type MetaAdsPeriod, type MetaAdsAdAccount,
   type MetaAdsTimeseriesPoint, type MetaAdsAccountHealth,
 } from '@/actions/meta-ads'
-import type { OriginTotals, CampaignCodeTotal } from './page'
+import type { OriginTotals, CampaignCodeTotal, DirectCampaignTotal, DashboardCampaign, AccountBreakdownItem } from './page'
 import { formatDateTime } from '@/lib/datetime'
 
 const BRL = (c: number) =>
@@ -34,27 +34,36 @@ type Props = {
   period: MetaAdsPeriod
   accounts: MetaAdsAdAccount[]
   selectedAccount: MetaAdsAdAccount | null
+  isAggregate: boolean
+  accountBreakdown: AccountBreakdownItem[]
+  healthByAccount: Record<string, MetaAdsAccountHealth | null>
   accountHealth: MetaAdsAccountHealth | null
   insights: MetaAdsInsights | null
-  campaigns: MetaAdsCampaign[]
+  campaigns: DashboardCampaign[]
   loadError: string | null
   originRevenue: OriginTotals
   campaignCodeTotals: CampaignCodeTotal[]
+  directCampaignTotals: DirectCampaignTotal[]
   unreadAlertsCount: number
 }
 
 export function MetaAdsDashboard({
-  period, accounts, selectedAccount, accountHealth, insights, campaigns, loadError, originRevenue, campaignCodeTotals, unreadAlertsCount,
+  period, accounts, selectedAccount, isAggregate, accountBreakdown, healthByAccount, accountHealth, insights, campaigns, loadError, originRevenue, campaignCodeTotals, directCampaignTotals, unreadAlertsCount,
 }: Props) {
   const router = useRouter()
+  const activeAccounts = accounts.filter(a => a.isActive)
 
   function buildUrl(nextPeriod: MetaAdsPeriod, nextAccountId?: string) {
     const params = new URLSearchParams()
     params.set('period', nextPeriod)
-    const accId = nextAccountId ?? selectedAccount?.adAccountId
+    const accId = nextAccountId ?? (isAggregate ? 'all' : selectedAccount?.adAccountId)
     if (accId) params.set('account', accId)
     return `/meta-ads?${params.toString()}`
   }
+
+  // Saúde da conta de cada campanha (no consolidado cada campanha pode estar
+  // numa conta diferente; no modo individual cai no accountHealth único).
+  const healthFor = (c: DashboardCampaign) => healthByAccount[c.adAccountId] ?? accountHealth
 
   const periodOptions: { v: MetaAdsPeriod; label: string }[] = [
     { v: 'today',     label: 'Hoje' },
@@ -75,14 +84,15 @@ export function MetaAdsDashboard({
   //   2. issues_info da campanha
   //   3. effective_status
   //   4. status (intenção do usuário)
-  const statusInfo = (campaign: MetaAdsCampaign) => {
+  const statusInfo = (campaign: DashboardCampaign) => {
     // Conta unhealthy → problema é da conta, todas as campanhas ficam bloqueadas
-    if (accountHealth && !accountHealth.isHealthy) {
+    const health = healthFor(campaign)
+    if (health && !health.isHealthy) {
       return {
         c:  '#EF4444',
         bg: 'rgba(255,77,109,.15)',
-        label: accountHealth.label,
-        detail: accountHealth.detail ?? 'Problema na conta de anúncios',
+        label: health.label,
+        detail: health.detail ?? 'Problema na conta de anúncios',
       }
     }
     // Se tem issues específicas, mostra a primeira (geralmente a mais crítica)
@@ -126,8 +136,9 @@ export function MetaAdsDashboard({
   }
 
   // Mutação é bloqueada se: conta unhealthy OU campanha com issue OU status ruim
-  const isMutationBlocked = (campaign: MetaAdsCampaign) => {
-    if (accountHealth && !accountHealth.isHealthy) return true
+  const isMutationBlocked = (campaign: DashboardCampaign) => {
+    const health = healthFor(campaign)
+    if (health && !health.isHealthy) return true
     if (campaign.issues && campaign.issues.length > 0) return true
     return campaign.effectiveStatus === 'WITH_ISSUES' ||
            campaign.effectiveStatus === 'PENDING_BILLING_INFO' ||
@@ -143,7 +154,13 @@ export function MetaAdsDashboard({
         <div>
           <h1 className="text-2xl font-bold" style={{ color: '#F8FAFC' }}>Meta Ads</h1>
           <p className="mt-1 text-sm" style={{ color: '#94A3B8' }}>
-            {selectedAccount ? (
+            {isAggregate ? (
+              <>
+                <span style={{ color: '#F8FAFC' }}>Todas as contas</span>
+                {' · '}
+                {activeAccounts.length} contas de anúncio somadas
+              </>
+            ) : selectedAccount ? (
               <>
                 <span style={{ color: '#F8FAFC' }}>{selectedAccount.displayName}</span>
                 {' · '}
@@ -156,10 +173,10 @@ export function MetaAdsDashboard({
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          {accounts.filter(a => a.isActive).length > 1 && selectedAccount && (
+          {activeAccounts.length > 1 && (
             <AccountSelector
-              accounts={accounts.filter(a => a.isActive)}
-              selectedId={selectedAccount.adAccountId}
+              accounts={activeAccounts}
+              selectedId={isAggregate ? 'all' : (selectedAccount?.adAccountId ?? 'all')}
               onSelect={id => router.push(buildUrl(period, id))}
             />
           )}
@@ -299,6 +316,60 @@ export function MetaAdsDashboard({
         </div>
       )}
 
+      {/* Breakdown por conta — só no consolidado */}
+      {isAggregate && accountBreakdown.length > 0 && (
+        <div className="rounded-2xl border" style={{ background: '#1B2638', borderColor: '#2A3650' }}>
+          <div className="flex items-center gap-2 border-b px-6 py-4" style={{ borderColor: '#2A3650' }}>
+            <div className="h-4 w-1 rounded-full" style={{ background: '#1877F2' }} />
+            <div>
+              <p className="text-xs font-bold uppercase tracking-widest" style={{ color: '#CBD5E1' }}>Por conta de anúncio</p>
+              <p className="text-[11px]" style={{ color: '#94A3B8' }}>
+                Resultado individual de cada conta no período. Os KPIs e o ROAS acima são a soma de todas.
+              </p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 xl:grid-cols-3">
+            {accountBreakdown.map(acc => {
+              const ins = acc.insights
+              const unhealthy = acc.health && !acc.health.isHealthy
+              return (
+                <button
+                  key={acc.adAccountId}
+                  onClick={() => router.push(buildUrl(period, acc.adAccountId))}
+                  className="rounded-xl border p-4 text-left transition-colors hover:bg-white/5"
+                  style={{ background: '#131C2A', borderColor: unhealthy ? 'rgba(255,77,109,.4)' : '#2A3650' }}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-bold truncate" style={{ color: '#F8FAFC' }}>{acc.displayName}</span>
+                    {unhealthy
+                      ? <span className="text-[9px] font-bold rounded-full px-2 py-0.5 whitespace-nowrap" style={{ background: 'rgba(255,77,109,.15)', color: '#EF4444' }}>Problema</span>
+                      : <span className="text-[10px]" style={{ color: '#22C55E' }}>ver só esta →</span>}
+                  </div>
+                  <div className="text-[10px] font-mono mt-0.5 truncate" style={{ color: '#94A3B8' }}>{acc.adAccountId}</div>
+
+                  {acc.error ? (
+                    <p className="text-[11px] mt-3" style={{ color: '#EF4444' }}>Erro ao carregar: {acc.error}</p>
+                  ) : ins ? (
+                    <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2">
+                      <BreakdownStat label="Investido"  value={BRL(ins.spendCents)} color="#E4405F" />
+                      <BreakdownStat label="Impressões" value={NUM(ins.impressions)} color="#22C55E" />
+                      <BreakdownStat label="Cliques"    value={NUM(ins.clicks)} color="#F59E0B" />
+                      <BreakdownStat label="CPC"        value={BRL(ins.cpcCents)} color="#8B5CF6" />
+                    </div>
+                  ) : (
+                    <p className="text-[11px] mt-3" style={{ color: '#94A3B8' }}>Sem dados no período.</p>
+                  )}
+
+                  {unhealthy && acc.health?.label && (
+                    <p className="text-[10px] mt-2" style={{ color: '#EF4444' }}>{acc.health.label}</p>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
       {/* ROAS — destaque */}
       {insights && (
         <div className="rounded-2xl border p-6" style={{ background: '#1B2638', borderColor: '#2A3650' }}>
@@ -368,6 +439,9 @@ export function MetaAdsDashboard({
       {/* ROAS por código de campanha */}
       <CampaignCodeSection totals={campaignCodeTotals} spendCents={insights?.spendCents ?? 0} />
 
+      {/* Atribuição direta por meta_campaign_id */}
+      <DirectAttributionSection totals={directCampaignTotals} spendCents={insights?.spendCents ?? 0} />
+
       {/* Campanhas */}
       <div className="rounded-2xl border" style={{ background: '#1B2638', borderColor: '#2A3650' }}>
         <div className="flex items-center justify-between border-b px-6 py-4" style={{ borderColor: '#2A3650' }}>
@@ -411,7 +485,15 @@ export function MetaAdsDashboard({
                       <tr key={c.id} className="border-b hover:bg-white/[0.02] transition-colors" style={{ borderColor: 'rgba(30,45,69,.5)' }}>
                         <td className="px-5 py-3">
                           <p className="font-medium text-sm" style={{ color: '#F8FAFC' }}>{c.name}</p>
-                          <p className="text-[10px] font-mono mt-0.5" style={{ color: '#94A3B8' }}>ID: {c.id}</p>
+                          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                            {isAggregate && (
+                              <span className="text-[9px] font-bold rounded-full px-2 py-0.5 whitespace-nowrap"
+                                style={{ background: 'rgba(24,119,242,.12)', color: '#60A5FA' }}>
+                                {c.accountName}
+                              </span>
+                            )}
+                            <span className="text-[10px] font-mono" style={{ color: '#94A3B8' }}>ID: {c.id}</span>
+                          </div>
                         </td>
                         <td className="px-5 py-3">
                           <span className="rounded-full px-2 py-0.5 text-[10px] font-bold whitespace-nowrap"
@@ -453,7 +535,7 @@ export function MetaAdsDashboard({
                         <td className="px-5 py-3">
                           <CampaignActions
                             campaign={c}
-                            adAccountId={selectedAccount?.adAccountId ?? null}
+                            adAccountId={c.adAccountId}
                             period={period}
                             mutationBlocked={blocked}
                             blockReason={blocked ? s.label : null}
@@ -494,6 +576,7 @@ function AccountSelector({
   onSelect: (adAccountId: string) => void
 }) {
   const [open, setOpen] = useState(false)
+  const isAll = selectedId === 'all'
   const selected = accounts.find(a => a.adAccountId === selectedId)
 
   return (
@@ -504,8 +587,8 @@ function AccountSelector({
         className="flex items-center gap-2 rounded-xl border px-3 py-1.5 text-xs font-bold transition-colors hover:bg-white/5"
         style={{ background: '#1B2638', borderColor: '#2A3650', color: '#F8FAFC' }}
       >
-        <span className="truncate max-w-[160px]">{selected?.displayName ?? 'Selecionar conta'}</span>
-        {selected?.isPrimary && <Star className="h-3 w-3 fill-current shrink-0" style={{ color: '#F59E0B' }} />}
+        <span className="truncate max-w-[160px]">{isAll ? 'Todas as contas' : (selected?.displayName ?? 'Selecionar conta')}</span>
+        {!isAll && selected?.isPrimary && <Star className="h-3 w-3 fill-current shrink-0" style={{ color: '#F59E0B' }} />}
         <ChevronDown className="h-3.5 w-3.5 shrink-0" style={{ color: '#94A3B8' }} />
       </button>
 
@@ -514,9 +597,22 @@ function AccountSelector({
           className="absolute right-0 mt-1 w-72 rounded-xl border shadow-lg z-20 overflow-hidden"
           style={{ background: '#1B2638', borderColor: '#2A3650' }}
         >
+          <button
+            onMouseDown={() => onSelect('all')}
+            className="w-full flex items-start gap-2 px-3 py-2.5 text-left transition-colors hover:bg-white/5"
+            style={{ borderBottom: '1px solid #2A3650' }}
+          >
+            <div className="mt-0.5 shrink-0 w-4">
+              {isAll && <Check className="h-3.5 w-3.5" style={{ color: '#10B981' }} />}
+            </div>
+            <div className="flex-1 min-w-0">
+              <span className="text-sm font-semibold" style={{ color: '#F8FAFC' }}>Todas as contas</span>
+              <div className="text-[10px]" style={{ color: '#94A3B8' }}>Consolidado de {accounts.length} contas</div>
+            </div>
+          </button>
           <div className="px-3 py-2 border-b text-[10px] font-bold uppercase tracking-wider"
             style={{ borderColor: '#2A3650', color: '#94A3B8' }}>
-            Contas ativas
+            Contas individuais
           </div>
           {accounts.map(acc => {
             const isSelected = acc.adAccountId === selectedId
@@ -553,6 +649,15 @@ function AccountSelector({
   )
 }
 
+function BreakdownStat({ label, value, color }: { label: string; value: string; color: string }) {
+  return (
+    <div>
+      <div className="text-[9px] font-semibold uppercase tracking-wider" style={{ color: '#94A3B8' }}>{label}</div>
+      <div className="text-sm font-bold font-mono mt-0.5" style={{ color }}>{value}</div>
+    </div>
+  )
+}
+
 function KpiCard({
   label, value, sub, color, icon: Icon,
 }: {
@@ -575,6 +680,7 @@ function KpiCard({
 
 function CampaignCodeSection({ totals, spendCents }: { totals: CampaignCodeTotal[]; spendCents: number }) {
   const totalRevenue = totals.reduce((s, t) => s + t.revenueCents, 0)
+  const totalProfit  = totals.reduce((s, t) => s + t.profitCents,  0)
   const hasData      = totals.length > 0
 
   return (
@@ -593,10 +699,16 @@ function CampaignCodeSection({ totals, spendCents }: { totals: CampaignCodeTotal
           </div>
         </div>
         {hasData && (
-          <span className="text-[11px] rounded-full px-2.5 py-1 font-bold"
-            style={{ background: 'rgba(255,170,0,.1)', color: '#F59E0B' }}>
-            {totals.length} código(s) · {BRL(totalRevenue)} atribuído
-          </span>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[11px] rounded-full px-2.5 py-1 font-bold"
+              style={{ background: 'rgba(255,170,0,.1)', color: '#F59E0B' }}>
+              {totals.length} código(s) · {BRL(totalRevenue)} faturado
+            </span>
+            <span className="text-[11px] rounded-full px-2.5 py-1 font-bold"
+              style={{ background: totalProfit >= 0 ? 'rgba(34,197,94,.1)' : 'rgba(255,77,109,.1)', color: totalProfit >= 0 ? '#22C55E' : '#EF4444' }}>
+              {BRL(totalProfit)} lucro bruto
+            </span>
+          </div>
         )}
       </div>
 
@@ -620,7 +732,7 @@ function CampaignCodeSection({ totals, spendCents }: { totals: CampaignCodeTotal
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b text-left" style={{ borderColor: '#2A3650' }}>
-                {['Código', 'Clientes', 'Transações', 'Faturamento', '% do Investido'].map(h => (
+                {['Código', 'Clientes', 'Transações', 'Faturamento', 'Lucro Bruto', 'Margem', '% do Investido'].map(h => (
                   <th key={h} className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider" style={{ color: '#94A3B8' }}>
                     {h}
                   </th>
@@ -629,7 +741,9 @@ function CampaignCodeSection({ totals, spendCents }: { totals: CampaignCodeTotal
             </thead>
             <tbody>
               {totals.map(t => {
-                const pct = spendCents > 0 ? (t.revenueCents / spendCents) : 0
+                const roasPct   = spendCents > 0 ? (t.revenueCents / spendCents) : 0
+                const marginPct = t.revenueCents > 0 ? (t.profitCents / t.revenueCents) * 100 : 0
+                const profitColor = t.profitCents > 0 ? '#22C55E' : t.profitCents < 0 ? '#EF4444' : '#94A3B8'
                 return (
                   <tr key={t.code} className="border-b hover:bg-white/[0.02] transition-colors" style={{ borderColor: 'rgba(30,45,69,.5)' }}>
                     <td className="px-4 py-3">
@@ -638,17 +752,15 @@ function CampaignCodeSection({ totals, spendCents }: { totals: CampaignCodeTotal
                         {t.code}
                       </span>
                     </td>
-                    <td className="px-4 py-3 font-mono text-xs" style={{ color: '#CBD5E1' }}>
-                      {t.customerCount}
+                    <td className="px-4 py-3 font-mono text-xs" style={{ color: '#CBD5E1' }}>{t.customerCount}</td>
+                    <td className="px-4 py-3 font-mono text-xs" style={{ color: '#CBD5E1' }}>{t.txCount}</td>
+                    <td className="px-4 py-3 font-mono font-semibold" style={{ color: '#10B981' }}>{BRL(t.revenueCents)}</td>
+                    <td className="px-4 py-3 font-mono font-semibold" style={{ color: profitColor }}>{BRL(t.profitCents)}</td>
+                    <td className="px-4 py-3 font-mono text-xs" style={{ color: marginPct >= 30 ? '#22C55E' : marginPct >= 15 ? '#F59E0B' : '#EF4444' }}>
+                      {t.revenueCents > 0 ? `${marginPct.toFixed(1)}%` : '—'}
                     </td>
-                    <td className="px-4 py-3 font-mono text-xs" style={{ color: '#CBD5E1' }}>
-                      {t.txCount}
-                    </td>
-                    <td className="px-4 py-3 font-mono font-semibold" style={{ color: '#10B981' }}>
-                      {BRL(t.revenueCents)}
-                    </td>
-                    <td className="px-4 py-3 font-mono text-xs" style={{ color: spendCents > 0 ? (pct >= 1 ? '#10B981' : pct >= 0.5 ? '#F59E0B' : '#EF4444') : '#94A3B8' }}>
-                      {spendCents > 0 ? `${(pct * 100).toFixed(0)}%` : '—'}
+                    <td className="px-4 py-3 font-mono text-xs" style={{ color: spendCents > 0 ? (roasPct >= 1 ? '#10B981' : roasPct >= 0.5 ? '#F59E0B' : '#EF4444') : '#94A3B8' }}>
+                      {spendCents > 0 ? `${(roasPct * 100).toFixed(0)}%` : '—'}
                     </td>
                   </tr>
                 )
@@ -660,9 +772,106 @@ function CampaignCodeSection({ totals, spendCents }: { totals: CampaignCodeTotal
             style={{ background: 'rgba(34,197,94,.05)', borderLeft: '2px solid #22C55E', color: '#CBD5E1' }}>
             <CheckCircle2 className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: '#22C55E' }} />
             <span>
-              <strong style={{ color: '#F8FAFC' }}>Como é calculado:</strong> cada código cruza os clientes que o possuem com todas as vendas e OS (entregues) do período.
-              A coluna <strong>% do Investido</strong> mostra quanto esse código representa do gasto total no Meta —
-              útil pra identificar quais anúncios pagam o próprio custo.
+              <strong style={{ color: '#F8FAFC' }}>Lucro bruto</strong> = faturamento − custo do produto/peças.
+              <strong style={{ color: '#F8FAFC' }}> Margem</strong> = lucro ÷ faturamento.
+              <strong style={{ color: '#F8FAFC' }}> % do Investido</strong> = quanto esse código retornou do gasto total no Meta.
+            </span>
+          </p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function DirectAttributionSection({ totals, spendCents }: { totals: DirectCampaignTotal[]; spendCents: number }) {
+  const totalRevenue = totals.reduce((s, t) => s + t.revenueCents, 0)
+  const totalProfit  = totals.reduce((s, t) => s + t.profitCents,  0)
+  const hasData      = totals.length > 0
+
+  return (
+    <div className="rounded-2xl border p-6" style={{ background: '#1B2638', borderColor: '#2A3650' }}>
+      <div className="flex items-start justify-between gap-3 flex-wrap mb-4">
+        <div className="flex items-center gap-2">
+          <div className="h-4 w-1 rounded-full" style={{ background: '#8B5CF6' }} />
+          <div>
+            <h2 className="text-xs font-bold uppercase tracking-widest flex items-center gap-1.5" style={{ color: '#CBD5E1' }}>
+              <Target className="h-3.5 w-3.5" />
+              Atribuição Direta por Campanha
+            </h2>
+            <p className="text-[11px]" style={{ color: '#94A3B8' }}>
+              Vendas e OS onde o <strong>link do anúncio</strong> foi aberto e registrou a campanha automaticamente (meta_campaign_id)
+            </p>
+          </div>
+        </div>
+        {hasData && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[11px] rounded-full px-2.5 py-1 font-bold"
+              style={{ background: 'rgba(139,92,246,.1)', color: '#8B5CF6' }}>
+              {totals.length} campanha(s) · {BRL(totalRevenue)} faturado
+            </span>
+            <span className="text-[11px] rounded-full px-2.5 py-1 font-bold"
+              style={{ background: totalProfit >= 0 ? 'rgba(34,197,94,.1)' : 'rgba(255,77,109,.1)', color: totalProfit >= 0 ? '#22C55E' : '#EF4444' }}>
+              {BRL(totalProfit)} lucro bruto
+            </span>
+          </div>
+        )}
+      </div>
+
+      {!hasData ? (
+        <div className="rounded-xl border p-5 text-center" style={{ background: '#131C2A', borderColor: 'rgba(139,92,246,.2)' }}>
+          <Target className="h-8 w-8 mx-auto mb-2" style={{ color: '#8B5CF6', opacity: 0.5 }} />
+          <p className="text-sm font-semibold" style={{ color: '#F8FAFC' }}>Nenhuma venda com atribuição direta de campanha no período</p>
+          <p className="text-xs mt-2 max-w-lg mx-auto" style={{ color: '#CBD5E1' }}>
+            A atribuição direta acontece quando o operador seleciona a campanha no momento do registro da venda ou OS no PDV.
+            Diferente do código manual, esse campo vem automaticamente do Meta Ads.
+          </p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b text-left" style={{ borderColor: '#2A3650' }}>
+                {['Campanha', 'Transações', 'Faturamento', 'Lucro Bruto', 'Margem', 'ROAS'].map(h => (
+                  <th key={h} className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider" style={{ color: '#94A3B8' }}>
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {totals.map(t => {
+                const marginPct = t.revenueCents > 0 ? (t.profitCents / t.revenueCents) * 100 : 0
+                const roas      = spendCents > 0 ? t.revenueCents / spendCents : 0
+                const profitColor = t.profitCents > 0 ? '#22C55E' : t.profitCents < 0 ? '#EF4444' : '#94A3B8'
+                return (
+                  <tr key={t.campaignId} className="border-b hover:bg-white/[0.02] transition-colors" style={{ borderColor: 'rgba(30,45,69,.5)' }}>
+                    <td className="px-4 py-3 max-w-[280px]">
+                      <p className="font-medium text-sm truncate" style={{ color: '#F8FAFC' }}>{t.campaignName}</p>
+                      <p className="text-[10px] font-mono mt-0.5" style={{ color: '#94A3B8' }}>ID: {t.campaignId}</p>
+                    </td>
+                    <td className="px-4 py-3 font-mono text-xs" style={{ color: '#CBD5E1' }}>{t.txCount}</td>
+                    <td className="px-4 py-3 font-mono font-semibold" style={{ color: '#10B981' }}>{BRL(t.revenueCents)}</td>
+                    <td className="px-4 py-3 font-mono font-semibold" style={{ color: profitColor }}>{BRL(t.profitCents)}</td>
+                    <td className="px-4 py-3 font-mono text-xs" style={{ color: marginPct >= 30 ? '#22C55E' : marginPct >= 15 ? '#F59E0B' : '#EF4444' }}>
+                      {t.revenueCents > 0 ? `${marginPct.toFixed(1)}%` : '—'}
+                    </td>
+                    <td className="px-4 py-3 font-mono text-xs font-semibold"
+                      style={{ color: roas >= 3 ? '#22C55E' : roas >= 1 ? '#F59E0B' : spendCents > 0 ? '#EF4444' : '#94A3B8' }}>
+                      {spendCents > 0 ? `${roas.toFixed(2)}x` : '—'}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+
+          <p className="mt-3 text-[11px] rounded-lg px-3 py-2 flex items-start gap-2"
+            style={{ background: 'rgba(139,92,246,.05)', borderLeft: '2px solid #8B5CF6', color: '#CBD5E1' }}>
+            <CheckCircle2 className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: '#8B5CF6' }} />
+            <span>
+              <strong style={{ color: '#F8FAFC' }}>Atribuição direta</strong> = link do anúncio registrou a campanha na venda/OS automaticamente.
+              É o método mais preciso — não depende de preenchimento manual.
+              O ROAS divide o faturamento da campanha pelo gasto <em>total</em> da conta no período (aproximação conservadora).
             </span>
           </p>
         </div>

@@ -33,6 +33,7 @@ export default async function FinanceiroPage({
     .select(`
       id, store_id, customer_id, total_cents, subtotal_cents, discount_cents, shipping_cents,
       payment_method, status, created_at, sale_channel, delivery_type, customer_origin,
+      meta_campaign_id, meta_campaign_name,
       customers ( full_name, cpf_cnpj, created_at ),
       sale_items ( name, quantity, unit_price_cents, product_id, cost_snapshot_cents )
     `)
@@ -49,8 +50,8 @@ export default async function FinanceiroPage({
       .select(`
         id, customer_id, total_price_cents, service_price_cents, parts_sale_cents,
         parts_cost_cents, discount_cents, status, payment_method, received_at, delivered_at,
-        sale_channel, delivery_type,
-        customers ( full_name, cpf_cnpj, created_at )
+        sale_channel, delivery_type, meta_campaign_id, meta_campaign_name,
+        customers ( full_name, cpf_cnpj, created_at, origin )
       `)
       .eq('tenant_id', tenantId)
       .order('delivered_at', { ascending: false, nullsFirst: false })
@@ -64,6 +65,7 @@ export default async function FinanceiroPage({
     payment_method: string; status: string; created_at: string
     sale_channel: string | null; delivery_type: string | null
     customer_origin: string | null
+    meta_campaign_id: string | null; meta_campaign_name: string | null
     customers: { full_name: string; cpf_cnpj: string | null; created_at: string } | null
     sale_items: { name: string; quantity: number; unit_price_cents: number; product_id: string | null; cost_snapshot_cents: number | null }[]
   }
@@ -73,7 +75,8 @@ export default async function FinanceiroPage({
     parts_sale_cents: number; parts_cost_cents: number | null; discount_cents: number
     status: string; payment_method: string | null; received_at: string; delivered_at: string | null
     sale_channel: string | null; delivery_type: string | null
-    customers: { full_name: string; cpf_cnpj: string | null; created_at: string } | null
+    meta_campaign_id: string | null; meta_campaign_name: string | null
+    customers: { full_name: string; cpf_cnpj: string | null; created_at: string; origin: string | null } | null
   }
 
   const sales  = (salesRes.data  ?? []) as unknown as SaleRow[]
@@ -147,9 +150,11 @@ export default async function FinanceiroPage({
       profit:       saleProfit(s),
       customerId:   s.customer_id ?? null,
       saleItems:    s.sale_items.map(i => ({ name: i.name, quantity: i.quantity, unitPriceCents: i.unit_price_cents })),
-      saleChannel:    s.sale_channel    ?? null,
-      deliveryType:   s.delivery_type   ?? null,
-      customerOrigin: s.customer_origin ?? null,
+      saleChannel:      s.sale_channel      ?? null,
+      deliveryType:     s.delivery_type     ?? null,
+      customerOrigin:   s.customer_origin   ?? null,
+      metaCampaignId:   s.meta_campaign_id   ?? null,
+      metaCampaignName: s.meta_campaign_name ?? null,
       clienteType:    s.customer_id ? clienteType(s.customers?.created_at) : null,
     })),
     ...orders.map(o => ({
@@ -171,8 +176,11 @@ export default async function FinanceiroPage({
       shipping:     0,
       total:        osTotal(o),
       profit:       osProfit(o),
-      saleChannel:  o.sale_channel  ?? null,
-      deliveryType: o.delivery_type ?? null,
+      saleChannel:      o.sale_channel      ?? null,
+      deliveryType:     o.delivery_type     ?? null,
+      customerOrigin:   o.customers?.origin ?? null,
+      metaCampaignId:   o.meta_campaign_id   ?? null,
+      metaCampaignName: o.meta_campaign_name ?? null,
       clienteType:  o.customers ? clienteType(o.customers.created_at) : null,
     })),
   ].sort((a, b) => b.date.getTime() - a.date.getTime())

@@ -962,6 +962,89 @@ export async function fetchAccountTimeseries(
   }
 }
 
+// ── Agregação multi-conta (consolidado de N contas de anúncio) ─────────────
+
+/**
+ * Soma insights de várias contas num único MetaAdsInsights.
+ * Campos absolutos (gasto, impressões, cliques, alcance) somam;
+ * razões (CTR, CPC, CPM, frequência) são recalculadas a partir dos totais.
+ */
+export async function combineInsights(list: MetaAdsInsights[]): Promise<MetaAdsInsights | null> {
+  const valid = list.filter((i): i is MetaAdsInsights => i != null)
+  if (valid.length === 0) return null
+
+  const spendCents  = valid.reduce((s, i) => s + i.spendCents, 0)
+  const impressions = valid.reduce((s, i) => s + i.impressions, 0)
+  const clicks      = valid.reduce((s, i) => s + i.clicks, 0)
+  const reach       = valid.reduce((s, i) => s + i.reach, 0)
+
+  const starts = valid.map(i => i.dateStart).filter(Boolean).sort()
+  const ends   = valid.map(i => i.dateEnd).filter(Boolean).sort()
+
+  return {
+    spendCents,
+    impressions,
+    clicks,
+    reach,
+    ctr:       impressions > 0 ? (clicks / impressions) * 100 : 0,
+    cpmCents:  impressions > 0 ? Math.round((spendCents / impressions) * 1000) : 0,
+    cpcCents:  clicks > 0      ? Math.round(spendCents / clicks) : 0,
+    frequency: reach > 0       ? impressions / reach : 0,
+    dateStart: starts[0] ?? '',
+    dateEnd:   ends[ends.length - 1] ?? '',
+  }
+}
+
+/**
+ * Funde séries diárias de várias contas: soma por data e recalcula CTR/CPC.
+ */
+export async function combineTimeseries(lists: MetaAdsTimeseriesPoint[][]): Promise<MetaAdsTimeseriesPoint[]> {
+  const byDate = new Map<string, { spendCents: number; impressions: number; clicks: number }>()
+  for (const list of lists) {
+    for (const p of list) {
+      const b = byDate.get(p.date) ?? { spendCents: 0, impressions: 0, clicks: 0 }
+      b.spendCents  += p.spendCents
+      b.impressions += p.impressions
+      b.clicks      += p.clicks
+      byDate.set(p.date, b)
+    }
+  }
+  return [...byDate.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, b]) => ({
+      date,
+      spendCents:  b.spendCents,
+      impressions: b.impressions,
+      clicks:      b.clicks,
+      ctr:         b.impressions > 0 ? (b.clicks / b.impressions) * 100 : 0,
+      cpcCents:    b.clicks > 0 ? Math.round(b.spendCents / b.clicks) : 0,
+    }))
+}
+
+/**
+ * Busca insights de TODAS as contas informadas em paralelo (tolerante a falha
+ * por conta) e devolve o consolidado + o detalhe por conta.
+ */
+export async function fetchInsightsMultiAccount(
+  period: MetaAdsPeriod,
+  adAccountIds: string[],
+): Promise<{
+  combined: MetaAdsInsights | null
+  perAccount: { adAccountId: string; insights: MetaAdsInsights | null; error: string | null }[]
+}> {
+  const settled = await Promise.allSettled(
+    adAccountIds.map(id => fetchMetaAdsInsights(period, id)),
+  )
+  const perAccount = adAccountIds.map((adAccountId, i) => {
+    const r = settled[i]
+    return r.status === 'fulfilled'
+      ? { adAccountId, insights: r.value, error: null }
+      : { adAccountId, insights: null, error: r.reason instanceof Error ? r.reason.message : 'Erro ao carregar' }
+  })
+  const combined = await combineInsights(perAccount.map(p => p.insights).filter((i): i is MetaAdsInsights => i != null))
+  return { combined, perAccount }
+}
+
 // ── Sugestões de campaign_code (Meta + histórico) ──────────────────────────
 
 export type CampaignCodeSuggestion = {

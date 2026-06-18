@@ -5,8 +5,11 @@ import {
   listAdAccounts,
   fetchMetaAdsInsights,
   fetchAccountTimeseries,
+  fetchInsightsMultiAccount,
+  combineTimeseries,
   type MetaAdsPeriod,
   type MetaAdsAdAccount,
+  type MetaAdsTimeseriesPoint,
 } from '@/actions/meta-ads'
 import { RelatoriosClient } from './relatorios-client'
 
@@ -23,6 +26,7 @@ export type ChannelMetrics = {
   newCustomers:   number
   txCount:        number     // vendas + OS atribuídas
   revenueCents:   number
+  profitCents:    number     // lucro bruto = faturamento − custo do produto/peças
   avgTicketCents: number
 }
 
@@ -52,6 +56,8 @@ export type FunnelMetrics = {
 export type RelatoriosData = {
   period:              MetaAdsPeriod
   selectedAccount:     MetaAdsAdAccount | null
+  isAggregate:         boolean
+  activeAccountCount:  number
   accounts:            MetaAdsAdAccount[]
   dailyCross:          DailyCrossPoint[]
   channels:            ChannelMetrics[]
@@ -113,14 +119,14 @@ async function getChannelMetrics(tenantId: string, sinceIso: string): Promise<{
       .in('origin', ['instagram_pago', 'instagram_organico', 'facebook'])
       .limit(5000),
     sb.from('sales')
-      .select('customer_id, total_cents, customers!inner(origin)')
+      .select('customer_id, total_cents, customers!inner(origin), sale_items(quantity, product_id, cost_snapshot_cents)')
       .eq('tenant_id', tenantId)
       .gte('created_at', sinceIso)
       .neq('status', 'cancelled')
       .in('customers.origin', ['instagram_pago', 'instagram_organico', 'facebook'])
       .limit(5000),
     sb.from('service_orders')
-      .select('customer_id, total_price_cents, service_price_cents, parts_sale_cents, discount_cents, customers!inner(origin)')
+      .select('customer_id, total_price_cents, service_price_cents, parts_sale_cents, parts_cost_cents, discount_cents, customers!inner(origin)')
       .eq('tenant_id', tenantId)
       .gte('received_at', sinceIso)
       .in('status', ['delivered', 'Entregue'])
@@ -128,9 +134,32 @@ async function getChannelMetrics(tenantId: string, sinceIso: string): Promise<{
       .limit(5000),
   ])
 
+  type SaleItem    = { quantity: number; product_id: string | null; cost_snapshot_cents: number | null }
   type CustomerRow = { id: string; origin: ReportChannel }
-  type SaleRow     = { customer_id: string; total_cents: number; customers: { origin: ReportChannel } }
-  type OsRow       = { customer_id: string; total_price_cents: number|null; service_price_cents: number|null; parts_sale_cents: number|null; discount_cents: number|null; customers: { origin: ReportChannel } }
+  type SaleRow     = { customer_id: string; total_cents: number; customers: { origin: ReportChannel }; sale_items: SaleItem[] | null }
+  type OsRow       = { customer_id: string; total_price_cents: number|null; service_price_cents: number|null; parts_sale_cents: number|null; parts_cost_cents: number|null; discount_cents: number|null; customers: { origin: ReportChannel } }
+
+  const salesData = (salesRes.data ?? []) as SaleRow[]
+  const osData    = (osRes.data ?? [])    as OsRow[]
+
+  // Fallback de custo: itens sem snapshot usam o custo atual em products.
+  const productIdsToFetch = new Set<string>()
+  for (const s of salesData) {
+    for (const it of (s.sale_items ?? [])) {
+      if (it.cost_snapshot_cents == null && it.product_id) productIdsToFetch.add(it.product_id)
+    }
+  }
+  const costMap = new Map<string, number>()
+  if (productIdsToFetch.size > 0) {
+    const { data: prodData } = await sb
+      .from('products')
+      .select('id, cost_cents')
+      .eq('tenant_id', tenantId)
+      .in('id', Array.from(productIdsToFetch))
+    for (const p of (prodData ?? []) as { id: string; cost_cents: number | null }[]) {
+      costMap.set(p.id, p.cost_cents ?? 0)
+    }
+  }
 
   // Novos clientes por canal
   const newByChannel = new Map<ReportChannel, number>()
@@ -138,38 +167,45 @@ async function getChannelMetrics(tenantId: string, sinceIso: string): Promise<{
     newByChannel.set(c.origin, (newByChannel.get(c.origin) ?? 0) + 1)
   }
 
-  // Faturamento + contagem de transações por canal
-  const revByChannel = new Map<ReportChannel, { revenue: number; txCount: number }>()
-  const bump = (ch: ReportChannel, v: number) => {
-    const b = revByChannel.get(ch) ?? { revenue: 0, txCount: 0 }
-    b.revenue  += v
-    b.txCount  += 1
+  // Faturamento + lucro bruto + contagem de transações por canal
+  const revByChannel = new Map<ReportChannel, { revenue: number; profit: number; txCount: number }>()
+  const bump = (ch: ReportChannel, revenue: number, profit: number) => {
+    const b = revByChannel.get(ch) ?? { revenue: 0, profit: 0, txCount: 0 }
+    b.revenue += revenue
+    b.profit  += profit
+    b.txCount += 1
     revByChannel.set(ch, b)
   }
   const bySales      = new Map<string, number>()
   const bySalesCount = new Map<string, number>()
 
-  for (const s of (salesRes.data ?? []) as SaleRow[]) {
+  for (const s of salesData) {
     const ch = s.customers?.origin
     const v  = s.total_cents ?? 0
     if (!ch || v <= 0) continue
-    bump(ch, v)
+    let cost = 0
+    for (const it of (s.sale_items ?? [])) {
+      const qty  = it.quantity ?? 0
+      const unit = it.cost_snapshot_cents ?? (it.product_id ? (costMap.get(it.product_id) ?? 0) : 0)
+      cost += qty * unit
+    }
+    bump(ch, v, v - cost)
     bySales.set(s.customer_id, (bySales.get(s.customer_id) ?? 0) + v)
     bySalesCount.set(s.customer_id, (bySalesCount.get(s.customer_id) ?? 0) + 1)
   }
-  for (const o of (osRes.data ?? []) as OsRow[]) {
+  for (const o of osData) {
     const ch = o.customers?.origin
     const v  = o.total_price_cents
       ?? Math.max(0, (o.service_price_cents ?? 0) + (o.parts_sale_cents ?? 0) - (o.discount_cents ?? 0))
     if (!ch || v <= 0) continue
-    bump(ch, v)
+    bump(ch, v, v - (o.parts_cost_cents ?? 0))
     bySales.set(o.customer_id, (bySales.get(o.customer_id) ?? 0) + v)
     bySalesCount.set(o.customer_id, (bySalesCount.get(o.customer_id) ?? 0) + 1)
   }
 
   const channels: ChannelMetrics[] = (['instagram_pago', 'instagram_organico', 'facebook'] as ReportChannel[]).map(ch => {
     const cfg = CHANNEL_CONFIG[ch]
-    const rev = revByChannel.get(ch) ?? { revenue: 0, txCount: 0 }
+    const rev = revByChannel.get(ch) ?? { revenue: 0, profit: 0, txCount: 0 }
     const newC = newByChannel.get(ch) ?? 0
     const avgTicket = rev.txCount > 0 ? Math.round(rev.revenue / rev.txCount) : 0
     return {
@@ -179,6 +215,7 @@ async function getChannelMetrics(tenantId: string, sinceIso: string): Promise<{
       newCustomers:   newC,
       txCount:        rev.txCount,
       revenueCents:   rev.revenue,
+      profitCents:    rev.profit,
       avgTicketCents: avgTicket,
     }
   })
@@ -247,7 +284,13 @@ export default async function MetaAdsRelatoriosPage({
     : '30d') as MetaAdsPeriod
 
   const accounts = await listAdAccounts().catch(() => [] as MetaAdsAdAccount[])
-  const selectedAccount = resolveSelectedAccount(accounts, rawAccount)
+  const activeAccounts = accounts.filter(a => a.isActive)
+
+  // Mesmo critério do dashboard: consolida todas as contas por padrão quando
+  // há 2+ ativas. Assim o gasto somado bate com TODO o faturamento atribuído
+  // (cruzar gasto de 1 conta com faturamento de todas inflaria o ROAS/CAC).
+  const isAggregate = activeAccounts.length > 1 && (rawAccount === 'all' || rawAccount === undefined)
+  const selectedAccount = isAggregate ? null : resolveSelectedAccount(accounts, rawAccount)
 
   const { since } = periodToRange(period)
   const sinceIso = since.toISOString()
@@ -258,7 +301,27 @@ export default async function MetaAdsRelatoriosPage({
   let dailyMetaTs: { date: string; spendCents: number }[] = []
   let loadError: string | null = null
 
-  if (selectedAccount) {
+  if (isAggregate) {
+    try {
+      const ids = activeAccounts.map(a => a.adAccountId)
+      const [{ combined, perAccount }, tsSettled] = await Promise.all([
+        fetchInsightsMultiAccount(period, ids),
+        Promise.allSettled(ids.map(id => fetchAccountTimeseries(period, id))),
+      ])
+      if (combined) {
+        insightsSpendCents  = combined.spendCents
+        insightsImpressions = combined.impressions
+        insightsClicks      = combined.clicks
+      }
+      const tsLists = tsSettled
+        .filter((r): r is PromiseFulfilledResult<MetaAdsTimeseriesPoint[]> => r.status === 'fulfilled')
+        .map(r => r.value)
+      dailyMetaTs = (await combineTimeseries(tsLists)).map(t => ({ date: t.date, spendCents: t.spendCents }))
+      loadError = perAccount.find(p => p.error)?.error ?? null
+    } catch (err) {
+      loadError = err instanceof Error ? err.message : 'Erro ao carregar dados do Meta'
+    }
+  } else if (selectedAccount) {
     try {
       const [insights, ts] = await Promise.all([
         fetchMetaAdsInsights(period, selectedAccount.adAccountId),
@@ -326,6 +389,8 @@ export default async function MetaAdsRelatoriosPage({
   const data: RelatoriosData = {
     period,
     selectedAccount,
+    isAggregate,
+    activeAccountCount: activeAccounts.length,
     accounts,
     dailyCross,
     channels,

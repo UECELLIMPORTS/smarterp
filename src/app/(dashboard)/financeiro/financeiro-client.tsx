@@ -52,6 +52,8 @@ export type FinanceiroRow = {
   saleChannel?: string | null
   deliveryType?: string | null
   customerOrigin?: string | null
+  metaCampaignId?:   string | null
+  metaCampaignName?: string | null
 }
 
 type CartItem = {
@@ -214,6 +216,7 @@ export function FinanceiroClient({ initialRows, stores = [], activeStoreId = nul
   // Multi-select de canais e tipos de entrega (vazio = todos)
   const [filterChannels, setFilterChannels]    = useState<string[]>([])
   const [filterDeliveries, setFilterDeliveries] = useState<string[]>([])
+  const [filterPaidTraffic, setFilterPaidTraffic] = useState(false)
 
   function toggleChannel(c: string) {
     setFilterChannels(prev => prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c])
@@ -408,6 +411,11 @@ export function FinanceiroClient({ initialRows, stores = [], activeStoreId = nul
   const [confirmBulkCancel, setConfirmBulkCancel] = useState(false)
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false)
 
+  const isPaidTraffic = (r: FinanceiroRow) =>
+    r.metaCampaignId != null ||
+    r.customerOrigin === 'instagram_pago' ||
+    r.customerOrigin === 'facebook'
+
   const filteredRows = useMemo(() => {
     let result = rows
     const range = getDateRange(period, fromDate, toDate)
@@ -428,8 +436,11 @@ export function FinanceiroClient({ initialRows, stores = [], activeStoreId = nul
     if (filterDeliveries.length > 0) {
       result = result.filter(r => filterDeliveries.includes(r.deliveryType ?? '__none__'))
     }
+    if (filterPaidTraffic) {
+      result = result.filter(isPaidTraffic)
+    }
     return result
-  }, [rows, period, fromDate, toDate, filterCustomer, filterChannels, filterDeliveries])
+  }, [rows, period, fromDate, toDate, filterCustomer, filterChannels, filterDeliveries, filterPaidTraffic])
 
   const selectedRows      = rows.filter(r => selected.has(r.id))
   const selectedErpIds    = selectedRows.filter(r => r.source === 'erp').map(r => r.rawId)
@@ -1286,6 +1297,32 @@ export function FinanceiroClient({ initialRows, stores = [], activeStoreId = nul
           )}
         </div>
 
+        {/* Filtro Tráfego Pago */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-[11px] font-medium uppercase tracking-wider text-muted mr-1">Origem:</span>
+          <button
+            onClick={() => setFilterPaidTraffic(v => !v)}
+            className="rounded-full border px-2.5 py-1 text-[11px] font-medium transition-all flex items-center gap-1.5"
+            style={filterPaidTraffic
+              ? { background: 'rgba(244,63,94,.15)', borderColor: '#F43F5E', color: '#F43F5E' }
+              : { borderColor: '#2A3650', color: '#94A3B8' }}>
+            <TrendingUp className="h-3 w-3" />
+            Tráfego Pago
+            {filterPaidTraffic && (
+              <span className="ml-0.5 rounded-full px-1 py-0 text-[9px] font-bold"
+                style={{ background: '#F43F5E', color: '#fff' }}>
+                {rows.filter(isPaidTraffic).length}
+              </span>
+            )}
+          </button>
+          {filterPaidTraffic && (
+            <button onClick={() => setFilterPaidTraffic(false)}
+              className="ml-1 text-[10px] uppercase tracking-wider text-muted hover:text-text">
+              limpar
+            </button>
+          )}
+        </div>
+
         {/* Resumo: total + lucro das vendas atualmente exibidas (sempre visível
             quando há ao menos uma transação — atualiza com filtros). */}
         {filteredRows.length > 0 && (
@@ -1336,6 +1373,42 @@ export function FinanceiroClient({ initialRows, stores = [], activeStoreId = nul
           </div>
         )}
       </div>
+
+      {/* Painel KPIs Tráfego Pago — visível quando filterPaidTraffic ativo */}
+      {filterPaidTraffic && (() => {
+        const ptRows   = filteredRows.filter(r => !r.cancelled)
+        const ptRev    = ptRows.reduce((s, r) => s + r.total, 0)
+        const ptProfit = ptRows.reduce((s, r) => s + (r.profit || 0), 0)
+        const ptCount  = ptRows.length
+        const ptTicket = ptCount > 0 ? Math.round(ptRev / ptCount) : 0
+        const ptMargin = ptRev > 0 ? Math.round((ptProfit / ptRev) * 100) : 0
+        return (
+          <div className="rounded-xl border p-4 space-y-3"
+               style={{ background: 'rgba(244,63,94,.06)', borderColor: 'rgba(244,63,94,.3)' }}>
+            <div className="flex items-center gap-2">
+              <TrendingUp className="h-4 w-4" style={{ color: '#F43F5E' }} />
+              <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#F43F5E' }}>
+                Tráfego Pago — Resumo
+              </span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+              {[
+                { label: 'Transações',    value: String(ptCount),         accent: '#F43F5E' },
+                { label: 'Faturamento',   value: BRL(ptRev),              accent: '#10B981' },
+                { label: 'Lucro Bruto',   value: BRL(ptProfit),           accent: ptProfit >= 0 ? '#10B981' : '#EF4444' },
+                { label: 'Ticket Médio',  value: BRL(ptTicket),           accent: '#22C55E' },
+                { label: 'Margem',        value: `${ptMargin}%`,          accent: ptMargin >= 30 ? '#10B981' : ptMargin >= 15 ? '#F59E0B' : '#EF4444' },
+              ].map(({ label, value, accent }) => (
+                <div key={label} className="rounded-lg border px-3 py-2.5 text-center"
+                     style={{ background: '#1B2638', borderColor: '#2A3650' }}>
+                  <p className="text-[10px] uppercase tracking-wider text-muted">{label}</p>
+                  <p className="mt-1 text-base font-bold" style={{ color: accent }}>{value}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Table — sem overflow-hidden no wrapper pra não cortar o dropdown
            do menu de 3 pontinhos quando ele abre pra baixo da última row. */}

@@ -51,7 +51,9 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
           </h1>
           <p className="mt-1 text-sm" style={{ color: '#94A3B8' }}>
             Análises cruzadas entre gasto no Meta Ads e desempenho no ERP
-            {data.selectedAccount && <> · <span className="font-mono" style={{ color: '#CBD5E1' }}>{data.selectedAccount.displayName}</span></>}
+            {data.isAggregate
+              ? <> · <span style={{ color: '#CBD5E1' }}>Todas as contas ({data.activeAccountCount})</span></>
+              : data.selectedAccount && <> · <span className="font-mono" style={{ color: '#CBD5E1' }}>{data.selectedAccount.displayName}</span></>}
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -85,6 +87,7 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
       )}
 
       <DailyCrossSection points={data.dailyCross} />
+      <NetProfitSection channels={data.channels} spendCents={data.insightsSpendCents} />
       <CacSection items={data.cac} totalSpend={data.insightsSpendCents} />
       <ChannelTableSection channels={data.channels} />
       <FunnelSection funnel={data.funnel} spendCents={data.insightsSpendCents} />
@@ -245,6 +248,78 @@ function DualBarChart({ points }: { points: DailyCrossPoint[] }) {
   )
 }
 
+// ── Seção 1.5 — Lucro líquido do Meta Ads ─────────────────────────────────
+
+function NetProfitSection({ channels, spendCents }: { channels: ChannelMetrics[]; spendCents: number }) {
+  const isPaid = (ch: ChannelMetrics['channel']) => ch === 'instagram_pago' || ch === 'facebook'
+
+  const paid = channels.filter(c => isPaid(c.channel))
+  const paidRevenue = paid.reduce((s, c) => s + c.revenueCents, 0)
+  const paidProfit  = paid.reduce((s, c) => s + c.profitCents,  0)  // lucro bruto (faturamento − custo do produto)
+  const netProfit   = paidProfit - spendCents                       // lucro líquido (− gasto no anúncio)
+  const marginPct   = paidRevenue > 0 ? netProfit / paidRevenue : 0
+
+  const organic = channels.find(c => c.channel === 'instagram_organico')
+  const organicProfit = organic?.profitCents ?? 0
+
+  const positive = netProfit >= 0
+  const accent   = positive ? '#22C55E' : '#EF4444'
+
+  return (
+    <div className="rounded-2xl border p-6 space-y-4" style={{ background: '#1B2638', borderColor: '#2A3650' }}>
+      <div className="flex items-center gap-2">
+        <div className="h-4 w-1 rounded-full" style={{ background: accent }} />
+        <div>
+          <h2 className="text-xs font-bold uppercase tracking-widest flex items-center gap-1.5" style={{ color: '#CBD5E1' }}>
+            <DollarSign className="h-3.5 w-3.5" />
+            Lucro líquido do Meta Ads
+          </h2>
+          <p className="text-[11px]" style={{ color: '#94A3B8' }}>
+            Vendas atribuídas aos canais <strong>pagos</strong> (IG Pago + Facebook), já descontando o custo do produto/peças e o gasto no anúncio.
+          </p>
+        </div>
+      </div>
+
+      {/* Destaque do lucro líquido */}
+      <div className="rounded-xl border p-5" style={{ background: '#131C2A', borderColor: positive ? 'rgba(34,197,94,.4)' : 'rgba(255,77,109,.4)' }}>
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: '#94A3B8' }}>
+            Lucro líquido do investimento
+          </p>
+          {positive
+            ? <TrendingUp className="h-4 w-4" style={{ color: accent }} />
+            : <TrendingDown className="h-4 w-4" style={{ color: accent }} />}
+        </div>
+        <div className="flex items-baseline gap-3 mt-1 flex-wrap">
+          <span className="text-3xl font-bold font-mono" style={{ color: accent }}>{BRL(netProfit)}</span>
+          {paidRevenue > 0 && (
+            <span className="text-xs" style={{ color: '#CBD5E1' }}>margem líquida {PCT(marginPct)}</span>
+          )}
+        </div>
+        <p className="text-[11px] mt-2 font-mono" style={{ color: '#94A3B8' }}>
+          {BRL(paidProfit)} lucro bruto − {BRL(spendCents)} gasto no anúncio = <strong style={{ color: accent }}>{BRL(netProfit)}</strong>
+        </p>
+        {spendCents > 0 && paidRevenue === 0 && (
+          <p className="text-[11px] mt-2" style={{ color: '#F59E0B' }}>
+            ⚠ Houve gasto no Meta mas nenhuma venda foi atribuída aos canais pagos no período. Marque a origem (&quot;Como nos conheceu?&quot;) ao cadastrar os clientes.
+          </p>
+        )}
+      </div>
+
+      {/* Decomposição */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <MiniStat label="Faturamento (pagos)" value={BRL(paidRevenue)} color="#10B981" />
+        <MiniStat label="Lucro bruto (pagos)" value={BRL(paidProfit)}  color="#22C55E" icon={TrendingUp} />
+        <MiniStat label="Gasto no anúncio"    value={BRL(spendCents)}   color="#E4405F" />
+        <MiniStat label="Lucro orgânico (IG)" value={BRL(organicProfit)} color="#C13584" />
+      </div>
+      <p className="text-[11px]" style={{ color: '#94A3B8' }}>
+        O lucro orgânico não desconta gasto de anúncio (custo zero) e por isso fica fora do cálculo do lucro líquido do investimento.
+      </p>
+    </div>
+  )
+}
+
 // ── Seção 2 — CAC por canal ────────────────────────────────────────────────
 
 function CacSection({ items, totalSpend }: { items: CacByChannel[]; totalSpend: number }) {
@@ -317,7 +392,8 @@ function ChannelTableSection({ channels }: { channels: ChannelMetrics[] }) {
     newCustomers: acc.newCustomers + c.newCustomers,
     txCount:      acc.txCount      + c.txCount,
     revenueCents: acc.revenueCents + c.revenueCents,
-  }), { newCustomers: 0, txCount: 0, revenueCents: 0 })
+    profitCents:  acc.profitCents  + c.profitCents,
+  }), { newCustomers: 0, txCount: 0, revenueCents: 0, profitCents: 0 })
   const totalAvgTicket = total.txCount > 0 ? Math.round(total.revenueCents / total.txCount) : 0
 
   return (
@@ -338,7 +414,7 @@ function ChannelTableSection({ channels }: { channels: ChannelMetrics[] }) {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b text-left" style={{ borderColor: '#2A3650' }}>
-              {['Canal', 'Novos clientes', 'Transações', 'Faturamento', 'Ticket médio'].map(h => (
+              {['Canal', 'Novos clientes', 'Transações', 'Faturamento', 'Lucro bruto', 'Margem', 'Ticket médio'].map(h => (
                 <th key={h} className="px-5 py-3 text-[10px] font-bold uppercase tracking-wider" style={{ color: '#94A3B8' }}>
                   {h}
                 </th>
@@ -346,34 +422,45 @@ function ChannelTableSection({ channels }: { channels: ChannelMetrics[] }) {
             </tr>
           </thead>
           <tbody>
-            {channels.map(c => (
-              <tr key={c.channel} className="border-b hover:bg-white/[0.02] transition-colors" style={{ borderColor: 'rgba(30,45,69,.5)' }}>
-                <td className="px-5 py-3">
-                  <div className="flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full shrink-0" style={{ background: c.color }} />
-                    <span className="font-medium" style={{ color: '#F8FAFC' }}>{c.label}</span>
-                  </div>
-                </td>
-                <td className="px-5 py-3 font-mono" style={{ color: '#CBD5E1' }}>
-                  {NUM(c.newCustomers)}
-                </td>
-                <td className="px-5 py-3 font-mono" style={{ color: '#CBD5E1' }}>
-                  {NUM(c.txCount)}
-                </td>
-                <td className="px-5 py-3 font-mono font-semibold" style={{ color: c.revenueCents > 0 ? '#10B981' : '#94A3B8' }}>
-                  {c.revenueCents > 0 ? BRL(c.revenueCents) : '—'}
-                </td>
-                <td className="px-5 py-3 font-mono" style={{ color: '#CBD5E1' }}>
-                  {c.avgTicketCents > 0 ? BRL(c.avgTicketCents) : '—'}
-                </td>
-              </tr>
-            ))}
+            {channels.map(c => {
+              const marginPct = c.revenueCents > 0 ? (c.profitCents / c.revenueCents) * 100 : 0
+              return (
+                <tr key={c.channel} className="border-b hover:bg-white/[0.02] transition-colors" style={{ borderColor: 'rgba(30,45,69,.5)' }}>
+                  <td className="px-5 py-3">
+                    <div className="flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full shrink-0" style={{ background: c.color }} />
+                      <span className="font-medium" style={{ color: '#F8FAFC' }}>{c.label}</span>
+                    </div>
+                  </td>
+                  <td className="px-5 py-3 font-mono" style={{ color: '#CBD5E1' }}>{NUM(c.newCustomers)}</td>
+                  <td className="px-5 py-3 font-mono" style={{ color: '#CBD5E1' }}>{NUM(c.txCount)}</td>
+                  <td className="px-5 py-3 font-mono font-semibold" style={{ color: c.revenueCents > 0 ? '#10B981' : '#94A3B8' }}>
+                    {c.revenueCents > 0 ? BRL(c.revenueCents) : '—'}
+                  </td>
+                  <td className="px-5 py-3 font-mono font-semibold" style={{ color: c.profitCents > 0 ? '#22C55E' : c.profitCents < 0 ? '#EF4444' : '#94A3B8' }}>
+                    {c.txCount > 0 ? BRL(c.profitCents) : '—'}
+                  </td>
+                  <td className="px-5 py-3 font-mono text-xs" style={{ color: marginPct >= 30 ? '#22C55E' : marginPct >= 15 ? '#F59E0B' : c.txCount > 0 ? '#EF4444' : '#94A3B8' }}>
+                    {c.txCount > 0 ? `${marginPct.toFixed(1)}%` : '—'}
+                  </td>
+                  <td className="px-5 py-3 font-mono" style={{ color: '#CBD5E1' }}>
+                    {c.avgTicketCents > 0 ? BRL(c.avgTicketCents) : '—'}
+                  </td>
+                </tr>
+              )
+            })}
             <tr style={{ background: 'rgba(228,64,95,.04)' }}>
               <td className="px-5 py-3 font-bold" style={{ color: '#F8FAFC' }}>Total</td>
               <td className="px-5 py-3 font-mono font-bold" style={{ color: '#F8FAFC' }}>{NUM(total.newCustomers)}</td>
               <td className="px-5 py-3 font-mono font-bold" style={{ color: '#F8FAFC' }}>{NUM(total.txCount)}</td>
               <td className="px-5 py-3 font-mono font-bold" style={{ color: '#10B981' }}>
                 {total.revenueCents > 0 ? BRL(total.revenueCents) : '—'}
+              </td>
+              <td className="px-5 py-3 font-mono font-bold" style={{ color: total.profitCents >= 0 ? '#22C55E' : '#EF4444' }}>
+                {total.txCount > 0 ? BRL(total.profitCents) : '—'}
+              </td>
+              <td className="px-5 py-3 font-mono font-bold" style={{ color: total.revenueCents > 0 ? (total.profitCents / total.revenueCents * 100 >= 30 ? '#22C55E' : '#F59E0B') : '#94A3B8' }}>
+                {total.txCount > 0 && total.revenueCents > 0 ? `${(total.profitCents / total.revenueCents * 100).toFixed(1)}%` : '—'}
               </td>
               <td className="px-5 py-3 font-mono font-bold" style={{ color: '#F8FAFC' }}>
                 {totalAvgTicket > 0 ? BRL(totalAvgTicket) : '—'}
