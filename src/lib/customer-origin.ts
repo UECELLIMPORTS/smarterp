@@ -4,10 +4,12 @@
 export const CUSTOMER_ORIGIN_OPTIONS = [
   { value: 'instagram_pago',     label: 'Instagram Anúncio Pago' },
   { value: 'instagram_organico', label: 'Instagram Orgânico'     },
+  { value: 'tiktok',             label: 'TikTok'                 },
   { value: 'indicacao',          label: 'Indicação de Amigo'     },
   { value: 'passou_na_porta',    label: 'Passou na Porta'        },
   { value: 'google',             label: 'Google'                 },
   { value: 'facebook',           label: 'Facebook'               },
+  { value: 'domicilio',          label: 'Atend. Domiciliar'      },
   { value: 'outros',             label: 'Outros'                 },
 ] as const
 

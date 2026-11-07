@@ -14,10 +14,12 @@ type OriginItem = {
 const COLORS: Record<string, string> = {
   instagram_pago:     '#E4405F',
   instagram_organico: '#C13584',
+  tiktok:             '#FF0050',
   indicacao:          '#10B981',
   passou_na_porta:    '#F59E0B',
   google:             '#4285F4',
   facebook:           '#1877F2',
+  domicilio:          '#22D3EE',
   outros:             '#8B5CF6',
   __no__:             '#94A3B8',
 }
