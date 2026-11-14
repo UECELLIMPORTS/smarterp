@@ -11,6 +11,7 @@ import { requireAuth } from '@/lib/supabase/server'
 import { resolveActiveStoreId } from '@/lib/active-store'
 import { getTenantId } from '@/lib/tenant'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { listTenantUsers } from '@/lib/tenant-users'
 
 // ──────────────────────────────────────────────────────────────────────────
 // Vendas (detalhado)
@@ -105,8 +106,7 @@ export async function getDetailedSalesReport(filters: SalesReportFilters): Promi
   const userIds = Array.from(new Set(((data ?? []) as SaleRow[]).map(s => s.user_id).filter(Boolean))) as string[]
   const emailByUser = new Map<string, string>()
   if (userIds.length > 0) {
-    const { data: usersRes } = await admin.auth.admin.listUsers({ page: 1, perPage: 100 })
-    for (const u of usersRes?.users ?? []) {
+    for (const u of await listTenantUsers(admin, tenantId)) {
       if (u.email) emailByUser.set(u.id, u.email)
     }
   }

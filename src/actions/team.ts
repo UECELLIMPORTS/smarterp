@@ -17,6 +17,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { listTenantUsers } from '@/lib/tenant-users'
 import { requireAuth } from '@/lib/supabase/server'
 import { getTenantId } from '@/lib/tenant'
 import { sendEmail } from '@/lib/email'
@@ -68,10 +69,7 @@ export async function listTeamMembers(): Promise<TeamMember[]> {
   if (!isOwner(user)) throw new Error('Apenas o dono pode listar a equipe.')
 
   const admin = createAdminClient()
-  const { data, error } = await admin.auth.admin.listUsers({ page: 1, perPage: 100 })
-  if (error) throw new Error(error.message)
-
-  const members = data.users.filter(u => u.app_metadata?.tenant_id === tenantId)
+  const members = await listTenantUsers(admin, tenantId)
 
   // Carrega permissions e allowed_store_ids de TODOS os não-owners em 2 queries paralelas.
   const nonOwnerIds = members
@@ -191,9 +189,8 @@ export async function inviteMember(input: {
 
   // Verifica se o email já é membro
   const admin = createAdminClient()
-  const { data: existing } = await admin.auth.admin.listUsers({ page: 1, perPage: 100 })
-  const alreadyMember = existing?.users?.find(u =>
-    u.email?.toLowerCase() === email && u.app_metadata?.tenant_id === tenantId
+  const alreadyMember = (await listTenantUsers(admin, tenantId)).find(u =>
+    u.email?.toLowerCase() === email
   )
   if (alreadyMember) return { ok: false, error: 'Esse email já é membro da equipe.' }
 

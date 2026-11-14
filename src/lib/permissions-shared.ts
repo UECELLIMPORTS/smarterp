@@ -100,6 +100,26 @@ export function isChecksmartKey(s: string): boolean {
   return s.startsWith('checksmart:')
 }
 
+/**
+ * Permissão compartilhada: ver o desempenho de TODA a equipe (vendas do PDV +
+ * OS do CheckSmart). Owner e manager já veem por padrão; demais membros só
+ * com essa key. Sem ela, cada colaborador vê apenas os próprios números.
+ * O CheckSmart lê a mesma key da tabela tenant_member_permissions.
+ */
+export const TEAM_REPORT_PERMISSION = 'equipe:relatorio'
+
+export const SHARED_PERMISSIONS: FeatureInfo[] = [
+  { key: TEAM_REPORT_PERMISSION, label: 'Ver relatório da equipe', description: 'Vendas, faturamento, lucro e horas de serviço de todos os colaboradores (Gestão Smart + CheckSmart)' },
+]
+
+/**
+ * True se a key não é módulo do Gestão Smart (permissões do CheckSmart ou
+ * compartilhadas). Essas keys não limitam o acesso de um manager.
+ */
+export function isCrossAppKey(s: string): boolean {
+  return isChecksmartKey(s) || s === TEAM_REPORT_PERMISSION
+}
+
 /** Builda a key completa de uma feature: 'dashboard' + 'kpis' → 'dashboard:kpis' */
 export function featureKey(module: ModuleKey, feature: string): string {
   return `${module}:${feature}`

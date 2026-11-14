@@ -19,7 +19,8 @@ import { requireAuth } from '@/lib/supabase/server'
 import type { User } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 import {
-  MODULES, MODULE_FEATURES, featureKey, isValidModuleKey, isChecksmartKey,
+  MODULES, MODULE_FEATURES, featureKey, isValidModuleKey, isCrossAppKey,
+  TEAM_REPORT_PERMISSION,
   type ModuleKey,
 } from './permissions-shared'
 
@@ -27,7 +28,7 @@ import {
 export {
   MODULES, MODULE_FEATURES, featureKey, isValidModuleKey,
   isFeatureKey, allFeatureKeys, hasFullAccess, canAccessModuleSync, hasFeatureSync,
-  isChecksmartKey,
+  isChecksmartKey, isCrossAppKey, TEAM_REPORT_PERMISSION, SHARED_PERMISSIONS,
 } from './permissions-shared'
 export type { ModuleKey, ModuleInfo, FeatureInfo } from './permissions-shared'
 
@@ -70,8 +71,8 @@ const loadKeys = cache(async (user: User): Promise<LoadResult> => {
   const keys = new Set<string>(((data ?? []) as Row[]).map(r => r.module_key))
 
   // Manager sem rows registradas → compat retroativa (acesso total).
-  // Permissões do CheckSmart não contam: não limitam o Gestão Smart.
-  if (role === 'manager' && [...keys].every(isChecksmartKey)) {
+  // Permissões do CheckSmart / compartilhadas não contam: não limitam o Gestão Smart.
+  if (role === 'manager' && [...keys].every(isCrossAppKey)) {
     return { keys: buildFullAccessKeys(), fullAccess: true }
   }
 
@@ -151,4 +152,15 @@ export async function getDefaultRoute(user: User): Promise<string> {
     if (keys.has(m.key)) return m.route
   }
   return '/sem-acesso'
+}
+
+/**
+ * True se o user pode ver o desempenho de toda a equipe.
+ * Owner e manager sempre; demais só com a permissão 'equipe:relatorio'.
+ */
+export async function canViewTeamReport(user: User): Promise<boolean> {
+  const role = user.app_metadata?.tenant_role
+  if (role === 'owner' || role === 'manager') return true
+  const { keys } = await loadKeys(user)
+  return keys.has(TEAM_REPORT_PERMISSION)
 }
