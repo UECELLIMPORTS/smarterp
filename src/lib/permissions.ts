@@ -19,7 +19,7 @@ import { requireAuth } from '@/lib/supabase/server'
 import type { User } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 import {
-  MODULES, MODULE_FEATURES, featureKey, isValidModuleKey,
+  MODULES, MODULE_FEATURES, featureKey, isValidModuleKey, isChecksmartKey,
   type ModuleKey,
 } from './permissions-shared'
 
@@ -27,6 +27,7 @@ import {
 export {
   MODULES, MODULE_FEATURES, featureKey, isValidModuleKey,
   isFeatureKey, allFeatureKeys, hasFullAccess, canAccessModuleSync, hasFeatureSync,
+  isChecksmartKey,
 } from './permissions-shared'
 export type { ModuleKey, ModuleInfo, FeatureInfo } from './permissions-shared'
 
@@ -68,8 +69,9 @@ const loadKeys = cache(async (user: User): Promise<LoadResult> => {
   type Row = { module_key: string }
   const keys = new Set<string>(((data ?? []) as Row[]).map(r => r.module_key))
 
-  // Manager sem rows registradas → compat retroativa (acesso total)
-  if (role === 'manager' && keys.size === 0) {
+  // Manager sem rows registradas → compat retroativa (acesso total).
+  // Permissões do CheckSmart não contam: não limitam o Gestão Smart.
+  if (role === 'manager' && [...keys].every(isChecksmartKey)) {
     return { keys: buildFullAccessKeys(), fullAccess: true }
   }
 

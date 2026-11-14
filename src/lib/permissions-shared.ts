@@ -85,6 +85,21 @@ export const MODULE_FEATURES: Partial<Record<ModuleKey, FeatureInfo[]>> = {
   ],
 }
 
+/**
+ * Permissões do CheckSmart concedidas por aqui (mesma tabela
+ * tenant_member_permissions — os dois apps compartilham o banco).
+ * Não aparecem no menu do Gestão Smart; o CheckSmart lê e aplica.
+ * Owner e manager já têm essas ações por padrão no CheckSmart.
+ */
+export const CHECKSMART_PERMISSIONS: FeatureInfo[] = [
+  { key: 'checksmart:cancel_os', label: 'Cancelar e reativar OS', description: 'Permite cancelar uma OS e reativar OS canceladas' },
+]
+
+/** True se a key é uma permissão do CheckSmart (não conta como módulo do Gestão Smart). */
+export function isChecksmartKey(s: string): boolean {
+  return s.startsWith('checksmart:')
+}
+
 /** Builda a key completa de uma feature: 'dashboard' + 'kpis' → 'dashboard:kpis' */
 export function featureKey(module: ModuleKey, feature: string): string {
   return `${module}:${feature}`

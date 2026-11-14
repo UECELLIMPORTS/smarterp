@@ -12,7 +12,7 @@ import {
   type TeamMember, type PendingInvite, type TeamRole,
 } from '@/actions/team'
 import { type Store } from '@/actions/stores'
-import { MODULES, MODULE_FEATURES, featureKey, type ModuleKey } from '@/lib/permissions-shared'
+import { MODULES, MODULE_FEATURES, CHECKSMART_PERMISSIONS, featureKey, type ModuleKey } from '@/lib/permissions-shared'
 import { toast } from 'sonner'
 
 const inputCls = 'w-full rounded-lg border px-3.5 py-2.5 text-sm text-text placeholder:text-muted outline-none transition-colors focus:border-accent/60'
@@ -584,6 +584,7 @@ type ChecklistProps = {
 
 function PermissionsChecklist({ value, onToggleModule, onToggleFeature }: ChecklistProps) {
   return (
+    <div className="space-y-3">
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
       {MODULES.map(mod => {
         const checked = value.includes(mod.key)
@@ -636,6 +637,36 @@ function PermissionsChecklist({ value, onToggleModule, onToggleFeature }: Checkl
           </div>
         )
       })}
+    </div>
+
+    {/* Permissões do CheckSmart (mesmo banco — o CheckSmart lê daqui) */}
+    <div className="rounded-lg border p-3" style={{ background: '#131C2A', borderColor: '#2A3650' }}>
+      <p className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: '#94A3B8' }}>
+        CheckSmart · Ordens de Serviço
+      </p>
+      {CHECKSMART_PERMISSIONS.map(p => {
+        const checked = value.includes(p.key)
+        return (
+          <label key={p.key}
+            className="flex items-start gap-2.5 rounded-lg border p-2.5 cursor-pointer transition-colors"
+            style={{
+              background: checked ? 'rgba(34,197,94,.06)' : 'transparent',
+              borderColor: checked ? '#22C55E' : '#2A3650',
+            }}>
+            <input type="checkbox" checked={checked}
+              onChange={() => onToggleFeature(p.key)}
+              className="mt-0.5 h-4 w-4 accent-accent cursor-pointer" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-bold" style={{ color: '#F8FAFC' }}>{p.label}</p>
+              <p className="text-[10px] mt-0.5" style={{ color: '#CBD5E1' }}>{p.description}</p>
+            </div>
+          </label>
+        )
+      })}
+      <p className="text-[10px] mt-1.5" style={{ color: '#94A3B8' }}>
+        Gerentes com acesso total já podem cancelar e reativar OS.
+      </p>
+    </div>
     </div>
   )
 }
