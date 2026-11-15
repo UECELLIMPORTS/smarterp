@@ -66,6 +66,7 @@ export type RelatoriosData = {
   insightsSpendCents:  number
   loadError:           string | null
   spendEntries:        import('@/actions/meta-ads-spend-manual').SpendEntry[]
+  dailyPaidCustomers:  { date: string; count: number }[]
 }
 
 // ── Helpers internos ───────────────────────────────────────────────────────
@@ -341,12 +342,30 @@ export default async function MetaAdsRelatoriosPage({
 
   const { supabase: sb2 } = await requireAuth()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const spendRes = await (sb2 as any)
-    .from('meta_ads_spend_entries')
-    .select('id, spend_date, amount_cents, currency, original_amount_cents, exchange_rate, impressions, clicks, conversations, objective, notes, created_at')
-    .eq('tenant_id', tenantId)
-    .gte('spend_date', since.toISOString().slice(0, 10))
-    .order('spend_date', { ascending: false })
+  const sb2a = sb2 as any
+  const [spendRes, dailyCustRes] = await Promise.all([
+    sb2a
+      .from('meta_ads_spend_entries')
+      .select('id, spend_date, amount_cents, currency, original_amount_cents, exchange_rate, impressions, clicks, conversations, objective, notes, created_at')
+      .eq('tenant_id', tenantId)
+      .gte('spend_date', since.toISOString().slice(0, 10))
+      .order('spend_date', { ascending: false }),
+    sb2a
+      .from('customers')
+      .select('id, created_at, origin')
+      .eq('tenant_id', tenantId)
+      .gte('created_at', sinceIso)
+      .in('origin', ['instagram_pago', 'facebook'])
+      .limit(5000),
+  ])
+
+  // Agrupa clientes pagos por dia
+  const custByDay = new Map<string, number>()
+  for (const c of (dailyCustRes.data ?? []) as { created_at: string }[]) {
+    const d = c.created_at.slice(0, 10)
+    custByDay.set(d, (custByDay.get(d) ?? 0) + 1)
+  }
+  const dailyPaidCustomers = [...custByDay.entries()].map(([date, count]) => ({ date, count }))
 
   const [{ channels }, dailyRevenue] = await Promise.all([
     getChannelMetrics(tenantId, sinceIso),
@@ -409,6 +428,7 @@ export default async function MetaAdsRelatoriosPage({
     insightsSpendCents,
     loadError,
     spendEntries: spendRes.data ?? [],
+    dailyPaidCustomers,
   }
 
   return <RelatoriosClient data={data} />

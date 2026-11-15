@@ -3,8 +3,9 @@
 import { useState, useMemo, useTransition, Fragment, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import {
-  Plus, Trash2, DollarSign, Target, TrendingUp, RefreshCw,
-  Eye, MousePointer, MessageCircle, ArrowRight, Users,
+  Plus, Trash2, Target, TrendingUp, TrendingDown, RefreshCw,
+  Eye, MousePointer, MessageCircle, ArrowRight, Users, BarChart2,
+  ChevronDown, ChevronUp, Trophy, AlertCircle,
 } from 'lucide-react'
 import { addSpendEntry, deleteSpendEntry, type SpendEntry } from '@/actions/meta-ads-spend-manual'
 
@@ -34,12 +35,11 @@ function ObjectiveBadge({ value }: { value: string | null }) {
 }
 
 type Props = {
-  initialEntries: SpendEntry[]
-  // Clientes novos de canais pagos no período (instagram_pago + facebook)
-  newPaidCustomers: number
-  // Faturamento de canais pagos no período
-  paidRevenueCents: number
-  period: '7d' | '30d' | '90d'
+  initialEntries:      SpendEntry[]
+  newPaidCustomers:    number
+  paidRevenueCents:    number
+  period:              '7d' | '30d' | '90d'
+  dailyPaidCustomers:  { date: string; count: number }[]
 }
 
 const fmtBRL = (cents: number) =>
@@ -47,6 +47,9 @@ const fmtBRL = (cents: number) =>
 
 const fmtUSD = (cents: number) =>
   (cents / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
+
+const fmtDate = (iso: string) =>
+  new Date(iso + 'T12:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
 
 async function fetchUsdRate(): Promise<number | null> {
   try {
@@ -56,10 +59,75 @@ async function fetchUsdRate(): Promise<number | null> {
   } catch { return null }
 }
 
-export function ManualSpendCard({ initialEntries, newPaidCustomers, paidRevenueCents, period }: Props) {
+// ── Gráfico de barras diário ──────────────────────────────────────────────────
+
+type DailyBar = {
+  date:        string
+  spend:       number
+  customers:   number
+  cac:         number | null
+  costPerConv: number | null
+  clicks:      number
+  conversations: number
+}
+
+function DailyBarChart({ days, metric }: { days: DailyBar[]; metric: 'cac' | 'conv' }) {
+  const vals = days.map(d => metric === 'cac' ? (d.cac ?? 0) : (d.costPerConv ?? 0))
+  const maxVal = Math.max(1, ...vals)
+  const w = 700; const h = 140
+  const padL = 55; const padB = 28; const padT = 10; const padR = 10
+  const innerW = w - padL - padR
+  const innerH = h - padT - padB
+  const barW = Math.max(4, (innerW / Math.max(1, days.length)) - 3)
+
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} className="w-full" preserveAspectRatio="xMidYMid meet">
+      {[0, 0.5, 1].map(t => {
+        const y = padT + innerH - t * innerH
+        return (
+          <g key={t}>
+            <line x1={padL} y1={y} x2={w - padR} y2={y} stroke="#2A3650" strokeWidth="1" strokeDasharray="3 4" />
+            <text x={padL - 6} y={y + 4} textAnchor="end" fontSize="9" fill="#475569" fontFamily="monospace">
+              {fmtBRL(maxVal * t)}
+            </text>
+          </g>
+        )
+      })}
+      {days.map((d, i) => {
+        const val = vals[i]
+        const barH = val > 0 ? Math.max(3, (val / maxVal) * innerH) : 2
+        const x = padL + i * (innerW / days.length) + (innerW / days.length - barW) / 2
+        const y = padT + innerH - barH
+        const isMin = val > 0 && val === Math.min(...vals.filter(v => v > 0))
+        const isMax = val === Math.max(...vals)
+        const color = isMin ? '#22C55E' : isMax ? '#EF4444' : '#E4405F88'
+        return (
+          <g key={i}>
+            <rect x={x} y={y} width={barW} height={barH} rx="2" fill={color}>
+              <title>{`${fmtDate(d.date)}: ${fmtBRL(val)}${metric === 'cac' ? ` CAC (${d.customers} clientes)` : ` custo/conversa (${d.conversations} conv.)`}`}</title>
+            </rect>
+            {(i % Math.max(1, Math.ceil(days.length / 8)) === 0 || i === days.length - 1) && (
+              <text x={x + barW / 2} y={h - 8} textAnchor="middle" fontSize="9" fill="#475569" fontFamily="monospace">
+                {d.date.slice(5).replace('-', '/')}
+              </text>
+            )}
+          </g>
+        )
+      })}
+    </svg>
+  )
+}
+
+// ── Componente principal ──────────────────────────────────────────────────────
+
+export function ManualSpendCard({
+  initialEntries, newPaidCustomers, paidRevenueCents, period, dailyPaidCustomers,
+}: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [showForm, setShowForm]     = useState(false)
+  const [showDaily, setShowDaily]   = useState(false)
+  const [chartMetric, setChartMetric] = useState<'cac' | 'conv'>('cac')
   const [currency, setCurrency]     = useState<'BRL' | 'USD'>('BRL')
   const [date, setDate]             = useState(new Date().toISOString().slice(0, 10))
   const [amount, setAmount]         = useState('')
@@ -74,7 +142,6 @@ export function ManualSpendCard({ initialEntries, newPaidCustomers, paidRevenueC
 
   const days = period === '7d' ? 7 : period === '30d' ? 30 : 90
 
-  // Auto-busca cotação quando USD selecionado
   useEffect(() => {
     if (currency === 'USD' && !rate) {
       setFetchingRate(true)
@@ -114,6 +181,44 @@ export function ManualSpendCard({ initialEntries, newPaidCustomers, paidRevenueC
     const costConv = totalConvs > 0 ? Math.round(totalSpend / totalConvs) : 0
     return { cac, roas, cpm, cpc, costConv }
   }, [totalSpend, newPaidCustomers, paidRevenueCents, totalImpressions, totalClicks, totalConvs])
+
+  // ── Análise diária ───────────────────────────────────────────────────────
+  const dailyStats = useMemo(() => {
+    if (periodEntries.length === 0) return null
+
+    // Agrupa entries por dia
+    const byDate = new Map<string, { spend: number; impr: number; clicks: number; convs: number }>()
+    for (const e of periodEntries) {
+      const d = byDate.get(e.spend_date) ?? { spend: 0, impr: 0, clicks: 0, convs: 0 }
+      d.spend  += e.amount_cents
+      d.impr   += e.impressions ?? 0
+      d.clicks += e.clicks ?? 0
+      d.convs  += e.conversations ?? 0
+      byDate.set(e.spend_date, d)
+    }
+
+    // Mapa de clientes por dia
+    const custMap = new Map(dailyPaidCustomers.map(x => [x.date, x.count]))
+
+    const daybars: DailyBar[] = [...byDate.entries()].map(([date, d]) => {
+      const customers   = custMap.get(date) ?? 0
+      const cac         = d.spend > 0 && customers > 0 ? Math.round(d.spend / customers) : null
+      const costPerConv = d.spend > 0 && d.convs > 0 ? Math.round(d.spend / d.convs) : null
+      return { date, spend: d.spend, customers, cac, costPerConv, clicks: d.clicks, conversations: d.convs }
+    }).sort((a, b) => a.date.localeCompare(b.date))
+
+    if (daybars.length < 2) return null
+
+    const withCac  = daybars.filter(d => d.cac !== null)
+    const withConv = daybars.filter(d => d.costPerConv !== null)
+
+    const bestCac  = withCac.length  > 0 ? withCac.reduce((a, b) => a.cac!  < b.cac!  ? a : b) : null
+    const worstCac = withCac.length  > 0 ? withCac.reduce((a, b) => a.cac!  > b.cac!  ? a : b) : null
+    const bestConv = withConv.length > 0 ? withConv.reduce((a, b) => a.costPerConv! < b.costPerConv! ? a : b) : null
+    const worstConv= withConv.length > 0 ? withConv.reduce((a, b) => a.costPerConv! > b.costPerConv! ? a : b) : null
+
+    return { daybars, bestCac, worstCac, bestConv, worstConv }
+  }, [periodEntries, dailyPaidCustomers])
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault()
@@ -198,10 +303,7 @@ export function ManualSpendCard({ initialEntries, newPaidCustomers, paidRevenueC
               <button key={c} type="button"
                 onClick={() => { setCurrency(c); setAmount(''); setRate('') }}
                 className="rounded px-3 py-1 text-xs font-semibold transition-colors"
-                style={currency === c
-                  ? { background: '#E4405F', color: '#fff' }
-                  : { color: '#64748B' }}
-              >
+                style={currency === c ? { background: '#E4405F', color: '#fff' } : { color: '#64748B' }}>
                 {c === 'BRL' ? '🇧🇷 R$' : '🇺🇸 US$'}
               </button>
             ))}
@@ -308,24 +410,24 @@ export function ManualSpendCard({ initialEntries, newPaidCustomers, paidRevenueC
 
       {/* Lista de lançamentos */}
       {periodEntries.length > 0 ? (
-        <div className="space-y-1 max-h-40 overflow-y-auto pr-1">
+        <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
           {periodEntries.map(e => (
-            <div key={e.id} className="rounded-lg px-2.5 py-2" style={{ background: '#0F1923' }}>
+            <div key={e.id} className="rounded-lg border px-3 py-2.5" style={{ background: '#0F1923', borderColor: '#1E2D45' }}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 min-w-0 flex-wrap">
-                  <span className="text-[10px] shrink-0" style={{ color: '#475569' }}>
-                    {new Date(e.spend_date + 'T12:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
+                  <span className="text-xs shrink-0 font-mono" style={{ color: '#475569' }}>
+                    {fmtDate(e.spend_date)}
                   </span>
                   {e.currency === 'USD' && (
-                    <span className="text-[9px] rounded px-1 py-0.5 font-semibold shrink-0"
-                      style={{ background: '#1D4ED820', color: '#60A5FA' }}>USD</span>
+                    <span className="text-[9px] rounded px-1.5 py-0.5 font-semibold shrink-0"
+                      style={{ background: '#1D4ED820', color: '#60A5FA', border: '1px solid #1D4ED840' }}>USD</span>
                   )}
                   <ObjectiveBadge value={e.objective} />
-                  <span className="text-xs font-semibold tabular-nums shrink-0" style={{ color: '#E4405F' }}>{entryLabel(e)}</span>
+                  <span className="text-sm font-bold tabular-nums shrink-0" style={{ color: '#E4405F' }}>{entryLabel(e)}</span>
                   {e.notes && <span className="text-[10px] truncate" style={{ color: '#475569' }}>{e.notes}</span>}
                 </div>
                 <button onClick={() => handleDelete(e.id)} disabled={isPending}
-                  className="shrink-0 ml-2 transition-colors disabled:opacity-50"
+                  className="shrink-0 ml-2 transition-colors disabled:opacity-50 p-1 rounded"
                   style={{ color: '#334155' }}
                   onMouseEnter={ev => (ev.currentTarget.style.color = '#EF4444')}
                   onMouseLeave={ev => (ev.currentTarget.style.color = '#334155')}
@@ -334,20 +436,23 @@ export function ManualSpendCard({ initialEntries, newPaidCustomers, paidRevenueC
                 </button>
               </div>
               {(e.impressions || e.clicks || e.conversations) && (
-                <div className="flex items-center gap-3 mt-1">
+                <div className="flex items-center gap-3 mt-2 flex-wrap">
                   {e.impressions != null && (
-                    <span className="flex items-center gap-0.5 text-[9px]" style={{ color: '#334155' }}>
-                      <Eye className="h-2.5 w-2.5" /> {e.impressions.toLocaleString('pt-BR')}
+                    <span className="flex items-center gap-1 text-[11px] rounded-md px-2 py-0.5"
+                      style={{ background: '#1E2D45', color: '#64748B' }}>
+                      <Eye className="h-3 w-3" /> {e.impressions.toLocaleString('pt-BR')}
                     </span>
                   )}
                   {e.clicks != null && (
-                    <span className="flex items-center gap-0.5 text-[9px]" style={{ color: '#334155' }}>
-                      <MousePointer className="h-2.5 w-2.5" /> {e.clicks.toLocaleString('pt-BR')}
+                    <span className="flex items-center gap-1 text-[11px] rounded-md px-2 py-0.5"
+                      style={{ background: '#1E2D45', color: '#64748B' }}>
+                      <MousePointer className="h-3 w-3" /> {e.clicks.toLocaleString('pt-BR')}
                     </span>
                   )}
                   {e.conversations != null && (
-                    <span className="flex items-center gap-0.5 text-[9px]" style={{ color: '#334155' }}>
-                      <MessageCircle className="h-2.5 w-2.5" /> {e.conversations.toLocaleString('pt-BR')} conversas
+                    <span className="flex items-center gap-1 text-[11px] rounded-md px-2 py-0.5"
+                      style={{ background: '#1E2D45', color: '#64748B' }}>
+                      <MessageCircle className="h-3 w-3" /> {e.conversations.toLocaleString('pt-BR')} conv.
                     </span>
                   )}
                 </div>
@@ -356,7 +461,7 @@ export function ManualSpendCard({ initialEntries, newPaidCustomers, paidRevenueC
           ))}
         </div>
       ) : (
-        <p className="text-xs text-center py-2" style={{ color: '#334155' }}>
+        <p className="text-xs text-center py-3" style={{ color: '#334155' }}>
           Nenhum lançamento nos últimos {days} dias
         </p>
       )}
@@ -453,6 +558,185 @@ export function ManualSpendCard({ initialEntries, newPaidCustomers, paidRevenueC
                   </Fragment>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* Análise por dia */}
+          {dailyStats && (
+            <div className="rounded-xl border overflow-hidden" style={{ borderColor: '#2A3650', background: '#0F1923' }}>
+              <button
+                onClick={() => setShowDaily(v => !v)}
+                className="w-full flex items-center justify-between px-4 py-3 transition-colors hover:bg-white/5"
+              >
+                <div className="flex items-center gap-2">
+                  <BarChart2 className="h-4 w-4" style={{ color: '#E4405F' }} />
+                  <span className="text-sm font-semibold" style={{ color: '#F8FAFC' }}>Análise por Dia</span>
+                  <span className="text-[10px] rounded-full px-2 py-0.5" style={{ background: '#E4405F22', color: '#E4405F' }}>
+                    {dailyStats.daybars.length} dias
+                  </span>
+                </div>
+                {showDaily
+                  ? <ChevronUp className="h-4 w-4" style={{ color: '#475569' }} />
+                  : <ChevronDown className="h-4 w-4" style={{ color: '#475569' }} />}
+              </button>
+
+              {showDaily && (
+                <div className="px-4 pb-4 space-y-4 border-t" style={{ borderColor: '#1E2D45' }}>
+                  {/* Best / Worst day */}
+                  <div className="grid grid-cols-2 gap-3 pt-3">
+                    {/* Melhor dia — CAC */}
+                    {dailyStats.bestCac && (
+                      <div className="rounded-xl border p-3" style={{ borderColor: '#22C55E33', background: '#22C55E08' }}>
+                        <div className="flex items-center gap-1.5 mb-2">
+                          <Trophy className="h-3.5 w-3.5" style={{ color: '#22C55E' }} />
+                          <p className="text-[10px] uppercase tracking-wider" style={{ color: '#22C55E88' }}>Melhor CAC</p>
+                        </div>
+                        <p className="text-xl font-bold tabular-nums" style={{ color: '#22C55E' }}>
+                          {fmtBRL(dailyStats.bestCac.cac!)}
+                        </p>
+                        <p className="text-xs mt-1" style={{ color: '#94A3B8' }}>{fmtDate(dailyStats.bestCac.date)}</p>
+                        <p className="text-[10px] mt-0.5" style={{ color: '#64748B' }}>
+                          {dailyStats.bestCac.customers} clientes · {fmtBRL(dailyStats.bestCac.spend)} gasto
+                        </p>
+                      </div>
+                    )}
+                    {/* Pior dia — CAC */}
+                    {dailyStats.worstCac && dailyStats.worstCac.date !== dailyStats.bestCac?.date && (
+                      <div className="rounded-xl border p-3" style={{ borderColor: '#EF444433', background: '#EF444408' }}>
+                        <div className="flex items-center gap-1.5 mb-2">
+                          <AlertCircle className="h-3.5 w-3.5" style={{ color: '#EF4444' }} />
+                          <p className="text-[10px] uppercase tracking-wider" style={{ color: '#EF444488' }}>Maior CAC</p>
+                        </div>
+                        <p className="text-xl font-bold tabular-nums" style={{ color: '#EF4444' }}>
+                          {fmtBRL(dailyStats.worstCac.cac!)}
+                        </p>
+                        <p className="text-xs mt-1" style={{ color: '#94A3B8' }}>{fmtDate(dailyStats.worstCac.date)}</p>
+                        <p className="text-[10px] mt-0.5" style={{ color: '#64748B' }}>
+                          {dailyStats.worstCac.customers} clientes · {fmtBRL(dailyStats.worstCac.spend)} gasto
+                        </p>
+                      </div>
+                    )}
+                    {/* Melhor custo/conversa quando não há CAC */}
+                    {!dailyStats.bestCac && dailyStats.bestConv && (
+                      <div className="rounded-xl border p-3" style={{ borderColor: '#22C55E33', background: '#22C55E08' }}>
+                        <div className="flex items-center gap-1.5 mb-2">
+                          <Trophy className="h-3.5 w-3.5" style={{ color: '#22C55E' }} />
+                          <p className="text-[10px] uppercase tracking-wider" style={{ color: '#22C55E88' }}>Melhor custo/conv.</p>
+                        </div>
+                        <p className="text-xl font-bold tabular-nums" style={{ color: '#22C55E' }}>
+                          {fmtBRL(dailyStats.bestConv.costPerConv!)}
+                        </p>
+                        <p className="text-xs mt-1" style={{ color: '#94A3B8' }}>{fmtDate(dailyStats.bestConv.date)}</p>
+                      </div>
+                    )}
+                    {!dailyStats.worstCac && dailyStats.worstConv && dailyStats.worstConv.date !== dailyStats.bestConv?.date && (
+                      <div className="rounded-xl border p-3" style={{ borderColor: '#EF444433', background: '#EF444408' }}>
+                        <div className="flex items-center gap-1.5 mb-2">
+                          <AlertCircle className="h-3.5 w-3.5" style={{ color: '#EF4444' }} />
+                          <p className="text-[10px] uppercase tracking-wider" style={{ color: '#EF444488' }}>Maior custo/conv.</p>
+                        </div>
+                        <p className="text-xl font-bold tabular-nums" style={{ color: '#EF4444' }}>
+                          {fmtBRL(dailyStats.worstConv.costPerConv!)}
+                        </p>
+                        <p className="text-xs mt-1" style={{ color: '#94A3B8' }}>{fmtDate(dailyStats.worstConv.date)}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Seletor de métrica + gráfico */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-xs font-semibold" style={{ color: '#CBD5E1' }}>Evolução diária</p>
+                      <div className="flex gap-1 rounded-md border p-0.5" style={{ borderColor: '#2A3650' }}>
+                        {([
+                          { key: 'cac' as const,  label: 'CAC' },
+                          { key: 'conv' as const, label: 'Custo/Conv.' },
+                        ]).map(opt => (
+                          <button key={opt.key} type="button"
+                            onClick={() => setChartMetric(opt.key)}
+                            className="rounded px-2.5 py-1 text-[10px] font-semibold transition-colors"
+                            style={chartMetric === opt.key
+                              ? { background: '#E4405F', color: '#fff' }
+                              : { color: '#64748B' }}>
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="rounded-lg p-2" style={{ background: '#0A1120' }}>
+                      <DailyBarChart days={dailyStats.daybars} metric={chartMetric} />
+                    </div>
+                    <div className="flex items-center gap-4 mt-2 justify-center text-[10px]" style={{ color: '#475569' }}>
+                      <span className="flex items-center gap-1.5">
+                        <span className="h-2 w-2 rounded" style={{ background: '#22C55E' }} /> Menor (melhor)
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <span className="h-2 w-2 rounded" style={{ background: '#EF4444' }} /> Maior (pior)
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <span className="h-2 w-2 rounded" style={{ background: '#E4405F88' }} /> Outros dias
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Tabela por dia */}
+                  <div className="rounded-lg overflow-hidden border" style={{ borderColor: '#1E2D45' }}>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr style={{ background: '#131C2A' }}>
+                            {['Data', 'Gasto', 'Clientes', 'CAC', 'Cliques', 'Conv.', 'Custo/Conv.'].map(h => (
+                              <th key={h} className="px-3 py-2 text-left text-[10px] uppercase tracking-wider font-semibold"
+                                style={{ color: '#475569' }}>{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {dailyStats.daybars.map((d, i) => {
+                            const isBestCac  = d.date === dailyStats.bestCac?.date
+                            const isWorstCac = d.date === dailyStats.worstCac?.date
+                            return (
+                              <tr key={d.date} className="border-t"
+                                style={{
+                                  borderColor: '#1E2D45',
+                                  background: isBestCac  ? '#22C55E08'
+                                            : isWorstCac ? '#EF444408'
+                                            : i % 2 === 0 ? 'transparent' : '#0A111A',
+                                }}>
+                                <td className="px-3 py-2 font-mono" style={{ color: '#94A3B8' }}>{fmtDate(d.date)}</td>
+                                <td className="px-3 py-2 font-mono font-semibold" style={{ color: '#E4405F' }}>{fmtBRL(d.spend)}</td>
+                                <td className="px-3 py-2 font-mono" style={{ color: d.customers > 0 ? '#F8FAFC' : '#334155' }}>
+                                  {d.customers > 0 ? d.customers : '—'}
+                                </td>
+                                <td className="px-3 py-2 font-mono font-bold"
+                                  style={{ color: isBestCac ? '#22C55E' : isWorstCac ? '#EF4444' : d.cac ? '#F8FAFC' : '#334155' }}>
+                                  {d.cac ? fmtBRL(d.cac) : '—'}
+                                </td>
+                                <td className="px-3 py-2 font-mono" style={{ color: d.clicks > 0 ? '#94A3B8' : '#334155' }}>
+                                  {d.clicks > 0 ? d.clicks.toLocaleString('pt-BR') : '—'}
+                                </td>
+                                <td className="px-3 py-2 font-mono" style={{ color: d.conversations > 0 ? '#94A3B8' : '#334155' }}>
+                                  {d.conversations > 0 ? d.conversations : '—'}
+                                </td>
+                                <td className="px-3 py-2 font-mono"
+                                  style={{ color: d.costPerConv ? '#F8FAFC' : '#334155' }}>
+                                  {d.costPerConv ? fmtBRL(d.costPerConv) : '—'}
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {!dailyStats.bestCac && (
+                    <p className="text-[11px] text-center" style={{ color: '#475569' }}>
+                      CAC diário disponível quando clientes têm origem "Instagram Pago" ou "Facebook" cadastrada no mesmo dia
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
