@@ -222,6 +222,9 @@ export function ManualSpendCard({
     return { cac, roas, cpm, cpc, costConv, prevCac, prevRoas }
   }, [totalSpend, newPaidCustomers, paidRevenueCents, totalImpressions, totalClicks, totalConvs, prevSpendCents, prevNewPaidCustomers])
 
+  // Dados anteriores suficientes para comparação (prev < 25% do atual = período incompleto)
+  const prevCoverageOk = prevSpendCents > 0 && prevSpendCents >= totalSpend * 0.25
+
   // Status do CAC em relação à meta
   const cacStatus = cacTarget > 0 && kpis.cac > 0
     ? kpis.cac <= cacTarget ? 'good' : kpis.cac <= cacTarget * 1.2 ? 'warning' : 'bad'
@@ -280,7 +283,7 @@ export function ManualSpendCard({
     // Segunda a domingo
     const result = [1, 2, 3, 4, 5, 6, 0].map(dow => {
       const agg = byDow.get(dow)
-      if (!agg || agg.dayCount === 0) return { dow, label: DOW_LABELS[dow], avgCac: null, avgCostConv: null, avgSpend: 0, dayCount: 0 }
+      if (!agg || agg.dayCount === 0) return { dow, label: DOW_LABELS[dow], avgCac: null, avgCostConv: null, avgSpend: 0, dayCount: 0, avgConvs: 0 }
       return {
         dow,
         label:       DOW_LABELS[dow],
@@ -288,6 +291,7 @@ export function ManualSpendCard({
         avgCostConv: agg.totalConvs > 0     ? Math.round(agg.totalSpend / agg.totalConvs)     : null,
         avgSpend:    Math.round(agg.totalSpend / agg.dayCount),
         dayCount:    agg.dayCount,
+        avgConvs:    Math.round(agg.totalConvs / agg.dayCount),
       }
     })
     const withCac  = result.filter(d => d.avgCac !== null)
@@ -359,7 +363,7 @@ export function ManualSpendCard({
         </div>
         <div className="flex items-center gap-3">
           <span className="text-lg font-bold tabular-nums" style={{ color: '#E4405F' }}>{fmtBRL(totalSpend)}</span>
-          {prevSpendCents > 0 && (
+          {prevCoverageOk && (
             <DeltaBadge current={totalSpend} prev={prevSpendCents} invertedSign={false} />
           )}
           <button onClick={() => setShowForm(v => !v)}
@@ -585,7 +589,7 @@ export function ManualSpendCard({
               </p>
               <div className="flex items-center justify-between flex-wrap gap-1">
                 <p className="text-[10px]" style={{ color: '#64748B' }}>{newPaidCustomers} clientes pagos</p>
-                {kpis.prevCac > 0 && <DeltaBadge current={kpis.cac} prev={kpis.prevCac} invertedSign={true} />}
+                {prevCoverageOk && kpis.prevCac > 0 && <DeltaBadge current={kpis.cac} prev={kpis.prevCac} invertedSign={true} />}
               </div>
               {/* Meta de CAC */}
               <div className="pt-1 border-t" style={{ borderColor: '#2A365066' }}>
@@ -628,7 +632,7 @@ export function ManualSpendCard({
               </p>
               <div className="flex items-center justify-between flex-wrap gap-1 mt-0.5">
                 <p className="text-[10px]" style={{ color: '#64748B' }}>receita / investimento</p>
-                {kpis.prevRoas > 0 && <DeltaBadge current={kpis.roas * 100} prev={kpis.prevRoas * 100} invertedSign={false} />}
+                {prevCoverageOk && kpis.prevRoas > 0 && <DeltaBadge current={kpis.roas * 100} prev={kpis.prevRoas * 100} invertedSign={false} />}
               </div>
             </div>
           </div>
@@ -651,7 +655,16 @@ export function ManualSpendCard({
                       <span className="text-2xl font-bold tabular-nums" style={{ color: step.color }}>{step.value}</span>
                       <span className="text-[10px] mt-0.5 text-center" style={{ color: '#94A3B8' }}>{step.label}</span>
                     </div>
-                    {i < arr.length - 1 && <ArrowRight className="h-4 w-4 shrink-0" style={{ color: '#334155' }} />}
+                    {i < arr.length - 1 && (
+                      <div className="flex flex-col items-center gap-0.5 shrink-0">
+                        <ArrowRight className="h-4 w-4" style={{ color: '#334155' }} />
+                        {totalConvs > 0 && newPaidCustomers > 0 && (
+                          <span className="text-[9px] font-bold tabular-nums" style={{ color: '#64748B' }}>
+                            {((newPaidCustomers / totalConvs) * 100).toFixed(1)}%
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </Fragment>
                 ))}
               </div>
@@ -869,7 +882,7 @@ export function ManualSpendCard({
                     <table className="w-full text-xs">
                       <thead>
                         <tr style={{ background: '#131C2A' }}>
-                          {['Dia', 'Gasto médio/dia', 'CAC médio', 'Custo/Conv. médio', 'Dias c/ dados'].map(h => (
+                          {['Dia', 'Gasto médio/dia', 'CAC médio', 'Conv. médio', 'Custo/Conv. médio', 'Dias c/ dados'].map(h => (
                             <th key={h} className="px-3 py-2 text-left text-[10px] uppercase tracking-wider font-semibold" style={{ color: '#475569' }}>{h}</th>
                           ))}
                         </tr>
@@ -889,6 +902,9 @@ export function ManualSpendCard({
                               <td className="px-3 py-2 font-mono font-bold"
                                 style={{ color: isBest ? '#22C55E' : isWorst ? '#EF4444' : d.avgCac ? '#F8FAFC' : '#334155' }}>
                                 {d.avgCac ? fmtBRL(d.avgCac) : '—'}
+                              </td>
+                              <td className="px-3 py-2 font-mono" style={{ color: d.avgConvs > 0 ? '#94A3B8' : '#334155' }}>
+                                {d.avgConvs > 0 ? d.avgConvs : '—'}
                               </td>
                               <td className="px-3 py-2 font-mono" style={{ color: d.avgCostConv ? '#F8FAFC' : '#334155' }}>
                                 {d.avgCostConv ? fmtBRL(d.avgCostConv) : '—'}
