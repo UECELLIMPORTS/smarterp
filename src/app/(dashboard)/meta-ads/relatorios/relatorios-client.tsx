@@ -114,6 +114,8 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
               paidRevenueCents={paidRevenueCents}
               period={periodKey as '7d' | '30d' | '90d'}
               dailyPaidCustomers={data.dailyPaidCustomers}
+              prevSpendCents={data.prevSpendCents}
+              prevNewPaidCustomers={data.prevNewPaidCustomers}
             />
           </div>
         )

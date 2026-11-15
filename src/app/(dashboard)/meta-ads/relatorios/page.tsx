@@ -67,6 +67,8 @@ export type RelatoriosData = {
   loadError:           string | null
   spendEntries:        import('@/actions/meta-ads-spend-manual').SpendEntry[]
   dailyPaidCustomers:  { date: string; count: number }[]
+  prevSpendCents:      number
+  prevNewPaidCustomers: number
 }
 
 // ── Helpers internos ───────────────────────────────────────────────────────
@@ -343,18 +345,40 @@ export default async function MetaAdsRelatoriosPage({
   const { supabase: sb2 } = await requireAuth()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb2a = sb2 as any
-  const [spendRes, dailyCustRes] = await Promise.all([
+
+  const periodDays = period === '7d' ? 7 : period === '30d' ? 30 : 90
+  const prevSinceDate = new Date(since)
+  prevSinceDate.setDate(prevSinceDate.getDate() - periodDays)
+  const prevSinceIso = prevSinceDate.toISOString()
+  const prevSinceDateStr = prevSinceIso.slice(0, 10)
+  const sinceDateStr = since.toISOString().slice(0, 10)
+
+  const [spendRes, dailyCustRes, prevSpendRes, prevCustRes] = await Promise.all([
     sb2a
       .from('meta_ads_spend_entries')
       .select('id, spend_date, amount_cents, currency, original_amount_cents, exchange_rate, impressions, clicks, conversations, objective, notes, created_at')
       .eq('tenant_id', tenantId)
-      .gte('spend_date', since.toISOString().slice(0, 10))
+      .gte('spend_date', sinceDateStr)
       .order('spend_date', { ascending: false }),
     sb2a
       .from('customers')
       .select('id, created_at, origin')
       .eq('tenant_id', tenantId)
       .gte('created_at', sinceIso)
+      .in('origin', ['instagram_pago', 'facebook'])
+      .limit(5000),
+    sb2a
+      .from('meta_ads_spend_entries')
+      .select('amount_cents')
+      .eq('tenant_id', tenantId)
+      .gte('spend_date', prevSinceDateStr)
+      .lt('spend_date', sinceDateStr),
+    sb2a
+      .from('customers')
+      .select('id')
+      .eq('tenant_id', tenantId)
+      .gte('created_at', prevSinceIso)
+      .lt('created_at', sinceIso)
       .in('origin', ['instagram_pago', 'facebook'])
       .limit(5000),
   ])
@@ -366,6 +390,10 @@ export default async function MetaAdsRelatoriosPage({
     custByDay.set(d, (custByDay.get(d) ?? 0) + 1)
   }
   const dailyPaidCustomers = [...custByDay.entries()].map(([date, count]) => ({ date, count }))
+
+  const prevSpendCents = ((prevSpendRes.data ?? []) as { amount_cents: number }[])
+    .reduce((s, e) => s + e.amount_cents, 0)
+  const prevNewPaidCustomers = (prevCustRes.data ?? []).length
 
   const [{ channels }, dailyRevenue] = await Promise.all([
     getChannelMetrics(tenantId, sinceIso),
@@ -429,6 +457,8 @@ export default async function MetaAdsRelatoriosPage({
     loadError,
     spendEntries: spendRes.data ?? [],
     dailyPaidCustomers,
+    prevSpendCents,
+    prevNewPaidCustomers,
   }
 
   return <RelatoriosClient data={data} />
