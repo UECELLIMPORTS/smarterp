@@ -2,9 +2,10 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 import {
   ArrowLeft, BarChart3, DollarSign, Users, TrendingDown, TrendingUp,
-  AlertTriangle, Target, ExternalLink,
+  AlertTriangle, Target, ExternalLink, Calendar, X,
 } from 'lucide-react'
 import type { MetaAdsPeriod } from '@/actions/meta-ads'
 import type { RelatoriosData, DailyCrossPoint, ChannelMetrics, CacByChannel, FunnelMetrics } from './page'
@@ -22,6 +23,10 @@ const PCT = (v: number) =>
 
 export function RelatoriosClient({ data }: { data: RelatoriosData }) {
   const router = useRouter()
+  const isCustom = !!(data.customSince && data.customUntil)
+  const [showDatePicker, setShowDatePicker] = useState(isCustom)
+  const [fromDate, setFromDate]   = useState(data.customSince ?? '')
+  const [toDate,   setToDate]     = useState(data.customUntil ?? '')
 
   const periodOptions: { v: MetaAdsPeriod; label: string }[] = [
     { v: 'today',     label: 'Hoje' },
@@ -36,6 +41,26 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
     params.set('period', nextPeriod)
     if (data.selectedAccount) params.set('account', data.selectedAccount.adAccountId)
     return `/meta-ads/relatorios?${params.toString()}`
+  }
+
+  function buildCustomUrl(since: string, until: string) {
+    const params = new URLSearchParams()
+    params.set('since', since)
+    params.set('until', until)
+    if (data.selectedAccount) params.set('account', data.selectedAccount.adAccountId)
+    return `/meta-ads/relatorios?${params.toString()}`
+  }
+
+  function applyCustomRange() {
+    if (!fromDate || !toDate) return
+    router.push(buildCustomUrl(fromDate, toDate))
+  }
+
+  function clearCustomRange() {
+    setFromDate('')
+    setToDate('')
+    setShowDatePicker(false)
+    router.push(buildUrl('30d'))
   }
 
   return (
@@ -57,14 +82,15 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
               : data.selectedAccount && <> · <span className="font-mono" style={{ color: '#CBD5E1' }}>{data.selectedAccount.displayName}</span></>}
           </p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex flex-col items-end gap-2">
+          {/* Botões preset + personalizado */}
           <div className="flex gap-1 rounded-xl p-1" style={{ background: '#1B2638', border: '1px solid #2A3650' }}>
             {periodOptions.map(p => (
               <button
                 key={p.v}
-                onClick={() => router.push(buildUrl(p.v))}
+                onClick={() => { setShowDatePicker(false); router.push(buildUrl(p.v)) }}
                 className="rounded-lg px-3 py-1.5 text-xs font-bold transition-all"
-                style={data.period === p.v
+                style={!isCustom && data.period === p.v
                   ? { background: '#E4405F', color: '#fff' }
                   : { color: '#94A3B8' }
                 }
@@ -72,7 +98,63 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
                 {p.label}
               </button>
             ))}
+            <button
+              onClick={() => setShowDatePicker(v => !v)}
+              className="rounded-lg px-3 py-1.5 text-xs font-bold transition-all flex items-center gap-1"
+              style={isCustom
+                ? { background: '#E4405F', color: '#fff' }
+                : { color: '#94A3B8' }
+              }
+            >
+              <Calendar className="h-3 w-3" />
+              {isCustom
+                ? `${data.customSince} → ${data.customUntil}`
+                : 'Personalizado'}
+            </button>
           </div>
+
+          {/* Date picker expandido */}
+          {showDatePicker && (
+            <div
+              className="flex items-center gap-2 rounded-xl px-3 py-2 flex-wrap"
+              style={{ background: '#1B2638', border: '1px solid #2A3650' }}
+            >
+              <span className="text-xs" style={{ color: '#94A3B8' }}>De</span>
+              <input
+                type="date"
+                value={fromDate}
+                onChange={e => setFromDate(e.target.value)}
+                className="rounded-lg px-2 py-1 text-xs font-mono"
+                style={{ background: '#0F1824', border: '1px solid #2A3650', color: '#F8FAFC' }}
+              />
+              <span className="text-xs" style={{ color: '#94A3B8' }}>até</span>
+              <input
+                type="date"
+                value={toDate}
+                onChange={e => setToDate(e.target.value)}
+                className="rounded-lg px-2 py-1 text-xs font-mono"
+                style={{ background: '#0F1824', border: '1px solid #2A3650', color: '#F8FAFC' }}
+              />
+              <button
+                onClick={applyCustomRange}
+                disabled={!fromDate || !toDate}
+                className="rounded-lg px-3 py-1 text-xs font-bold transition-all disabled:opacity-40"
+                style={{ background: '#E4405F', color: '#fff' }}
+              >
+                Aplicar
+              </button>
+              {isCustom && (
+                <button
+                  onClick={clearCustomRange}
+                  className="rounded-lg p-1 transition-all"
+                  style={{ color: '#94A3B8' }}
+                  title="Limpar filtro"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

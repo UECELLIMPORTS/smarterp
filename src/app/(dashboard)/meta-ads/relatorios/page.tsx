@@ -69,6 +69,8 @@ export type RelatoriosData = {
   dailyPaidCustomers:  { date: string; count: number }[]
   prevSpendCents:      number
   prevNewPaidCustomers: number
+  customSince?:        string   // YYYY-MM-DD when custom range active
+  customUntil?:        string   // YYYY-MM-DD when custom range active
 }
 
 // ── Helpers internos ───────────────────────────────────────────────────────
@@ -106,7 +108,7 @@ function resolveSelectedAccount(
 
 // ── Query: clientes novos por canal + vendas/OS atribuídas por canal ───────
 
-async function getChannelMetrics(tenantId: string, sinceIso: string): Promise<{
+async function getChannelMetrics(tenantId: string, sinceIso: string, untilIso?: string): Promise<{
   channels: ChannelMetrics[]
   bySales:  Map<string, number>     // customer_id -> revenue
   bySalesCount: Map<string, number>
@@ -115,28 +117,33 @@ async function getChannelMetrics(tenantId: string, sinceIso: string): Promise<{
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any
 
-  const [customersRes, salesRes, osRes] = await Promise.all([
-    sb.from('customers')
-      .select('id, origin')
-      .eq('tenant_id', tenantId)
-      .gte('created_at', sinceIso)
-      .in('origin', ['instagram_pago', 'instagram_organico', 'facebook'])
-      .limit(5000),
-    sb.from('sales')
-      .select('customer_id, total_cents, customers!inner(origin), sale_items(quantity, product_id, cost_snapshot_cents)')
-      .eq('tenant_id', tenantId)
-      .gte('created_at', sinceIso)
-      .neq('status', 'cancelled')
-      .in('customers.origin', ['instagram_pago', 'instagram_organico', 'facebook'])
-      .limit(5000),
-    sb.from('service_orders')
-      .select('customer_id, total_price_cents, service_price_cents, parts_sale_cents, parts_cost_cents, discount_cents, customers!inner(origin)')
-      .eq('tenant_id', tenantId)
-      .gte('received_at', sinceIso)
-      .in('status', ['delivered', 'Entregue'])
-      .in('customers.origin', ['instagram_pago', 'instagram_organico', 'facebook'])
-      .limit(5000),
-  ])
+  const custQ = sb.from('customers')
+    .select('id, origin')
+    .eq('tenant_id', tenantId)
+    .gte('created_at', sinceIso)
+    .in('origin', ['instagram_pago', 'instagram_organico', 'facebook'])
+    .limit(5000)
+  if (untilIso) custQ.lte('created_at', untilIso)
+
+  const salesQ = sb.from('sales')
+    .select('customer_id, total_cents, customers!inner(origin), sale_items(quantity, product_id, cost_snapshot_cents)')
+    .eq('tenant_id', tenantId)
+    .gte('created_at', sinceIso)
+    .neq('status', 'cancelled')
+    .in('customers.origin', ['instagram_pago', 'instagram_organico', 'facebook'])
+    .limit(5000)
+  if (untilIso) salesQ.lte('created_at', untilIso)
+
+  const osQ = sb.from('service_orders')
+    .select('customer_id, total_price_cents, service_price_cents, parts_sale_cents, parts_cost_cents, discount_cents, customers!inner(origin)')
+    .eq('tenant_id', tenantId)
+    .gte('received_at', sinceIso)
+    .in('status', ['delivered', 'Entregue'])
+    .in('customers.origin', ['instagram_pago', 'instagram_organico', 'facebook'])
+    .limit(5000)
+  if (untilIso) osQ.lte('received_at', untilIso)
+
+  const [customersRes, salesRes, osRes] = await Promise.all([custQ, salesQ, osQ])
 
   type SaleItem    = { quantity: number; product_id: string | null; cost_snapshot_cents: number | null }
   type CustomerRow = { id: string; origin: ReportChannel }
@@ -229,27 +236,30 @@ async function getChannelMetrics(tenantId: string, sinceIso: string): Promise<{
 
 // ── Query: faturamento atribuído por dia (pra linha cruzada com gasto) ─────
 
-async function getDailyRevenueByDay(tenantId: string, sinceIso: string): Promise<Map<string, number>> {
+async function getDailyRevenueByDay(tenantId: string, sinceIso: string, untilIso?: string): Promise<Map<string, number>> {
   const { supabase } = await requireAuth()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any
 
-  const [salesRes, osRes] = await Promise.all([
-    sb.from('sales')
-      .select('created_at, total_cents, customers!inner(origin)')
-      .eq('tenant_id', tenantId)
-      .gte('created_at', sinceIso)
-      .neq('status', 'cancelled')
-      .in('customers.origin', ['instagram_pago', 'facebook'])
-      .limit(10000),
-    sb.from('service_orders')
-      .select('received_at, total_price_cents, service_price_cents, parts_sale_cents, discount_cents, customers!inner(origin)')
-      .eq('tenant_id', tenantId)
-      .gte('received_at', sinceIso)
-      .in('status', ['delivered', 'Entregue'])
-      .in('customers.origin', ['instagram_pago', 'facebook'])
-      .limit(10000),
-  ])
+  const sQ = sb.from('sales')
+    .select('created_at, total_cents, customers!inner(origin)')
+    .eq('tenant_id', tenantId)
+    .gte('created_at', sinceIso)
+    .neq('status', 'cancelled')
+    .in('customers.origin', ['instagram_pago', 'facebook'])
+    .limit(10000)
+  if (untilIso) sQ.lte('created_at', untilIso)
+
+  const oQ = sb.from('service_orders')
+    .select('received_at, total_price_cents, service_price_cents, parts_sale_cents, discount_cents, customers!inner(origin)')
+    .eq('tenant_id', tenantId)
+    .gte('received_at', sinceIso)
+    .in('status', ['delivered', 'Entregue'])
+    .in('customers.origin', ['instagram_pago', 'facebook'])
+    .limit(10000)
+  if (untilIso) oQ.lte('received_at', untilIso)
+
+  const [salesRes, osRes] = await Promise.all([sQ, oQ])
 
   type SRow = { created_at: string; total_cents: number }
   type ORow = { received_at: string; total_price_cents: number|null; service_price_cents: number|null; parts_sale_cents: number|null; discount_cents: number|null }
@@ -274,7 +284,7 @@ async function getDailyRevenueByDay(tenantId: string, sinceIso: string): Promise
 export default async function MetaAdsRelatoriosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ period?: string; account?: string }>
+  searchParams: Promise<{ period?: string; account?: string; since?: string; until?: string }>
 }) {
   let auth: Awaited<ReturnType<typeof requireAuth>>
   try { auth = await requireAuth() } catch { redirect('/login') }
@@ -282,10 +292,14 @@ export default async function MetaAdsRelatoriosPage({
   const { user } = auth
   const tenantId = getTenantId(user)
 
-  const { period: rawPeriod = '30d', account: rawAccount } = await searchParams
+  const { period: rawPeriod = '30d', account: rawAccount, since: rawSince, until: rawUntil } = await searchParams
   const period = (['7d', '30d', '90d', 'today', 'yesterday'].includes(rawPeriod)
     ? rawPeriod
     : '30d') as MetaAdsPeriod
+
+  // Intervalo personalizado tem prioridade sobre o preset
+  const dateRegex = /^\d{4}-\d{2}-\d{2}$/
+  const isCustomRange = !!(rawSince && rawUntil && dateRegex.test(rawSince) && dateRegex.test(rawUntil))
 
   const accounts = await listAdAccounts().catch(() => [] as MetaAdsAdAccount[])
   const activeAccounts = accounts.filter(a => a.isActive)
@@ -296,8 +310,14 @@ export default async function MetaAdsRelatoriosPage({
   const isAggregate = activeAccounts.length > 1 && (rawAccount === 'all' || rawAccount === undefined)
   const selectedAccount = isAggregate ? null : resolveSelectedAccount(accounts, rawAccount)
 
-  const { since } = periodToRange(period)
-  const sinceIso = since.toISOString()
+  // Intervalo de datas
+  const sinceIso: string = isCustomRange
+    ? new Date(rawSince! + 'T00:00:00').toISOString()
+    : periodToRange(period).since.toISOString()
+  const untilIso: string = isCustomRange
+    ? new Date(rawUntil! + 'T23:59:59').toISOString()
+    : new Date().toISOString()
+  const since = new Date(sinceIso)
 
   let insightsSpendCents = 0
   let insightsImpressions = 0
@@ -346,41 +366,54 @@ export default async function MetaAdsRelatoriosPage({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb2a = sb2 as any
 
-  const periodDays = period === '7d' ? 7 : period === '30d' ? 30 : 90
+  const sinceDateStr = since.toISOString().slice(0, 10)
+  const untilDateStr = new Date(untilIso).toISOString().slice(0, 10)
+
+  // Período anterior só faz sentido para presets; custom não calcula delta
+  const periodDays = isCustomRange ? 0 : (period === '7d' ? 7 : period === '30d' ? 30 : 90)
   const prevSinceDate = new Date(since)
-  prevSinceDate.setDate(prevSinceDate.getDate() - periodDays)
+  if (!isCustomRange) prevSinceDate.setDate(prevSinceDate.getDate() - periodDays)
   const prevSinceIso = prevSinceDate.toISOString()
   const prevSinceDateStr = prevSinceIso.slice(0, 10)
-  const sinceDateStr = since.toISOString().slice(0, 10)
+
+  const spendQuery = sb2a
+    .from('meta_ads_spend_entries')
+    .select('id, spend_date, amount_cents, currency, original_amount_cents, exchange_rate, impressions, clicks, conversations, objective, notes, created_at')
+    .eq('tenant_id', tenantId)
+    .gte('spend_date', sinceDateStr)
+    .order('spend_date', { ascending: false })
+  if (isCustomRange) spendQuery.lte('spend_date', untilDateStr)
+
+  const custQuery = sb2a
+    .from('customers')
+    .select('id, created_at, origin')
+    .eq('tenant_id', tenantId)
+    .gte('created_at', sinceIso)
+    .in('origin', ['instagram_pago', 'facebook'])
+    .limit(5000)
+  if (isCustomRange) custQuery.lte('created_at', untilIso)
 
   const [spendRes, dailyCustRes, prevSpendRes, prevCustRes] = await Promise.all([
-    sb2a
-      .from('meta_ads_spend_entries')
-      .select('id, spend_date, amount_cents, currency, original_amount_cents, exchange_rate, impressions, clicks, conversations, objective, notes, created_at')
-      .eq('tenant_id', tenantId)
-      .gte('spend_date', sinceDateStr)
-      .order('spend_date', { ascending: false }),
-    sb2a
-      .from('customers')
-      .select('id, created_at, origin')
-      .eq('tenant_id', tenantId)
-      .gte('created_at', sinceIso)
-      .in('origin', ['instagram_pago', 'facebook'])
-      .limit(5000),
-    sb2a
-      .from('meta_ads_spend_entries')
-      .select('amount_cents')
-      .eq('tenant_id', tenantId)
-      .gte('spend_date', prevSinceDateStr)
-      .lt('spend_date', sinceDateStr),
-    sb2a
-      .from('customers')
-      .select('id')
-      .eq('tenant_id', tenantId)
-      .gte('created_at', prevSinceIso)
-      .lt('created_at', sinceIso)
-      .in('origin', ['instagram_pago', 'facebook'])
-      .limit(5000),
+    spendQuery,
+    custQuery,
+    isCustomRange
+      ? Promise.resolve({ data: [] })
+      : sb2a
+          .from('meta_ads_spend_entries')
+          .select('amount_cents')
+          .eq('tenant_id', tenantId)
+          .gte('spend_date', prevSinceDateStr)
+          .lt('spend_date', sinceDateStr),
+    isCustomRange
+      ? Promise.resolve({ data: [] })
+      : sb2a
+          .from('customers')
+          .select('id')
+          .eq('tenant_id', tenantId)
+          .gte('created_at', prevSinceIso)
+          .lt('created_at', sinceIso)
+          .in('origin', ['instagram_pago', 'facebook'])
+          .limit(5000),
   ])
 
   // Agrupa clientes pagos por dia
@@ -395,9 +428,10 @@ export default async function MetaAdsRelatoriosPage({
     .reduce((s, e) => s + e.amount_cents, 0)
   const prevNewPaidCustomers = (prevCustRes.data ?? []).length
 
+  const untilParam = isCustomRange ? untilIso : undefined
   const [{ channels }, dailyRevenue] = await Promise.all([
-    getChannelMetrics(tenantId, sinceIso),
-    getDailyRevenueByDay(tenantId, sinceIso),
+    getChannelMetrics(tenantId, sinceIso, untilParam),
+    getDailyRevenueByDay(tenantId, sinceIso, untilParam),
   ])
 
   // Merge das duas séries em dailyCross
@@ -459,6 +493,7 @@ export default async function MetaAdsRelatoriosPage({
     dailyPaidCustomers,
     prevSpendCents,
     prevNewPaidCustomers,
+    ...(isCustomRange ? { customSince: rawSince!, customUntil: rawUntil! } : {}),
   }
 
   return <RelatoriosClient data={data} />
