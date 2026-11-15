@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import type { MetaAdsPeriod } from '@/actions/meta-ads'
 import type { RelatoriosData, DailyCrossPoint, ChannelMetrics, CacByChannel, FunnelMetrics } from './page'
+import { ManualSpendCard } from '@/components/meta-ads/manual-spend-card'
 
 const BRL = (c: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -91,6 +92,31 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
       <CacSection items={data.cac} totalSpend={data.insightsSpendCents} />
       <ChannelTableSection channels={data.channels} />
       <FunnelSection funnel={data.funnel} spendCents={data.insightsSpendCents} />
+
+      {/* Investimento manual — CPM, CPC, conversas, CAC */}
+      {(() => {
+        const paidChannels = data.channels.filter(c => c.channel === 'instagram_pago' || c.channel === 'facebook')
+        const newPaidCustomers = paidChannels.reduce((s, c) => s + c.newCustomers, 0)
+        const paidRevenueCents = paidChannels.reduce((s, c) => s + c.revenueCents, 0)
+        const periodKey = data.period === '7d' ? '7d' : data.period === '90d' ? '90d' : '30d'
+        return (
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="h-px flex-1" style={{ background: '#2A3650' }} />
+              <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#475569' }}>
+                Lançamento Manual — Investimento
+              </span>
+              <div className="h-px flex-1" style={{ background: '#2A3650' }} />
+            </div>
+            <ManualSpendCard
+              initialEntries={data.spendEntries}
+              newPaidCustomers={newPaidCustomers}
+              paidRevenueCents={paidRevenueCents}
+              period={periodKey as '7d' | '30d' | '90d'}
+            />
+          </div>
+        )
+      })()}
 
       {/* Atalho pro dashboard de canais (análise cruzada online vs física) */}
       <Link

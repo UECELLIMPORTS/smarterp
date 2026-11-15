@@ -65,6 +65,7 @@ export type RelatoriosData = {
   funnel:              FunnelMetrics
   insightsSpendCents:  number
   loadError:           string | null
+  spendEntries:        import('@/actions/meta-ads-spend-manual').SpendEntry[]
 }
 
 // ── Helpers internos ───────────────────────────────────────────────────────
@@ -338,6 +339,15 @@ export default async function MetaAdsRelatoriosPage({
     }
   }
 
+  const { supabase: sb2 } = await requireAuth()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const spendRes = await (sb2 as any)
+    .from('meta_ads_spend_entries')
+    .select('id, spend_date, amount_cents, currency, original_amount_cents, exchange_rate, impressions, clicks, conversations, notes, created_at')
+    .eq('tenant_id', tenantId)
+    .gte('spend_date', since.toISOString().slice(0, 10))
+    .order('spend_date', { ascending: false })
+
   const [{ channels }, dailyRevenue] = await Promise.all([
     getChannelMetrics(tenantId, sinceIso),
     getDailyRevenueByDay(tenantId, sinceIso),
@@ -398,6 +408,7 @@ export default async function MetaAdsRelatoriosPage({
     funnel,
     insightsSpendCents,
     loadError,
+    spendEntries: spendRes.data ?? [],
   }
 
   return <RelatoriosClient data={data} />
