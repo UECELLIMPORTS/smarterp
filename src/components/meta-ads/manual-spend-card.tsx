@@ -8,6 +8,31 @@ import {
 } from 'lucide-react'
 import { addSpendEntry, deleteSpendEntry, type SpendEntry } from '@/actions/meta-ads-spend-manual'
 
+// Objetivos nativos do Meta Ads
+const META_OBJECTIVES = [
+  { value: 'vendas',           label: 'Vendas',                     color: '#E4405F' },
+  { value: 'leads',            label: 'Leads',                      color: '#8B5CF6' },
+  { value: 'trafego',          label: 'Tráfego',                    color: '#3B82F6' },
+  { value: 'alcance',          label: 'Alcance',                    color: '#10B981' },
+  { value: 'reconhecimento',   label: 'Reconhecimento de marca',    color: '#F59E0B' },
+  { value: 'envolvimento',     label: 'Envolvimento',               color: '#EC4899' },
+  { value: 'video',            label: 'Visualizações de vídeo',     color: '#06B6D4' },
+  { value: 'mensagens',        label: 'Mensagens',                  color: '#22C55E' },
+  { value: 'app',              label: 'Promoção do aplicativo',     color: '#F97316' },
+]
+
+function ObjectiveBadge({ value }: { value: string | null }) {
+  if (!value) return null
+  const obj = META_OBJECTIVES.find(o => o.value === value)
+  if (!obj) return null
+  return (
+    <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[9px] font-semibold shrink-0"
+      style={{ background: obj.color + '22', color: obj.color, border: `1px solid ${obj.color}44` }}>
+      {obj.label}
+    </span>
+  )
+}
+
 type Props = {
   initialEntries: SpendEntry[]
   // Clientes novos de canais pagos no período (instagram_pago + facebook)
@@ -43,6 +68,7 @@ export function ManualSpendCard({ initialEntries, newPaidCustomers, paidRevenueC
   const [impressionsInput, setImpressionsInput] = useState('')
   const [clicksInput, setClicksInput]           = useState('')
   const [convsInput, setConvsInput]             = useState('')
+  const [objective, setObjective]               = useState('')
   const [fetchingRate, setFetchingRate]         = useState(false)
   const [entries, setEntries]       = useState<SpendEntry[]>(initialEntries)
 
@@ -106,6 +132,7 @@ export function ManualSpendCard({ initialEntries, newPaidCustomers, paidRevenueC
         isUsd ? origCents : undefined,
         isUsd ? rateVal   : undefined,
         impr, clks, cnvs,
+        objective || undefined,
       )
       if (!result.error) {
         const newEntry: SpendEntry = {
@@ -114,10 +141,12 @@ export function ManualSpendCard({ initialEntries, newPaidCustomers, paidRevenueC
           original_amount_cents: isUsd ? origCents : null,
           exchange_rate: isUsd ? rateVal : null,
           impressions: impr ?? null, clicks: clks ?? null, conversations: cnvs ?? null,
+          objective: objective || null,
           notes: notes || null, created_at: new Date().toISOString(),
         }
         setEntries(prev => [newEntry, ...prev].sort((a, b) => b.spend_date.localeCompare(a.spend_date)))
         setAmount(''); setNotes(''); setImpressionsInput(''); setClicksInput(''); setConvsInput('')
+        setObjective('')
         setShowForm(false)
         router.refresh()
       }
@@ -220,6 +249,19 @@ export function ManualSpendCard({ initialEntries, newPaidCustomers, paidRevenueC
             </div>
           )}
 
+          {/* Objetivo da campanha */}
+          <div>
+            <label className="text-[10px] uppercase tracking-wider" style={{ color: '#64748B' }}>Objetivo da campanha</label>
+            <select value={objective} onChange={e => setObjective(e.target.value)}
+              className="mt-1 w-full rounded-md border px-2 py-1.5 text-xs focus:outline-none"
+              style={{ borderColor: '#2A3650', background: '#1B2638', color: objective ? '#F8FAFC' : '#64748B' }}>
+              <option value="">— Selecionar objetivo —</option>
+              {META_OBJECTIVES.map(o => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+          </div>
+
           {/* Métricas de mídia */}
           <div className="rounded-md border px-3 py-2 space-y-2" style={{ borderColor: '#2A3650' }}>
             <p className="text-[10px] uppercase tracking-wider" style={{ color: '#64748B' }}>
@@ -270,7 +312,7 @@ export function ManualSpendCard({ initialEntries, newPaidCustomers, paidRevenueC
           {periodEntries.map(e => (
             <div key={e.id} className="rounded-lg px-2.5 py-2" style={{ background: '#0F1923' }}>
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 min-w-0">
+                <div className="flex items-center gap-2 min-w-0 flex-wrap">
                   <span className="text-[10px] shrink-0" style={{ color: '#475569' }}>
                     {new Date(e.spend_date + 'T12:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
                   </span>
@@ -278,6 +320,7 @@ export function ManualSpendCard({ initialEntries, newPaidCustomers, paidRevenueC
                     <span className="text-[9px] rounded px-1 py-0.5 font-semibold shrink-0"
                       style={{ background: '#1D4ED820', color: '#60A5FA' }}>USD</span>
                   )}
+                  <ObjectiveBadge value={e.objective} />
                   <span className="text-xs font-semibold tabular-nums shrink-0" style={{ color: '#E4405F' }}>{entryLabel(e)}</span>
                   {e.notes && <span className="text-[10px] truncate" style={{ color: '#475569' }}>{e.notes}</span>}
                 </div>

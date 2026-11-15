@@ -14,6 +14,7 @@ export type SpendEntry = {
   impressions: number | null
   clicks: number | null
   conversations: number | null
+  objective: string | null
   notes: string | null
   created_at: string
 }
@@ -28,6 +29,7 @@ export async function addSpendEntry(
   impressions?: number,
   clicks?: number,
   conversations?: number,
+  objective?: string,
 ): Promise<{ error?: string }> {
   let auth
   try { auth = await requireAuth() } catch { return { error: 'Não autorizado' } }
@@ -48,6 +50,7 @@ export async function addSpendEntry(
       impressions:           impressions ?? null,
       clicks:                clicks ?? null,
       conversations:         conversations ?? null,
+      objective:             objective ?? null,
     })
 
   if (error) return { error: error.message }

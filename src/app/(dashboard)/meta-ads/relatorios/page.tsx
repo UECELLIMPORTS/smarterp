@@ -343,7 +343,7 @@ export default async function MetaAdsRelatoriosPage({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const spendRes = await (sb2 as any)
     .from('meta_ads_spend_entries')
-    .select('id, spend_date, amount_cents, currency, original_amount_cents, exchange_rate, impressions, clicks, conversations, notes, created_at')
+    .select('id, spend_date, amount_cents, currency, original_amount_cents, exchange_rate, impressions, clicks, conversations, objective, notes, created_at')
     .eq('tenant_id', tenantId)
     .gte('spend_date', since.toISOString().slice(0, 10))
     .order('spend_date', { ascending: false })
