@@ -802,18 +802,27 @@ export type CacByChannel = {
   available:                  boolean
   unavailableReason?:         string
   spendCents:                 number
-  metaCustomerCount:          number   // clientes únicos com campaign_code que tiveram tx no período
-  cacCents:                   number   // spend ÷ metaCustomerCount
-  totalAttributedRevenueCents: number
-  globalRoas:                 number   // receita atribuída ÷ spend
+  metaCustomerCount:          number   // clientes NOVOS com campaign_code (1ª compra paga no período)
+  recurringCustomerCount:     number   // com campaign_code, compraram no período, 1ª compra antes
+  cacCents:                   number   // spend ÷ metaCustomerCount (só novos)
+  txCount:                    number   // vendas + OS atribuídas no período
+  costPerTxCents:             number   // spend ÷ txCount — métrica separada do CAC
+  totalAttributedRevenueCents: number  // novos + recorrentes
+  newRevenueCents:            number
+  recurringRevenueCents:      number
+  globalRoas:                 number   // ROAS total: receita atribuída ÷ spend
+  acquisitionRoas:            number   // receita só dos novos ÷ spend
   byChannel: Array<{
-    channel:      string
-    label:        string
-    color:        string
-    customers:    number
-    revenueCents: number
-    pctCustomers: number
-    roas:         number   // receitaCanal ÷ spend (lembrando que spend é total)
+    channel:               string
+    label:                 string
+    color:                 string
+    customers:             number   // novos
+    recurringCustomers:    number
+    revenueCents:          number   // novos + recorrentes
+    newRevenueCents:       number
+    recurringRevenueCents: number
+    pctCustomers:          number   // fatia dos novos
+    roas:                  number   // receitaCanal ÷ spend (lembrando que spend é total)
   }>
 }
 
@@ -826,8 +835,10 @@ const CHANNEL_PERIOD_TO_META: Partial<Record<ChannelAnalyticsPeriod, MetaAdsPeri
 export async function getCacByChannel(period: ChannelAnalyticsPeriod = '30d', storeId?: string | null): Promise<CacByChannel> {
   const empty: CacByChannel = {
     available: false,
-    spendCents: 0, metaCustomerCount: 0, cacCents: 0,
-    totalAttributedRevenueCents: 0, globalRoas: 0,
+    spendCents: 0, metaCustomerCount: 0, recurringCustomerCount: 0, cacCents: 0,
+    txCount: 0, costPerTxCents: 0,
+    totalAttributedRevenueCents: 0, newRevenueCents: 0, recurringRevenueCents: 0,
+    globalRoas: 0, acquisitionRoas: 0,
     byChannel: [],
   }
 
@@ -857,7 +868,7 @@ export async function getCacByChannel(period: ChannelAnalyticsPeriod = '30d', st
 
   // 2) Vendas + OS atribuídas a clientes com campaign_code preenchido
   let cacSalesQuery = sb.from('sales')
-    .select('customer_id, total_cents, sale_channel, customers!inner(campaign_code)')
+    .select('customer_id, total_cents, sale_channel, customers!inner(campaign_code, first_purchase_at)')
     .eq('tenant_id', tenantId)
     .gte('created_at', sinceIso)
     .neq('status', 'cancelled')
@@ -868,7 +879,7 @@ export async function getCacByChannel(period: ChannelAnalyticsPeriod = '30d', st
   const [salesRes, osRes] = await Promise.all([
     cacSalesQuery,
     sb.from('service_orders')
-      .select('customer_id, total_price_cents, service_price_cents, parts_sale_cents, discount_cents, sale_channel, customers!inner(campaign_code)')
+      .select('customer_id, total_price_cents, service_price_cents, parts_sale_cents, discount_cents, sale_channel, customers!inner(campaign_code, first_purchase_at)')
       .eq('tenant_id', tenantId)
       .gte('received_at', sinceIso)
       .in('status', ['delivered', 'Entregue'])
@@ -876,49 +887,68 @@ export async function getCacByChannel(period: ChannelAnalyticsPeriod = '30d', st
       .limit(20000),
   ])
 
-  type SaleRow = { customer_id: string | null; total_cents: number; sale_channel: string | null; customers: { campaign_code: string | null } | null }
-  type OsRow   = { customer_id: string | null; total_price_cents: number|null; service_price_cents: number|null; parts_sale_cents: number|null; discount_cents: number|null; sale_channel: string | null; customers: { campaign_code: string | null } | null }
+  type CustRef = { campaign_code: string | null; first_purchase_at: string | null } | null
+  type SaleRow = { customer_id: string | null; total_cents: number; sale_channel: string | null; customers: CustRef }
+  type OsRow   = { customer_id: string | null; total_price_cents: number|null; service_price_cents: number|null; parts_sale_cents: number|null; discount_cents: number|null; sale_channel: string | null; customers: CustRef }
 
-  const allCustomers = new Set<string>()
-  const byCh = new Map<string, { customers: Set<string>; revenue: number }>()
+  // Novo = 1ª compra paga da vida dentro do período (customers.first_purchase_at).
+  // Quem recompra é recorrente e NÃO entra no CAC.
+  const newCustomers       = new Set<string>()
+  const recurringCustomers = new Set<string>()
+  let txCount = 0
+  const byCh = new Map<string, { customers: Set<string>; recurring: Set<string>; newRevenue: number; recurringRevenue: number }>()
+  const sinceMs = Date.parse(sinceIso)
 
-  const bump = (ch: string | null, customerId: string | null, value: number) => {
+  const bump = (ch: string | null, customerId: string | null, cust: CustRef, value: number) => {
     if (value <= 0) return
+    txCount++
+    const first = cust?.first_purchase_at ? Date.parse(cust.first_purchase_at) : null
+    const isNew = first == null || first >= sinceMs
     const key = ch || 'nao_informado'
-    const b = byCh.get(key) ?? { customers: new Set<string>(), revenue: 0 }
-    if (customerId) {
-      b.customers.add(customerId)
-      allCustomers.add(customerId)
+    const b = byCh.get(key) ?? { customers: new Set<string>(), recurring: new Set<string>(), newRevenue: 0, recurringRevenue: 0 }
+    if (isNew) {
+      b.newRevenue += value
+      if (customerId) { b.customers.add(customerId); newCustomers.add(customerId) }
+    } else {
+      b.recurringRevenue += value
+      if (customerId) { b.recurring.add(customerId); recurringCustomers.add(customerId) }
     }
-    b.revenue += value
     byCh.set(key, b)
   }
 
   for (const s of (salesRes.data ?? []) as SaleRow[]) {
-    bump(s.sale_channel, s.customer_id, s.total_cents ?? 0)
+    bump(s.sale_channel, s.customer_id, s.customers, s.total_cents ?? 0)
   }
   for (const o of (osRes.data ?? []) as OsRow[]) {
     const v = o.total_price_cents
       ?? Math.max(0, (o.service_price_cents ?? 0) + (o.parts_sale_cents ?? 0) - (o.discount_cents ?? 0))
-    bump(o.sale_channel, o.customer_id, v)
+    bump(o.sale_channel, o.customer_id, o.customers, v)
   }
 
-  const metaCustomerCount = allCustomers.size
-  const totalAttributedRevenueCents = Array.from(byCh.values()).reduce((s, b) => s + b.revenue, 0)
-  const cacCents   = metaCustomerCount > 0 ? Math.round(spendCents / metaCustomerCount) : 0
-  const globalRoas = spendCents > 0 ? totalAttributedRevenueCents / spendCents : 0
+  const metaCustomerCount     = newCustomers.size
+  const newRevenueCents       = Array.from(byCh.values()).reduce((s, b) => s + b.newRevenue, 0)
+  const recurringRevenueCents = Array.from(byCh.values()).reduce((s, b) => s + b.recurringRevenue, 0)
+  const totalAttributedRevenueCents = newRevenueCents + recurringRevenueCents
+  const cacCents        = metaCustomerCount > 0 ? Math.round(spendCents / metaCustomerCount) : 0
+  const costPerTxCents  = txCount > 0 ? Math.round(spendCents / txCount) : 0
+  const globalRoas      = spendCents > 0 ? totalAttributedRevenueCents / spendCents : 0
+  const acquisitionRoas = spendCents > 0 ? newRevenueCents / spendCents : 0
 
   const byChannel = Array.from(byCh.entries())
     .map(([ch, b]) => {
       const opt = SALE_CHANNEL_OPTIONS.find(o => o.value === ch)
+      const revenue = b.newRevenue + b.recurringRevenue
       return {
-        channel:      ch,
-        label:        opt?.label ?? (ch === 'nao_informado' ? 'Não informado' : ch),
-        color:        opt?.color ?? '#5A7A9A',
-        customers:    b.customers.size,
-        revenueCents: b.revenue,
-        pctCustomers: metaCustomerCount > 0 ? b.customers.size / metaCustomerCount : 0,
-        roas:         spendCents > 0 ? b.revenue / spendCents : 0,
+        channel:               ch,
+        label:                 opt?.label ?? (ch === 'nao_informado' ? 'Não informado' : ch),
+        color:                 opt?.color ?? '#5A7A9A',
+        customers:             b.customers.size,
+        recurringCustomers:    b.recurring.size,
+        revenueCents:          revenue,
+        newRevenueCents:       b.newRevenue,
+        recurringRevenueCents: b.recurringRevenue,
+        pctCustomers:          metaCustomerCount > 0 ? b.customers.size / metaCustomerCount : 0,
+        roas:                  spendCents > 0 ? revenue / spendCents : 0,
       }
     })
     .sort((a, b) => b.revenueCents - a.revenueCents)
@@ -927,9 +957,15 @@ export async function getCacByChannel(period: ChannelAnalyticsPeriod = '30d', st
     available: true,
     spendCents,
     metaCustomerCount,
+    recurringCustomerCount: recurringCustomers.size,
     cacCents,
+    txCount,
+    costPerTxCents,
     totalAttributedRevenueCents,
+    newRevenueCents,
+    recurringRevenueCents,
     globalRoas,
+    acquisitionRoas,
     byChannel,
   }
 }

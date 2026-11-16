@@ -171,7 +171,7 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
 
       <DailyCrossSection points={data.dailyCross} />
       <NetProfitSection channels={data.channels} spendCents={data.insightsSpendCents} />
-      <CacSection items={data.cac} totalSpend={data.insightsSpendCents} />
+      <CacSection items={data.cac} totalSpend={data.insightsSpendCents} funnel={data.funnel} />
       <ChannelTableSection channels={data.channels} />
       <FunnelSection funnel={data.funnel} spendCents={data.insightsSpendCents} />
 
@@ -433,10 +433,14 @@ function NetProfitSection({ channels, spendCents }: { channels: ChannelMetrics[]
 
 // ── Seção 2 — CAC por canal ────────────────────────────────────────────────
 
-function CacSection({ items, totalSpend }: { items: CacByChannel[]; totalSpend: number }) {
+function CacSection({ items, totalSpend, funnel }: { items: CacByChannel[]; totalSpend: number; funnel: FunnelMetrics }) {
   const paidOnly = items.filter(i => i.channel === 'instagram_pago' || i.channel === 'facebook')
   const totalNew = paidOnly.reduce((s, i) => s + i.newCustomers, 0)
+  const totalTx  = paidOnly.reduce((s, i) => s + i.txCount, 0)
   const avgCac   = totalNew > 0 ? Math.round(totalSpend / totalNew) : 0
+  const costPerTx       = totalTx > 0 ? Math.round(totalSpend / totalTx) : 0
+  const acquisitionRoas = totalSpend > 0 ? funnel.salesRevenueCents / totalSpend : 0
+  const totalRoas       = totalSpend > 0 ? funnel.totalPaidRevenueCents / totalSpend : 0
 
   return (
     <div className="rounded-2xl border p-6 space-y-4" style={{ background: '#1B2638', borderColor: '#2A3650' }}>
@@ -447,7 +451,8 @@ function CacSection({ items, totalSpend }: { items: CacByChannel[]; totalSpend: 
             CAC — Custo de aquisição de cliente
           </h2>
           <p className="text-[11px]" style={{ color: '#94A3B8' }}>
-            Gasto no Meta dividido pelos novos clientes do período com origem paga (IG Pago + Facebook).
+            Gasto no Meta dividido pelos clientes NOVOS do período com origem paga (IG Pago + Facebook).
+            Novo = fez a 1ª compra paga da vida dentro do período; quem recompra conta como recorrente.
             Orgânico aparece só como volume (custo zero).
           </p>
         </div>
@@ -469,7 +474,7 @@ function CacSection({ items, totalSpend }: { items: CacByChannel[]; totalSpend: 
           </div>
           {avgCac === 0 && totalSpend > 0 && (
             <p className="text-[11px] mt-2" style={{ color: '#F59E0B' }}>
-              ⚠ Você gastou mas nenhum cliente novo foi cadastrado com origem &quot;Instagram Pago&quot; ou &quot;Facebook&quot; no período.
+              ⚠ Você gastou mas nenhum cliente com origem &quot;Instagram Pago&quot; ou &quot;Facebook&quot; fez a 1ª compra no período.
               Marque a origem ao cadastrar novos clientes.
             </p>
           )}
@@ -492,6 +497,31 @@ function CacSection({ items, totalSpend }: { items: CacByChannel[]; totalSpend: 
           </div>
         ))}
       </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <MiniStat
+          label="Custo por transação"
+          value={costPerTx > 0 ? BRL(costPerTx) : '—'}
+          color="#F59E0B"
+          icon={DollarSign}
+        />
+        <MiniStat
+          label="ROAS de aquisição"
+          value={acquisitionRoas > 0 ? `${acquisitionRoas.toFixed(2)}x` : '—'}
+          color={acquisitionRoas >= 1 ? '#10B981' : '#EF4444'}
+          icon={TrendingUp}
+        />
+        <MiniStat
+          label="ROAS total"
+          value={totalRoas > 0 ? `${totalRoas.toFixed(2)}x` : '—'}
+          color={totalRoas >= 1 ? '#10B981' : '#EF4444'}
+          icon={TrendingUp}
+        />
+      </div>
+      <p className="text-[11px]" style={{ color: '#94A3B8' }}>
+        Custo por transação = gasto ÷ {NUM(totalTx)} transações pagas (novos + recorrentes) — não é CAC.
+        ROAS de aquisição = receita só dos clientes novos ÷ gasto. ROAS total = receita de novos + recorrentes dos canais pagos ÷ gasto.
+      </p>
     </div>
   )
 }
@@ -500,11 +530,14 @@ function CacSection({ items, totalSpend }: { items: CacByChannel[]; totalSpend: 
 
 function ChannelTableSection({ channels }: { channels: ChannelMetrics[] }) {
   const total = channels.reduce((acc, c) => ({
-    newCustomers: acc.newCustomers + c.newCustomers,
-    txCount:      acc.txCount      + c.txCount,
-    revenueCents: acc.revenueCents + c.revenueCents,
-    profitCents:  acc.profitCents  + c.profitCents,
-  }), { newCustomers: 0, txCount: 0, revenueCents: 0, profitCents: 0 })
+    newCustomers:          acc.newCustomers          + c.newCustomers,
+    recurringCustomers:    acc.recurringCustomers    + c.recurringCustomers,
+    txCount:               acc.txCount               + c.txCount,
+    revenueCents:          acc.revenueCents          + c.revenueCents,
+    newRevenueCents:       acc.newRevenueCents       + c.newRevenueCents,
+    recurringRevenueCents: acc.recurringRevenueCents + c.recurringRevenueCents,
+    profitCents:           acc.profitCents           + c.profitCents,
+  }), { newCustomers: 0, recurringCustomers: 0, txCount: 0, revenueCents: 0, newRevenueCents: 0, recurringRevenueCents: 0, profitCents: 0 })
   const totalAvgTicket = total.txCount > 0 ? Math.round(total.revenueCents / total.txCount) : 0
 
   return (
@@ -516,7 +549,7 @@ function ChannelTableSection({ channels }: { channels: ChannelMetrics[] }) {
             Performance por canal
           </h2>
           <p className="text-[11px]" style={{ color: '#94A3B8' }}>
-            Clientes novos, transações, faturamento e ticket médio por canal de origem
+            Clientes novos (1ª compra no período) e recorrentes, transações, faturamento e ticket médio por canal de origem
           </p>
         </div>
       </div>
@@ -525,7 +558,7 @@ function ChannelTableSection({ channels }: { channels: ChannelMetrics[] }) {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b text-left" style={{ borderColor: '#2A3650' }}>
-              {['Canal', 'Novos clientes', 'Transações', 'Faturamento', 'Lucro bruto', 'Margem', 'Ticket médio'].map(h => (
+              {['Canal', 'Novos clientes', 'Recorrentes', 'Transações', 'Receita novos', 'Receita recorrentes', 'Faturamento', 'Lucro bruto', 'Margem', 'Ticket médio'].map(h => (
                 <th key={h} className="px-5 py-3 text-[10px] font-bold uppercase tracking-wider" style={{ color: '#94A3B8' }}>
                   {h}
                 </th>
@@ -544,7 +577,14 @@ function ChannelTableSection({ channels }: { channels: ChannelMetrics[] }) {
                     </div>
                   </td>
                   <td className="px-5 py-3 font-mono" style={{ color: '#CBD5E1' }}>{NUM(c.newCustomers)}</td>
+                  <td className="px-5 py-3 font-mono" style={{ color: '#CBD5E1' }}>{NUM(c.recurringCustomers)}</td>
                   <td className="px-5 py-3 font-mono" style={{ color: '#CBD5E1' }}>{NUM(c.txCount)}</td>
+                  <td className="px-5 py-3 font-mono" style={{ color: c.newRevenueCents > 0 ? '#10B981' : '#94A3B8' }}>
+                    {c.newRevenueCents > 0 ? BRL(c.newRevenueCents) : '—'}
+                  </td>
+                  <td className="px-5 py-3 font-mono" style={{ color: c.recurringRevenueCents > 0 ? '#10B981' : '#94A3B8' }}>
+                    {c.recurringRevenueCents > 0 ? BRL(c.recurringRevenueCents) : '—'}
+                  </td>
                   <td className="px-5 py-3 font-mono font-semibold" style={{ color: c.revenueCents > 0 ? '#10B981' : '#94A3B8' }}>
                     {c.revenueCents > 0 ? BRL(c.revenueCents) : '—'}
                   </td>
@@ -563,7 +603,14 @@ function ChannelTableSection({ channels }: { channels: ChannelMetrics[] }) {
             <tr style={{ background: 'rgba(228,64,95,.04)' }}>
               <td className="px-5 py-3 font-bold" style={{ color: '#F8FAFC' }}>Total</td>
               <td className="px-5 py-3 font-mono font-bold" style={{ color: '#F8FAFC' }}>{NUM(total.newCustomers)}</td>
+              <td className="px-5 py-3 font-mono font-bold" style={{ color: '#F8FAFC' }}>{NUM(total.recurringCustomers)}</td>
               <td className="px-5 py-3 font-mono font-bold" style={{ color: '#F8FAFC' }}>{NUM(total.txCount)}</td>
+              <td className="px-5 py-3 font-mono font-bold" style={{ color: '#10B981' }}>
+                {total.newRevenueCents > 0 ? BRL(total.newRevenueCents) : '—'}
+              </td>
+              <td className="px-5 py-3 font-mono font-bold" style={{ color: '#10B981' }}>
+                {total.recurringRevenueCents > 0 ? BRL(total.recurringRevenueCents) : '—'}
+              </td>
               <td className="px-5 py-3 font-mono font-bold" style={{ color: '#10B981' }}>
                 {total.revenueCents > 0 ? BRL(total.revenueCents) : '—'}
               </td>
@@ -587,19 +634,20 @@ function ChannelTableSection({ channels }: { channels: ChannelMetrics[] }) {
 // ── Seção 4 — Funil ────────────────────────────────────────────────────────
 
 function FunnelSection({ funnel, spendCents }: { funnel: FunnelMetrics; spendCents: number }) {
-  const { impressions, clicks, newCustomers, salesCount, salesRevenueCents } = funnel
+  const { impressions, clicks, conversations, newCustomers, salesCount, salesRevenueCents, totalPaidRevenueCents } = funnel
 
   // Taxas de conversão
-  const ctr              = impressions > 0  ? clicks / impressions         : 0
-  const clickToCustomer  = clicks > 0       ? newCustomers / clicks        : 0
-  const customerToSale   = newCustomers > 0 ? salesCount / newCustomers    : 0
-  const overallRoas      = spendCents > 0   ? salesRevenueCents / spendCents : 0
+  const ctr                = impressions > 0   ? clicks / impressions          : 0
+  const convToCustomer     = conversations > 0 ? newCustomers / conversations  : 0
+  const acquisitionRoas    = spendCents > 0    ? salesRevenueCents / spendCents : 0
+  const totalRoas          = spendCents > 0    ? totalPaidRevenueCents / spendCents : 0
 
   const stages = [
-    { label: 'Impressões Meta',      value: impressions,   fmt: NUM, color: '#22C55E' },
-    { label: 'Cliques Meta',         value: clicks,        fmt: NUM, color: '#F59E0B' },
-    { label: 'Clientes novos (ERP)', value: newCustomers,  fmt: NUM, color: '#8B5CF6' },
-    { label: 'Vendas atribuídas',    value: salesCount,    fmt: NUM, color: '#10B981' },
+    { label: 'Impressões Meta',               value: impressions,   fmt: NUM, color: '#22C55E' },
+    { label: 'Cliques Meta',                  value: clicks,        fmt: NUM, color: '#F59E0B' },
+    { label: 'Conversas',                     value: conversations, fmt: NUM, color: '#38BDF8' },
+    { label: 'Clientes novos (ERP)',          value: newCustomers,  fmt: NUM, color: '#8B5CF6' },
+    { label: 'Vendas de clientes novos',      value: salesCount,    fmt: NUM, color: '#10B981' },
   ]
   const maxVal = Math.max(1, ...stages.map(s => s.value))
 
@@ -613,7 +661,8 @@ function FunnelSection({ funnel, spendCents }: { funnel: FunnelMetrics; spendCen
             Funil de conversão — Meta → ERP
           </h2>
           <p className="text-[11px]" style={{ color: '#94A3B8' }}>
-            Do anúncio até a venda. A atribuição cliente → origem depende do campo &quot;Como nos conheceu&quot; preenchido no cadastro.
+            Do anúncio até a venda, só com clientes NOVOS de origem paga (IG Pago + Facebook). Conversas vêm dos lançamentos manuais.
+            A atribuição cliente → origem depende do campo &quot;Como nos conheceu&quot; preenchido no cadastro.
           </p>
         </div>
       </div>
@@ -656,12 +705,17 @@ function FunnelSection({ funnel, spendCents }: { funnel: FunnelMetrics; spendCen
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t" style={{ borderColor: '#2A3650' }}>
         <MiniStat label="CTR"                       value={PCT(ctr)}             color="#F59E0B" icon={TrendingUp} />
-        <MiniStat label="Clique → Cliente"          value={PCT(clickToCustomer)} color="#8B5CF6" icon={Users} />
-        <MiniStat label="Cliente → Venda"           value={PCT(customerToSale)}  color="#10B981" icon={DollarSign} />
+        <MiniStat label="Conversa → Cliente novo"   value={conversations > 0 ? PCT(convToCustomer) : '—'} color="#8B5CF6" icon={Users} />
         <MiniStat
-          label="ROAS real"
-          value={overallRoas > 0 ? `${overallRoas.toFixed(2)}x` : '—'}
-          color={overallRoas >= 1 ? '#10B981' : '#EF4444'}
+          label="ROAS de aquisição"
+          value={acquisitionRoas > 0 ? `${acquisitionRoas.toFixed(2)}x` : '—'}
+          color={acquisitionRoas >= 1 ? '#10B981' : '#EF4444'}
+          icon={DollarSign}
+        />
+        <MiniStat
+          label="ROAS total"
+          value={totalRoas > 0 ? `${totalRoas.toFixed(2)}x` : '—'}
+          color={totalRoas >= 1 ? '#10B981' : '#EF4444'}
           icon={TrendingUp}
         />
       </div>

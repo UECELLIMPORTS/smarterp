@@ -1363,7 +1363,7 @@ function CacByChannelSection({ cac }: { cac: CacByChannel }) {
     )
   }
 
-  const noAttribution = cac.metaCustomerCount === 0
+  const noAttribution = cac.txCount === 0
 
   return (
     <div className="rounded-2xl border" style={{ background: '#1B2638', borderColor: '#2A3650' }}>
@@ -1377,6 +1377,7 @@ function CacByChannelSection({ cac }: { cac: CacByChannel }) {
             </h2>
             <p className="text-[11px] mt-0.5" style={{ color: '#94A3B8' }}>
               Cruza gasto Meta com clientes que tinham <code style={{ color: '#CBD5E1' }}>campaign_code</code> preenchido — mostra onde os clientes pagos fecharam.
+              CAC conta só clientes NOVOS (1ª compra paga no período); quem recompra é recorrente.
             </p>
           </div>
         </div>
@@ -1394,13 +1395,13 @@ function CacByChannelSection({ cac }: { cac: CacByChannel }) {
         </div>
         <div className="rounded-xl border p-4" style={{ background: '#131C2A', borderColor: '#2A3650' }}>
           <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#94A3B8' }}>
-            Clientes Meta atribuídos
+            Clientes Meta novos
           </p>
           <p className="text-xl font-bold font-mono mt-1" style={{ color: '#22C55E' }}>
             {NUM(cac.metaCustomerCount)}
           </p>
           <p className="text-[10px] mt-1" style={{ color: '#CBD5E1' }}>
-            com campaign_code que fecharam venda/OS
+            1ª compra no período · +{NUM(cac.recurringCustomerCount)} recorrente{cac.recurringCustomerCount === 1 ? '' : 's'}
           </p>
         </div>
         <div className="rounded-xl border p-4" style={{ background: '#131C2A', borderColor: '#2A3650' }}>
@@ -1408,10 +1409,10 @@ function CacByChannelSection({ cac }: { cac: CacByChannel }) {
             CAC Meta global
           </p>
           <p className="text-xl font-bold font-mono mt-1" style={{ color: '#F59E0B' }}>
-            {noAttribution ? '—' : BRL(cac.cacCents)}
+            {cac.metaCustomerCount === 0 ? '—' : BRL(cac.cacCents)}
           </p>
           <p className="text-[10px] mt-1" style={{ color: '#CBD5E1' }}>
-            gasto ÷ clientes atribuídos
+            gasto ÷ clientes novos · custo por transação {noAttribution ? '—' : BRL(cac.costPerTxCents)}
           </p>
         </div>
         <div className="rounded-xl border p-4"
@@ -1420,13 +1421,13 @@ function CacByChannelSection({ cac }: { cac: CacByChannel }) {
             borderColor: cac.globalRoas >= 1 ? 'rgba(16,185,129,.3)' : 'rgba(255,77,109,.3)',
           }}>
           <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#94A3B8' }}>
-            ROAS global
+            ROAS total
           </p>
           <p className="text-xl font-bold font-mono mt-1" style={{ color: cac.globalRoas >= 1 ? '#10B981' : '#EF4444' }}>
             {noAttribution ? '—' : `${cac.globalRoas.toFixed(2)}×`}
           </p>
           <p className="text-[10px] mt-1" style={{ color: '#CBD5E1' }}>
-            {BRL(cac.totalAttributedRevenueCents)} de receita atribuída
+            {BRL(cac.totalAttributedRevenueCents)} de receita atribuída · ROAS de aquisição {noAttribution ? '—' : `${cac.acquisitionRoas.toFixed(2)}×`}
           </p>
         </div>
       </div>
@@ -1449,7 +1450,7 @@ function CacByChannelSection({ cac }: { cac: CacByChannel }) {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b text-left" style={{ borderColor: '#2A3650' }}>
-                {['Canal', 'Clientes Meta', '% do Meta', 'Receita atribuída', 'ROAS canal'].map(h => (
+                {['Canal', 'Novos', 'Recorrentes', '% dos novos', 'Receita novos', 'Receita recorrentes', 'Receita atribuída', 'ROAS canal'].map(h => (
                   <th key={h} className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider" style={{ color: '#94A3B8' }}>
                     {h}
                   </th>
@@ -1466,6 +1467,7 @@ function CacByChannelSection({ cac }: { cac: CacByChannel }) {
                     </div>
                   </td>
                   <td className="px-4 py-3 font-mono" style={{ color: '#CBD5E1' }}>{NUM(c.customers)}</td>
+                  <td className="px-4 py-3 font-mono" style={{ color: '#CBD5E1' }}>{NUM(c.recurringCustomers)}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <div className="flex-1 h-2 rounded overflow-hidden max-w-[120px]" style={{ background: '#131C2A' }}>
@@ -1477,6 +1479,8 @@ function CacByChannelSection({ cac }: { cac: CacByChannel }) {
                       <span className="text-[11px] font-mono" style={{ color: '#CBD5E1' }}>{PCT(c.pctCustomers)}</span>
                     </div>
                   </td>
+                  <td className="px-4 py-3 font-mono" style={{ color: '#CBD5E1' }}>{BRL(c.newRevenueCents)}</td>
+                  <td className="px-4 py-3 font-mono" style={{ color: '#CBD5E1' }}>{BRL(c.recurringRevenueCents)}</td>
                   <td className="px-4 py-3 font-mono font-semibold" style={{ color: c.color }}>
                     {BRL(c.revenueCents)}
                   </td>
@@ -1488,7 +1492,7 @@ function CacByChannelSection({ cac }: { cac: CacByChannel }) {
             </tbody>
           </table>
           <p className="text-[10px] mt-3" style={{ color: '#94A3B8' }}>
-            ROAS canal = receita atribuída do canal ÷ gasto Meta total. Soma dos ROAS dos canais = ROAS global.
+            ROAS canal = receita atribuída do canal (novos + recorrentes) ÷ gasto Meta total. Soma dos ROAS dos canais = ROAS total.
           </p>
         </div>
       )}

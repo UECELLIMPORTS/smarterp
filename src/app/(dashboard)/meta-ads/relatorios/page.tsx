@@ -12,6 +12,7 @@ import {
   type MetaAdsTimeseriesPoint,
 } from '@/actions/meta-ads'
 import { RelatoriosClient } from './relatorios-client'
+import { classifyAcquisition, serviceOrderValueCents } from '@/lib/customer-acquisition'
 
 export const metadata = { title: 'Relatórios — Meta Ads' }
 
@@ -23,9 +24,13 @@ export type ChannelMetrics = {
   channel:        ReportChannel
   label:          string
   color:          string
-  newCustomers:   number
-  txCount:        number     // vendas + OS atribuídas
-  revenueCents:   number
+  newCustomers:          number   // 1ª compra paga da vida dentro do período
+  recurringCustomers:    number   // compraram no período, 1ª compra antes dele
+  txCount:               number   // vendas + OS atribuídas (novos + recorrentes)
+  revenueCents:          number   // novos + recorrentes
+  newRevenueCents:       number
+  recurringRevenueCents: number
+  newTxCount:            number   // transações dos clientes novos
   profitCents:    number     // lucro bruto = faturamento − custo do produto/peças
   avgTicketCents: number
 }
@@ -43,14 +48,18 @@ export type CacByChannel = {
   spendCents:   number     // 0 pra orgânico
   newCustomers: number
   cacCents:     number | null  // null se 0 clientes ou canal orgânico
+  txCount:      number
+  costPerTxCents: number | null  // gasto ÷ transações pagas (métrica separada do CAC)
 }
 
 export type FunnelMetrics = {
   impressions:       number
   clicks:            number
-  newCustomers:      number   // com origem Meta
-  salesCount:        number   // vendas + OS atribuídas
-  salesRevenueCents: number
+  conversations:     number   // lançamentos manuais de investimento no período
+  newCustomers:      number   // só NOVOS com origem paga (IG Pago + Facebook)
+  salesCount:        number   // vendas + OS dos clientes novos pagos
+  salesRevenueCents: number   // receita dos clientes novos pagos
+  totalPaidRevenueCents: number // novos + recorrentes dos canais pagos
 }
 
 export type RelatoriosData = {
@@ -117,16 +126,8 @@ async function getChannelMetrics(tenantId: string, sinceIso: string, untilIso?: 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any
 
-  const custQ = sb.from('customers')
-    .select('id, origin')
-    .eq('tenant_id', tenantId)
-    .gte('created_at', sinceIso)
-    .in('origin', ['instagram_pago', 'instagram_organico', 'facebook'])
-    .limit(5000)
-  if (untilIso) custQ.lte('created_at', untilIso)
-
   const salesQ = sb.from('sales')
-    .select('customer_id, total_cents, customers!inner(origin), sale_items(quantity, product_id, cost_snapshot_cents)')
+    .select('customer_id, created_at, total_cents, customers!inner(origin, first_purchase_at), sale_items(quantity, product_id, cost_snapshot_cents)')
     .eq('tenant_id', tenantId)
     .gte('created_at', sinceIso)
     .neq('status', 'cancelled')
@@ -135,7 +136,7 @@ async function getChannelMetrics(tenantId: string, sinceIso: string, untilIso?: 
   if (untilIso) salesQ.lte('created_at', untilIso)
 
   const osQ = sb.from('service_orders')
-    .select('customer_id, total_price_cents, service_price_cents, parts_sale_cents, parts_cost_cents, discount_cents, customers!inner(origin)')
+    .select('customer_id, received_at, total_price_cents, service_price_cents, parts_sale_cents, parts_cost_cents, discount_cents, customers!inner(origin, first_purchase_at)')
     .eq('tenant_id', tenantId)
     .gte('received_at', sinceIso)
     .in('status', ['delivered', 'Entregue'])
@@ -143,12 +144,12 @@ async function getChannelMetrics(tenantId: string, sinceIso: string, untilIso?: 
     .limit(5000)
   if (untilIso) osQ.lte('received_at', untilIso)
 
-  const [customersRes, salesRes, osRes] = await Promise.all([custQ, salesQ, osQ])
+  const [salesRes, osRes] = await Promise.all([salesQ, osQ])
 
   type SaleItem    = { quantity: number; product_id: string | null; cost_snapshot_cents: number | null }
-  type CustomerRow = { id: string; origin: ReportChannel }
-  type SaleRow     = { customer_id: string; total_cents: number; customers: { origin: ReportChannel }; sale_items: SaleItem[] | null }
-  type OsRow       = { customer_id: string; total_price_cents: number|null; service_price_cents: number|null; parts_sale_cents: number|null; parts_cost_cents: number|null; discount_cents: number|null; customers: { origin: ReportChannel } }
+  type CustRef     = { origin: ReportChannel; first_purchase_at: string | null }
+  type SaleRow     = { customer_id: string; created_at: string; total_cents: number; customers: CustRef; sale_items: SaleItem[] | null }
+  type OsRow       = { customer_id: string; received_at: string; total_price_cents: number|null; service_price_cents: number|null; parts_sale_cents: number|null; parts_cost_cents: number|null; discount_cents: number|null; customers: CustRef }
 
   const salesData = (salesRes.data ?? []) as SaleRow[]
   const osData    = (osRes.data ?? [])    as OsRow[]
@@ -172,11 +173,19 @@ async function getChannelMetrics(tenantId: string, sinceIso: string, untilIso?: 
     }
   }
 
-  // Novos clientes por canal
-  const newByChannel = new Map<ReportChannel, number>()
-  for (const c of (customersRes.data ?? []) as CustomerRow[]) {
-    newByChannel.set(c.origin, (newByChannel.get(c.origin) ?? 0) + 1)
-  }
+  // Novos vs recorrentes por canal: novo = 1ª compra paga da vida no período
+  const acquisition = classifyAcquisition([
+    ...salesData.map(s => ({
+      customerId: s.customer_id, channel: s.customers?.origin ?? null,
+      firstPurchaseAt: s.customers?.first_purchase_at ?? null,
+      at: s.created_at, valueCents: s.total_cents ?? 0,
+    })),
+    ...osData.map(o => ({
+      customerId: o.customer_id, channel: o.customers?.origin ?? null,
+      firstPurchaseAt: o.customers?.first_purchase_at ?? null,
+      at: o.received_at, valueCents: serviceOrderValueCents(o),
+    })),
+  ], sinceIso, untilIso ?? new Date().toISOString())
 
   // Faturamento + lucro bruto + contagem de transações por canal
   const revByChannel = new Map<ReportChannel, { revenue: number; profit: number; txCount: number }>()
@@ -206,8 +215,7 @@ async function getChannelMetrics(tenantId: string, sinceIso: string, untilIso?: 
   }
   for (const o of osData) {
     const ch = o.customers?.origin
-    const v  = o.total_price_cents
-      ?? Math.max(0, (o.service_price_cents ?? 0) + (o.parts_sale_cents ?? 0) - (o.discount_cents ?? 0))
+    const v  = serviceOrderValueCents(o)
     if (!ch || v <= 0) continue
     bump(ch, v, v - (o.parts_cost_cents ?? 0))
     bySales.set(o.customer_id, (bySales.get(o.customer_id) ?? 0) + v)
@@ -217,15 +225,19 @@ async function getChannelMetrics(tenantId: string, sinceIso: string, untilIso?: 
   const channels: ChannelMetrics[] = (['instagram_pago', 'instagram_organico', 'facebook'] as ReportChannel[]).map(ch => {
     const cfg = CHANNEL_CONFIG[ch]
     const rev = revByChannel.get(ch) ?? { revenue: 0, profit: 0, txCount: 0 }
-    const newC = newByChannel.get(ch) ?? 0
+    const acq = acquisition.get(ch)
     const avgTicket = rev.txCount > 0 ? Math.round(rev.revenue / rev.txCount) : 0
     return {
-      channel:        ch,
-      label:          cfg.label,
-      color:          cfg.color,
-      newCustomers:   newC,
-      txCount:        rev.txCount,
-      revenueCents:   rev.revenue,
+      channel:               ch,
+      label:                 cfg.label,
+      color:                 cfg.color,
+      newCustomers:          acq?.newCustomers ?? 0,
+      recurringCustomers:    acq?.recurringCustomers ?? 0,
+      txCount:               rev.txCount,
+      revenueCents:          rev.revenue,
+      newRevenueCents:       acq?.newRevenueCents ?? 0,
+      recurringRevenueCents: acq?.recurringRevenueCents ?? 0,
+      newTxCount:            acq?.newTxCount ?? 0,
       profitCents:    rev.profit,
       avgTicketCents: avgTicket,
     }
@@ -384,14 +396,15 @@ export default async function MetaAdsRelatoriosPage({
     .order('spend_date', { ascending: false })
   if (isCustomRange) spendQuery.lte('spend_date', untilDateStr)
 
+  // Novos pagos por dia = data da 1ª compra paga (não a data de cadastro)
   const custQuery = sb2a
     .from('customers')
-    .select('id, created_at, origin')
+    .select('id, first_purchase_at, origin')
     .eq('tenant_id', tenantId)
-    .gte('created_at', sinceIso)
+    .gte('first_purchase_at', sinceIso)
+    .lte('first_purchase_at', untilIso)
     .in('origin', ['instagram_pago', 'facebook'])
     .limit(5000)
-  if (isCustomRange) custQuery.lte('created_at', untilIso)
 
   const [spendRes, dailyCustRes, prevSpendRes, prevCustRes] = await Promise.all([
     spendQuery,
@@ -410,16 +423,16 @@ export default async function MetaAdsRelatoriosPage({
           .from('customers')
           .select('id')
           .eq('tenant_id', tenantId)
-          .gte('created_at', prevSinceIso)
-          .lt('created_at', sinceIso)
+          .gte('first_purchase_at', prevSinceIso)
+          .lt('first_purchase_at', sinceIso)
           .in('origin', ['instagram_pago', 'facebook'])
           .limit(5000),
   ])
 
   // Agrupa clientes pagos por dia
   const custByDay = new Map<string, number>()
-  for (const c of (dailyCustRes.data ?? []) as { created_at: string }[]) {
-    const d = c.created_at.slice(0, 10)
+  for (const c of (dailyCustRes.data ?? []) as { first_purchase_at: string }[]) {
+    const d = c.first_purchase_at.slice(0, 10)
     custByDay.set(d, (custByDay.get(d) ?? 0) + 1)
   }
   const dailyPaidCustomers = [...custByDay.entries()].map(([date, count]) => ({ date, count }))
@@ -460,21 +473,29 @@ export default async function MetaAdsRelatoriosPage({
       ? Math.round(shareSpend / c.newCustomers)
       : null
     return {
-      channel:      c.channel,
-      label:        c.label,
-      color:        c.color,
-      spendCents:   shareSpend,
-      newCustomers: c.newCustomers,
-      cacCents:     cacVal,
+      channel:        c.channel,
+      label:          c.label,
+      color:          c.color,
+      spendCents:     shareSpend,
+      newCustomers:   c.newCustomers,
+      cacCents:       cacVal,
+      txCount:        c.txCount,
+      costPerTxCents: isPaid && c.txCount > 0 ? Math.round(shareSpend / c.txCount) : null,
     }
   })
 
+  // Funil Meta → ERP: só canais pagos e só clientes NOVOS
+  const paidChannels = channels.filter(c => c.channel === 'instagram_pago' || c.channel === 'facebook')
+  const periodConversations = ((spendRes.data ?? []) as { conversations: number | null }[])
+    .reduce((s, e) => s + (e.conversations ?? 0), 0)
   const funnel: FunnelMetrics = {
-    impressions:       insightsImpressions,
-    clicks:            insightsClicks,
-    newCustomers:      channels.reduce((s, c) => s + c.newCustomers, 0),
-    salesCount:        channels.reduce((s, c) => s + c.txCount, 0),
-    salesRevenueCents: channels.reduce((s, c) => s + c.revenueCents, 0),
+    impressions:           insightsImpressions,
+    clicks:                insightsClicks,
+    conversations:         periodConversations,
+    newCustomers:          paidChannels.reduce((s, c) => s + c.newCustomers, 0),
+    salesCount:            paidChannels.reduce((s, c) => s + c.newTxCount, 0),
+    salesRevenueCents:     paidChannels.reduce((s, c) => s + c.newRevenueCents, 0),
+    totalPaidRevenueCents: paidChannels.reduce((s, c) => s + c.revenueCents, 0),
   }
 
   const data: RelatoriosData = {
