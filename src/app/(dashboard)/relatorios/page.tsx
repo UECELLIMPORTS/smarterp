@@ -12,8 +12,10 @@ import { getVariableExpensesTotalCents } from '@/actions/variable-expenses'
 import { listStores } from '@/actions/stores'
 import { resolveActiveStoreId } from '@/lib/active-store'
 import { getStoreComparison, type StoreCompareRow } from '@/lib/store-comparison'
+import { loadServiceInsights } from '@/lib/service-insights-loader'
+import type { ServiceInsights } from '@/lib/service-insights'
 
-export type Tab = 'geral' | 'vendas' | 'produtos' | 'trafego'
+export type Tab = 'geral' | 'vendas' | 'produtos' | 'trafego' | 'servicos'
 
 export type TrafegoRow = {
   month:          string         // 'yyyy-MM'
@@ -107,6 +109,7 @@ export type RelatoriosData = {
   salesReport:    SalesReportData | null
   productsReport: ProductReportRow[] | null
   trafegoRows:    TrafegoRow[]
+  serviceInsights: ServiceInsights | null
   // Multi-store
   stores:         { id: string; name: string; code: string; color: string; is_default: boolean; monthly_goal_cents: number }[]
   storeFilter:    string  // '', 'all' ou storeId
@@ -140,7 +143,7 @@ export default async function RelatoriosPage({
   const sb = supabase as any
 
   const params = await searchParams
-  const tab = (['geral', 'vendas', 'produtos', 'trafego'].includes(params.tab ?? '') ? params.tab : 'geral') as Tab
+  const tab = (['geral', 'vendas', 'produtos', 'trafego', 'servicos'].includes(params.tab ?? '') ? params.tab : 'geral') as Tab
   const period = (['7d', '30d', '90d', '6m', 'custom'].includes(params.period ?? '')
     ? params.period
     : '30d') as Period
@@ -469,6 +472,11 @@ export default async function RelatoriosPage({
     }).catch(() => null)
   }
 
+  let serviceInsights: ServiceInsights | null = null
+  if (tab === 'servicos') {
+    serviceInsights = await loadServiceInsights(sb, tenantId, start.toISOString(), end.toISOString()).catch(() => null)
+  }
+
   if (tab === 'vendas') {
     salesReport = await getDetailedSalesReport({
       start:          start.toISOString(),
@@ -513,6 +521,7 @@ export default async function RelatoriosPage({
     salesReport,
     productsReport,
     trafegoRows,
+    serviceInsights,
     stores: stores.map(s => ({
       id: s.id, name: s.name, code: s.code, color: s.color,
       is_default: s.is_default, monthly_goal_cents: s.monthly_goal_cents,

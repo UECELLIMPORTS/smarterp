@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   BarChart2, Download, Megaphone, TrendingUp, Users, Phone, MessageCircle,
-  ShoppingCart, Package,
+  ShoppingCart, Package, Wrench,
 } from 'lucide-react'
 import type { RelatoriosData, OriginReportRow, TopClientRow, Tab } from './page'
 import { CUSTOMER_ORIGIN_OPTIONS, originLabel } from '@/lib/customer-origin'
@@ -12,6 +12,7 @@ import { SALE_CHANNEL_OPTIONS_PICKABLE, channelLabel } from '@/lib/sale-channels
 import { VendasTab } from './vendas-tab'
 import { ProdutosTab } from './produtos-tab'
 import { PagoOrganicoTab } from './trafego-tab'
+import { ServiceInsightsPanel } from './servicos-tab'
 
 const BRL = (c: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(c / 100)
@@ -134,6 +135,7 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
     { v: 'vendas',   label: 'Vendas',         icon: ShoppingCart },
     { v: 'produtos', label: 'Produtos',       icon: Package },
     { v: 'trafego',  label: 'Pago vs Orgân.', icon: TrendingUp },
+    { v: 'servicos', label: 'Serviços (OS)',  icon: Wrench },
   ]
 
   return (
@@ -147,6 +149,7 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
             {tab === 'vendas'   && 'Tabela detalhada de cada venda com filtros e export'}
             {tab === 'produtos' && 'Ranking de produtos: faturamento, lucro e margem'}
             {tab === 'trafego'  && 'Comparativo entre vendas de tráfego pago e vendas orgânicas'}
+            {tab === 'servicos' && 'Ranking das OS do CheckSmart: aparelhos, reparos, bateria/tela por modelo e bairros'}
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -247,6 +250,13 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
           )
         })}
       </div>
+
+      {/* Aba Serviços (OS do CheckSmart) */}
+      {tab === 'servicos' && (
+        data.serviceInsights
+          ? <ServiceInsightsPanel data={data.serviceInsights} />
+          : <p className="text-sm" style={{ color: '#94A3B8' }}>Não foi possível carregar as OS do período.</p>
+      )}
 
       {/* Aba Pago vs Orgânico */}
       {tab === 'trafego' && (
