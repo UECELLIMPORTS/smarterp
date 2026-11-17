@@ -8,7 +8,7 @@ import { DiagnosticoClient } from './diagnostico-client'
 
 export const metadata = { title: 'Diagnóstico de Lucro — Smart ERP' }
 
-const VALID: DiagPeriod[] = ['7d', '30d', '90d']
+const VALID: DiagPeriod[] = ['today', '7d', '30d', '90d']
 
 export default async function DiagnosticoLucroPage({
   searchParams,

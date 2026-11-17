@@ -93,6 +93,7 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
   ]
 
   const periodOptions: { v: RelatoriosData['period']; label: string }[] = [
+    { v: 'today', label: 'Hoje' },
     { v: '7d',  label: '7d' },
     { v: '30d', label: '30d' },
     { v: '90d', label: '90d' },

@@ -22,7 +22,7 @@ import { requireAuth } from '@/lib/supabase/server'
 import { getTenantId } from '@/lib/tenant'
 import { revalidatePath } from 'next/cache'
 
-export type DiagPeriod = '7d' | '30d' | '90d'
+export type DiagPeriod = 'today' | '7d' | '30d' | '90d'
 
 export type SuspiciousSaleItem = {
   name:               string
@@ -79,6 +79,11 @@ export type ProfitDiagnostics = {
 }
 
 function periodToSinceIso(period: DiagPeriod): string {
+  if (period === 'today') {
+    // 00:00 de hoje no fuso de Brasília (o servidor roda em UTC)
+    const ymd = new Date(Date.now() - 3 * 3600_000).toISOString().slice(0, 10)
+    return new Date(`${ymd}T00:00:00-03:00`).toISOString()
+  }
   const days = period === '7d' ? 7 : period === '30d' ? 30 : 90
   const d = new Date()
   d.setDate(d.getDate() - days + 1)

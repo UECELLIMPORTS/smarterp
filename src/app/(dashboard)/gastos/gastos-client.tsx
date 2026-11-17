@@ -16,7 +16,7 @@ import {
   VARIABLE_EXPENSE_CATEGORIES, groupedCategories, categoryLabel, categoryColor,
 } from '@/lib/variable-expense-categories'
 
-type Period = '7d' | '30d' | '90d' | 'all'
+type Period = 'today' | '7d' | '30d' | '90d' | 'all'
 
 type Props = {
   initialExpenses:  VariableExpense[]
@@ -36,6 +36,7 @@ const parseCents = (v: string) => {
 const fmtBRL = (c: number) => (c / 100).toFixed(2).replace('.', ',')
 
 const PERIODS: { key: Period; label: string }[] = [
+  { key: 'today', label: 'Hoje' },
   { key: '7d',  label: '7 dias' },
   { key: '30d', label: '30 dias' },
   { key: '90d', label: '90 dias' },
@@ -610,6 +611,11 @@ function ChartDaily({ daily }: { daily: ExpenseAnalytics['daily'] }) {
 // Helper de range usado no export
 function getRangeFromPeriod(period: Period): { startISO?: string; endISO?: string } {
   if (period === 'all') return {}
+  if (period === 'today') {
+    // Data de hoje no fuso de Brasília (o servidor roda em UTC)
+    const ymd = new Date(Date.now() - 3 * 3600_000).toISOString().slice(0, 10)
+    return { startISO: ymd, endISO: ymd }
+  }
   const days = period === '7d' ? 6 : period === '30d' ? 29 : 89
   const end   = new Date()
   const start = new Date()

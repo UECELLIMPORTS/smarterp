@@ -35,6 +35,7 @@ type Props = {
 /** Quantos dias o período cobre (pra pro-ratear custo fixo mensal). null pra 'all'. */
 function periodDays(period: ChannelAnalyticsPeriod): number | null {
   switch (period) {
+    case 'today': return 1
     case '7d':   return 7
     case '30d':  return 30
     case '90d':  return 90
@@ -45,6 +46,7 @@ function periodDays(period: ChannelAnalyticsPeriod): number | null {
 }
 
 const PERIOD_OPTIONS: { v: ChannelAnalyticsPeriod; label: string }[] = [
+  { v: 'today', label: 'Hoje' },
   { v: '7d',   label: '7d' },
   { v: '30d',  label: '30d' },
   { v: '90d',  label: '90d' },

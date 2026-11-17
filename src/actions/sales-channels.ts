@@ -96,7 +96,7 @@ export async function updateServiceOrderChannel(osId: string, patch: ChannelPatc
 
 // ── Analytics agregado ─────────────────────────────────────────────────────
 
-export type ChannelAnalyticsPeriod = '7d' | '30d' | '90d' | '180d' | '365d' | 'all'
+export type ChannelAnalyticsPeriod = 'today' | '7d' | '30d' | '90d' | '180d' | '365d' | 'all'
 
 export type ChannelMetric = {
   channel:           SaleChannel | 'nao_informado'
@@ -177,6 +177,11 @@ export type ChannelAnalytics = {
 
 function periodToSince(period: ChannelAnalyticsPeriod): string {
   if (period === 'all') return '1970-01-01T00:00:00.000Z'
+  if (period === 'today') {
+    // 00:00 de hoje no fuso de Brasília (o servidor roda em UTC)
+    const ymd = new Date(Date.now() - 3 * 3600_000).toISOString().slice(0, 10)
+    return new Date(`${ymd}T00:00:00-03:00`).toISOString()
+  }
   const d = new Date()
   const days = period === '7d' ? 7
              : period === '30d' ? 30
@@ -827,6 +832,7 @@ export type CacByChannel = {
 }
 
 const CHANNEL_PERIOD_TO_META: Partial<Record<ChannelAnalyticsPeriod, MetaAdsPeriod>> = {
+  'today': 'today',
   '7d':  '7d',
   '30d': '30d',
   '90d': '90d',
@@ -844,7 +850,7 @@ export async function getCacByChannel(period: ChannelAnalyticsPeriod = '30d', st
 
   const metaPeriod = CHANNEL_PERIOD_TO_META[period]
   if (!metaPeriod) {
-    return { ...empty, unavailableReason: 'Meta Ads suporta apenas períodos de 7, 30 ou 90 dias.' }
+    return { ...empty, unavailableReason: 'Meta Ads suporta apenas hoje ou períodos de 7, 30 ou 90 dias.' }
   }
 
   const { supabase, user } = await requireAuth()

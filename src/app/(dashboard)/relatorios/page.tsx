@@ -30,9 +30,14 @@ export type TrafegoRow = {
 
 export const metadata = { title: 'Relatórios — Smart ERP' }
 
-type Period = '7d' | '30d' | '90d' | '6m' | 'custom'
+type Period = 'today' | '7d' | '30d' | '90d' | '6m' | 'custom'
 
 function getPeriodRange(period: Period, from?: string, to?: string): { start: Date; end: Date } {
+  if (period === 'today') {
+    // Dia corrente no fuso de Brasília (o servidor roda em UTC)
+    const ymd = new Date(Date.now() - 3 * 3600_000).toISOString().slice(0, 10)
+    return { start: new Date(`${ymd}T00:00:00-03:00`), end: new Date(`${ymd}T23:59:59.999-03:00`) }
+  }
   const end = new Date()
   end.setHours(23, 59, 59, 999)
   const start = new Date()
@@ -144,7 +149,7 @@ export default async function RelatoriosPage({
 
   const params = await searchParams
   const tab = (['geral', 'vendas', 'produtos', 'trafego', 'servicos'].includes(params.tab ?? '') ? params.tab : 'geral') as Tab
-  const period = (['7d', '30d', '90d', '6m', 'custom'].includes(params.period ?? '')
+  const period = (['today', '7d', '30d', '90d', '6m', 'custom'].includes(params.period ?? '')
     ? params.period
     : '30d') as Period
   const source = (['total', 'smarterp', 'checksmart'].includes(params.source ?? '')

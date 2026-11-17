@@ -5,10 +5,15 @@ import { GastosClient } from './gastos-client'
 
 export const metadata = { title: 'Gastos — Smart ERP' }
 
-type Period = '7d' | '30d' | '90d' | 'all'
+type Period = 'today' | '7d' | '30d' | '90d' | 'all'
 
 function getRange(period: Period): { startISO?: string; endISO?: string } {
   if (period === 'all') return {}
+  if (period === 'today') {
+    // Data de hoje no fuso de Brasília (o servidor roda em UTC)
+    const ymd = new Date(Date.now() - 3 * 3600_000).toISOString().slice(0, 10)
+    return { startISO: ymd, endISO: ymd }
+  }
   const days = period === '7d' ? 6 : period === '30d' ? 29 : 89
   const end   = new Date()
   const start = new Date()
@@ -25,7 +30,7 @@ export default async function GastosPage({
   try { await requireAuth() } catch { redirect('/login') }
 
   const params = await searchParams
-  const period = (['7d', '30d', '90d', 'all'].includes(params.period ?? '') ? params.period : '30d') as Period
+  const period = (['today', '7d', '30d', '90d', 'all'].includes(params.period ?? '') ? params.period : '30d') as Period
   const category = params.category && params.category !== 'all' ? params.category : undefined
   const search   = params.search?.trim() || undefined
 
