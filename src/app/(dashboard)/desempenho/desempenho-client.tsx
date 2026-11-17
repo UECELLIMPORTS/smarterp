@@ -1,15 +1,19 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Trophy, Download, ShoppingCart, Wrench, DollarSign, TrendingUp, Clock, Info,
+  AlertTriangle, Headset, ExternalLink, X,
 } from 'lucide-react'
-import type { TeamPerformanceData, TeamMemberPerformance } from '@/actions/desempenho'
+import type { TeamPerformanceData, TeamMemberPerformance, ServiceLine } from '@/actions/desempenho'
 import type { Period } from './page'
 
 const BRL = (c: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(c / 100)
+
+const fmtDate = (iso: string) =>
+  new Date(iso).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit' })
 
 function fmtHours(minutes: number): string {
   if (minutes <= 0) return '—'
@@ -28,12 +32,16 @@ const ROLE_LABEL: Record<string, string> = {
 }
 
 const PERIODS: { v: Period; label: string }[] = [
-  { v: 'hoje', label: 'Hoje' },
-  { v: '7d',   label: '7 dias' },
-  { v: 'mes',  label: 'Este mês' },
-  { v: '30d',  label: '30 dias' },
-  { v: '90d',  label: '90 dias' },
+  { v: 'hoje',        label: 'Hoje' },
+  { v: '7d',          label: '7 dias' },
+  { v: 'mes',         label: 'Este mês' },
+  { v: 'mes_passado', label: 'Mês passado' },
+  { v: '30d',         label: '30 dias' },
+  { v: '90d',         label: '90 dias' },
 ]
+
+const NONE = '__none__'
+type Focus = { id: string; name: string; as: 'tech' | 'att' } | null
 
 type Props = {
   data:   TeamPerformanceData
@@ -49,7 +57,20 @@ export function DesempenhoClient({ data, period, from, to, store, stores }: Prop
   const [customOpen, setCustomOpen] = useState(period === 'custom')
   const [fromDate, setFromDate] = useState(from ?? '')
   const [toDate, setToDate]     = useState(to ?? '')
-  const { canViewAll, members, totals } = data
+  const [focus, setFocus]       = useState<Focus>(null)
+  const { canViewAll, members, totals, services, people, checksmartUrl } = data
+
+  const nameOf = (id: string | null) => (id ? people[id] ?? 'Ex-colaborador' : null)
+  const keyOf  = (id: string | null) => id ?? NONE
+
+  const techRows = members.filter(m => m.repairsCount > 0 || m.role === 'technician' || (m.userId && m.role === 'employee'))
+  const attRows  = members.filter(m => m.userId !== null || m.osOpenedCount + m.osDeliveredCount + m.salesCount > 0)
+  const withoutTech = services.filter(s => !s.technicianId)
+
+  const shown = useMemo(() => {
+    if (!focus) return services
+    return services.filter(s => keyOf(focus.as === 'tech' ? s.technicianId : s.attendantId) === focus.id)
+  }, [services, focus])
 
   function go(changes: { period?: Period; from?: string; to?: string; store?: string }) {
     const p = new URLSearchParams()
@@ -60,34 +81,43 @@ export function DesempenhoClient({ data, period, from, to, store, stores }: Prop
       p.set('to', next.to)
     }
     if (next.store && next.store !== 'all') p.set('store', next.store)
+    setFocus(null)
     router.push(`/desempenho?${p.toString()}`)
   }
 
   function exportCsv() {
     const BOM = '﻿'
     const money = (c: number) => `"R$ ${(c / 100).toFixed(2).replace('.', ',')}"`
-    const cell  = (v: string) => `"${v.replace(/"/g, '""')}"`
-    const header = [
-      'Colaborador', 'Função',
-      'Vendas PDV', 'Faturamento PDV', 'Lucro PDV',
-      'OS abertas', 'OS entregues', 'Faturamento OS', 'Lucro OS',
-      'Consertos finalizados', 'Horas de serviço',
-      'Total vendas+OS', 'Faturamento total', 'Lucro total',
-    ].join(';')
-    const lines = members.map(m => [
-      cell(m.name), cell(ROLE_LABEL[m.role ?? ''] ?? '—'),
-      m.salesCount, money(m.salesRevenueCents), money(m.salesProfitCents),
-      m.osOpenedCount, m.osDeliveredCount, money(m.osRevenueCents), money(m.osProfitCents),
-      m.repairsCount, (m.serviceMinutes / 60).toFixed(1).replace('.', ','),
-      m.totalCount, money(m.totalRevenueCents), money(m.totalProfitCents),
+    const cell  = (v: string | null) => `"${(v ?? '').replace(/"/g, '""')}"`
+    const out: string[] = []
+    out.push('TÉCNICOS — SERVIÇOS ENTREGUES')
+    out.push(['Técnico', 'Serviços', 'Faturamento', 'Lucro', 'Horas de serviço'].join(';'))
+    for (const m of techRows) out.push([cell(m.name), m.repairsCount, money(m.repairsRevenueCents), money(m.repairsProfitCents), (m.serviceMinutes / 60).toFixed(1).replace('.', ',')].join(';'))
+    out.push('')
+    out.push('ATENDENTES — OS E VENDAS')
+    out.push(['Atendente', 'OS abertas', 'OS entregues', 'Faturamento OS', 'Vendas PDV', 'Faturamento PDV', 'Faturamento total', 'Lucro total'].join(';'))
+    for (const m of attRows) out.push([cell(m.name), m.osOpenedCount, m.osDeliveredCount, money(m.osRevenueCents), m.salesCount, money(m.salesRevenueCents), money(m.totalRevenueCents), money(m.totalProfitCents)].join(';'))
+    out.push('')
+    out.push('SERVIÇOS ENTREGUES (DETALHADO)')
+    out.push(['OS', 'Entrada', 'Entrega', 'Cliente', 'Aparelho', 'Atendente', 'Técnico', 'Valor', 'Lucro'].join(';'))
+    for (const s of services) out.push([
+      cell(s.orderNumber), cell(fmtDate(s.receivedAt)), cell(fmtDate(s.deliveredAt)), cell(s.customer), cell(s.device),
+      cell(nameOf(s.attendantId) ?? 'Sem colaborador'), cell(nameOf(s.technicianId) ?? 'Sem técnico'),
+      money(s.totalCents), money(s.profitCents),
     ].join(';'))
-    const blob = new Blob([BOM + header + '\n' + lines.join('\n')], { type: 'text/csv;charset=utf-8' })
+    const blob = new Blob([BOM + out.join('\n')], { type: 'text/csv;charset=utf-8' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `desempenho-equipe-${new Date().toISOString().slice(0, 10)}.csv`
+    a.download = `comissao-equipe-${new Date().toISOString().slice(0, 10)}.csv`
     a.click()
     URL.revokeObjectURL(url)
+  }
+
+  function pick(m: TeamMemberPerformance, as: 'tech' | 'att') {
+    const id = keyOf(m.userId)
+    setFocus(f => (f && f.id === id && f.as === as ? null : { id, name: m.name, as }))
+    setTimeout(() => document.getElementById('lista-servicos')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
   }
 
   return (
@@ -100,7 +130,7 @@ export function DesempenhoClient({ data, period, from, to, store, stores }: Prop
             {canViewAll ? 'Desempenho da equipe' : 'Meu desempenho'}
           </h1>
           <p className="text-xs mt-1" style={{ color: '#94A3B8' }}>
-            Vendas do Gestão Smart + ordens de serviço do CheckSmart, por colaborador
+            Serviços por técnico, atendimentos e vendas por colaborador — base para a comissão
           </p>
         </div>
         {canViewAll && members.length > 0 && (
@@ -149,60 +179,139 @@ export function DesempenhoClient({ data, period, from, to, store, stores }: Prop
         )}
       </div>
 
+      {/* Alerta: serviços sem técnico */}
+      {canViewAll && withoutTech.length > 0 && (
+        <div className="rounded-xl border p-3 text-xs" style={{ background: 'rgba(245,158,11,.08)', borderColor: 'rgba(245,158,11,.5)', color: '#FCD34D' }}>
+          <p className="flex items-center gap-1.5 font-bold">
+            <AlertTriangle className="h-3.5 w-3.5" />
+            {withoutTech.length} serviço{withoutTech.length > 1 ? 's' : ''} entregue{withoutTech.length > 1 ? 's' : ''} sem técnico ({BRL(withoutTech.reduce((s, o) => s + o.totalCents, 0))})
+          </p>
+          <p className="mt-1" style={{ color: '#CBD5E1' }}>
+            Defina o técnico no CheckSmart (card &quot;Datas e Prazo&quot; da OS) para entrar na comissão:
+          </p>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {withoutTech.map(s => (
+              <a key={s.orderId} href={`${checksmartUrl}/orders/${s.orderId}`} target="_blank" rel="noreferrer"
+                className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 font-mono hover:bg-white/5"
+                style={{ borderColor: 'rgba(245,158,11,.5)', color: '#FCD34D' }}>
+                {s.orderNumber} <ExternalLink className="h-2.5 w-2.5" />
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+        <KPI label="Serviços entregues" value={String(totals.repairsCount)} sub={BRL(totals.repairsRevenueCents)} icon={Wrench} color="#F59E0B" />
+        <KPI label="OS abertas" value={String(totals.osOpenedCount)} sub="entrada no período" icon={Headset} color="#8B5CF6" />
         <KPI label="Vendas PDV" value={String(totals.salesCount)} sub={BRL(totals.salesRevenueCents)} icon={ShoppingCart} color="#10B981" />
-        <KPI label="OS abertas" value={String(totals.osOpenedCount)} sub={`${totals.osDeliveredCount} entregues · ${BRL(totals.osRevenueCents)}`} icon={Wrench} color="#8B5CF6" />
-        <KPI label="Faturamento total" value={BRL(totals.totalRevenueCents)} sub={`${totals.totalCount} vendas + OS entregues`} icon={DollarSign} color="#F8FAFC" />
-        <KPI label="Lucro total" value={BRL(totals.totalProfitCents)}
-          sub={totals.totalRevenueCents > 0 ? `Margem ${Math.round((totals.totalProfitCents / totals.totalRevenueCents) * 100)}%` : '—'}
-          icon={TrendingUp} color="#22C55E" />
-        <KPI label="Horas de serviço" value={fmtHours(totals.serviceMinutes)} sub={`${totals.repairsCount} consertos finalizados`} icon={Clock} color="#F59E0B" />
+        <KPI label="Faturamento total" value={BRL(totals.totalRevenueCents)}
+          sub={totals.totalRevenueCents > 0 ? `Lucro ${BRL(totals.totalProfitCents)} · ${Math.round((totals.totalProfitCents / totals.totalRevenueCents) * 100)}%` : '—'}
+          icon={DollarSign} color="#22C55E" />
+        <KPI label="Horas de serviço" value={fmtHours(totals.serviceMinutes)} sub={`${totals.repairsWithTime} de ${totals.repairsCount} com tempo medido`} icon={Clock} color="#38BDF8" />
       </div>
 
-      {/* Tabela */}
-      <div className="rounded-xl border overflow-hidden" style={{ background: '#131C2A', borderColor: '#2A3650' }}>
-        {members.length === 0 ? (
-          <div className="py-16 text-center">
-            <p className="text-sm" style={{ color: '#94A3B8' }}>Nenhum movimento no período.</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
+      {/* Técnicos */}
+      <Section title="Técnicos · serviços entregues" color="#F59E0B" icon={Wrench}
+        hint="Clique em um técnico para ver as OS dele.">
+        <table className="w-full text-xs">
+          <thead style={{ background: '#1B2638' }}>
+            <tr>
+              <Th>Técnico</Th>
+              <Th align="right">Serviços</Th>
+              <Th align="right">Faturamento</Th>
+              <Th align="right">Lucro</Th>
+              <Th align="right">Ticket médio</Th>
+              <Th align="right">Horas</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {techRows.map(m => (
+              <ClickRow key={keyOf(m.userId)} onClick={() => pick(m, 'tech')}
+                active={focus?.as === 'tech' && focus.id === keyOf(m.userId)}>
+                <NameCell m={m} fallback="Sem técnico" warn={!m.userId} />
+                <Td align="right" mono bold>{m.repairsCount}</Td>
+                <Td align="right" mono bold>{BRL(m.repairsRevenueCents)}</Td>
+                <Td align="right" mono color={profitColor(m.repairsProfitCents)}>{BRL(m.repairsProfitCents)}</Td>
+                <Td align="right" mono color="#CBD5E1">{BRL(m.repairsCount ? Math.round(m.repairsRevenueCents / m.repairsCount) : 0)}</Td>
+                <Td align="right" mono>{fmtHours(m.serviceMinutes)}</Td>
+              </ClickRow>
+            ))}
+          </tbody>
+        </table>
+      </Section>
+
+      {/* Atendentes */}
+      <Section title="Atendentes · OS abertas e vendas" color="#8B5CF6" icon={Headset}
+        hint="Clique em um atendente para ver as OS que ele abriu.">
+        <table className="w-full text-xs">
+          <thead style={{ background: '#1B2638' }}>
+            <tr>
+              <Th>Atendente</Th>
+              <Th align="right">OS abertas</Th>
+              <Th align="right">OS entregues</Th>
+              <Th align="right">Faturamento OS</Th>
+              <Th align="right">Vendas PDV</Th>
+              <Th align="right">Faturamento PDV</Th>
+              <Th align="right">Faturamento total</Th>
+              <Th align="right">Lucro total</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {attRows.map(m => (
+              <ClickRow key={keyOf(m.userId)} onClick={() => pick(m, 'att')}
+                active={focus?.as === 'att' && focus.id === keyOf(m.userId)}>
+                <NameCell m={m} fallback="Sem colaborador" />
+                <Td align="right" mono>{m.osOpenedCount}</Td>
+                <Td align="right" mono bold>{m.osDeliveredCount}</Td>
+                <Td align="right" mono>{BRL(m.osRevenueCents)}</Td>
+                <Td align="right" mono>{m.salesCount}</Td>
+                <Td align="right" mono>{BRL(m.salesRevenueCents)}</Td>
+                <Td align="right" mono bold>{BRL(m.totalRevenueCents)}</Td>
+                <Td align="right" mono bold color={profitColor(m.totalProfitCents)}>{BRL(m.totalProfitCents)}</Td>
+              </ClickRow>
+            ))}
+          </tbody>
+        </table>
+      </Section>
+
+      {/* Lista detalhada */}
+      <div id="lista-servicos" className="scroll-mt-4">
+        <Section
+          title={focus ? `Serviços de ${focus.name} · como ${focus.as === 'tech' ? 'técnico' : 'atendente'}` : 'Serviços entregues no período'}
+          color="#22C55E" icon={DollarSign}
+          hint={`${shown.length} OS · ${BRL(shown.reduce((s, o) => s + o.totalCents, 0))}`}
+          action={focus && (
+            <button onClick={() => setFocus(null)}
+              className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] hover:bg-white/5"
+              style={{ borderColor: '#2A3650', color: '#CBD5E1' }}>
+              <X className="h-3 w-3" /> Ver todos
+            </button>
+          )}>
+          {shown.length === 0 ? (
+            <p className="py-10 text-center text-sm" style={{ color: '#94A3B8' }}>Nenhum serviço entregue.</p>
+          ) : (
             <table className="w-full text-xs">
               <thead style={{ background: '#1B2638' }}>
                 <tr>
-                  <Th rowSpan={2}>Colaborador</Th>
-                  <Th colSpan={3} group color="#10B981">Vendas PDV</Th>
-                  <Th colSpan={4} group color="#8B5CF6">OS · atendimento (abriu)</Th>
-                  <Th colSpan={2} group color="#F59E0B">OS · execução (finalizou)</Th>
-                  <Th colSpan={3} group color="#F8FAFC">Total</Th>
-                </tr>
-                <tr>
-                  <Th align="right">Qtd</Th>
-                  <Th align="right">Faturamento</Th>
+                  <Th>OS</Th>
+                  <Th>Entrega</Th>
+                  <Th>Cliente</Th>
+                  <Th>Aparelho</Th>
+                  <Th>Atendente</Th>
+                  <Th>Técnico</Th>
+                  <Th align="right">Valor</Th>
                   <Th align="right">Lucro</Th>
-                  <Th align="right">Abertas</Th>
-                  <Th align="right">Entregues</Th>
-                  <Th align="right">Faturamento</Th>
-                  <Th align="right">Lucro</Th>
-                  <Th align="right">Consertos</Th>
                   <Th align="right">Horas</Th>
-                  <Th align="right">Ticket médio</Th>
-                  <Th align="right">Faturamento</Th>
-                  <Th align="right">Lucro</Th>
                 </tr>
               </thead>
               <tbody>
-                {members.map(m => <MemberRow key={m.userId ?? 'none'} m={m} />)}
+                {shown.map(s => <ServiceRow key={s.orderId} s={s} nameOf={nameOf} url={checksmartUrl} />)}
               </tbody>
-              {canViewAll && members.length > 1 && (
-                <tfoot style={{ background: '#1B2638' }}>
-                  <MemberRow m={{ ...totals, userId: 'total', name: 'Total', email: null, role: null }} bold />
-                </tfoot>
-              )}
             </table>
-          </div>
-        )}
+          )}
+        </Section>
       </div>
 
       {/* Regras */}
@@ -211,10 +320,11 @@ export function DesempenhoClient({ data, period, from, to, store, stores }: Prop
         <p className="flex items-center gap-1.5 font-bold" style={{ color: '#CBD5E1' }}>
           <Info className="h-3.5 w-3.5" /> Como os números são calculados
         </p>
+        <p><b style={{ color: '#CBD5E1' }}>Serviços (técnico):</b> OS <b>entregues</b> no período, creditadas ao técnico responsável da OS. Use &quot;Mês passado&quot; para fechar a comissão do dia 10.</p>
+        <p><b style={{ color: '#CBD5E1' }}>Atendimento:</b> crédito de quem abriu a OS. &quot;OS abertas&quot; conta a entrada no período; faturamento e lucro contam as OS que ele abriu e foram entregues no período.</p>
         <p><b style={{ color: '#CBD5E1' }}>Vendas PDV:</b> crédito de quem registrou a venda. Canceladas não contam.</p>
-        <p><b style={{ color: '#CBD5E1' }}>OS · atendimento:</b> crédito de quem abriu a OS. Faturamento e lucro contam as OS já entregues (pela data de entrada), igual aos Relatórios.</p>
-        <p><b style={{ color: '#CBD5E1' }}>OS · execução:</b> crédito do técnico responsável da OS ou, se não houver, de quem mudou a OS para &quot;Pronto&quot; no período.</p>
-        <p><b style={{ color: '#CBD5E1' }}>Horas de serviço:</b> tempo em que a OS ficou &quot;Em diagnóstico&quot; ou &quot;Em reparo&quot; até ficar pronta. Fila e &quot;Aguardando peças&quot; não contam. OS que pularam direto para &quot;Pronto&quot; ficam sem horas.</p>
+        <p><b style={{ color: '#CBD5E1' }}>Lucro:</b> valor da OS menos o custo das peças.</p>
+        <p><b style={{ color: '#CBD5E1' }}>Horas de serviço:</b> tempo em &quot;Em diagnóstico&quot; ou &quot;Em reparo&quot;. Medido a partir de 16/11/2026; OS anteriores ficam sem horas.</p>
         {!canViewAll && (
           <p style={{ color: '#F59E0B' }}>Você está vendo só os seus números. Para ver toda a equipe, peça ao dono a permissão &quot;Ver relatório da equipe&quot;.</p>
         )}
@@ -223,32 +333,70 @@ export function DesempenhoClient({ data, period, from, to, store, stores }: Prop
   )
 }
 
-function MemberRow({ m, bold }: { m: TeamMemberPerformance; bold?: boolean }) {
-  const ticket = m.totalCount > 0 ? Math.round(m.totalRevenueCents / m.totalCount) : 0
-  const profitColor = (c: number) => c > 0 ? '#10B981' : c < 0 ? '#EF4444' : '#94A3B8'
+const profitColor = (c: number) => c > 0 ? '#10B981' : c < 0 ? '#EF4444' : '#94A3B8'
+
+function ServiceRow({ s, nameOf, url }: { s: ServiceLine; nameOf: (id: string | null) => string | null; url: string }) {
+  const tech = nameOf(s.technicianId)
   return (
-    <tr className="border-t hover:bg-white/[0.02] transition-colors" style={{ borderColor: '#2A3650' }}>
-      <Td bold>
-        <div className="flex flex-col">
-          <span>{m.name}</span>
-          {!bold && m.role && (
-            <span className="text-[10px] font-normal" style={{ color: '#94A3B8' }}>{ROLE_LABEL[m.role] ?? m.role}</span>
-          )}
-        </div>
+    <tr className="border-t" style={{ borderColor: '#2A3650' }}>
+      <Td mono>
+        <a href={`${url}/orders/${s.orderId}`} target="_blank" rel="noreferrer"
+          className="inline-flex items-center gap-1 hover:underline" style={{ color: '#38BDF8' }}>
+          {s.orderNumber} <ExternalLink className="h-2.5 w-2.5" />
+        </a>
       </Td>
-      <Td align="right" mono bold={bold}>{m.salesCount}</Td>
-      <Td align="right" mono bold={bold}>{BRL(m.salesRevenueCents)}</Td>
-      <Td align="right" mono bold={bold} color={profitColor(m.salesProfitCents)}>{BRL(m.salesProfitCents)}</Td>
-      <Td align="right" mono bold={bold}>{m.osOpenedCount}</Td>
-      <Td align="right" mono bold={bold}>{m.osDeliveredCount}</Td>
-      <Td align="right" mono bold={bold}>{BRL(m.osRevenueCents)}</Td>
-      <Td align="right" mono bold={bold} color={profitColor(m.osProfitCents)}>{BRL(m.osProfitCents)}</Td>
-      <Td align="right" mono bold={bold}>{m.repairsCount}</Td>
-      <Td align="right" mono bold={bold}>{fmtHours(m.serviceMinutes)}</Td>
-      <Td align="right" mono bold={bold} color="#CBD5E1">{BRL(ticket)}</Td>
-      <Td align="right" mono bold>{BRL(m.totalRevenueCents)}</Td>
-      <Td align="right" mono bold color={profitColor(m.totalProfitCents)}>{BRL(m.totalProfitCents)}</Td>
+      <Td mono color="#CBD5E1">{fmtDate(s.deliveredAt)}</Td>
+      <Td>{s.customer ?? '—'}</Td>
+      <Td color="#CBD5E1">{s.device}</Td>
+      <Td color="#CBD5E1">{nameOf(s.attendantId) ?? 'Sem colaborador'}</Td>
+      <Td color={tech ? '#F8FAFC' : '#F59E0B'} bold={!tech}>{tech ?? 'Sem técnico'}</Td>
+      <Td align="right" mono bold>{BRL(s.totalCents)}</Td>
+      <Td align="right" mono color={profitColor(s.profitCents)}>{BRL(s.profitCents)}</Td>
+      <Td align="right" mono color="#CBD5E1">{fmtHours(s.minutes)}</Td>
     </tr>
+  )
+}
+
+function NameCell({ m, fallback, warn }: { m: TeamMemberPerformance; fallback: string; warn?: boolean }) {
+  return (
+    <Td bold color={warn ? '#F59E0B' : undefined}>
+      <div className="flex flex-col">
+        <span>{m.userId ? m.name : fallback}</span>
+        {m.role && (
+          <span className="text-[10px] font-normal" style={{ color: '#94A3B8' }}>{ROLE_LABEL[m.role] ?? m.role}</span>
+        )}
+      </div>
+    </Td>
+  )
+}
+
+function ClickRow({ children, onClick, active }: { children: React.ReactNode; onClick: () => void; active: boolean }) {
+  return (
+    <tr onClick={onClick}
+      className="border-t cursor-pointer transition-colors hover:bg-white/[0.04]"
+      style={{ borderColor: '#2A3650', background: active ? 'rgba(34,197,94,.08)' : undefined }}>
+      {children}
+    </tr>
+  )
+}
+
+function Section({ title, color, icon: Icon, hint, action, children }: {
+  title: string; color: string; icon: React.ElementType; hint?: string
+  action?: React.ReactNode; children: React.ReactNode
+}) {
+  return (
+    <div className="rounded-xl border overflow-hidden" style={{ background: '#131C2A', borderColor: '#2A3650' }}>
+      <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5 border-b" style={{ borderColor: '#2A3650' }}>
+        <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider" style={{ color }}>
+          <Icon className="h-3.5 w-3.5" /> {title}
+        </p>
+        <div className="flex items-center gap-2">
+          {hint && <span className="text-[11px]" style={{ color: '#94A3B8' }}>{hint}</span>}
+          {action}
+        </div>
+      </div>
+      <div className="overflow-x-auto">{children}</div>
+    </div>
   )
 }
 
@@ -281,14 +429,10 @@ function KPI({ label, value, sub, icon: Icon, color }: {
   )
 }
 
-function Th({ children, align = 'left', colSpan, rowSpan, group, color }: {
-  children: React.ReactNode; align?: 'left' | 'right'
-  colSpan?: number; rowSpan?: number; group?: boolean; color?: string
-}) {
+function Th({ children, align = 'left' }: { children: React.ReactNode; align?: 'left' | 'right' }) {
   return (
-    <th colSpan={colSpan} rowSpan={rowSpan}
-      className={`px-3 py-2 text-[10px] font-bold uppercase tracking-wider whitespace-nowrap ${group ? 'text-center border-b' : align === 'right' ? 'text-right' : 'text-left'}`}
-      style={{ color: color ?? '#94A3B8', borderColor: '#2A3650' }}>
+    <th className={`px-3 py-2 text-[10px] font-bold uppercase tracking-wider whitespace-nowrap ${align === 'right' ? 'text-right' : 'text-left'}`}
+      style={{ color: '#94A3B8' }}>
       {children}
     </th>
   )

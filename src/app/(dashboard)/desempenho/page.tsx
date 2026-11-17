@@ -6,24 +6,48 @@ import { DesempenhoClient } from './desempenho-client'
 
 export const metadata = { title: 'Desempenho da equipe — Smart ERP' }
 
-export type Period = 'hoje' | '7d' | '30d' | 'mes' | '90d' | 'custom'
+export type Period = 'hoje' | '7d' | '30d' | 'mes' | 'mes_passado' | '90d' | 'custom'
+
+// Períodos sempre no horário de Brasília (o servidor roda em UTC). Sem horário
+// de verão desde 2019, então o offset fixo -03:00 é exato.
+const TZ = '-03:00'
+const ymd = (d: Date) => d.toISOString().slice(0, 10)
+
+/** Data de "hoje" em Brasília, como Date em UTC 00:00 (só para aritmética de dias). */
+function todayBR(): Date {
+  const s = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date())
+  return new Date(s + 'T00:00:00Z')
+}
+
+function range(fromDay: string, toDay: string) {
+  return {
+    start: new Date(`${fromDay}T00:00:00${TZ}`),
+    end:   new Date(`${toDay}T23:59:59.999${TZ}`),
+  }
+}
 
 function getPeriodRange(period: Period, from?: string, to?: string): { start: Date; end: Date } {
-  const end = new Date()
-  end.setHours(23, 59, 59, 999)
-  const start = new Date()
-  start.setHours(0, 0, 0, 0)
-  if (period === 'custom' && from && to) {
-    const f = new Date(from + 'T00:00:00')
-    const t = new Date(to + 'T23:59:59.999')
-    if (!isNaN(f.getTime()) && !isNaN(t.getTime())) return { start: f, end: t }
+  const today = todayBR()
+  const daysAgo = (n: number) => { const d = new Date(today); d.setUTCDate(d.getUTCDate() - n); return ymd(d) }
+
+  if (period === 'custom' && from && to && /^\d{4}-\d{2}-\d{2}$/.test(from) && /^\d{4}-\d{2}-\d{2}$/.test(to)) {
+    const r = range(from, to)
+    if (!isNaN(r.start.getTime()) && !isNaN(r.end.getTime())) return r
   }
-  if (period === '7d')       start.setDate(start.getDate() - 6)
-  else if (period === '30d') start.setDate(start.getDate() - 29)
-  else if (period === '90d') start.setDate(start.getDate() - 89)
-  else if (period === 'mes') start.setDate(1)
-  else if (period !== 'hoje') start.setDate(start.getDate() - 29)
-  return { start, end }
+  if (period === 'mes_passado') {
+    // Mês anterior inteiro — base da comissão paga no dia 10
+    const first = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() - 1, 1))
+    const last  = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 0))
+    return range(ymd(first), ymd(last))
+  }
+  if (period === 'mes') {
+    const first = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1))
+    return range(ymd(first), ymd(today))
+  }
+  if (period === 'hoje') return range(ymd(today), ymd(today))
+  if (period === '7d')   return range(daysAgo(6), ymd(today))
+  if (period === '90d')  return range(daysAgo(89), ymd(today))
+  return range(daysAgo(29), ymd(today))   // 30d e fallback
 }
 
 export default async function DesempenhoPage({
@@ -34,7 +58,7 @@ export default async function DesempenhoPage({
   try { await requireAuth() } catch { redirect('/login') }
 
   const params = await searchParams
-  const period = (['hoje', '7d', '30d', 'mes', '90d', 'custom'].includes(params.period ?? '')
+  const period = (['hoje', '7d', '30d', 'mes', 'mes_passado', '90d', 'custom'].includes(params.period ?? '')
     ? params.period
     : 'mes') as Period
   const { start, end } = getPeriodRange(period, params.from, params.to)
