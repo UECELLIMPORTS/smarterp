@@ -1162,6 +1162,131 @@ function SectionHeader({
   )
 }
 
+// ── Insights (recorrentes vs novos) ───────────────────────────────────────
+
+type GroupMetrics = DashboardData['recorrentes']
+
+function pct(part: number, total: number): number {
+  return total > 0 ? Math.round((part / total) * 100) : 0
+}
+
+function SplitBar({ label, recCents, novCents }: { label: string; recCents: number; novCents: number }) {
+  // Lucro pode ser negativo: a barra usa só a parte positiva; os números mostram o real
+  const recPos = Math.max(0, recCents)
+  const novPos = Math.max(0, novCents)
+  const recP = pct(recPos, recPos + novPos)
+  const novP = recPos + novPos > 0 ? 100 - recP : 0
+  return (
+    <div className="rounded-lg border px-3 py-2.5" style={{ background: '#131C2A', borderColor: '#2A3650' }}>
+      <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide" style={{ color: '#94A3B8' }}>{label}</p>
+      <div className="flex h-2 overflow-hidden rounded-full" style={{ background: '#2A3650' }}>
+        {recP > 0 && <div style={{ width: `${recP}%`, background: '#10B981' }} />}
+        {novP > 0 && <div style={{ width: `${novP}%`, background: '#8B5CF6' }} />}
+      </div>
+      <div className="mt-2 grid grid-cols-2 gap-2">
+        <div>
+          <p className="text-[11px]" style={{ color: '#10B981' }}>Recorrentes · {recP}%</p>
+          <p className="text-sm font-bold tabular-nums" style={{ color: recCents < 0 ? '#EF4444' : '#F8FAFC' }}>{BRL(recCents)}</p>
+        </div>
+        <div className="text-right">
+          <p className="text-[11px]" style={{ color: '#A78BFA' }}>Novos · {novP}%</p>
+          <p className="text-sm font-bold tabular-nums" style={{ color: novCents < 0 ? '#EF4444' : '#F8FAFC' }}>{BRL(novCents)}</p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function InsightsPanel({ recorrentes, novos, churnRisk, fallbackText }: {
+  recorrentes: GroupMetrics
+  novos:       GroupMetrics
+  churnRisk:   ChurnClient[]
+  fallbackText: string
+}) {
+  const hasData = recorrentes.transactions + novos.transactions > 0
+  const revTotal    = recorrentes.totalCents + novos.totalCents
+  const profitTotal = recorrentes.profitCents + novos.profitCents
+  const recRevPct    = pct(recorrentes.totalCents, revTotal)
+  const recProfitPct = pct(Math.max(0, recorrentes.profitCents), Math.max(0, recorrentes.profitCents) + Math.max(0, novos.profitCents))
+
+  const tips: { text: string; href?: string; tone: 'good' | 'warn' | 'info' }[] = []
+  if (hasData) {
+    tips.push({
+      tone: 'info',
+      text: `Clientes recorrentes geraram ${BRL(recorrentes.profitCents)} de lucro — ${recProfitPct}% do lucro do período (${BRL(profitTotal)}), com ${recRevPct}% do faturamento.`,
+    })
+
+    if (recorrentes.transactions > 0 && novos.transactions > 0) {
+      const ratio = novos.ticketMedioCents > 0 ? recorrentes.ticketMedioCents / novos.ticketMedioCents : 0
+      if (ratio >= 1.1) {
+        tips.push({ tone: 'good', text: `Recorrentes gastam ${ratio.toFixed(1).replace('.', ',')}× mais por compra (${BRL(recorrentes.ticketMedioCents)} vs ${BRL(novos.ticketMedioCents)}). Fidelizar vale a pena.` })
+      } else if (ratio > 0 && ratio <= 0.9) {
+        tips.push({ tone: 'warn', text: `Ticket dos recorrentes (${BRL(recorrentes.ticketMedioCents)}) está abaixo do dos novos (${BRL(novos.ticketMedioCents)}). Ofereça acessórios/upgrade quando eles voltarem.` })
+      }
+
+      const marginDiff = recorrentes.marginPercent - novos.marginPercent
+      if (Math.abs(marginDiff) >= 5) {
+        tips.push(marginDiff > 0
+          ? { tone: 'good', text: `Margem dos recorrentes é ${recorrentes.marginPercent}% contra ${novos.marginPercent}% dos novos — vender pra quem já é cliente dá mais lucro.` }
+          : { tone: 'warn', text: `Margem dos recorrentes (${recorrentes.marginPercent}%) está abaixo da dos novos (${novos.marginPercent}%). Cuidado com descontos pra cliente antigo.` })
+      }
+    }
+
+    if (recRevPct < 20 && novos.transactions > 0) {
+      tips.push({ tone: 'warn', text: `Só ${recRevPct}% do faturamento vem de quem volta. Um pós-venda no WhatsApp (revisão, película, bateria) pode trazer esses clientes de novo.` })
+    }
+  }
+
+  if (churnRisk.length > 0) {
+    const atRisk = churnRisk.reduce((s, c) => s + c.totalCents, 0)
+    tips.push({
+      tone: 'warn',
+      text: `${churnRisk.length} cliente${churnRisk.length > 1 ? 's' : ''} sem comprar há 60+ dias já gastaram ${BRL(atRisk)} com a loja. Chame no WhatsApp.`,
+      href: '#clientes-em-risco',
+    })
+  }
+
+  const toneColor = { good: '#10B981', warn: '#F59E0B', info: '#38BDF8' } as const
+
+  return (
+    <div
+      className="rounded-xl border px-4 py-3"
+      style={{ background: 'rgba(34,197,94,.05)', borderColor: 'rgba(34,197,94,.2)', borderLeftWidth: 3, borderLeftColor: '#22C55E' }}
+    >
+      <div className="flex items-start gap-3">
+        <Lightbulb className="mt-0.5 h-4 w-4 flex-shrink-0" style={{ color: '#22C55E' }} />
+        <div className="min-w-0 flex-1 space-y-3">
+          {!hasData ? (
+            <p className="text-sm" style={{ color: '#CBD5E1' }}>{fallbackText}</p>
+          ) : (
+            <div className="grid gap-2 sm:grid-cols-2">
+              <SplitBar label="Faturamento" recCents={recorrentes.totalCents} novCents={novos.totalCents} />
+              <SplitBar label="Lucro"       recCents={recorrentes.profitCents} novCents={novos.profitCents} />
+            </div>
+          )}
+          {tips.length > 0 && (
+            <ul className="space-y-1.5">
+              {tips.map((t, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm" style={{ color: '#CBD5E1' }}>
+                  <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full" style={{ background: toneColor[t.tone] }} />
+                  <span>
+                    {t.text}
+                    {t.href && (
+                      <a href={t.href} className="ml-1 font-semibold underline-offset-2 hover:underline" style={{ color: '#22C55E' }}>
+                        Ver lista
+                      </a>
+                    )}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Main component ────────────────────────────────────────────────────────
 
 export function ErpClientesClient({ data }: { data: DashboardData }) {
@@ -1258,14 +1383,13 @@ export function ErpClientesClient({ data }: { data: DashboardData }) {
         </div>
       </div>
 
-      {/* Insight box */}
-      <div
-        className="flex items-start gap-3 rounded-xl border px-4 py-3"
-        style={{ background: 'rgba(34,197,94,.05)', borderColor: 'rgba(34,197,94,.2)', borderLeftWidth: 3, borderLeftColor: '#22C55E' }}
-      >
-        <Lightbulb className="mt-0.5 h-4 w-4 flex-shrink-0" style={{ color: '#22C55E' }} />
-        <p className="text-sm" style={{ color: '#CBD5E1' }}>{insightText}</p>
-      </div>
+      {/* Insights: faturamento e lucro de recorrentes vs novos + dicas */}
+      <InsightsPanel
+        recorrentes={recorrentes}
+        novos={novos}
+        churnRisk={churnRisk}
+        fallbackText={insightText}
+      />
 
       {/* SmartERP vs CheckSmart */}
       <div className="rounded-2xl border" style={{ background: '#1B2638', borderColor: '#2A3650' }}>
@@ -1403,7 +1527,7 @@ export function ErpClientesClient({ data }: { data: DashboardData }) {
       </div>
 
       {/* Churn risk */}
-      <div className="rounded-2xl border" style={{ background: '#1B2638', borderColor: '#2A3650' }}>
+      <div id="clientes-em-risco" className="scroll-mt-24 rounded-2xl border" style={{ background: '#1B2638', borderColor: '#2A3650' }}>
         <div className="flex items-center gap-2 border-b px-6 py-4" style={{ borderColor: '#2A3650' }}>
           <SectionHeader
             accentColor="#EF4444"
