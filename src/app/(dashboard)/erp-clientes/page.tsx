@@ -28,9 +28,11 @@ function getPeriodRange(period: Period, from?: string, to?: string): { start: Da
   return { start, end }
 }
 
-function classify(customerCreatedAt: string | null | undefined, periodStart: Date): 'novo' | 'recorrente' {
-  if (!customerCreatedAt) return 'recorrente'
-  return new Date(customerCreatedAt) >= periodStart ? 'novo' : 'recorrente'
+// Novo = 1ª compra paga da vida (customers.first_purchase_at) dentro do período.
+// Importados do sistema antigo já vêm com first_purchase_at = data de cadastro.
+function classify(firstPurchaseAt: string | null | undefined, periodStart: Date): 'novo' | 'recorrente' {
+  if (!firstPurchaseAt) return 'recorrente'
+  return new Date(firstPurchaseAt) >= periodStart ? 'novo' : 'recorrente'
 }
 
 function osTotal(o: { total_price_cents: number | null; service_price_cents: number | null; parts_sale_cents: number | null; discount_cents: number | null }): number {
@@ -161,7 +163,7 @@ export default async function ErpClientesPage({
 
   const [salesPeriodRes, osPeriodRes, salesMonthRes, osMonthRes] = await Promise.all([
     sb.from('sales')
-      .select('customer_id, total_cents, created_at, customer_origin, sale_items(quantity, unit_price_cents, product_id, cost_snapshot_cents), customers(full_name, created_at, origin, whatsapp, phone)')
+      .select('customer_id, total_cents, created_at, customer_origin, sale_items(quantity, unit_price_cents, product_id, cost_snapshot_cents), customers(full_name, created_at, first_purchase_at, origin, whatsapp, phone)')
       .eq('tenant_id', tenantId)
       .gte('created_at', start.toISOString())
       .lte('created_at', end.toISOString())
@@ -171,7 +173,7 @@ export default async function ErpClientesPage({
     // OS: só entra no ERP Clientes quando entregue ao cliente.
     // Usa in() pra cobrir o case EN ('delivered') e caso legado PT ('Entregue').
     sb.from('service_orders')
-      .select('customer_id, total_price_cents, service_price_cents, parts_sale_cents, parts_cost_cents, discount_cents, received_at, customers(full_name, created_at, origin, whatsapp, phone)')
+      .select('customer_id, total_price_cents, service_price_cents, parts_sale_cents, parts_cost_cents, discount_cents, received_at, customers(full_name, created_at, first_purchase_at, origin, whatsapp, phone)')
       .eq('tenant_id', tenantId)
       .gte('received_at', start.toISOString())
       .lte('received_at', end.toISOString())
@@ -179,14 +181,14 @@ export default async function ErpClientesPage({
       .limit(1000),
 
     sb.from('sales')
-      .select('customer_id, total_cents, created_at, customer_origin, sale_items(quantity, product_id, cost_snapshot_cents), customers(full_name, created_at, origin, whatsapp, phone)')
+      .select('customer_id, total_cents, created_at, customer_origin, sale_items(quantity, product_id, cost_snapshot_cents), customers(full_name, created_at, first_purchase_at, origin, whatsapp, phone)')
       .eq('tenant_id', tenantId)
       .gte('created_at', sixAgo.toISOString())
       .neq('status', 'cancelled')
       .limit(2000),
 
     sb.from('service_orders')
-      .select('customer_id, total_price_cents, service_price_cents, parts_sale_cents, parts_cost_cents, discount_cents, received_at, customers(full_name, created_at, origin, whatsapp, phone)')
+      .select('customer_id, total_price_cents, service_price_cents, parts_sale_cents, parts_cost_cents, discount_cents, received_at, customers(full_name, created_at, first_purchase_at, origin, whatsapp, phone)')
       .eq('tenant_id', tenantId)
       .gte('received_at', sixAgo.toISOString())
       .in('status', ['delivered', 'Entregue'])
@@ -195,7 +197,7 @@ export default async function ErpClientesPage({
 
   // ── Process period data ─────────────────────────────────────────────────
   type SaleItemPeriod = { quantity: number; unit_price_cents: number; product_id: string | null; cost_snapshot_cents: number | null }
-  type CustomerJoinPeriod = { full_name: string; created_at: string; origin: string|null; whatsapp: string|null; phone: string|null }
+  type CustomerJoinPeriod = { full_name: string; created_at: string; first_purchase_at: string|null; origin: string|null; whatsapp: string|null; phone: string|null }
   type SalePeriod = { customer_id: string|null; total_cents: number; created_at: string; customer_origin: string|null; sale_items: SaleItemPeriod[]|null; customers: CustomerJoinPeriod|null }
   type OsPeriod   = { customer_id: string|null; total_price_cents: number|null; service_price_cents: number|null; parts_sale_cents: number|null; parts_cost_cents: number|null; discount_cents: number|null; received_at: string; customers: CustomerJoinPeriod|null }
 
@@ -205,7 +207,7 @@ export default async function ErpClientesPage({
   // Query separada de custos — sale_items.product_id pode apontar pra
   // products OU parts_catalog, então busco nas duas tabelas em paralelo.
   type MonthSaleItem = { quantity: number; product_id: string | null; cost_snapshot_cents: number | null }
-  type CustomerJoin = { full_name: string; created_at: string; origin: string|null; whatsapp: string|null; phone: string|null }
+  type CustomerJoin = { full_name: string; created_at: string; first_purchase_at: string|null; origin: string|null; whatsapp: string|null; phone: string|null }
   type MonthSaleRow = { customer_id: string|null; total_cents: number; created_at: string; customer_origin: string|null; sale_items: MonthSaleItem[]|null; customers: CustomerJoin|null }
   type MonthOsRow   = { customer_id: string|null; total_price_cents: number|null; service_price_cents: number|null; parts_sale_cents: number|null; parts_cost_cents: number|null; discount_cents: number|null; received_at: string; customers: CustomerJoin|null }
 
@@ -239,7 +241,7 @@ export default async function ErpClientesPage({
   }
 
   type Tx = {
-    customerId: string | null; name: string; createdAt: string | null; origin: string | null
+    customerId: string | null; name: string; firstPurchaseAt: string | null; origin: string | null
     whatsapp: string | null; phone: string | null
     totalCents: number; profitCents: number
     products: number; date: Date
@@ -258,7 +260,7 @@ export default async function ErpClientesPage({
       return {
         customerId: s.customer_id,
         name: s.customers?.full_name ?? 'Sem cliente',
-        createdAt: s.customers?.created_at ?? null,
+        firstPurchaseAt: s.customers ? (s.customers.first_purchase_at ?? s.created_at) : null,
         origin: s.customer_origin ?? s.customers?.origin ?? null,
         whatsapp: s.customers?.whatsapp ?? null,
         phone: s.customers?.phone ?? null,
@@ -275,7 +277,7 @@ export default async function ErpClientesPage({
       return {
         customerId: o.customer_id,
         name: o.customers?.full_name ?? 'Sem cliente',
-        createdAt: o.customers?.created_at ?? null,
+        firstPurchaseAt: o.customers ? (o.customers.first_purchase_at ?? o.received_at) : null,
         origin: o.customers?.origin ?? null,
         whatsapp: o.customers?.whatsapp ?? null,
         phone: o.customers?.phone ?? null,
@@ -300,7 +302,7 @@ export default async function ErpClientesPage({
   const customerMap = new Map<string, CustomerAgg>()
 
   for (const t of periodTxs) {
-    const type = classify(t.createdAt, start)
+    const type = classify(t.firstPurchaseAt, start)
     if (type === 'recorrente') { recTot += t.totalCents; recProf += t.profitCents; recTx++; recProd += t.products }
     else                       { novTot += t.totalCents; novProf += t.profitCents; novTx++; novProd += t.products }
 
@@ -476,7 +478,7 @@ export default async function ErpClientesPage({
   })
 
   type MonthTx = {
-    customerId: string|null; name: string; createdAt: string|null
+    customerId: string|null; name: string; firstPurchaseAt: string|null
     whatsapp: string|null; phone: string|null; origin: string|null
     totalCents: number; profitCents: number; date: Date
     source: 'erp' | 'checksmart'
@@ -493,7 +495,7 @@ export default async function ErpClientesPage({
       return {
         customerId: s.customer_id,
         name: s.customers?.full_name ?? 'Sem cliente',
-        createdAt: s.customers?.created_at ?? null,
+        firstPurchaseAt: s.customers ? (s.customers.first_purchase_at ?? s.created_at) : null,
         whatsapp: s.customers?.whatsapp ?? null,
         phone: s.customers?.phone ?? null,
         origin: s.customer_origin ?? s.customers?.origin ?? null,
@@ -509,7 +511,7 @@ export default async function ErpClientesPage({
       return {
         customerId: o.customer_id,
         name: o.customers?.full_name ?? 'Sem cliente',
-        createdAt: o.customers?.created_at ?? null,
+        firstPurchaseAt: o.customers ? (o.customers.first_purchase_at ?? o.received_at) : null,
         whatsapp: o.customers?.whatsapp ?? null,
         phone: o.customers?.phone ?? null,
         origin: o.customers?.origin ?? null,
@@ -525,7 +527,7 @@ export default async function ErpClientesPage({
     let rec = 0, nov = 0, recP = 0, novP = 0
     for (const t of monthTxs) {
       if (t.date < m.start || t.date > m.end) continue
-      if (classify(t.createdAt, m.start) === 'recorrente') {
+      if (classify(t.firstPurchaseAt, m.start) === 'recorrente') {
         rec  += t.totalCents
         recP += t.profitCents
       } else {

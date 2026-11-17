@@ -57,6 +57,10 @@ export type OriginReportRow = {
   value: string | null
   label: string
   uniqueCustomers: number
+  newCustomers:       number   // 1ª compra paga da vida dentro do período
+  recurringCustomers: number   // compraram no período, 1ª compra antes dele
+  newTotalCents:       number
+  recurringTotalCents: number
   transactions:    number
   totalCents:      number
   profitCents:     number
@@ -168,8 +172,8 @@ export default async function RelatoriosPage({
     resolvedStoreId = await resolveActiveStoreId(sb, tenantId)
   }
 
-  const cols = 'customer_id, total_cents, sale_channel, customer_origin, created_at, meta_campaign_id, meta_campaign_name, sale_items(quantity, unit_price_cents, product_id, cost_snapshot_cents), customers(id, full_name, origin, whatsapp, phone)'
-  const osCols = 'customer_id, total_price_cents, service_price_cents, parts_sale_cents, parts_cost_cents, discount_cents, sale_channel, received_at, meta_campaign_id, meta_campaign_name, customers(id, full_name, origin, whatsapp, phone)'
+  const cols = 'customer_id, total_cents, sale_channel, customer_origin, created_at, meta_campaign_id, meta_campaign_name, sale_items(quantity, unit_price_cents, product_id, cost_snapshot_cents), customers(id, full_name, origin, whatsapp, phone, first_purchase_at)'
+  const osCols = 'customer_id, total_price_cents, service_price_cents, parts_sale_cents, parts_cost_cents, discount_cents, sale_channel, received_at, meta_campaign_id, meta_campaign_name, customers(id, full_name, origin, whatsapp, phone, first_purchase_at)'
 
   // Sales: aplica filtro de loja se houver
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -209,7 +213,7 @@ export default async function RelatoriosPage({
     meta_campaign_id: string | null
     meta_campaign_name: string | null
     sale_items: { quantity: number; unit_price_cents: number; product_id: string | null; cost_snapshot_cents: number | null }[] | null
-    customers: { id: string; full_name: string; origin: string | null; whatsapp: string | null; phone: string | null } | null
+    customers: { id: string; full_name: string; origin: string | null; whatsapp: string | null; phone: string | null; first_purchase_at: string | null } | null
   }
   type OsRow = {
     customer_id: string | null
@@ -222,7 +226,7 @@ export default async function RelatoriosPage({
     received_at: string
     meta_campaign_id: string | null
     meta_campaign_name: string | null
-    customers: { id: string; full_name: string; origin: string | null; whatsapp: string | null; phone: string | null } | null
+    customers: { id: string; full_name: string; origin: string | null; whatsapp: string | null; phone: string | null; first_purchase_at: string | null } | null
   }
   const salesData = (salesRes.data ?? []) as SalesRow[]
   const osData    = (osRes.data   ?? []) as OsRow[]
@@ -251,7 +255,11 @@ export default async function RelatoriosPage({
     phone: string | null
     totalCents: number
     profitCents: number
+    isNew: boolean   // 1ª compra paga do cliente cai dentro do período
   }
+  // Novo = customers.first_purchase_at >= início do período (sem cliente = recorrente)
+  const isNewCustomer = (first: string | null | undefined, txDate: string, hasCustomer: boolean) =>
+    hasCustomer && new Date(first ?? txDate) >= start
   const txs: Tx[] = [
     ...salesData.map(s => {
       const items = s.sale_items ?? []
@@ -272,6 +280,7 @@ export default async function RelatoriosPage({
         phone:     s.customers?.phone ?? null,
         totalCents: total,
         profitCents: total - cost,
+        isNew: isNewCustomer(s.customers?.first_purchase_at, s.created_at, !!s.customers),
       }
     }),
     ...osData.map(o => {
@@ -286,6 +295,7 @@ export default async function RelatoriosPage({
         phone:     o.customers?.phone ?? null,
         totalCents: total,
         profitCents: total - partsCost,
+        isNew: isNewCustomer(o.customers?.first_purchase_at, o.received_at, !!o.customers),
       }
     }),
   ]
@@ -325,23 +335,28 @@ export default async function RelatoriosPage({
     : 0
 
   // Relatório por origem (sempre mostra todas, ignorando filtro de origem)
-  const originMap = new Map<string, { totalCents: number; profitCents: number; tx: number; customers: Set<string> }>()
+  type OriginAgg = {
+    totalCents: number; profitCents: number; tx: number; customers: Set<string>
+    newCustomers: Set<string>; recurringCustomers: Set<string>; newTotalCents: number; recurringTotalCents: number
+  }
+  const originMap = new Map<string, OriginAgg>()
   const NO_ORIGIN = '__no_origin__'
   for (const t of txs) {
     const key = t.origin ?? NO_ORIGIN
-    const ex = originMap.get(key)
-    if (ex) {
-      ex.totalCents  += t.totalCents
-      ex.profitCents += t.profitCents
-      ex.tx++
-      if (t.customerId) ex.customers.add(t.customerId)
-    } else {
-      originMap.set(key, {
-        totalCents: t.totalCents,
-        profitCents: t.profitCents,
-        tx: 1,
-        customers: t.customerId ? new Set([t.customerId]) : new Set(),
-      })
+    let ex = originMap.get(key)
+    if (!ex) {
+      ex = { totalCents: 0, profitCents: 0, tx: 0, customers: new Set(),
+             newCustomers: new Set(), recurringCustomers: new Set(), newTotalCents: 0, recurringTotalCents: 0 }
+      originMap.set(key, ex)
+    }
+    ex.totalCents  += t.totalCents
+    ex.profitCents += t.profitCents
+    ex.tx++
+    if (t.isNew) ex.newTotalCents += t.totalCents
+    else         ex.recurringTotalCents += t.totalCents
+    if (t.customerId) {
+      ex.customers.add(t.customerId)
+      ;(t.isNew ? ex.newCustomers : ex.recurringCustomers).add(t.customerId)
     }
   }
   const origins: OriginReportRow[] = [...originMap.entries()]
@@ -349,6 +364,10 @@ export default async function RelatoriosPage({
       value: key === NO_ORIGIN ? null : key,
       label: key === NO_ORIGIN ? 'Não informado' : originLabel(key),
       uniqueCustomers: v.customers.size,
+      newCustomers:        v.newCustomers.size,
+      recurringCustomers:  v.recurringCustomers.size,
+      newTotalCents:       v.newTotalCents,
+      recurringTotalCents: v.recurringTotalCents,
       transactions:    v.tx,
       totalCents:      v.totalCents,
       profitCents:     v.profitCents,

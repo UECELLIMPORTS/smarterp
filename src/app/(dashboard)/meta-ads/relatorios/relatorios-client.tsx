@@ -8,7 +8,7 @@ import {
   AlertTriangle, Target, ExternalLink, Calendar, X,
 } from 'lucide-react'
 import type { MetaAdsPeriod } from '@/actions/meta-ads'
-import type { RelatoriosData, DailyCrossPoint, ChannelMetrics, CacByChannel, FunnelMetrics } from './page'
+import type { RelatoriosData, DailyCrossPoint, ChannelMetrics, CacByChannel, FunnelMetrics, RecurringPaidCustomer } from './page'
 import { ManualSpendCard } from '@/components/meta-ads/manual-spend-card'
 
 const BRL = (c: number) =>
@@ -172,6 +172,7 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
       <DailyCrossSection points={data.dailyCross} />
       <NetProfitSection channels={data.channels} spendCents={data.insightsSpendCents} />
       <CacSection items={data.cac} totalSpend={data.insightsSpendCents} funnel={data.funnel} />
+      <RecurringPaidSection customers={data.recurringPaid} channels={data.channels} />
       <ChannelTableSection channels={data.channels} />
       <FunnelSection funnel={data.funnel} spendCents={data.insightsSpendCents} />
 
@@ -193,6 +194,7 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
             <ManualSpendCard
               initialEntries={data.spendEntries}
               newPaidCustomers={newPaidCustomers}
+              recurringPaidCustomers={data.recurringPaid.length}
               paidRevenueCents={paidRevenueCents}
               period={periodKey as '7d' | '30d' | '90d'}
               dailyPaidCustomers={data.dailyPaidCustomers}
@@ -522,6 +524,70 @@ function CacSection({ items, totalSpend, funnel }: { items: CacByChannel[]; tota
         Custo por transação = gasto ÷ {NUM(totalTx)} transações pagas (novos + recorrentes) — não é CAC.
         ROAS de aquisição = receita só dos clientes novos ÷ gasto. ROAS total = receita de novos + recorrentes dos canais pagos ÷ gasto.
       </p>
+    </div>
+  )
+}
+
+// ── Seção 2b — Recorrentes do tráfego pago ────────────────────────────────
+
+function RecurringPaidSection({ customers, channels }: { customers: RecurringPaidCustomer[]; channels: ChannelMetrics[] }) {
+  const paid      = channels.filter(c => c.channel === 'instagram_pago' || c.channel === 'facebook')
+  const newCount  = paid.reduce((s, c) => s + c.newCustomers, 0)
+  const recRev    = customers.reduce((s, c) => s + c.revenueCents, 0)
+  const DATE = (iso: string) => new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })
+
+  return (
+    <div className="rounded-2xl border p-6 space-y-4" style={{ background: '#1B2638', borderColor: '#2A3650' }}>
+      <div className="flex items-center gap-2">
+        <div className="h-4 w-1 rounded-full" style={{ background: '#10B981' }} />
+        <div className="flex-1">
+          <h2 className="text-xs font-bold uppercase tracking-widest flex items-center gap-1.5" style={{ color: '#CBD5E1' }}>
+            <Users className="h-3.5 w-3.5" />
+            Clientes do tráfego pago no período
+          </h2>
+          <p className="text-[11px]" style={{ color: '#94A3B8' }}>
+            Recorrente = veio do tráfego pago antes e voltou a comprar agora. Não entra no CAC, mas soma no ROAS total.
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <MiniStat label="Novos (pago)"           value={NUM(newCount)}         color="#8B5CF6" icon={Users} />
+        <MiniStat label="Recorrentes (pago)"     value={NUM(customers.length)} color="#10B981" icon={Users} />
+        <MiniStat label="Receita de recorrentes" value={recRev > 0 ? BRL(recRev) : '—'} color="#10B981" icon={DollarSign} />
+      </div>
+
+      {customers.length > 0 ? (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b text-left" style={{ borderColor: '#2A3650' }}>
+                {['Cliente', 'Origem', '1ª compra', 'Última compra', 'Compras no período', 'Receita no período'].map(h => (
+                  <th key={h} className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider" style={{ color: '#94A3B8' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {customers.map(c => (
+                <tr key={c.customerId} className="border-b hover:bg-white/[0.02] transition-colors" style={{ borderColor: 'rgba(30,45,69,.5)' }}>
+                  <td className="px-4 py-3 font-medium" style={{ color: '#F8FAFC' }}>{c.name}</td>
+                  <td className="px-4 py-3 text-xs" style={{ color: c.channel === 'facebook' ? '#1877F2' : '#E4405F' }}>
+                    {c.channel === 'facebook' ? 'Facebook' : 'Instagram Pago'}
+                  </td>
+                  <td className="px-4 py-3 font-mono text-xs" style={{ color: '#CBD5E1' }}>{DATE(c.firstPurchaseAt)}</td>
+                  <td className="px-4 py-3 font-mono text-xs" style={{ color: '#CBD5E1' }}>{DATE(c.lastPurchaseAt)}</td>
+                  <td className="px-4 py-3 font-mono" style={{ color: '#CBD5E1' }}>{NUM(c.txCount)}</td>
+                  <td className="px-4 py-3 font-mono font-semibold" style={{ color: '#10B981' }}>{BRL(c.revenueCents)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <p className="text-xs text-center py-4" style={{ color: '#94A3B8' }}>
+          Nenhum cliente do tráfego pago voltou a comprar no período.
+        </p>
+      )}
     </div>
   )
 }

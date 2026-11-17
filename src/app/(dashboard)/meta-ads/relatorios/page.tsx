@@ -35,6 +35,16 @@ export type ChannelMetrics = {
   avgTicketCents: number
 }
 
+export type RecurringPaidCustomer = {
+  customerId:      string
+  name:            string
+  channel:         ReportChannel
+  firstPurchaseAt: string
+  lastPurchaseAt:  string      // última compra dentro do período
+  txCount:         number      // compras no período
+  revenueCents:    number      // receita no período
+}
+
 export type DailyCrossPoint = {
   date:         string   // YYYY-MM-DD
   spendCents:   number
@@ -76,6 +86,7 @@ export type RelatoriosData = {
   loadError:           string | null
   spendEntries:        import('@/actions/meta-ads-spend-manual').SpendEntry[]
   dailyPaidCustomers:  { date: string; count: number }[]
+  recurringPaid:       RecurringPaidCustomer[]   // clientes do tráfego pago que voltaram a comprar
   prevSpendCents:      number
   prevNewPaidCustomers: number
   customSince?:        string   // YYYY-MM-DD when custom range active
@@ -119,6 +130,7 @@ function resolveSelectedAccount(
 
 async function getChannelMetrics(tenantId: string, sinceIso: string, untilIso?: string): Promise<{
   channels: ChannelMetrics[]
+  recurringPaid: RecurringPaidCustomer[]
   bySales:  Map<string, number>     // customer_id -> revenue
   bySalesCount: Map<string, number>
 }> {
@@ -127,7 +139,7 @@ async function getChannelMetrics(tenantId: string, sinceIso: string, untilIso?: 
   const sb = supabase as any
 
   const salesQ = sb.from('sales')
-    .select('customer_id, created_at, total_cents, customers!inner(origin, first_purchase_at), sale_items(quantity, product_id, cost_snapshot_cents)')
+    .select('customer_id, created_at, total_cents, customers!inner(origin, first_purchase_at, full_name), sale_items(quantity, product_id, cost_snapshot_cents)')
     .eq('tenant_id', tenantId)
     .gte('created_at', sinceIso)
     .neq('status', 'cancelled')
@@ -136,7 +148,7 @@ async function getChannelMetrics(tenantId: string, sinceIso: string, untilIso?: 
   if (untilIso) salesQ.lte('created_at', untilIso)
 
   const osQ = sb.from('service_orders')
-    .select('customer_id, received_at, total_price_cents, service_price_cents, parts_sale_cents, parts_cost_cents, discount_cents, customers!inner(origin, first_purchase_at)')
+    .select('customer_id, received_at, total_price_cents, service_price_cents, parts_sale_cents, parts_cost_cents, discount_cents, customers!inner(origin, first_purchase_at, full_name)')
     .eq('tenant_id', tenantId)
     .gte('received_at', sinceIso)
     .in('status', ['delivered', 'Entregue'])
@@ -147,7 +159,7 @@ async function getChannelMetrics(tenantId: string, sinceIso: string, untilIso?: 
   const [salesRes, osRes] = await Promise.all([salesQ, osQ])
 
   type SaleItem    = { quantity: number; product_id: string | null; cost_snapshot_cents: number | null }
-  type CustRef     = { origin: ReportChannel; first_purchase_at: string | null }
+  type CustRef     = { origin: ReportChannel; first_purchase_at: string | null; full_name: string }
   type SaleRow     = { customer_id: string; created_at: string; total_cents: number; customers: CustRef; sale_items: SaleItem[] | null }
   type OsRow       = { customer_id: string; received_at: string; total_price_cents: number|null; service_price_cents: number|null; parts_sale_cents: number|null; parts_cost_cents: number|null; discount_cents: number|null; customers: CustRef }
 
@@ -243,7 +255,26 @@ async function getChannelMetrics(tenantId: string, sinceIso: string, untilIso?: 
     }
   })
 
-  return { channels, bySales, bySalesCount }
+  // Recorrentes do tráfego pago: origem paga + 1ª compra antes do período
+  const recurringMap = new Map<string, RecurringPaidCustomer>()
+  const addRecurring = (customerId: string, c: CustRef | undefined, at: string, value: number) => {
+    if (!c || value <= 0 || !c.first_purchase_at) return
+    if (c.origin !== 'instagram_pago' && c.origin !== 'facebook') return
+    if (Date.parse(c.first_purchase_at) >= Date.parse(sinceIso)) return
+    const r = recurringMap.get(customerId) ?? {
+      customerId, name: c.full_name, channel: c.origin,
+      firstPurchaseAt: c.first_purchase_at, lastPurchaseAt: at, txCount: 0, revenueCents: 0,
+    }
+    r.txCount      += 1
+    r.revenueCents += value
+    if (at > r.lastPurchaseAt) r.lastPurchaseAt = at
+    recurringMap.set(customerId, r)
+  }
+  for (const s of salesData) addRecurring(s.customer_id, s.customers, s.created_at, s.total_cents ?? 0)
+  for (const o of osData)    addRecurring(o.customer_id, o.customers, o.received_at, serviceOrderValueCents(o))
+  const recurringPaid = [...recurringMap.values()].sort((a, b) => b.lastPurchaseAt.localeCompare(a.lastPurchaseAt))
+
+  return { channels, recurringPaid, bySales, bySalesCount }
 }
 
 // ── Query: faturamento atribuído por dia (pra linha cruzada com gasto) ─────
@@ -442,7 +473,7 @@ export default async function MetaAdsRelatoriosPage({
   const prevNewPaidCustomers = (prevCustRes.data ?? []).length
 
   const untilParam = isCustomRange ? untilIso : undefined
-  const [{ channels }, dailyRevenue] = await Promise.all([
+  const [{ channels, recurringPaid }, dailyRevenue] = await Promise.all([
     getChannelMetrics(tenantId, sinceIso, untilParam),
     getDailyRevenueByDay(tenantId, sinceIso, untilParam),
   ])
@@ -512,6 +543,7 @@ export default async function MetaAdsRelatoriosPage({
     loadError,
     spendEntries: spendRes.data ?? [],
     dailyPaidCustomers,
+    recurringPaid,
     prevSpendCents,
     prevNewPaidCustomers,
     ...(isCustomRange ? { customSince: rawSince!, customUntil: rawUntil! } : {}),

@@ -55,6 +55,7 @@ function DeltaBadge({ current, prev, invertedSign = false }: { current: number; 
 type Props = {
   initialEntries:       SpendEntry[]
   newPaidCustomers:     number
+  recurringPaidCustomers?: number   // vieram do pago antes e recompraram no período (fora do CAC)
   paidRevenueCents:     number
   period:               '7d' | '30d' | '90d'
   dailyPaidCustomers:   { date: string; count: number }[]
@@ -134,7 +135,7 @@ function DailyBarChart({ days, metric }: { days: DailyBar[]; metric: 'cac' | 'co
 
 // ── Componente principal ──────────────────────────────────────────────────────
 export function ManualSpendCard({
-  initialEntries, newPaidCustomers, paidRevenueCents, period,
+  initialEntries, newPaidCustomers, recurringPaidCustomers = 0, paidRevenueCents, period,
   dailyPaidCustomers, prevSpendCents, prevNewPaidCustomers,
 }: Props) {
   const router = useRouter()
@@ -588,7 +589,10 @@ export function ManualSpendCard({
                 {kpis.cac > 0 ? fmtBRL(kpis.cac) : '—'}
               </p>
               <div className="flex items-center justify-between flex-wrap gap-1">
-                <p className="text-[10px]" style={{ color: '#64748B' }}>{newPaidCustomers} clientes pagos</p>
+                <p className="text-[10px]" style={{ color: '#64748B' }}>
+                  {newPaidCustomers} novo{newPaidCustomers === 1 ? '' : 's'}
+                  {recurringPaidCustomers > 0 && <> · {recurringPaidCustomers} recorrente{recurringPaidCustomers === 1 ? '' : 's'}</>}
+                </p>
                 {prevCoverageOk && kpis.prevCac > 0 && <DeltaBadge current={kpis.cac} prev={kpis.prevCac} invertedSign={true} />}
               </div>
               {/* Meta de CAC */}
@@ -668,6 +672,11 @@ export function ManualSpendCard({
                   </Fragment>
                 ))}
               </div>
+              {recurringPaidCustomers > 0 && (
+                <p className="text-[11px] mt-3" style={{ color: '#94A3B8' }}>
+                  + <strong style={{ color: '#10B981' }}>{recurringPaidCustomers} cliente{recurringPaidCustomers === 1 ? '' : 's'} recorrente{recurringPaidCustomers === 1 ? '' : 's'}</strong> do tráfego pago voltaram a comprar no período (fora do CAC — lista em &quot;Clientes do tráfego pago&quot;).
+                </p>
+              )}
             </div>
           )}
 

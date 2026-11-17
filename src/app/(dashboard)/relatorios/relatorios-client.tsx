@@ -100,7 +100,7 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
 
   function exportOriginsCsv() {
     const BOM = '﻿'
-    const header = 'Origem;Qtd Clientes;Transações;Ticket Médio;Total Faturado;Total Lucro;Margem %\n'
+    const header = 'Origem;Clientes Novos;Clientes Recorrentes;Transações;Ticket Médio;Faturado Novos;Faturado Recorrentes;Total Faturado;Total Lucro;Margem %\n'
     const lines = origins.map(o => {
       const ticket = (o.ticketMedioCents / 100).toFixed(2).replace('.', ',')
       const total  = (o.totalCents  / 100).toFixed(2).replace('.', ',')
@@ -108,9 +108,12 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
       const cell = (v: string) => `"${v.replace(/"/g, '""')}"`
       return [
         cell(o.label),
-        o.uniqueCustomers,
+        o.newCustomers,
+        o.recurringCustomers,
         o.transactions,
         `"R$ ${ticket}"`,
+        `"R$ ${(o.newTotalCents / 100).toFixed(2).replace('.', ',')}"`,
+        `"R$ ${(o.recurringTotalCents / 100).toFixed(2).replace('.', ',')}"`,
         `"R$ ${total}"`,
         `"R$ ${profit}"`,
         `${o.marginPercent}%`,
@@ -437,7 +440,7 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
             <div className="h-4 w-1 rounded-full" style={{ background: '#E4405F' }} />
             <div>
               <p className="text-xs font-bold uppercase tracking-widest" style={{ color: '#CBD5E1' }}>Relatório por Origem</p>
-              <p className="text-[11px]" style={{ color: '#94A3B8' }}>Métricas completas por canal de aquisição</p>
+              <p className="text-[11px]" style={{ color: '#94A3B8' }}>Métricas completas por canal de aquisição · Novo = 1ª compra no período · Recorrente = já tinha comprado antes (mantém a origem)</p>
             </div>
           </div>
           <button
@@ -459,7 +462,7 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b text-left" style={{ borderColor: '#2A3650' }}>
-                  {['Origem', 'Clientes', 'Transações', 'Ticket Médio', 'Faturamento', 'Lucro', 'Margem'].map(h => (
+                  {['Origem', 'Novos', 'Recorrentes', 'Transações', 'Ticket Médio', 'Faturamento', 'Lucro', 'Margem'].map(h => (
                     <th key={h} className="pb-3 pr-4 text-[10px] font-bold uppercase tracking-wider" style={{ color: '#94A3B8' }}>
                       {h}
                     </th>
@@ -553,7 +556,11 @@ function OriginRow({ row }: { row: OriginReportRow }) {
           <span className="font-medium text-sm" style={{ color: '#F8FAFC' }}>{row.label}</span>
         </div>
       </td>
-      <td className="py-3 pr-4 font-mono" style={{ color: '#F8FAFC' }}>{row.uniqueCustomers}</td>
+      <td className="py-3 pr-4 font-mono" style={{ color: '#F8FAFC' }}>{row.newCustomers}</td>
+      <td className="py-3 pr-4 font-mono" style={{ color: '#CBD5E1' }}
+        title={row.recurringTotalCents > 0 ? `${BRL(row.recurringTotalCents)} de recorrentes` : undefined}>
+        {row.recurringCustomers}
+      </td>
       <td className="py-3 pr-4 font-mono" style={{ color: '#F8FAFC' }}>{row.transactions}</td>
       <td className="py-3 pr-4 font-mono" style={{ color: '#CBD5E1' }}>{BRL(row.ticketMedioCents)}</td>
       <td className="py-3 pr-4 font-mono font-semibold" style={{ color }}>{BRL(row.totalCents)}</td>

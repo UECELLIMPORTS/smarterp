@@ -38,7 +38,7 @@ function DonutChart({ recShare, novShare }: { recShare: number; novShare: number
           <span className="text-xl font-bold" style={{ color: '#F8FAFC', fontFamily: 'ui-monospace,monospace' }}>
             {recShare}%
           </span>
-          <span className="text-[10px]" style={{ color: '#94A3B8', marginTop: 2 }}>Recorrentes</span>
+          <span className="text-[10px] text-center leading-tight" style={{ color: '#94A3B8', marginTop: 2 }}>do faturamento<br />recorrente</span>
         </div>
       </div>
       <div className="flex gap-6">
@@ -163,7 +163,7 @@ function ClientCard({
         {[
           { label: 'Ticket Médio', value: BRL(ticketMedioCents) },
           { label: 'Produtos/OS',  value: avgProducts },
-          { label: 'Share',        value: `${sharePercent}%` },
+          { label: '% faturamento', value: `${sharePercent}%` },
         ].map(({ label: l, value }) => (
           <div
             key={l}
