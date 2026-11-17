@@ -11,6 +11,9 @@
  *    "Abertas" = OS com entrada no período; faturamento/lucro = OS abertas por
  *    ele que foram ENTREGUES no período (mesma base dos técnicos).
  *  - Vendas PDV: crédito de quem registrou a venda (sales.user_id).
+ *  - Retornos: OS de retorno abertas no período, creditadas ao técnico do
+ *    serviço original (parent_order_id → assigned_to). A OS de retorno não
+ *    conta como serviço nem atendimento novo — só o valor, se cobrado.
  *  - Horas de serviço: tempo em "Em diagnóstico"/"Em reparo" pelo histórico de
  *    status (order_status_logs). Só existe para OS movimentadas a partir de
  *    16/11/2026 — antes o histórico não era gravado.
@@ -49,6 +52,7 @@ export type TeamMemberPerformance = {
   repairsProfitCents:  number
   serviceMinutes:      number
   repairsWithTime:     number
+  returnsCount:        number      // retornos abertos no período de serviços feitos por ele
 
   // Atendimento + PDV (o que o colaborador vendeu)
   totalCount:        number
@@ -69,6 +73,22 @@ export type ServiceLine = {
   attendantId:  string | null
   technicianId: string | null
   minutes:      number
+  isReturn:     boolean
+}
+
+/** OS de retorno aberta no período — creditada ao técnico do serviço original. */
+export type ReturnLine = {
+  orderId:          string
+  orderNumber:      string
+  receivedAt:       string
+  status:           string
+  customer:         string | null
+  device:           string
+  reason:           string | null
+  parentId:         string | null
+  parentNumber:     string | null
+  parentDeliveredAt: string | null
+  technicianId:     string | null   // técnico do serviço original
 }
 
 export type TeamPerformanceData = {
@@ -76,6 +96,7 @@ export type TeamPerformanceData = {
   members:    TeamMemberPerformance[]
   totals:     Omit<TeamMemberPerformance, 'userId' | 'name' | 'email' | 'role'>
   services:   ServiceLine[]
+  returns:    ReturnLine[]
   /** id → nome, para atendente/técnico da lista detalhada */
   people:     Record<string, string>
   checksmartUrl: string
@@ -113,7 +134,7 @@ function emptyRow(userId: string | null, name: string, email: string | null, rol
     userId, name, email, role,
     salesCount: 0, salesRevenueCents: 0, salesProfitCents: 0,
     osOpenedCount: 0, osDeliveredCount: 0, osRevenueCents: 0, osProfitCents: 0,
-    repairsCount: 0, repairsRevenueCents: 0, repairsProfitCents: 0, serviceMinutes: 0, repairsWithTime: 0,
+    repairsCount: 0, repairsRevenueCents: 0, repairsProfitCents: 0, serviceMinutes: 0, repairsWithTime: 0, returnsCount: 0,
     totalCount: 0, totalRevenueCents: 0, totalProfitCents: 0,
   }
 }
@@ -163,9 +184,9 @@ export async function getTeamPerformance(filters: {
   })
 
   // ── 2. OS abertas no período (só contagem por atendente) ────────────────
-  type OpenedRow = { created_by: string | null }
+  type OpenedRow = { created_by: string | null; is_return: boolean | null }
   const openedP = fetchAll<OpenedRow>(() => sb.from('service_orders')
-    .select('created_by')
+    .select('created_by, is_return')
     .eq('tenant_id', tenantId)
     .gte('received_at', filters.start)
     .lte('received_at', filters.end)
@@ -175,14 +196,14 @@ export async function getTeamPerformance(filters: {
   // ── 3. OS entregues no período (base da comissão) ───────────────────────
   type DeliveredRow = {
     id: string; order_number: string; received_at: string; delivered_at: string
-    created_by: string | null; assigned_to: string | null
+    created_by: string | null; assigned_to: string | null; is_return: boolean | null
     brand_name: string | null; model_name: string | null
     total_price_cents: number | null; service_price_cents: number | null
     parts_sale_cents: number | null; discount_cents: number | null; parts_cost_cents: number | null
     customers: { full_name: string | null } | null
   }
   const deliveredP = fetchAll<DeliveredRow>(() => sb.from('service_orders')
-    .select(`id, order_number, received_at, delivered_at, created_by, assigned_to,
+    .select(`id, order_number, received_at, delivered_at, created_by, assigned_to, is_return,
       brand_name, model_name, total_price_cents, service_price_cents, parts_sale_cents,
       discount_cents, parts_cost_cents, customers(full_name)`)
     .eq('tenant_id', tenantId)
@@ -191,9 +212,36 @@ export async function getTeamPerformance(filters: {
     .lte('delivered_at', filters.end)
     .order('delivered_at', { ascending: true }))
 
-  const [sales, opened, delivered, users] = await Promise.all([
-    salesP, openedP, deliveredP, listTenantUsers(admin, tenantId),
+  // ── 4. OS de retorno abertas no período ────────────────────────────────
+  type ReturnRow = {
+    id: string; order_number: string; received_at: string; status: string
+    reported_issue: string | null; parent_order_id: string | null
+    brand_name: string | null; model_name: string | null
+    customers: { full_name: string | null } | null
+  }
+  const returnsP = fetchAll<ReturnRow>(() => sb.from('service_orders')
+    .select('id, order_number, received_at, status, reported_issue, parent_order_id, brand_name, model_name, customers(full_name)')
+    .eq('tenant_id', tenantId)
+    .eq('is_return', true)
+    .gte('received_at', filters.start)
+    .lte('received_at', filters.end)
+    .not('status', 'in', `(${CANCELLED.map(s => `"${s}"`).join(',')})`)
+    .order('received_at', { ascending: true }))
+
+  const [sales, opened, delivered, returnRows, users] = await Promise.all([
+    salesP, openedP, deliveredP, returnsP, listTenantUsers(admin, tenantId),
   ])
+
+  // OS originais dos retornos (técnico que fez o serviço)
+  type ParentRow = { id: string; order_number: string; assigned_to: string | null; delivered_at: string | null }
+  const parents = new Map<string, ParentRow>()
+  for (const ids of chunk([...new Set(returnRows.map(r => r.parent_order_id).filter(Boolean))] as string[], 200)) {
+    const { data } = await sb.from('service_orders')
+      .select('id, order_number, assigned_to, delivered_at')
+      .eq('tenant_id', tenantId)
+      .in('id', ids)
+    for (const p of (data ?? []) as ParentRow[]) parents.set(p.id, p)
+  }
 
   // Custo atual como fallback quando a venda não tem snapshot de custo
   const missingCost = new Set<string>()
@@ -259,7 +307,8 @@ export async function getTeamPerformance(filters: {
     r.salesProfitCents  += total - cost
   }
 
-  for (const o of opened) rowFor(o.created_by).osOpenedCount++
+  // Retorno não é atendimento novo
+  for (const o of opened) if (!o.is_return) rowFor(o.created_by).osOpenedCount++
 
   const services: ServiceLine[] = []
   for (const o of delivered) {
@@ -285,13 +334,15 @@ export async function getTeamPerformance(filters: {
     }
     const minutes = Math.round(ms / 60000)
 
+    // Retorno não conta como serviço/atendimento novo (só o valor, se cobrado)
+    const isReturn = !!o.is_return
     const att = rowFor(o.created_by)
-    att.osDeliveredCount++
+    if (!isReturn) att.osDeliveredCount++
     att.osRevenueCents += total
     att.osProfitCents  += profit
 
     const tech = technician ? rowFor(technician) : rowFor(null)
-    tech.repairsCount++
+    if (!isReturn) tech.repairsCount++
     tech.repairsRevenueCents += total
     tech.repairsProfitCents  += profit
     if (minutes > 0) {
@@ -311,8 +362,28 @@ export async function getTeamPerformance(filters: {
       attendantId:  o.created_by,
       technicianId: technician,
       minutes,
+      isReturn,
     })
   }
+
+  const returns: ReturnLine[] = returnRows.map(r => {
+    const parent = r.parent_order_id ? parents.get(r.parent_order_id) : undefined
+    const technicianId = parent?.assigned_to ?? null
+    rowFor(technicianId).returnsCount++
+    return {
+      orderId:           r.id,
+      orderNumber:       r.order_number,
+      receivedAt:        r.received_at,
+      status:            r.status,
+      customer:          r.customers?.full_name ?? null,
+      device:            [r.brand_name, r.model_name].filter(Boolean).join(' ') || '—',
+      reason:            r.reported_issue,
+      parentId:          parent?.id ?? null,
+      parentNumber:      parent?.order_number ?? null,
+      parentDeliveredAt: parent?.delivered_at ?? null,
+      technicianId,
+    }
+  })
 
   let members = [...rows.values()].map(r => ({
     ...r,
@@ -324,13 +395,15 @@ export async function getTeamPerformance(filters: {
   // Remove linhas "sem colaborador" / ex-colaborador zeradas
   members = members.filter(m =>
     (m.userId && userById.has(m.userId)) ||
-    m.salesCount + m.osOpenedCount + m.osDeliveredCount + m.repairsCount > 0,
+    m.salesCount + m.osOpenedCount + m.osDeliveredCount + m.repairsCount + m.returnsCount > 0,
   )
 
   let visibleServices = services
+  let visibleReturns  = returns
   if (!canViewAll) {
     members = members.filter(m => m.userId === user.id)
     visibleServices = services.filter(s => s.attendantId === user.id || s.technicianId === user.id)
+    visibleReturns  = returns.filter(r => r.technicianId === user.id)
   }
 
   members.sort((a, b) =>
@@ -341,7 +414,7 @@ export async function getTeamPerformance(filters: {
   const totals = {
     salesCount: 0, salesRevenueCents: 0, salesProfitCents: 0,
     osOpenedCount: 0, osDeliveredCount: 0, osRevenueCents: 0, osProfitCents: 0,
-    repairsCount: 0, repairsRevenueCents: 0, repairsProfitCents: 0, serviceMinutes: 0, repairsWithTime: 0,
+    repairsCount: 0, repairsRevenueCents: 0, repairsProfitCents: 0, serviceMinutes: 0, repairsWithTime: 0, returnsCount: 0,
     totalCount: 0, totalRevenueCents: 0, totalProfitCents: 0,
   }
   for (const m of members) {
@@ -356,6 +429,7 @@ export async function getTeamPerformance(filters: {
     members,
     totals,
     services: visibleServices,
+    returns:  visibleReturns,
     people,
     checksmartUrl: 'https://checksmart.gestaosmarterp.online',
   }

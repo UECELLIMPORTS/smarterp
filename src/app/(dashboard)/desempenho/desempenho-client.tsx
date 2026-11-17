@@ -4,9 +4,9 @@ import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Trophy, Download, ShoppingCart, Wrench, DollarSign, TrendingUp, Clock, Info,
-  AlertTriangle, Headset, ExternalLink, X,
+  AlertTriangle, Headset, ExternalLink, X, RotateCcw,
 } from 'lucide-react'
-import type { TeamPerformanceData, TeamMemberPerformance, ServiceLine } from '@/actions/desempenho'
+import type { TeamPerformanceData, TeamMemberPerformance, ServiceLine, ReturnLine } from '@/actions/desempenho'
 import type { Period } from './page'
 
 const BRL = (c: number) =>
@@ -58,12 +58,12 @@ export function DesempenhoClient({ data, period, from, to, store, stores }: Prop
   const [fromDate, setFromDate] = useState(from ?? '')
   const [toDate, setToDate]     = useState(to ?? '')
   const [focus, setFocus]       = useState<Focus>(null)
-  const { canViewAll, members, totals, services, people, checksmartUrl } = data
+  const { canViewAll, members, totals, services, returns, people, checksmartUrl } = data
 
   const nameOf = (id: string | null) => (id ? people[id] ?? 'Ex-colaborador' : null)
   const keyOf  = (id: string | null) => id ?? NONE
 
-  const techRows = members.filter(m => m.repairsCount > 0 || m.role === 'technician' || (m.userId && m.role === 'employee'))
+  const techRows = members.filter(m => m.repairsCount > 0 || m.returnsCount > 0 || m.role === 'technician' || (m.userId && m.role === 'employee'))
   const attRows  = members.filter(m => m.userId !== null || m.osOpenedCount + m.osDeliveredCount + m.salesCount > 0)
   const withoutTech = services.filter(s => !s.technicianId)
 
@@ -91,20 +91,29 @@ export function DesempenhoClient({ data, period, from, to, store, stores }: Prop
     const cell  = (v: string | null) => `"${(v ?? '').replace(/"/g, '""')}"`
     const out: string[] = []
     out.push('TÉCNICOS — SERVIÇOS ENTREGUES')
-    out.push(['Técnico', 'Serviços', 'Faturamento', 'Lucro', 'Horas de serviço'].join(';'))
-    for (const m of techRows) out.push([cell(m.name), m.repairsCount, money(m.repairsRevenueCents), money(m.repairsProfitCents), (m.serviceMinutes / 60).toFixed(1).replace('.', ',')].join(';'))
+    out.push(['Técnico', 'Serviços', 'Faturamento', 'Lucro', 'Retornos', 'Taxa de retorno', 'Horas de serviço'].join(';'))
+    for (const m of techRows) out.push([cell(m.name), m.repairsCount, money(m.repairsRevenueCents), money(m.repairsProfitCents), m.returnsCount, cell(rateLabel(m)), (m.serviceMinutes / 60).toFixed(1).replace('.', ',')].join(';'))
     out.push('')
     out.push('ATENDENTES — OS E VENDAS')
     out.push(['Atendente', 'OS abertas', 'OS entregues', 'Faturamento OS', 'Vendas PDV', 'Faturamento PDV', 'Faturamento total', 'Lucro total'].join(';'))
     for (const m of attRows) out.push([cell(m.name), m.osOpenedCount, m.osDeliveredCount, money(m.osRevenueCents), m.salesCount, money(m.salesRevenueCents), money(m.totalRevenueCents), money(m.totalProfitCents)].join(';'))
     out.push('')
     out.push('SERVIÇOS ENTREGUES (DETALHADO)')
-    out.push(['OS', 'Entrada', 'Entrega', 'Cliente', 'Aparelho', 'Atendente', 'Técnico', 'Valor', 'Lucro'].join(';'))
+    out.push(['OS', 'Tipo', 'Entrada', 'Entrega', 'Cliente', 'Aparelho', 'Atendente', 'Técnico', 'Valor', 'Lucro'].join(';'))
     for (const s of services) out.push([
-      cell(s.orderNumber), cell(fmtDate(s.receivedAt)), cell(fmtDate(s.deliveredAt)), cell(s.customer), cell(s.device),
+      cell(s.orderNumber), cell(s.isReturn ? 'Retorno' : 'Serviço'), cell(fmtDate(s.receivedAt)), cell(fmtDate(s.deliveredAt)), cell(s.customer), cell(s.device),
       cell(nameOf(s.attendantId) ?? 'Sem colaborador'), cell(nameOf(s.technicianId) ?? 'Sem técnico'),
       money(s.totalCents), money(s.profitCents),
     ].join(';'))
+    if (returns.length > 0) {
+      out.push('')
+      out.push('RETORNOS NO PERÍODO')
+      out.push(['OS de retorno', 'Aberta em', 'Status', 'Cliente', 'Aparelho', 'OS original', 'Técnico original', 'Motivo'].join(';'))
+      for (const r of returns) out.push([
+        cell(r.orderNumber), cell(fmtDate(r.receivedAt)), cell(STATUS_LABEL[r.status] ?? r.status), cell(r.customer), cell(r.device),
+        cell(r.parentNumber), cell(nameOf(r.technicianId) ?? 'Sem técnico'), cell(r.reason),
+      ].join(';'))
+    }
     const blob = new Blob([BOM + out.join('\n')], { type: 'text/csv;charset=utf-8' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -202,13 +211,16 @@ export function DesempenhoClient({ data, period, from, to, store, stores }: Prop
       )}
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
         <KPI label="Serviços entregues" value={String(totals.repairsCount)} sub={BRL(totals.repairsRevenueCents)} icon={Wrench} color="#F59E0B" />
         <KPI label="OS abertas" value={String(totals.osOpenedCount)} sub="entrada no período" icon={Headset} color="#8B5CF6" />
         <KPI label="Vendas PDV" value={String(totals.salesCount)} sub={BRL(totals.salesRevenueCents)} icon={ShoppingCart} color="#10B981" />
         <KPI label="Faturamento total" value={BRL(totals.totalRevenueCents)}
           sub={totals.totalRevenueCents > 0 ? `Lucro ${BRL(totals.totalProfitCents)} · ${Math.round((totals.totalProfitCents / totals.totalRevenueCents) * 100)}%` : '—'}
           icon={DollarSign} color="#22C55E" />
+        <KPI label="Retornos" value={String(totals.returnsCount)}
+          sub={totals.repairsCount > 0 ? `${pct(totals.returnsCount, totals.repairsCount)} dos serviços` : 'OS de retorno abertas'}
+          icon={RotateCcw} color={totals.returnsCount > 0 ? '#F97316' : '#94A3B8'} />
         <KPI label="Horas de serviço" value={fmtHours(totals.serviceMinutes)} sub={`${totals.repairsWithTime} de ${totals.repairsCount} com tempo medido`} icon={Clock} color="#38BDF8" />
       </div>
 
@@ -223,6 +235,8 @@ export function DesempenhoClient({ data, period, from, to, store, stores }: Prop
               <Th align="right">Faturamento</Th>
               <Th align="right">Lucro</Th>
               <Th align="right">Ticket médio</Th>
+              <Th align="right">Retornos</Th>
+              <Th align="right">Taxa de retorno</Th>
               <Th align="right">Horas</Th>
             </tr>
           </thead>
@@ -235,6 +249,8 @@ export function DesempenhoClient({ data, period, from, to, store, stores }: Prop
                 <Td align="right" mono bold>{BRL(m.repairsRevenueCents)}</Td>
                 <Td align="right" mono color={profitColor(m.repairsProfitCents)}>{BRL(m.repairsProfitCents)}</Td>
                 <Td align="right" mono color="#CBD5E1">{BRL(m.repairsCount ? Math.round(m.repairsRevenueCents / m.repairsCount) : 0)}</Td>
+                <Td align="right" mono bold={m.returnsCount > 0} color={m.returnsCount > 0 ? '#F97316' : '#94A3B8'}>{m.returnsCount}</Td>
+                <Td align="right" mono color={rateColor(m)}>{rateLabel(m)}</Td>
                 <Td align="right" mono>{fmtHours(m.serviceMinutes)}</Td>
               </ClickRow>
             ))}
@@ -275,6 +291,30 @@ export function DesempenhoClient({ data, period, from, to, store, stores }: Prop
           </tbody>
         </table>
       </Section>
+
+      {/* Retornos */}
+      {returns.length > 0 && (
+        <Section title="Retornos no período" color="#F97316" icon={RotateCcw}
+          hint={`${returns.length} OS de retorno · contam para o técnico do serviço original`}>
+          <table className="w-full text-xs">
+            <thead style={{ background: '#1B2638' }}>
+              <tr>
+                <Th>OS de retorno</Th>
+                <Th>Aberta em</Th>
+                <Th>Status</Th>
+                <Th>Cliente</Th>
+                <Th>Aparelho</Th>
+                <Th>OS original</Th>
+                <Th>Técnico original</Th>
+                <Th>Motivo</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {returns.map(r => <ReturnRow key={r.orderId} r={r} nameOf={nameOf} url={checksmartUrl} />)}
+            </tbody>
+          </table>
+        </Section>
+      )}
 
       {/* Lista detalhada */}
       <div id="lista-servicos" className="scroll-mt-4">
@@ -323,6 +363,7 @@ export function DesempenhoClient({ data, period, from, to, store, stores }: Prop
         <p><b style={{ color: '#CBD5E1' }}>Serviços (técnico):</b> OS <b>entregues</b> no período, creditadas ao técnico responsável da OS. Use &quot;Mês passado&quot; para fechar a comissão do dia 10.</p>
         <p><b style={{ color: '#CBD5E1' }}>Atendimento:</b> crédito de quem abriu a OS. &quot;OS abertas&quot; conta a entrada no período; faturamento e lucro contam as OS que ele abriu e foram entregues no período.</p>
         <p><b style={{ color: '#CBD5E1' }}>Vendas PDV:</b> crédito de quem registrou a venda. Canceladas não contam.</p>
+        <p><b style={{ color: '#CBD5E1' }}>Retornos:</b> OS de retorno abertas no período contam para o técnico que fez o serviço original. Taxa de retorno = retornos ÷ serviços entregues no período. A OS de retorno não conta como serviço nem atendimento novo.</p>
         <p><b style={{ color: '#CBD5E1' }}>Lucro:</b> valor da OS menos o custo das peças.</p>
         <p><b style={{ color: '#CBD5E1' }}>Horas de serviço:</b> tempo em &quot;Em diagnóstico&quot; ou &quot;Em reparo&quot;. Medido a partir de 16/11/2026; OS anteriores ficam sem horas.</p>
         {!canViewAll && (
@@ -330,6 +371,59 @@ export function DesempenhoClient({ data, period, from, to, store, stores }: Prop
         )}
       </div>
     </div>
+  )
+}
+
+const STATUS_LABEL: Record<string, string> = {
+  received: 'Recebida', diagnosing: 'Diagnóstico', waiting_parts: 'Ag. peça',
+  in_repair: 'Em reparo', ready: 'Pronta', delivered: 'Entregue', cancelled: 'Cancelada',
+}
+
+const pct = (n: number, d: number) => `${Math.round((n / d) * 100)}%`
+const rateLabel = (m: TeamMemberPerformance) =>
+  m.repairsCount > 0 ? pct(m.returnsCount, m.repairsCount) : m.returnsCount > 0 ? '—' : '0%'
+const rateColor = (m: TeamMemberPerformance) => {
+  if (m.returnsCount === 0) return '#10B981'
+  const r = m.repairsCount > 0 ? m.returnsCount / m.repairsCount : 1
+  return r > 0.1 ? '#EF4444' : '#F97316'
+}
+
+function ReturnBadge() {
+  return (
+    <span className="ml-1.5 inline-flex items-center gap-0.5 rounded border px-1 py-px text-[9px] font-bold uppercase tracking-wider align-middle"
+      style={{ borderColor: 'rgba(249,115,22,.6)', background: 'rgba(249,115,22,.15)', color: '#FB923C' }}>
+      <RotateCcw className="h-2.5 w-2.5" /> Retorno
+    </span>
+  )
+}
+
+function ReturnRow({ r, nameOf, url }: { r: ReturnLine; nameOf: (id: string | null) => string | null; url: string }) {
+  const tech = nameOf(r.technicianId)
+  return (
+    <tr className="border-t" style={{ borderColor: '#2A3650', background: 'rgba(249,115,22,.04)' }}>
+      <Td mono>
+        <a href={`${url}/orders/${r.orderId}`} target="_blank" rel="noreferrer"
+          className="inline-flex items-center gap-1 hover:underline" style={{ color: '#FB923C' }}>
+          {r.orderNumber} <ExternalLink className="h-2.5 w-2.5" />
+        </a>
+        <ReturnBadge />
+      </Td>
+      <Td mono color="#CBD5E1">{fmtDate(r.receivedAt)}</Td>
+      <Td color="#CBD5E1">{STATUS_LABEL[r.status] ?? r.status}</Td>
+      <Td>{r.customer ?? '—'}</Td>
+      <Td color="#CBD5E1">{r.device}</Td>
+      <Td mono>
+        {r.parentId ? (
+          <a href={`${url}/orders/${r.parentId}`} target="_blank" rel="noreferrer" className="hover:underline" style={{ color: '#38BDF8' }}>
+            {r.parentNumber}
+          </a>
+        ) : '—'}
+      </Td>
+      <Td color={tech ? '#F8FAFC' : '#F59E0B'} bold>{tech ?? 'Sem técnico'}</Td>
+      <Td color="#CBD5E1">
+        <span className="block max-w-[260px] truncate" title={r.reason ?? ''}>{r.reason ?? '—'}</span>
+      </Td>
+    </tr>
   )
 }
 
@@ -344,6 +438,7 @@ function ServiceRow({ s, nameOf, url }: { s: ServiceLine; nameOf: (id: string | 
           className="inline-flex items-center gap-1 hover:underline" style={{ color: '#38BDF8' }}>
           {s.orderNumber} <ExternalLink className="h-2.5 w-2.5" />
         </a>
+        {s.isReturn && <ReturnBadge />}
       </Td>
       <Td mono color="#CBD5E1">{fmtDate(s.deliveredAt)}</Td>
       <Td>{s.customer ?? '—'}</Td>
