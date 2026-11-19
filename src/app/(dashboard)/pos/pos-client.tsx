@@ -18,6 +18,8 @@ import type { MetaAttribution } from '@/actions/meta-ads'
 import { SALE_CHANNEL_OPTIONS_PICKABLE, DELIVERY_TYPE_OPTIONS, type SaleChannel, type DeliveryType } from '@/lib/sale-channels'
 import { validateBirthdayCoupon, markBirthdayCouponUsed } from '@/actions/birthdays'
 import { validateCoupon, markCouponUsed } from '@/actions/coupons'
+import { PixUsdtChargeModal, type PixUsdtChargeView } from '@/components/payments/pix-usdt-charge-modal'
+import { isPixUsdtEnabled, createPixUsdtChargeForSale, getPixUsdtCharge, linkPixUsdtChargeToSale } from '@/actions/pix-usdt'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -107,6 +109,15 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
 
   // ── Payment ──
   const [method, setMethod] = useState<PaymentMethod>('pix')
+  // PIX: convencional (chave da loja, conferência manual) ou QR automático (ZimPay → USDT)
+  const [pixKind, setPixKind]               = useState<'convencional' | 'usdt'>('convencional')
+  const [pixUsdtEnabled, setPixUsdtEnabled] = useState(false)
+  const [pixModalOpen, setPixModalOpen]     = useState(false)
+  useEffect(() => {
+    let alive = true
+    isPixUsdtEnabled().then(v => { if (alive) setPixUsdtEnabled(v) }).catch(() => {})
+    return () => { alive = false }
+  }, [])
   const [saleChannel, setSaleChannel]   = useState<SaleChannel | ''>('')
   const [deliveryType, setDeliveryType] = useState<DeliveryType | ''>('')
   // Origem da venda — só usado quando cliente é Consumidor Final (vendas
@@ -387,6 +398,16 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
         return
       }
     }
+    // PIX QR automático: primeiro cobra, a venda só é gravada quando o Pix confirmar
+    if (method === 'pix' && pixKind === 'usdt' && pixUsdtEnabled) {
+      if (total < 100) { toast.error('Valor mínimo para Pix QR é R$ 1,00'); return }
+      setPixModalOpen(true)
+      return
+    }
+    await createSaleNow()
+  }
+
+  async function createSaleNow(pixCharge?: PixUsdtChargeView) {
     setFinalizing(true)
     try {
       const sale = await createSale({
@@ -412,6 +433,9 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
           subtotalCents:  i.unitPriceCents * i.quantity,
         })),
       })
+      if (pixCharge) {
+        await linkPixUsdtChargeToSale(pixCharge.id, sale.id).catch(() => null)
+      }
       // Marca cupom como usado (sistema novo OU legado)
       if (couponApplied && customer.id) {
         if (couponApplied.kind === 'reactivation') {
@@ -422,13 +446,17 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
       }
       toast.success('Venda finalizada com sucesso!')
       setCart([]); setShipping(''); setDiscount('')
-      setMethod('pix'); setMxCash(''); setMxPix(''); setMxCard('')
+      setMethod('pix'); setPixKind('convencional'); setMxCash(''); setMxPix(''); setMxCard('')
       setSaleChannel(''); setDeliveryType('')
       setConsumerOrigin('passou_na_porta')
       setCouponInput(''); setCouponApplied(null)
       setMetaAttribution(null)
       setCustomer(consumidorFinal)
-    } catch { toast.error('Erro ao finalizar venda') }
+    } catch {
+      toast.error(pixCharge
+        ? 'Pix recebido, mas a venda não foi gravada. Finalize de novo como PIX convencional.'
+        : 'Erro ao finalizar venda')
+    }
     finally { setFinalizing(false) }
   }
 
@@ -436,6 +464,22 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
 
   return (
     <div className="space-y-6">
+
+      <PixUsdtChargeModal
+        open={pixModalOpen}
+        onClose={() => setPixModalOpen(false)}
+        title="Cobrar via Pix"
+        subtitle={isDefault ? 'Venda no PDV' : `Venda · ${customer.full_name}`}
+        defaultAmountCents={total}
+        defaultPayerName={isDefault ? '' : customer.full_name}
+        defaultPayerDocument={isDefault ? '' : customer.cpf_cnpj}
+        onCreate={p => createPixUsdtChargeForSale(p) as Promise<{ data?: PixUsdtChargeView; error?: unknown }>}
+        onPoll={id => getPixUsdtCharge(id) as Promise<{ data?: PixUsdtChargeView; error?: unknown }>}
+        onPaid={async charge => {
+          toast.success('Pix confirmado! Gravando a venda…')
+          await createSaleNow(charge)
+        }}
+      />
 
       {/* Header */}
       <div>
@@ -1056,6 +1100,32 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
               })}
             </div>
 
+            {/* PIX: convencional x QR automático */}
+            {method === 'pix' && pixUsdtEnabled && (
+              <div className="grid grid-cols-2 gap-2 border-t pt-3" style={{ borderColor: '#2A3650' }}>
+                {([
+                  { id: 'convencional', label: 'Pix convencional', hint: 'chave da loja' },
+                  { id: 'usdt',         label: 'Pix QR automático', hint: 'confirma sozinho' },
+                ] as const).map(o => {
+                  const active = pixKind === o.id
+                  return (
+                    <button
+                      key={o.id}
+                      type="button"
+                      onClick={() => setPixKind(o.id)}
+                      className="rounded-lg border px-2 py-1.5 text-left text-xs transition-all"
+                      style={active
+                        ? { background: '#22C55E18', borderColor: '#22C55E', color: '#22C55E' }
+                        : { borderColor: '#2A3650', color: '#94A3B8' }}
+                    >
+                      <span className="block font-medium">{o.label}</span>
+                      <span className="block text-[10px] opacity-70">{o.hint}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+
             {/* Mixed breakdown */}
             {method === 'mixed' && (
               <div className="space-y-2 border-t pt-3" style={{ borderColor: '#2A3650' }}>
@@ -1157,7 +1227,7 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
           >
             {finalizing
               ? <><Loader2 className="h-4 w-4 animate-spin" /> Finalizando...</>
-              : <><CheckCircle className="h-4 w-4" /> Finalizar Venda</>
+              : <><CheckCircle className="h-4 w-4" /> {method === 'pix' && pixKind === 'usdt' && pixUsdtEnabled ? 'Gerar Pix QR' : 'Finalizar Venda'}</>
             }
           </button>
         </div>
@@ -1266,7 +1336,7 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
             >
               {finalizing
                 ? <><Loader2 className="h-4 w-4 animate-spin" /> Finalizando...</>
-                : <><CheckCircle className="h-4 w-4" /> Finalizar</>
+                : <><CheckCircle className="h-4 w-4" /> {method === 'pix' && pixKind === 'usdt' && pixUsdtEnabled ? 'Gerar Pix QR' : 'Finalizar'}</>
               }
             </button>
           </div>
