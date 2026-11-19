@@ -6,7 +6,7 @@ import { DesempenhoClient } from './desempenho-client'
 
 export const metadata = { title: 'Desempenho da equipe — Smart ERP' }
 
-export type Period = 'hoje' | '7d' | '30d' | 'mes' | 'mes_passado' | '90d' | 'custom'
+export type Period = 'hoje' | 'ontem' | '7d' | '30d' | 'mes' | 'mes_passado' | '90d' | 'custom'
 
 // Períodos sempre no horário de Brasília (o servidor roda em UTC). Sem horário
 // de verão desde 2019, então o offset fixo -03:00 é exato.
@@ -45,6 +45,7 @@ function getPeriodRange(period: Period, from?: string, to?: string): { start: Da
     return range(ymd(first), ymd(today))
   }
   if (period === 'hoje') return range(ymd(today), ymd(today))
+  if (period === 'ontem') return range(daysAgo(1), daysAgo(1))
   if (period === '7d')   return range(daysAgo(6), ymd(today))
   if (period === '90d')  return range(daysAgo(89), ymd(today))
   return range(daysAgo(29), ymd(today))   // 30d e fallback
@@ -58,7 +59,7 @@ export default async function DesempenhoPage({
   try { await requireAuth() } catch { redirect('/login') }
 
   const params = await searchParams
-  const period = (['hoje', '7d', '30d', 'mes', 'mes_passado', '90d', 'custom'].includes(params.period ?? '')
+  const period = (['hoje', 'ontem', '7d', '30d', 'mes', 'mes_passado', '90d', 'custom'].includes(params.period ?? '')
     ? params.period
     : 'mes') as Period
   const { start, end } = getPeriodRange(period, params.from, params.to)

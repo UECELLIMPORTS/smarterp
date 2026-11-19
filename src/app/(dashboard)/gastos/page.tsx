@@ -3,12 +3,18 @@ import { redirect } from 'next/navigation'
 import { listVariableExpenses, getVariableExpensesAnalytics } from '@/actions/variable-expenses'
 import { GastosClient } from './gastos-client'
 
+import { brYmd } from '@/lib/br-day'
+
 export const metadata = { title: 'Gastos — Smart ERP' }
 
-type Period = 'today' | '7d' | '30d' | '90d' | 'all'
+type Period = 'today' | 'yesterday' | '7d' | '30d' | '90d' | 'all'
 
 function getRange(period: Period): { startISO?: string; endISO?: string } {
   if (period === 'all') return {}
+  if (period === 'yesterday') {
+    const ymd = brYmd(1)
+    return { startISO: ymd, endISO: ymd }
+  }
   if (period === 'today') {
     // Data de hoje no fuso de Brasília (o servidor roda em UTC)
     const ymd = new Date(Date.now() - 3 * 3600_000).toISOString().slice(0, 10)
@@ -30,7 +36,7 @@ export default async function GastosPage({
   try { await requireAuth() } catch { redirect('/login') }
 
   const params = await searchParams
-  const period = (['today', '7d', '30d', '90d', 'all'].includes(params.period ?? '') ? params.period : '30d') as Period
+  const period = (['today', 'yesterday', '7d', '30d', '90d', 'all'].includes(params.period ?? '') ? params.period : '30d') as Period
   const category = params.category && params.category !== 'all' ? params.category : undefined
   const search   = params.search?.trim() || undefined
 

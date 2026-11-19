@@ -1296,8 +1296,8 @@ export function ErpClientesClient({ data }: { data: DashboardData }) {
     sources, churnRisk, rfmSegments, weekdayHeatmap, originBreakdown,
   } = data
 
-  const periods: Period[] = ['today', '7d', '30d', '90d']
-  type Period = 'today' | '7d' | '30d' | '90d' | 'custom'
+  const periods: Period[] = ['today', 'yesterday', '7d', '30d', '90d']
+  type Period = 'today' | 'yesterday' | '7d' | '30d' | '90d' | 'custom'
 
   const [customOpen, setCustomOpen] = useState(period === 'custom')
   const [fromDate, setFromDate]     = useState('')
@@ -1339,7 +1339,7 @@ export function ErpClientesClient({ data }: { data: DashboardData }) {
                   : { color: '#94A3B8' }
                 }
               >
-                {p === 'today' ? 'Hoje' : p}
+                {p === 'today' ? 'Hoje' : p === 'yesterday' ? 'Ontem' : p}
               </button>
             ))}
             <button

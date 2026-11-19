@@ -14,7 +14,7 @@ import { UpgradeBlock } from '@/components/upgrade-block'
 export const metadata = { title: 'Canais — Smart ERP' }
 export const dynamic = 'force-dynamic'
 
-const VALID_PERIODS: ChannelAnalyticsPeriod[] = ['today', '7d', '30d', '90d', '180d', '365d', 'all']
+const VALID_PERIODS: ChannelAnalyticsPeriod[] = ['today', 'yesterday', '7d', '30d', '90d', '180d', '365d', 'all']
 
 export default async function CanaisPage({
   searchParams,

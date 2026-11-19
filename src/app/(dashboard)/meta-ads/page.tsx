@@ -19,6 +19,7 @@ import {
   type MetaAdsAccountHealth,
 } from '@/actions/meta-ads'
 import { countUnreadAlerts } from '@/actions/meta-ads-alerts'
+import { brDayRange } from '@/lib/br-day'
 import { MetaAdsDashboard } from './meta-ads-dashboard'
 
 export const metadata = { title: 'Meta Ads — Smart ERP' }
@@ -62,7 +63,7 @@ export type DirectCampaignTotal = {
   txCount:      number
 }
 
-async function getIgFacebookRevenue(tenantId: string, sinceIso: string): Promise<OriginTotals> {
+async function getIgFacebookRevenue(tenantId: string, sinceIso: string, untilIso: string): Promise<OriginTotals> {
   const { supabase } = await requireAuth()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any
@@ -72,6 +73,7 @@ async function getIgFacebookRevenue(tenantId: string, sinceIso: string): Promise
       .select('total_cents, customers!inner(origin)')
       .eq('tenant_id', tenantId)
       .gte('created_at', sinceIso)
+      .lte('created_at', untilIso)
       .neq('status', 'cancelled')
       .in('customers.origin', ['instagram_pago', 'instagram_organico', 'facebook'])
       .limit(5000),
@@ -79,6 +81,7 @@ async function getIgFacebookRevenue(tenantId: string, sinceIso: string): Promise
       .select('total_price_cents, service_price_cents, parts_sale_cents, discount_cents, customers!inner(origin)')
       .eq('tenant_id', tenantId)
       .gte('received_at', sinceIso)
+      .lte('received_at', untilIso)
       .in('status', ['delivered', 'Entregue'])
       .in('customers.origin', ['instagram_pago', 'instagram_organico', 'facebook'])
       .limit(5000),
@@ -108,7 +111,7 @@ async function getIgFacebookRevenue(tenantId: string, sinceIso: string): Promise
   return totals
 }
 
-async function getRevenueByCampaignCode(tenantId: string, sinceIso: string): Promise<CampaignCodeTotal[]> {
+async function getRevenueByCampaignCode(tenantId: string, sinceIso: string, untilIso: string): Promise<CampaignCodeTotal[]> {
   const { supabase } = await requireAuth()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any
@@ -118,6 +121,7 @@ async function getRevenueByCampaignCode(tenantId: string, sinceIso: string): Pro
       .select('customer_id, total_cents, customers!inner(campaign_code), sale_items(quantity, product_id, cost_snapshot_cents)')
       .eq('tenant_id', tenantId)
       .gte('created_at', sinceIso)
+      .lte('created_at', untilIso)
       .neq('status', 'cancelled')
       .not('customers.campaign_code', 'is', null)
       .limit(5000),
@@ -125,6 +129,7 @@ async function getRevenueByCampaignCode(tenantId: string, sinceIso: string): Pro
       .select('customer_id, total_price_cents, service_price_cents, parts_sale_cents, parts_cost_cents, discount_cents, customers!inner(campaign_code)')
       .eq('tenant_id', tenantId)
       .gte('received_at', sinceIso)
+      .lte('received_at', untilIso)
       .in('status', ['delivered', 'Entregue'])
       .not('customers.campaign_code', 'is', null)
       .limit(5000),
@@ -195,7 +200,7 @@ async function getRevenueByCampaignCode(tenantId: string, sinceIso: string): Pro
     .sort((a, b) => b.revenueCents - a.revenueCents)
 }
 
-async function getDirectCampaignAttribution(tenantId: string, sinceIso: string): Promise<DirectCampaignTotal[]> {
+async function getDirectCampaignAttribution(tenantId: string, sinceIso: string, untilIso: string): Promise<DirectCampaignTotal[]> {
   const { supabase } = await requireAuth()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any
@@ -205,6 +210,7 @@ async function getDirectCampaignAttribution(tenantId: string, sinceIso: string):
       .select('meta_campaign_id, meta_campaign_name, total_cents, sale_items(quantity, product_id, cost_snapshot_cents)')
       .eq('tenant_id', tenantId)
       .gte('created_at', sinceIso)
+      .lte('created_at', untilIso)
       .neq('status', 'cancelled')
       .not('meta_campaign_id', 'is', null)
       .limit(5000),
@@ -212,6 +218,7 @@ async function getDirectCampaignAttribution(tenantId: string, sinceIso: string):
       .select('meta_campaign_id, meta_campaign_name, total_price_cents, service_price_cents, parts_sale_cents, parts_cost_cents, discount_cents')
       .eq('tenant_id', tenantId)
       .gte('received_at', sinceIso)
+      .lte('received_at', untilIso)
       .in('status', ['delivered', 'Entregue'])
       .not('meta_campaign_id', 'is', null)
       .limit(5000),
@@ -275,13 +282,17 @@ async function getDirectCampaignAttribution(tenantId: string, sinceIso: string):
     .sort((a, b) => b.revenueCents - a.revenueCents)
 }
 
+/** Fim do período: Ontem termina às 23:59 de ontem (Brasília); os demais vão até agora. */
+function periodToUntilIso(period: MetaAdsPeriod): string {
+  if (period === 'yesterday') return brDayRange(1).end.toISOString()
+  return new Date().toISOString()
+}
+
 function periodToIso(period: MetaAdsPeriod): string {
   const now = new Date()
-  if (period === 'today') { now.setHours(0, 0, 0, 0); return now.toISOString() }
-  if (period === 'yesterday') {
-    const d = new Date(now); d.setDate(d.getDate() - 1); d.setHours(0, 0, 0, 0)
-    return d.toISOString()
-  }
+  // Hoje/Ontem no fuso de Brasília (servidor em UTC)
+  if (period === 'today')     return brDayRange(0).start.toISOString()
+  if (period === 'yesterday') return brDayRange(1).start.toISOString()
   const days = period === '7d' ? 6 : period === '30d' ? 29 : 89
   now.setDate(now.getDate() - days); now.setHours(0, 0, 0, 0)
   return now.toISOString()
@@ -439,10 +450,11 @@ export default async function MetaAdsPage({
   }
 
   const sinceIso = periodToIso(period)
+  const untilIso = periodToUntilIso(period)
   const [origins, campaignCodeTotals, directCampaignTotals, unreadAlerts] = await Promise.all([
-    getIgFacebookRevenue(tenantId, sinceIso),
-    getRevenueByCampaignCode(tenantId, sinceIso),
-    getDirectCampaignAttribution(tenantId, sinceIso),
+    getIgFacebookRevenue(tenantId, sinceIso, untilIso),
+    getRevenueByCampaignCode(tenantId, sinceIso, untilIso),
+    getDirectCampaignAttribution(tenantId, sinceIso, untilIso),
     countUnreadAlerts().catch(() => 0),
   ])
 

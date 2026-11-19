@@ -1,4 +1,5 @@
 import { requireAuth } from '@/lib/supabase/server'
+import { brDayRange } from '@/lib/br-day'
 import { getTenantId } from '@/lib/tenant'
 import { redirect } from 'next/navigation'
 import {
@@ -13,7 +14,7 @@ import { getUserFeatures, getDefaultRoute } from '@/lib/permissions'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
-type Period = 'today' | '7d' | '30d' | 'custom'
+type Period = 'today' | 'yesterday' | '7d' | '30d' | 'custom'
 type Origin = 'all' | 'erp' | 'checksmart'
 
 type KPICardProps = {
@@ -41,6 +42,10 @@ function getPeriodRange(period: Period, from?: string, to?: string): { start: Da
   if (period === 'custom' && from && to) {
     return { start: new Date(`${from}T00:00:00-03:00`), end: new Date(`${to}T23:59:59-03:00`) }
   }
+  if (period === 'yesterday') {
+    const y = brDayRange(1)
+    return { start: y.start, end: y.end }
+  }
   if (period === '30d') {
     const d = new Date(`${today}T00:00:00-03:00`)
     d.setDate(d.getDate() - 29)
@@ -65,6 +70,7 @@ function getMonthRange(): { start: Date; end: Date } {
 
 function periodLabel(period: Period, from?: string, to?: string): string {
   if (period === 'today') return 'hoje'
+  if (period === 'yesterday') return 'ontem'
   if (period === '7d') return 'últimos 7 dias'
   if (period === '30d') return 'últimos 30 dias'
   if (from && to) return `${from} – ${to}`

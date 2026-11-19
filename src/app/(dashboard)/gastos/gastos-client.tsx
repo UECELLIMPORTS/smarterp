@@ -15,8 +15,9 @@ import {
 import {
   VARIABLE_EXPENSE_CATEGORIES, groupedCategories, categoryLabel, categoryColor,
 } from '@/lib/variable-expense-categories'
+import { brYmd } from '@/lib/br-day'
 
-type Period = 'today' | '7d' | '30d' | '90d' | 'all'
+type Period = 'today' | 'yesterday' | '7d' | '30d' | '90d' | 'all'
 
 type Props = {
   initialExpenses:  VariableExpense[]
@@ -37,6 +38,7 @@ const fmtBRL = (c: number) => (c / 100).toFixed(2).replace('.', ',')
 
 const PERIODS: { key: Period; label: string }[] = [
   { key: 'today', label: 'Hoje' },
+  { key: 'yesterday', label: 'Ontem' },
   { key: '7d',  label: '7 dias' },
   { key: '30d', label: '30 dias' },
   { key: '90d', label: '90 dias' },
@@ -611,6 +613,10 @@ function ChartDaily({ daily }: { daily: ExpenseAnalytics['daily'] }) {
 // Helper de range usado no export
 function getRangeFromPeriod(period: Period): { startISO?: string; endISO?: string } {
   if (period === 'all') return {}
+  if (period === 'yesterday') {
+    const ymd = brYmd(1)
+    return { startISO: ymd, endISO: ymd }
+  }
   if (period === 'today') {
     // Data de hoje no fuso de Brasília (o servidor roda em UTC)
     const ymd = new Date(Date.now() - 3 * 3600_000).toISOString().slice(0, 10)

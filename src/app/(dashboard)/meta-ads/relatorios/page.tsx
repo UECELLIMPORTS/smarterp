@@ -12,6 +12,7 @@ import {
   type MetaAdsTimeseriesPoint,
 } from '@/actions/meta-ads'
 import { RelatoriosClient } from './relatorios-client'
+import { brDayRange } from '@/lib/br-day'
 import { classifyAcquisition, serviceOrderValueCents } from '@/lib/customer-acquisition'
 
 export const metadata = { title: 'Relatórios — Meta Ads' }
@@ -104,8 +105,9 @@ const CHANNEL_CONFIG: Record<ReportChannel, { label: string; color: string }> = 
 function periodToRange(period: MetaAdsPeriod): { since: Date; until: Date } {
   const until = new Date()
   const since = new Date(until)
-  if (period === 'today')     { since.setHours(0, 0, 0, 0); return { since, until } }
-  if (period === 'yesterday') { since.setDate(since.getDate() - 1); since.setHours(0, 0, 0, 0); return { since, until } }
+  // Hoje/Ontem no fuso de Brasília (servidor em UTC); Ontem termina às 23:59 de ontem
+  if (period === 'today')     return { since: brDayRange(0).start, until }
+  if (period === 'yesterday') { const y = brDayRange(1); return { since: y.start, until: y.end } }
   const days = period === '7d' ? 6 : period === '30d' ? 29 : 89
   since.setDate(since.getDate() - days)
   since.setHours(0, 0, 0, 0)
@@ -355,11 +357,11 @@ export default async function MetaAdsRelatoriosPage({
 
   // Intervalo de datas
   const sinceIso: string = isCustomRange
-    ? new Date(rawSince! + 'T00:00:00').toISOString()
+    ? new Date(rawSince! + 'T00:00:00-03:00').toISOString()
     : periodToRange(period).since.toISOString()
   const untilIso: string = isCustomRange
-    ? new Date(rawUntil! + 'T23:59:59').toISOString()
-    : new Date().toISOString()
+    ? new Date(rawUntil! + 'T23:59:59.999-03:00').toISOString()
+    : periodToRange(period).until.toISOString()
   const since = new Date(sinceIso)
 
   let insightsSpendCents = 0

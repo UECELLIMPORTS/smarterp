@@ -36,6 +36,7 @@ type Props = {
 function periodDays(period: ChannelAnalyticsPeriod): number | null {
   switch (period) {
     case 'today': return 1
+    case 'yesterday': return 1
     case '7d':   return 7
     case '30d':  return 30
     case '90d':  return 90
@@ -47,6 +48,7 @@ function periodDays(period: ChannelAnalyticsPeriod): number | null {
 
 const PERIOD_OPTIONS: { v: ChannelAnalyticsPeriod; label: string }[] = [
   { v: 'today', label: 'Hoje' },
+  { v: 'yesterday', label: 'Ontem' },
   { v: '7d',   label: '7d' },
   { v: '30d',  label: '30d' },
   { v: '90d',  label: '90d' },

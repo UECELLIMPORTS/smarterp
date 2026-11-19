@@ -18,11 +18,12 @@
  * preencher manualmente porque não temos o número certo).
  */
 
+import { brDayRange } from '@/lib/br-day'
 import { requireAuth } from '@/lib/supabase/server'
 import { getTenantId } from '@/lib/tenant'
 import { revalidatePath } from 'next/cache'
 
-export type DiagPeriod = 'today' | '7d' | '30d' | '90d'
+export type DiagPeriod = 'today' | 'yesterday' | '7d' | '30d' | '90d'
 
 export type SuspiciousSaleItem = {
   name:               string
@@ -78,7 +79,13 @@ export type ProfitDiagnostics = {
   orphanProducts:          OrphanProduct[]
 }
 
+function periodToUntilIso(period: DiagPeriod): string {
+  if (period === 'yesterday') return brDayRange(1).end.toISOString()
+  return new Date().toISOString()
+}
+
 function periodToSinceIso(period: DiagPeriod): string {
+  if (period === 'yesterday') return brDayRange(1).start.toISOString()
   if (period === 'today') {
     // 00:00 de hoje no fuso de Brasília (o servidor roda em UTC)
     const ymd = new Date(Date.now() - 3 * 3600_000).toISOString().slice(0, 10)
@@ -95,6 +102,7 @@ export async function getProfitDiagnostics(period: DiagPeriod = '30d'): Promise<
   const { supabase, user } = await requireAuth()
   const tenantId = getTenantId(user)
   const sinceIso = periodToSinceIso(period)
+  const untilIso = periodToUntilIso(period)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any
@@ -104,6 +112,7 @@ export async function getProfitDiagnostics(period: DiagPeriod = '30d'): Promise<
       .select('id, total_cents, created_at, customers(full_name), sale_items(name, product_id, quantity, unit_price_cents, cost_snapshot_cents)')
       .eq('tenant_id', tenantId)
       .gte('created_at', sinceIso)
+      .lte('created_at', untilIso)
       .neq('status', 'cancelled')
       .order('created_at', { ascending: false })
       .limit(500),
@@ -111,6 +120,7 @@ export async function getProfitDiagnostics(period: DiagPeriod = '30d'): Promise<
       .select('id, received_at, total_price_cents, service_price_cents, parts_sale_cents, parts_cost_cents, customers(full_name)')
       .eq('tenant_id', tenantId)
       .gte('received_at', sinceIso)
+      .lte('received_at', untilIso)
       .in('status', ['delivered', 'Entregue'])
       .order('received_at', { ascending: false })
       .limit(500),
@@ -311,6 +321,7 @@ export async function findLosingSales(period: DiagPeriod = '30d'): Promise<Losin
   const { supabase, user } = await requireAuth()
   const tenantId = getTenantId(user)
   const sinceIso = periodToSinceIso(period)
+  const untilIso = periodToUntilIso(period)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any
@@ -320,6 +331,7 @@ export async function findLosingSales(period: DiagPeriod = '30d'): Promise<Losin
     .select('id, total_cents, created_at, customers(full_name), sale_items(id, name, product_id, quantity, unit_price_cents, cost_snapshot_cents)')
     .eq('tenant_id', tenantId)
     .gte('created_at', sinceIso)
+      .lte('created_at', untilIso)
     .neq('status', 'cancelled')
     .order('created_at', { ascending: false })
     .limit(500)
@@ -579,6 +591,7 @@ export async function findOrphanSaleItems(period: DiagPeriod = '30d'): Promise<O
   const { supabase, user } = await requireAuth()
   const tenantId = getTenantId(user)
   const sinceIso = periodToSinceIso(period)
+  const untilIso = periodToUntilIso(period)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any
@@ -589,6 +602,7 @@ export async function findOrphanSaleItems(period: DiagPeriod = '30d'): Promise<O
     .select('id, name, quantity, unit_price_cents, sale_id, sales!inner(id, created_at, status, tenant_id, customers(full_name))')
     .eq('sales.tenant_id', tenantId)
     .gte('sales.created_at', sinceIso)
+      .lte('sales.created_at', untilIso)
     .neq('sales.status', 'cancelled')
     .is('product_id', null)
     .limit(2000)

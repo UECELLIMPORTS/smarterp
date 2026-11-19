@@ -37,7 +37,7 @@ import {
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type PeriodKey = 'all' | 'today' | 'week' | 'month' | 'custom'
+type PeriodKey = 'all' | 'today' | 'yesterday' | 'week' | 'month' | 'custom'
 
 export type FinanceiroRow = {
   id: string; rawId: string; source: 'erp' | 'checksmart'
@@ -133,6 +133,12 @@ function getDateRange(period: PeriodKey, from: string, to: string): [Date, Date]
     return [
       new Date(now.getFullYear(), now.getMonth(), now.getDate()),
       new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59),
+    ]
+  }
+  if (period === 'yesterday') {
+    return [
+      new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1),
+      new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59),
     ]
   }
   if (period === 'week') {
@@ -1192,6 +1198,7 @@ export function FinanceiroClient({ initialRows, stores = [], activeStoreId = nul
           {([
             { key: 'all',   label: 'Todos' },
             { key: 'today', label: 'Hoje' },
+            { key: 'yesterday', label: 'Ontem' },
             { key: 'week',  label: 'Esta semana' },
             { key: 'month', label: 'Este mês' },
             { key: 'custom',label: 'Personalizado' },

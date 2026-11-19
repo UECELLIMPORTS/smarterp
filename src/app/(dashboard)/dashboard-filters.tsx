@@ -3,12 +3,13 @@
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useState } from 'react'
 
-type Period = 'today' | '7d' | '30d' | 'custom'
+type Period = 'today' | 'yesterday' | '7d' | '30d' | 'custom'
 type Origin = 'all' | 'erp' | 'checksmart'
 type OsStatus = 'delivered' | 'pending' | 'all'
 
 const PERIODS: { id: Period; label: string }[] = [
   { id: 'today',  label: 'Hoje' },
+  { id: 'yesterday', label: 'Ontem' },
   { id: '7d',     label: '7 dias' },
   { id: '30d',    label: '30 dias' },
   { id: 'custom', label: 'Personalizado' },

@@ -28,11 +28,17 @@ export type TrafegoRow = {
   source:         'erp' | 'checksmart'
 }
 
+import { brDayRange } from '@/lib/br-day'
+
 export const metadata = { title: 'Relatórios — Smart ERP' }
 
-type Period = 'today' | '7d' | '30d' | '90d' | '6m' | 'custom'
+type Period = 'today' | 'yesterday' | '7d' | '30d' | '90d' | '6m' | 'custom'
 
 function getPeriodRange(period: Period, from?: string, to?: string): { start: Date; end: Date } {
+  if (period === 'yesterday') {
+    const y = brDayRange(1)
+    return { start: y.start, end: y.end }
+  }
   if (period === 'today') {
     // Dia corrente no fuso de Brasília (o servidor roda em UTC)
     const ymd = new Date(Date.now() - 3 * 3600_000).toISOString().slice(0, 10)
@@ -149,7 +155,7 @@ export default async function RelatoriosPage({
 
   const params = await searchParams
   const tab = (['geral', 'vendas', 'produtos', 'trafego', 'servicos'].includes(params.tab ?? '') ? params.tab : 'geral') as Tab
-  const period = (['today', '7d', '30d', '90d', '6m', 'custom'].includes(params.period ?? '')
+  const period = (['today', 'yesterday', '7d', '30d', '90d', '6m', 'custom'].includes(params.period ?? '')
     ? params.period
     : '30d') as Period
   const source = (['total', 'smarterp', 'checksmart'].includes(params.source ?? '')

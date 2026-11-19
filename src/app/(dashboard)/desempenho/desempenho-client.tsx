@@ -33,6 +33,7 @@ const ROLE_LABEL: Record<string, string> = {
 
 const PERIODS: { v: Period; label: string }[] = [
   { v: 'hoje',        label: 'Hoje' },
+  { v: 'ontem',       label: 'Ontem' },
   { v: '7d',          label: '7 dias' },
   { v: 'mes',         label: 'Este mês' },
   { v: 'mes_passado', label: 'Mês passado' },

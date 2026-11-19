@@ -5,10 +5,11 @@ import { originLabel } from '@/lib/customer-origin'
 import { ErpClientesClient } from './erp-clientes-client'
 import { getTenantSubscriptions, canAccess } from '@/lib/subscription'
 import { UpgradeBlock } from '@/components/upgrade-block'
+import { brDayRange } from '@/lib/br-day'
 
 export const metadata = { title: 'ERP Clientes — Smart ERP' }
 
-type Period = 'today' | '7d' | '30d' | '90d' | 'custom'
+type Period = 'today' | 'yesterday' | '7d' | '30d' | '90d' | 'custom'
 
 // Datas no fuso da loja (Brasília, UTC-3 fixo desde 2019). O servidor roda em
 // UTC: sem isso, "hoje" viraria o dia seguinte a partir das 21h.
@@ -26,6 +27,10 @@ function getPeriodRange(period: Period, from?: string, to?: string): { start: Da
     if (!isNaN(f.getTime()) && !isNaN(t.getTime())) return { start: f, end: t }
   }
   if (period === 'today')    return { start, end }
+  if (period === 'yesterday') {
+    const y = brDayRange(1)
+    return { start: y.start, end: y.end }
+  }
   if (period === '7d')       start.setDate(start.getDate() - 6)
   else if (period === '30d') start.setDate(start.getDate() - 29)
   else if (period === '90d') start.setDate(start.getDate() - 89)
@@ -158,7 +163,7 @@ export default async function ErpClientesPage({
   const sb = supabase as any
 
   const { period: rawPeriod = '30d', from, to } = await searchParams
-  const period = (['today', '7d', '30d', '90d', 'custom'].includes(rawPeriod) ? rawPeriod : '30d') as Period
+  const period = (['today', 'yesterday', '7d', '30d', '90d', 'custom'].includes(rawPeriod) ? rawPeriod : '30d') as Period
   const { start, end } = getPeriodRange(period, from, to)
 
   const sixAgo = new Date()

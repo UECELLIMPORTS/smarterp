@@ -10,6 +10,7 @@
  *   - getChannelAnalytics(period)                → agrega pro dashboard
  */
 
+import { brDayRange } from '@/lib/br-day'
 import { requireAuth } from '@/lib/supabase/server'
 import { getTenantId } from '@/lib/tenant'
 import { revalidatePath } from 'next/cache'
@@ -96,7 +97,7 @@ export async function updateServiceOrderChannel(osId: string, patch: ChannelPatc
 
 // ── Analytics agregado ─────────────────────────────────────────────────────
 
-export type ChannelAnalyticsPeriod = 'today' | '7d' | '30d' | '90d' | '180d' | '365d' | 'all'
+export type ChannelAnalyticsPeriod = 'today' | 'yesterday' | '7d' | '30d' | '90d' | '180d' | '365d' | 'all'
 
 export type ChannelMetric = {
   channel:           SaleChannel | 'nao_informado'
@@ -177,6 +178,7 @@ export type ChannelAnalytics = {
 
 function periodToSince(period: ChannelAnalyticsPeriod): string {
   if (period === 'all') return '1970-01-01T00:00:00.000Z'
+  if (period === 'yesterday') return brDayRange(1).start.toISOString()
   if (period === 'today') {
     // 00:00 de hoje no fuso de Brasília (o servidor roda em UTC)
     const ymd = new Date(Date.now() - 3 * 3600_000).toISOString().slice(0, 10)
@@ -193,11 +195,17 @@ function periodToSince(period: ChannelAnalyticsPeriod): string {
   return d.toISOString()
 }
 
+/** Fim do período: ontem termina às 23:59 de ontem (Brasília); o resto vai até agora. */
+function periodToUntil(period: ChannelAnalyticsPeriod): string {
+  if (period === 'yesterday') return brDayRange(1).end.toISOString()
+  return new Date().toISOString()
+}
+
 export async function getChannelAnalytics(period: ChannelAnalyticsPeriod = '30d', storeId?: string | null): Promise<ChannelAnalytics> {
   const { supabase, user } = await requireAuth()
   const tenantId = getTenantId(user)
   const sinceIso = periodToSince(period)
-  const untilIso = new Date().toISOString()
+  const untilIso = periodToUntil(period)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any
@@ -206,6 +214,7 @@ export async function getChannelAnalytics(period: ChannelAnalyticsPeriod = '30d'
     .select('id, total_cents, sale_channel, delivery_type, created_at, sale_items(quantity, product_id, cost_snapshot_cents)')
     .eq('tenant_id', tenantId)
     .gte('created_at', sinceIso)
+      .lte('created_at', untilIso)
     .neq('status', 'cancelled')
     .limit(20000)
   if (storeId) salesQuery = salesQuery.eq('store_id', storeId)
@@ -216,6 +225,7 @@ export async function getChannelAnalytics(period: ChannelAnalyticsPeriod = '30d'
       .select('id, total_price_cents, service_price_cents, parts_sale_cents, parts_cost_cents, discount_cents, sale_channel, delivery_type, received_at')
       .eq('tenant_id', tenantId)
       .gte('received_at', sinceIso)
+      .lte('received_at', untilIso)
       .in('status', ['delivered', 'Entregue'])
       .limit(20000),
   ])
@@ -533,6 +543,7 @@ export async function getOriginAnalytics(period: ChannelAnalyticsPeriod = '30d',
   const { supabase, user } = await requireAuth()
   const tenantId = getTenantId(user)
   const sinceIso = periodToSince(period)
+  const untilIso = periodToUntil(period)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any
@@ -541,6 +552,7 @@ export async function getOriginAnalytics(period: ChannelAnalyticsPeriod = '30d',
     .select('customer_id, total_cents, customer_origin, customers(origin)')
     .eq('tenant_id', tenantId)
     .gte('created_at', sinceIso)
+      .lte('created_at', untilIso)
     .neq('status', 'cancelled')
     .limit(20000)
   if (storeId) salesQuery = salesQuery.eq('store_id', storeId)
@@ -551,6 +563,7 @@ export async function getOriginAnalytics(period: ChannelAnalyticsPeriod = '30d',
       .select('customer_id, total_price_cents, service_price_cents, parts_sale_cents, discount_cents, customers(origin)')
       .eq('tenant_id', tenantId)
       .gte('received_at', sinceIso)
+      .lte('received_at', untilIso)
       .in('status', ['delivered', 'Entregue'])
       .limit(20000),
   ])
@@ -622,6 +635,7 @@ export async function getInferredOriginAnalytics(period: ChannelAnalyticsPeriod 
   const { supabase, user } = await requireAuth()
   const tenantId = getTenantId(user)
   const sinceIso = periodToSince(period)
+  const untilIso = periodToUntil(period)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any
@@ -630,6 +644,7 @@ export async function getInferredOriginAnalytics(period: ChannelAnalyticsPeriod 
     .select('customer_id, total_cents, sale_channel, customer_origin, customers(origin)')
     .eq('tenant_id', tenantId)
     .gte('created_at', sinceIso)
+      .lte('created_at', untilIso)
     .neq('status', 'cancelled')
     .limit(20000)
   if (storeId) salesQuery = salesQuery.eq('store_id', storeId)
@@ -640,6 +655,7 @@ export async function getInferredOriginAnalytics(period: ChannelAnalyticsPeriod 
       .select('customer_id, total_price_cents, service_price_cents, parts_sale_cents, discount_cents, sale_channel, customers(origin)')
       .eq('tenant_id', tenantId)
       .gte('received_at', sinceIso)
+      .lte('received_at', untilIso)
       .in('status', ['delivered', 'Entregue'])
       .limit(20000),
   ])
@@ -709,6 +725,7 @@ export async function getOriginChannelMatrix(period: ChannelAnalyticsPeriod = '3
   const { supabase, user } = await requireAuth()
   const tenantId = getTenantId(user)
   const sinceIso = periodToSince(period)
+  const untilIso = periodToUntil(period)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any
@@ -717,6 +734,7 @@ export async function getOriginChannelMatrix(period: ChannelAnalyticsPeriod = '3
     .select('total_cents, sale_channel, customer_origin, customers(origin)')
     .eq('tenant_id', tenantId)
     .gte('created_at', sinceIso)
+      .lte('created_at', untilIso)
     .neq('status', 'cancelled')
     .limit(20000)
   if (storeId) salesQuery = salesQuery.eq('store_id', storeId)
@@ -727,6 +745,7 @@ export async function getOriginChannelMatrix(period: ChannelAnalyticsPeriod = '3
       .select('total_price_cents, service_price_cents, parts_sale_cents, discount_cents, sale_channel, customers(origin)')
       .eq('tenant_id', tenantId)
       .gte('received_at', sinceIso)
+      .lte('received_at', untilIso)
       .in('status', ['delivered', 'Entregue'])
       .limit(20000),
   ])
@@ -833,6 +852,7 @@ export type CacByChannel = {
 
 const CHANNEL_PERIOD_TO_META: Partial<Record<ChannelAnalyticsPeriod, MetaAdsPeriod>> = {
   'today': 'today',
+  'yesterday': 'yesterday',
   '7d':  '7d',
   '30d': '30d',
   '90d': '90d',
@@ -850,12 +870,13 @@ export async function getCacByChannel(period: ChannelAnalyticsPeriod = '30d', st
 
   const metaPeriod = CHANNEL_PERIOD_TO_META[period]
   if (!metaPeriod) {
-    return { ...empty, unavailableReason: 'Meta Ads suporta apenas hoje ou períodos de 7, 30 ou 90 dias.' }
+    return { ...empty, unavailableReason: 'Meta Ads suporta apenas hoje, ontem ou períodos de 7, 30 ou 90 dias.' }
   }
 
   const { supabase, user } = await requireAuth()
   const tenantId = getTenantId(user)
   const sinceIso = periodToSince(period)
+  const untilIso = periodToUntil(period)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any
@@ -877,6 +898,7 @@ export async function getCacByChannel(period: ChannelAnalyticsPeriod = '30d', st
     .select('customer_id, total_cents, sale_channel, customers!inner(campaign_code, first_purchase_at)')
     .eq('tenant_id', tenantId)
     .gte('created_at', sinceIso)
+      .lte('created_at', untilIso)
     .neq('status', 'cancelled')
     .not('customers.campaign_code', 'is', null)
     .limit(20000)
@@ -888,6 +910,7 @@ export async function getCacByChannel(period: ChannelAnalyticsPeriod = '30d', st
       .select('customer_id, total_price_cents, service_price_cents, parts_sale_cents, discount_cents, sale_channel, customers!inner(campaign_code, first_purchase_at)')
       .eq('tenant_id', tenantId)
       .gte('received_at', sinceIso)
+      .lte('received_at', untilIso)
       .in('status', ['delivered', 'Entregue'])
       .not('customers.campaign_code', 'is', null)
       .limit(20000),

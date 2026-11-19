@@ -24,6 +24,7 @@ const DT = (iso: string) => {
 
 const PERIODS: { v: DiagPeriod; label: string }[] = [
   { v: 'today', label: 'Hoje' },
+  { v: 'yesterday', label: 'Ontem' },
   { v: '7d',  label: '7 dias' },
   { v: '30d', label: '30 dias' },
   { v: '90d', label: '90 dias' },
