@@ -54,7 +54,7 @@ export default async function FinanceiroPage({
         customers ( full_name, cpf_cnpj, created_at, origin )
       `)
       .eq('tenant_id', tenantId)
-      .order('delivered_at', { ascending: false, nullsFirst: false })
+      .order('received_at', { ascending: false })
       .limit(300),
   ])
 
@@ -137,7 +137,7 @@ export default async function FinanceiroPage({
       date:         new Date(s.created_at),
       dateStr:      new Date(s.created_at).toLocaleString('pt-BR', {
         day: '2-digit', month: '2-digit', year: '2-digit',
-        hour: '2-digit', minute: '2-digit',
+        hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo',
       }),
       customerName: s.customers?.full_name ?? 'Sem cliente',
       description:  s.sale_items.map(i => `${i.quantity}× ${i.name}`).join(', ') || '—',
@@ -161,10 +161,12 @@ export default async function FinanceiroPage({
       id:           `os-${o.id}`,
       rawId:        o.id,
       source:       'checksmart' as const,
-      date:         new Date(o.delivered_at ?? o.received_at),
-      dateStr:      new Date(o.delivered_at ?? o.received_at).toLocaleString('pt-BR', {
+      // Data da OS = received_at (mesma regra do CheckSmart, Relatórios, Canais
+      // e do modal "Editar OS" daqui). delivered_at não move a OS de dia.
+      date:         new Date(o.received_at),
+      dateStr:      new Date(o.received_at).toLocaleString('pt-BR', {
         day: '2-digit', month: '2-digit', year: '2-digit',
-        hour: '2-digit', minute: '2-digit',
+        hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo',
       }),
       customerName: o.customers?.full_name ?? 'Sem cliente',
       customerId:   o.customer_id ?? null,
