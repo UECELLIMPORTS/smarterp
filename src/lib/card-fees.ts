@@ -6,9 +6,26 @@
 
 export const MAX_INSTALLMENTS = 12
 
+/** Acréscimo cobrado do cliente no cartão, em % sobre o preço do PIX. */
+export type CardMarkup = {
+  debit:          number                              // % no débito (0 = mesmo preço do PIX)
+  tiers:          { upTo: number; pct: number }[]     // crédito: até N parcelas → +pct%
+  otherBrandsMax: number                              // Elo/Amex/outras: máximo de parcelas
+}
+
+export type CardBrand = 'visa_master' | 'other'
+
+/** Padrão da UÉ CELL (decidido em 20/11/2026). */
+export const DEFAULT_MARKUP: CardMarkup = {
+  debit: 0,
+  tiers: [{ upTo: 5, pct: 10 }, { upTo: 10, pct: 15 }, { upTo: 12, pct: 20 }],
+  otherBrandsMax: 6,
+}
+
 export type CardFees = {
-  debit:  number | null
-  credit: Record<string, number>
+  debit:   number | null
+  credit:  Record<string, number>
+  markup?: CardMarkup
 }
 
 export type FeeInfo = { pct: number; estimated: boolean }
@@ -26,8 +43,45 @@ export function parseCardFees(raw: unknown): CardFees | null {
   }
   const debit = num(r.debit)
   if (debit === null && !Object.keys(credit).length) return null
-  return { debit, credit }
+  return { debit, credit, markup: parseMarkup((raw as { markup?: unknown }).markup) }
 }
+
+function parseMarkup(raw: unknown): CardMarkup {
+  if (!raw || typeof raw !== 'object') return DEFAULT_MARKUP
+  const r = raw as { debit?: unknown; tiers?: unknown; otherBrandsMax?: unknown }
+  const pct = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 100 ? v : null)
+  const tiers = Array.isArray(r.tiers)
+    ? (r.tiers as { upTo?: unknown; pct?: unknown }[])
+        .map(t => ({ upTo: Number(t?.upTo), pct: pct(t?.pct) }))
+        .filter((t): t is { upTo: number; pct: number } => Number.isInteger(t.upTo) && t.upTo >= 1 && t.upTo <= MAX_INSTALLMENTS && t.pct !== null)
+        .sort((a, b) => a.upTo - b.upTo)
+    : DEFAULT_MARKUP.tiers
+  const max = Number(r.otherBrandsMax)
+  return {
+    debit: pct(r.debit) ?? DEFAULT_MARKUP.debit,
+    tiers: tiers.length ? tiers : DEFAULT_MARKUP.tiers,
+    otherBrandsMax: Number.isInteger(max) && max >= 1 && max <= MAX_INSTALLMENTS ? max : DEFAULT_MARKUP.otherBrandsMax,
+  }
+}
+
+/** Acréscimo (%) sobre o preço do PIX para débito ou crédito em N parcelas. */
+export function cardMarkupPct(fees: CardFees | null, kind: 'credit' | 'debit', installments?: number | null): number {
+  const m = fees?.markup ?? DEFAULT_MARKUP
+  if (kind === 'debit') return m.debit
+  const n = installments && installments > 0 ? installments : 1
+  return (m.tiers.find(t => n <= t.upTo) ?? m.tiers[m.tiers.length - 1])?.pct ?? 0
+}
+
+/** Preço no cartão a partir do preço do PIX (arredonda para cima no real inteiro). */
+export function cardPrice(baseCents: number, fees: CardFees | null, kind: 'credit' | 'debit', installments?: number | null): number {
+  const pct = cardMarkupPct(fees, kind, installments)
+  if (!pct || baseCents <= 0) return baseCents
+  return Math.ceil((baseCents * (1 + pct / 100)) / 100) * 100
+}
+
+/** Máximo de parcelas para a bandeira. */
+export const maxInstallmentsFor = (fees: CardFees | null, brand: CardBrand) =>
+  brand === 'other' ? (fees?.markup ?? DEFAULT_MARKUP).otherBrandsMax : MAX_INSTALLMENTS
 
 /** Taxa (%) para débito ou crédito em N parcelas. null = não dá para saber. */
 export function cardFee(fees: CardFees | null, kind: 'credit' | 'debit', installments?: number | null): FeeInfo | null {

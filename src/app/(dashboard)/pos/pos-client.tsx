@@ -20,8 +20,8 @@ import { validateBirthdayCoupon, markBirthdayCouponUsed } from '@/actions/birthd
 import { validateCoupon, markCouponUsed } from '@/actions/coupons'
 import { PixUsdtChargeModal, type PixUsdtChargeView } from '@/components/payments/pix-usdt-charge-modal'
 import { getCardFees } from '@/actions/card-fees'
-import { CardFeeHint } from '@/components/payments/card-fees-ui'
-import type { CardFees } from '@/lib/card-fees'
+import { CardFeeHint, CardBrandPicker, CardPriceCopy } from '@/components/payments/card-fees-ui'
+import { type CardFees, type CardBrand, cardPrice, maxInstallmentsFor } from '@/lib/card-fees'
 import { isPixUsdtEnabled, createPixUsdtChargeForSale, getPixUsdtCharge, linkPixUsdtChargeToSale } from '@/actions/pix-usdt'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -116,6 +116,8 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
   const [cardType, setCardType]         = useState<'credit' | 'debit' | null>(null)
   const [cardInstallments, setCardInst] = useState(1)
   const [cardFees, setCardFees]         = useState<CardFees | null>(null)
+  const [cardBrand, setCardBrand]       = useState<CardBrand>('visa_master')
+  const [cardSurchargeOn, setCardSurchargeOn] = useState(true)
   useEffect(() => {
     let alive = true
     getCardFees().then(v => { if (alive) setCardFees(v) }).catch(() => {})
@@ -174,7 +176,14 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
 
   // ── Computed ──
   const subtotal = cart.reduce((s, i) => s + i.unitPriceCents * i.quantity, 0)
-  const total    = Math.max(0, subtotal + parseCents(shipping) - parseCents(discount))
+  const baseTotal = Math.max(0, subtotal + parseCents(shipping) - parseCents(discount))   // preço PIX
+  const cardMaxInst = maxInstallmentsFor(cardFees, cardBrand)
+  const cardInstEff = Math.min(cardInstallments, cardMaxInst)
+  // Acréscimo do cartão (tabela da loja) — só no pagamento 100% cartão
+  const cardSurcharge = method === 'card' && cardType && cardSurchargeOn
+    ? cardPrice(baseTotal, cardFees, cardType, cardType === 'credit' ? cardInstEff : 1) - baseTotal
+    : 0
+  const total    = baseTotal + cardSurcharge
 
   // ── Product search debounce ──
   useEffect(() => {
@@ -437,11 +446,15 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
           ? {
               cash: parseCents(mxCash), pix: parseCents(mxPix), card: parseCents(mxCard),
               ...(parseCents(mxCard) > 0 && cardType
-                ? { card_type: cardType, installments: cardType === 'credit' ? cardInstallments : 1 }
+                ? { card_type: cardType, card_brand: cardBrand, installments: cardType === 'credit' ? cardInstEff : 1 }
                 : {}),
             }
           : method === 'card' && cardType
-            ? { card_type: cardType, installments: cardType === 'credit' ? cardInstallments : 1 }
+            ? {
+                card_type: cardType, card_brand: cardBrand,
+                installments: cardType === 'credit' ? cardInstEff : 1,
+                ...(cardSurcharge > 0 ? { card_surcharge_cents: cardSurcharge, pix_price_cents: baseTotal } : {}),
+              }
             : null,
         saleChannel:      saleChannel  || null,
         deliveryType:     deliveryType || null,
@@ -470,7 +483,7 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
       toast.success('Venda finalizada com sucesso!')
       setCart([]); setShipping(''); setDiscount('')
       setMethod('pix'); setPixKind('convencional'); setMxCash(''); setMxPix(''); setMxCard('')
-      setCardType(null); setCardInst(1)
+      setCardType(null); setCardInst(1); setCardBrand('visa_master'); setCardSurchargeOn(true)
       setSaleChannel(''); setDeliveryType('')
       setConsumerOrigin('passou_na_porta')
       setCouponInput(''); setCouponApplied(null)
@@ -1089,6 +1102,16 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
               </div>
             )}
 
+            {method === 'card' && cardType && (cardSurcharge > 0 || !cardSurchargeOn) && (
+              <div className="flex items-center justify-between text-sm">
+                <label className="flex items-center gap-1.5 text-muted">
+                  <input type="checkbox" checked={cardSurchargeOn} onChange={e => setCardSurchargeOn(e.target.checked)} />
+                  Acréscimo cartão{cardType === 'credit' ? ` (${cardInstEff}x)` : ''}
+                </label>
+                <span className="font-medium" style={{ color: '#F59E0B' }}>{cardSurchargeOn ? `+ ${BRL(cardSurcharge)}` : 'sem acréscimo'}</span>
+              </div>
+            )}
+
             <div className="flex items-center justify-between border-t pt-3" style={{ borderColor: '#2A3650' }}>
               <span className="text-sm font-bold text-text">TOTAL</span>
               <span className="text-xl font-bold text-green">{BRL(total)}</span>
@@ -1207,19 +1230,25 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
                     )
                   })}
                 </div>
+                {cardType && <CardBrandPicker fees={cardFees} brand={cardBrand} onChange={setCardBrand} />}
                 {cardType === 'credit' && (
-                  <select value={cardInstallments} onChange={e => setCardInst(Number(e.target.value))}
+                  <select value={cardInstEff} onChange={e => setCardInst(Number(e.target.value))}
                     className="w-full rounded-lg border px-2.5 py-1.5 text-sm text-text outline-none"
                     style={inputStyle}>
-                    {Array.from({ length: 12 }, (_, i) => i + 1).map(n => (
-                      <option key={n} value={n}>{n}x{n > 1 ? ` de ${BRL(Math.ceil((method === 'mixed' ? parseCents(mxCard) : total) / n))}` : ' (à vista)'}</option>
-                    ))}
+                    {Array.from({ length: cardMaxInst }, (_, i) => i + 1).map(n => {
+                      const price = method === 'mixed'
+                        ? parseCents(mxCard)
+                        : cardSurchargeOn ? cardPrice(baseTotal, cardFees, 'credit', n) : baseTotal
+                      return <option key={n} value={n}>{n}x de {BRL(Math.ceil(price / n))}{n > 1 ? ` (total ${BRL(price)})` : ' (à vista)'}</option>
+                    })}
                   </select>
                 )}
                 {cardType
-                  ? <CardFeeHint fees={cardFees} kind={cardType} installments={cardType === 'credit' ? cardInstallments : 1}
-                      amountCents={method === 'mixed' ? parseCents(mxCard) : total} />
+                  ? <CardFeeHint fees={cardFees} kind={cardType} installments={cardType === 'credit' ? cardInstEff : 1}
+                      baseCents={method === 'mixed' ? parseCents(mxCard) : baseTotal}
+                      chargedCents={method === 'mixed' ? parseCents(mxCard) : total} />
                   : <p className="text-[11px]" style={{ color: '#F59E0B' }}>Escolha Débito ou Crédito</p>}
+                {method === 'card' && <CardPriceCopy fees={cardFees} baseCents={baseTotal} />}
               </div>
             )}
           </div>
