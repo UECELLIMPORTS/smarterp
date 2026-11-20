@@ -19,6 +19,9 @@ import { SALE_CHANNEL_OPTIONS_PICKABLE, DELIVERY_TYPE_OPTIONS, type SaleChannel,
 import { validateBirthdayCoupon, markBirthdayCouponUsed } from '@/actions/birthdays'
 import { validateCoupon, markCouponUsed } from '@/actions/coupons'
 import { PixUsdtChargeModal, type PixUsdtChargeView } from '@/components/payments/pix-usdt-charge-modal'
+import { getCardFees } from '@/actions/card-fees'
+import { CardFeeHint } from '@/components/payments/card-fees-ui'
+import type { CardFees } from '@/lib/card-fees'
 import { isPixUsdtEnabled, createPixUsdtChargeForSale, getPixUsdtCharge, linkPixUsdtChargeToSale } from '@/actions/pix-usdt'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -109,6 +112,15 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
 
   // ── Payment ──
   const [method, setMethod] = useState<PaymentMethod>('pix')
+  // Cartão: débito ou crédito + parcelas (vai em payment_details.card_type / installments)
+  const [cardType, setCardType]         = useState<'credit' | 'debit' | null>(null)
+  const [cardInstallments, setCardInst] = useState(1)
+  const [cardFees, setCardFees]         = useState<CardFees | null>(null)
+  useEffect(() => {
+    let alive = true
+    getCardFees().then(v => { if (alive) setCardFees(v) }).catch(() => {})
+    return () => { alive = false }
+  }, [])
   // PIX: convencional (chave da loja, conferência manual) ou QR automático (ZimPay → USDT)
   const [pixKind, setPixKind]               = useState<'convencional' | 'usdt'>('convencional')
   const [pixUsdtEnabled, setPixUsdtEnabled] = useState(false)
@@ -391,6 +403,10 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
       toast.error('Informe como o cliente te conheceu antes de finalizar')
       return
     }
+    if ((method === 'card' || (method === 'mixed' && parseCents(mxCard) > 0)) && !cardType) {
+      toast.error('Escolha se o cartão é Débito ou Crédito')
+      return
+    }
     if (method === 'mixed') {
       const sum = parseCents(mxCash) + parseCents(mxPix) + parseCents(mxCard)
       if (Math.abs(sum - total) > 1) {
@@ -418,8 +434,15 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
         totalCents:     total,
         paymentMethod:  method,
         paymentDetails: method === 'mixed'
-          ? { cash: parseCents(mxCash), pix: parseCents(mxPix), card: parseCents(mxCard) }
-          : null,
+          ? {
+              cash: parseCents(mxCash), pix: parseCents(mxPix), card: parseCents(mxCard),
+              ...(parseCents(mxCard) > 0 && cardType
+                ? { card_type: cardType, installments: cardType === 'credit' ? cardInstallments : 1 }
+                : {}),
+            }
+          : method === 'card' && cardType
+            ? { card_type: cardType, installments: cardType === 'credit' ? cardInstallments : 1 }
+            : null,
         saleChannel:      saleChannel  || null,
         deliveryType:     deliveryType || null,
         customerOrigin:   isDefault ? (consumerOrigin || null) : null,
@@ -447,6 +470,7 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
       toast.success('Venda finalizada com sucesso!')
       setCart([]); setShipping(''); setDiscount('')
       setMethod('pix'); setPixKind('convencional'); setMxCash(''); setMxPix(''); setMxCard('')
+      setCardType(null); setCardInst(1)
       setSaleChannel(''); setDeliveryType('')
       setConsumerOrigin('passou_na_porta')
       setCouponInput(''); setCouponApplied(null)
@@ -1160,6 +1184,42 @@ export function PosClient({ consumidorFinal, stockControlMode }: { consumidorFin
                     </div>
                   )
                 })()}
+              </div>
+            )}
+
+            {/* Cartão: débito ou crédito + parcelas, com taxa e quanto recebe */}
+            {(method === 'card' || (method === 'mixed' && parseCents(mxCard) > 0)) && (
+              <div className="space-y-2 border-t pt-3" style={{ borderColor: '#2A3650' }}>
+                <div className="grid grid-cols-2 gap-2">
+                  {([
+                    { id: 'debit',  label: 'Débito' },
+                    { id: 'credit', label: 'Crédito' },
+                  ] as const).map(o => {
+                    const active = cardType === o.id
+                    return (
+                      <button key={o.id} type="button" onClick={() => setCardType(o.id)}
+                        className="rounded-lg border py-1.5 text-xs font-medium transition-all"
+                        style={active
+                          ? { background: '#F59E0B18', borderColor: '#F59E0B', color: '#F59E0B' }
+                          : { borderColor: '#2A3650', color: '#94A3B8' }}>
+                        {o.label}
+                      </button>
+                    )
+                  })}
+                </div>
+                {cardType === 'credit' && (
+                  <select value={cardInstallments} onChange={e => setCardInst(Number(e.target.value))}
+                    className="w-full rounded-lg border px-2.5 py-1.5 text-sm text-text outline-none"
+                    style={inputStyle}>
+                    {Array.from({ length: 12 }, (_, i) => i + 1).map(n => (
+                      <option key={n} value={n}>{n}x{n > 1 ? ` de ${BRL(Math.ceil((method === 'mixed' ? parseCents(mxCard) : total) / n))}` : ' (à vista)'}</option>
+                    ))}
+                  </select>
+                )}
+                {cardType
+                  ? <CardFeeHint fees={cardFees} kind={cardType} installments={cardType === 'credit' ? cardInstallments : 1}
+                      amountCents={method === 'mixed' ? parseCents(mxCard) : total} />
+                  : <p className="text-[11px]" style={{ color: '#F59E0B' }}>Escolha Débito ou Crédito</p>}
               </div>
             )}
           </div>

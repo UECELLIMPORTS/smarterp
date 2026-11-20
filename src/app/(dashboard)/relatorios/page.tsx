@@ -15,6 +15,7 @@ import { getStoreComparison, type StoreCompareRow } from '@/lib/store-comparison
 import { loadServiceInsights } from '@/lib/service-insights-loader'
 import type { ServiceInsights } from '@/lib/service-insights'
 import { loadPaymentReport, type PaymentReport } from '@/lib/payment-report'
+import { loadCardFees } from '@/lib/card-fees'
 
 export type Tab = 'geral' | 'vendas' | 'produtos' | 'trafego' | 'servicos' | 'pagamentos'
 
@@ -487,7 +488,8 @@ export default async function RelatoriosPage({
 
   let paymentReport: PaymentReport | null = null
   if (tab === 'pagamentos') {
-    paymentReport = await loadPaymentReport(sb, tenantId, start, end, source).catch(() => null)
+    const fees = await loadCardFees(sb, tenantId)
+    paymentReport = await loadPaymentReport(sb, tenantId, start, end, source, fees).catch(() => null)
   }
 
   let serviceInsights: ServiceInsights | null = null

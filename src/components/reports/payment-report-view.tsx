@@ -70,6 +70,20 @@ export function PaymentReportView({ report }: { report: PaymentReport }) {
           sub={`${PCT(totalCents ? (100 * cardCents) / totalCents : 0)} do valor`} />
       </div>
 
+      {report.hasFees ? (
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+          <Kpi label="Taxas da maquininha (estimado)" value={BRL(report.feeCents)} color="#F59E0B"
+            sub={`${PCT(totalCents ? (100 * report.feeCents) / totalCents : 0)} do total · ${PCT(cardCents ? (100 * report.feeCents) / cardCents : 0)} do cartão`} />
+          <Kpi label="Líquido recebido" value={BRL(report.netCents)} color="#22C55E" sub="Total menos as taxas" />
+          <Kpi label="Taxa média por venda no cartão" value={BRL(cardC.reduce((a, r) => a + r.count, 0) ? Math.round(report.feeCents / cardC.reduce((a, r) => a + r.count, 0)) : 0)}
+            sub="Quanto a maquininha leva, em média, de cada cartão" />
+        </div>
+      ) : (
+        <p className="rounded-lg px-3 py-2 text-xs" style={{ ...C.card, color: C.muted }}>
+          💡 Cadastre as taxas da maquininha em Configurações para ver quanto você paga de taxa e o líquido recebido.
+        </p>
+      )}
+
       {/* Por forma de pagamento */}
       <div className="rounded-xl p-4" style={C.card}>
         <h2 className="text-sm font-bold" style={{ color: C.title }}>Por forma de pagamento</h2>
@@ -84,6 +98,7 @@ export function PaymentReportView({ report }: { report: PaymentReport }) {
                 <th className="py-2 pr-3 text-right">Valor</th>
                 <th className="py-2 pr-3">% do valor</th>
                 <th className="py-2 pr-3 text-right">Ticket</th>
+                {report.hasFees && <th className="py-2 pr-3 text-right">Taxa</th>}
                 {showBoth && <th className="py-2 pr-3 text-right">CheckSmart (OS)</th>}
                 {showBoth && <th className="py-2 text-right">Gestão Smart (PDV)</th>}
               </tr>
@@ -104,6 +119,7 @@ export function PaymentReportView({ report }: { report: PaymentReport }) {
                     </div>
                   </td>
                   <td className="py-2 pr-3 text-right" style={{ color: C.muted }}>{BRL(r.ticketCents)}</td>
+                  {report.hasFees && <td className="py-2 pr-3 text-right" style={{ color: r.feeCents ? '#F59E0B' : C.dim }}>{r.feeCents ? BRL(r.feeCents) : '—'}</td>}
                   {showBoth && <td className="py-2 pr-3 text-right text-xs" style={{ color: C.muted }}>{r.os.count} · {BRL(r.os.cents)}</td>}
                   {showBoth && <td className="py-2 text-right text-xs" style={{ color: C.muted }}>{r.sales.count} · {BRL(r.sales.cents)}</td>}
                 </tr>
@@ -190,7 +206,9 @@ export function PaymentReportView({ report }: { report: PaymentReport }) {
       {/* Observações */}
       <div className="space-y-1 text-[11px]" style={{ color: C.dim }}>
         {none && <p>⚠️ {none.count} recebimento(s) sem forma de pagamento ou pendente ({BRL(none.cents)}). Preencha na OS/venda para o relatório ficar exato.</p>}
-        {cardNoType && <p>⚠️ {cardNoType.count} venda(s) do PDV gravadas só como &quot;cartão&quot;, sem dizer se foi débito ou crédito.</p>}
+        {cardNoType && <p>⚠️ {cardNoType.count} venda(s) do PDV gravadas só como &quot;cartão&quot;, sem dizer se foi débito ou crédito (taxa não calculada).</p>}
+        {report.hasFees && report.creditNoInst > 0 && <p>⚠️ {report.creditNoInst} venda(s) no crédito sem número de parcelas: a taxa foi calculada como 1x.</p>}
+        {report.hasFees && <p>Taxas estimadas com as taxas cadastradas em Configurações; o valor real pode variar um pouco por bandeira.</p>}
         <p>OS entram pela data de recebimento do aparelho; OS com valor zero (retorno/garantia) e canceladas ficam de fora. Pagamento misto do PDV é dividido entre as formas usadas.</p>
       </div>
     </div>

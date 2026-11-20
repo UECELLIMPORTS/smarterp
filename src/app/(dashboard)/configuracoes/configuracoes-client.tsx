@@ -7,6 +7,7 @@ import {
   Package, CheckCircle, AlertTriangle, Ban, Loader2, Save,
   Sparkles, ChevronRight, Users, FileText, ImageIcon, Shield, Trash2, Upload, Cake,
   MessageCircle, Store as StoreIcon,
+  CreditCard,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { saveSettings, type TenantSettings, type StockControlMode } from '@/actions/settings'
@@ -17,6 +18,9 @@ import {
 import { saveBirthdayConfig, type BirthdayConfig } from '@/actions/birthdays'
 import { DEFAULT_BIRTHDAY_TEMPLATE } from '@/lib/birthday-utils'
 import type { RecurringExpense } from '@/lib/expense-categories'
+import { CardFeesForm } from '@/components/payments/card-fees-ui'
+import { saveCardFees } from '@/actions/card-fees'
+import type { CardFees } from '@/lib/card-fees'
 import { RecurringExpensesSection } from './recurring-expenses-section'
 
 type Props = {
@@ -25,6 +29,7 @@ type Props = {
   initialExpenses:       RecurringExpense[]
   initialBranding:       BrandingSettings
   initialBirthdayConfig: BirthdayConfig
+  initialCardFees?: CardFees | null
 }
 
 const STOCK_OPTIONS: {
@@ -57,7 +62,7 @@ const STOCK_OPTIONS: {
   },
 ]
 
-export function ConfiguracoesClient({ initialSettings, isOwner = false, initialExpenses, initialBranding, initialBirthdayConfig }: Props) {
+export function ConfiguracoesClient({ initialSettings, isOwner = false, initialExpenses, initialBranding, initialBirthdayConfig, initialCardFees = null }: Props) {
   const [settings, setSettings] = useState<TenantSettings>(initialSettings)
   const [custoFixoStr, setCustoFixoStr] = useState(
     initialSettings.fisica_fixed_cost_cents != null
@@ -269,6 +274,22 @@ export function ConfiguracoesClient({ initialSettings, isOwner = false, initialE
           </Link>
         </div>
       )}
+
+      {/* Taxas da maquininha */}
+      <div className="rounded-xl border overflow-hidden" style={{ background: '#1B2638', borderColor: '#2A3650' }}>
+        <div className="flex items-center gap-3 border-b px-5 py-4" style={{ borderColor: '#2A3650' }}>
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: '#F59E0B18' }}>
+            <CreditCard className="h-4 w-4" style={{ color: '#F59E0B' }} />
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold text-text">Taxas da maquininha</h2>
+            <p className="text-xs text-muted">Usadas no PDV (quanto você recebe) e no relatório de pagamentos</p>
+          </div>
+        </div>
+        <div className="p-5">
+          <CardFeesForm initial={initialCardFees} canEdit={isOwner} onSave={saveCardFees} />
+        </div>
+      </div>
 
       {/* Estoque section */}
       <div className="rounded-xl border overflow-hidden" style={{ background: '#1B2638', borderColor: '#2A3650' }}>

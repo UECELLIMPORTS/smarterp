@@ -64,7 +64,7 @@ export type CreateSaleInput = {
   shippingCents: number
   totalCents: number
   paymentMethod: 'cash' | 'pix' | 'card' | 'mixed'
-  paymentDetails: Record<string, number> | null
+  paymentDetails: Record<string, number | string> | null
   items: SaleItem[]
   saleChannel?: string | null   // whatsapp | instagram_dm | delivery_online | fisica_balcao | fisica_retirada | outro
   deliveryType?: string | null  // counter | pickup | shipping

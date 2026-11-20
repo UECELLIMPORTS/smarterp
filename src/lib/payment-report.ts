@@ -6,6 +6,8 @@
 // ARQUIVO IDÊNTICO em ~/checksmart e ~/smarterp (src/lib/payment-report.ts).
 // Ao mudar um, copie para o outro.
 
+import { type CardFees, cardFee } from './card-fees'
+
 export type PaySource = 'total' | 'smarterp' | 'checksmart'
 
 export type PayKey = 'pix' | 'credit' | 'debit' | 'card' | 'cash' | 'transfer' | 'mixed' | 'none'
@@ -38,6 +40,7 @@ export type PayCell = { count: number; cents: number }
 
 export type PayRow = PayCell & {
   key:          PayKey
+  feeCents:     number
   label:        string
   color:        string
   pctCount:     number
@@ -67,9 +70,14 @@ export type PaymentReport = {
   os:            PayCell & { ok: boolean }
   sales:         PayCell & { ok: boolean }
   keysInUse:     PayKey[]
+  hasFees:       boolean           // taxas da maquininha cadastradas
+  feeCents:      number            // taxa estimada total do período
+  netCents:      number            // totalCents - feeCents
+  feeUnknown:    PayCell           // cartão sem tipo/sem taxa cadastrada (taxa não calculada)
+  creditNoInst:  number            // créditos sem parcelas informadas (calculados como 1x)
 }
 
-type Entry = { src: 'os' | 'sales'; key: PayKey; cents: number; at: string; installments: number | null }
+type Entry = { src: 'os' | 'sales'; key: PayKey; cents: number; at: string; installments: number | null; fee?: number | null }
 
 function osKey(m: string | null): PayKey {
   switch (m) {
@@ -122,6 +130,7 @@ export async function loadPaymentReport(
   start: Date,
   end: Date,
   source: PaySource = 'total',
+  fees: CardFees | null = null,
 ): Promise<PaymentReport> {
   const entries: Entry[] = []
   const wantOs    = source !== 'smarterp'
@@ -155,36 +164,58 @@ export async function loadPaymentReport(
     entries.push({ src: 'os', key: osKey(o.payment_method), cents, at: o.received_at, installments: o.payment_installments ?? null })
   }
 
-  // PDV: pagamento misto é dividido pelas partes gravadas em payment_details
+  // PDV: payment_details = { card_type: 'credit'|'debit', installments } no cartão;
+  // no misto também { cash, pix, card } com o valor de cada parte.
   for (const s of salesRes.rows) {
     const cents = s.total_cents ?? 0
     if (cents <= 0) continue
-    const details = s.payment_details as Record<string, number> | null
-    if (s.payment_method === 'mixed' && details) {
-      const parts = Object.entries(details).filter(([, v]) => (v ?? 0) > 0)
+    const d = (s.payment_details ?? {}) as Record<string, unknown>
+    const cardKey: PayKey = d.card_type === 'credit' ? 'credit' : d.card_type === 'debit' ? 'debit' : 'card'
+    const inst = typeof d.installments === 'number' ? d.installments : null
+    if (s.payment_method === 'mixed') {
+      const parts = (['cash', 'pix', 'card'] as const)
+        .map(k => [k, typeof d[k] === 'number' ? (d[k] as number) : 0] as const)
+        .filter(([, v]) => v > 0)
       if (parts.length) {
-        for (const [k, v] of parts) entries.push({ src: 'sales', key: saleKey(k), cents: v, at: s.created_at, installments: null })
+        for (const [k, v] of parts) {
+          entries.push({ src: 'sales', key: k === 'card' ? cardKey : saleKey(k), cents: v, at: s.created_at, installments: k === 'card' ? inst : null })
+        }
         continue
       }
     }
-    entries.push({ src: 'sales', key: saleKey(s.payment_method), cents, at: s.created_at, installments: null })
+    const key = s.payment_method === 'card' ? cardKey : saleKey(s.payment_method)
+    entries.push({ src: 'sales', key, cents, at: s.created_at, installments: key === 'credit' ? inst : null })
+  }
+
+  // Taxa estimada de cada recebimento (PIX/dinheiro/transferência = 0)
+  let creditNoInst = 0
+  for (const e of entries) {
+    if (e.key === 'credit' || e.key === 'debit') {
+      if (e.key === 'credit' && !(e.installments && e.installments > 0)) creditNoInst++
+      const f = cardFee(fees, e.key, e.installments)
+      e.fee = f ? Math.round((e.cents * f.pct) / 100) : null
+    } else if (e.key === 'card' || e.key === 'mixed' || e.key === 'none') {
+      e.fee = null
+    } else {
+      e.fee = 0
+    }
   }
 
   const count      = entries.length
   const totalCents = entries.reduce((a, e) => a + e.cents, 0)
 
   // ── Por forma de pagamento
-  const byKey = new Map<PayKey, { count: number; cents: number; os: PayCell; sales: PayCell }>()
+  const byKey = new Map<PayKey, { count: number; cents: number; fee: number; os: PayCell; sales: PayCell }>()
   for (const e of entries) {
-    const r = byKey.get(e.key) ?? { count: 0, cents: 0, os: { count: 0, cents: 0 }, sales: { count: 0, cents: 0 } }
-    r.count++; r.cents += e.cents
+    const r = byKey.get(e.key) ?? { count: 0, cents: 0, fee: 0, os: { count: 0, cents: 0 }, sales: { count: 0, cents: 0 } }
+    r.count++; r.cents += e.cents; r.fee += e.fee ?? 0
     r[e.src].count++; r[e.src].cents += e.cents
     byKey.set(e.key, r)
   }
   const rows: PayRow[] = [...byKey.entries()]
     .map(([key, r]) => ({
       key, label: PAY_LABEL[key], color: PAY_COLOR[key],
-      count: r.count, cents: r.cents,
+      count: r.count, cents: r.cents, feeCents: r.fee,
       pctCount:    count      ? (100 * r.count) / count      : 0,
       pctCents:    totalCents ? (100 * r.cents) / totalCents : 0,
       ticketCents: r.count ? Math.round(r.cents / r.count) : 0,
@@ -233,8 +264,12 @@ export async function loadPaymentReport(
   const sum = (src: 'os' | 'sales') => entries.filter(e => e.src === src).reduce(
     (a, e) => ({ count: a.count + 1, cents: a.cents + e.cents }), { count: 0, cents: 0 })
 
+  const feeCents = entries.reduce((a, e) => a + (e.fee ?? 0), 0)
+  const unknown = entries.filter(e => e.fee === null && e.key !== 'none' && e.key !== 'mixed')
   return {
     source, count, totalCents, rows, weekdays, installments, keysInUse,
+    hasFees: !!fees, feeCents, netCents: totalCents - feeCents, creditNoInst,
+    feeUnknown: { count: unknown.length, cents: unknown.reduce((a, e) => a + e.cents, 0) },
     os:    { ...sum('os'),    ok: osRes.ok },
     sales: { ...sum('sales'), ok: salesRes.ok },
   }
