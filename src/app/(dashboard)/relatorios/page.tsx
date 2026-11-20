@@ -14,8 +14,9 @@ import { resolveActiveStoreId } from '@/lib/active-store'
 import { getStoreComparison, type StoreCompareRow } from '@/lib/store-comparison'
 import { loadServiceInsights } from '@/lib/service-insights-loader'
 import type { ServiceInsights } from '@/lib/service-insights'
+import { loadPaymentReport, type PaymentReport } from '@/lib/payment-report'
 
-export type Tab = 'geral' | 'vendas' | 'produtos' | 'trafego' | 'servicos'
+export type Tab = 'geral' | 'vendas' | 'produtos' | 'trafego' | 'servicos' | 'pagamentos'
 
 export type TrafegoRow = {
   month:          string         // 'yyyy-MM'
@@ -121,6 +122,7 @@ export type RelatoriosData = {
   productsReport: ProductReportRow[] | null
   trafegoRows:    TrafegoRow[]
   serviceInsights: ServiceInsights | null
+  paymentReport:   PaymentReport | null
   // Multi-store
   stores:         { id: string; name: string; code: string; color: string; is_default: boolean; monthly_goal_cents: number }[]
   storeFilter:    string  // '', 'all' ou storeId
@@ -154,7 +156,7 @@ export default async function RelatoriosPage({
   const sb = supabase as any
 
   const params = await searchParams
-  const tab = (['geral', 'vendas', 'produtos', 'trafego', 'servicos'].includes(params.tab ?? '') ? params.tab : 'geral') as Tab
+  const tab = (['geral', 'vendas', 'produtos', 'trafego', 'servicos', 'pagamentos'].includes(params.tab ?? '') ? params.tab : 'geral') as Tab
   const period = (['today', 'yesterday', '7d', '30d', '90d', '6m', 'custom'].includes(params.period ?? '')
     ? params.period
     : '30d') as Period
@@ -483,6 +485,11 @@ export default async function RelatoriosPage({
     }).catch(() => null)
   }
 
+  let paymentReport: PaymentReport | null = null
+  if (tab === 'pagamentos') {
+    paymentReport = await loadPaymentReport(sb, tenantId, start, end, source).catch(() => null)
+  }
+
   let serviceInsights: ServiceInsights | null = null
   if (tab === 'servicos') {
     serviceInsights = await loadServiceInsights(sb, tenantId, start.toISOString(), end.toISOString()).catch(() => null)
@@ -533,6 +540,7 @@ export default async function RelatoriosPage({
     productsReport,
     trafegoRows,
     serviceInsights,
+    paymentReport,
     stores: stores.map(s => ({
       id: s.id, name: s.name, code: s.code, color: s.color,
       is_default: s.is_default, monthly_goal_cents: s.monthly_goal_cents,

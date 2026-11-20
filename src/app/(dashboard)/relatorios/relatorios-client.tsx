@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   BarChart2, Download, Megaphone, TrendingUp, Users, Phone, MessageCircle,
-  ShoppingCart, Package, Wrench,
+  ShoppingCart, Package, Wrench, CreditCard,
 } from 'lucide-react'
 import type { RelatoriosData, OriginReportRow, TopClientRow, Tab } from './page'
 import { CUSTOMER_ORIGIN_OPTIONS, originLabel } from '@/lib/customer-origin'
@@ -13,6 +13,7 @@ import { VendasTab } from './vendas-tab'
 import { ProdutosTab } from './produtos-tab'
 import { PagoOrganicoTab } from './trafego-tab'
 import { ServiceInsightsPanel } from './servicos-tab'
+import { PaymentReportView } from '@/components/reports/payment-report-view'
 
 const BRL = (c: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(c / 100)
@@ -138,6 +139,7 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
     { v: 'produtos', label: 'Produtos',       icon: Package },
     { v: 'trafego',  label: 'Pago vs Orgân.', icon: TrendingUp },
     { v: 'servicos', label: 'Serviços (OS)',  icon: Wrench },
+    { v: 'pagamentos', label: 'Pagamentos',   icon: CreditCard },
   ]
 
   return (
@@ -152,6 +154,7 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
             {tab === 'produtos' && 'Ranking de produtos: faturamento, lucro e margem'}
             {tab === 'trafego'  && 'Comparativo entre vendas de tráfego pago e vendas orgânicas'}
             {tab === 'servicos' && 'Ranking das OS do CheckSmart: aparelhos, reparos, bateria/tela por modelo e bairros'}
+            {tab === 'pagamentos' && 'Formas de pagamento das vendas do PDV + OS do CheckSmart: quantidade, valor, % e dia da semana'}
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -258,6 +261,24 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
         data.serviceInsights
           ? <ServiceInsightsPanel data={data.serviceInsights} />
           : <p className="text-sm" style={{ color: '#94A3B8' }}>Não foi possível carregar as OS do período.</p>
+      )}
+
+      {/* Aba Pagamentos (PDV + OS) */}
+      {tab === 'pagamentos' && (
+        <>
+          <div className="flex gap-1 rounded-xl p-1 w-fit" style={{ background: '#131C2A', border: '1px solid #2A3650' }}>
+            {PERIODS.map(s => (
+              <button key={s.v} onClick={() => updateQuery({ source: s.v })}
+                className="rounded-lg px-3 py-1.5 text-xs font-bold transition-all"
+                style={source === s.v ? { background: s.color, color: '#000' } : { color: '#94A3B8' }}>
+                {s.v === 'total' ? 'Os dois sistemas' : s.v === 'smarterp' ? 'Só Gestão Smart (PDV)' : 'Só CheckSmart (OS)'}
+              </button>
+            ))}
+          </div>
+          {data.paymentReport
+            ? <PaymentReportView report={data.paymentReport} />
+            : <p className="text-sm" style={{ color: '#94A3B8' }}>Não foi possível carregar os pagamentos do período.</p>}
+        </>
       )}
 
       {/* Aba Pago vs Orgânico */}
