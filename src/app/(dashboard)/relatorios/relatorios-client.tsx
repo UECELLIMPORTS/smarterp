@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   BarChart2, Download, Megaphone, TrendingUp, Users, Phone, MessageCircle,
-  ShoppingCart, Package, Wrench, CreditCard,
+  ShoppingCart, Package, Wrench, CreditCard, Smartphone,
 } from 'lucide-react'
 import type { RelatoriosData, OriginReportRow, TopClientRow, Tab } from './page'
 import { CUSTOMER_ORIGIN_OPTIONS, originLabel } from '@/lib/customer-origin'
@@ -14,6 +14,7 @@ import { ProdutosTab } from './produtos-tab'
 import { PagoOrganicoTab } from './trafego-tab'
 import { ServiceInsightsPanel } from './servicos-tab'
 import { PaymentReportView } from '@/components/reports/payment-report-view'
+import { DeviceReportView } from '@/components/reports/device-report-view'
 
 const BRL = (c: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(c / 100)
@@ -100,6 +101,7 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
     { v: '30d', label: '30d' },
     { v: '90d', label: '90d' },
     { v: '6m',  label: '6m' },
+    { v: 'all', label: 'Tudo' },
   ]
 
   function exportOriginsCsv() {
@@ -140,6 +142,7 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
     { v: 'trafego',  label: 'Pago vs Orgân.', icon: TrendingUp },
     { v: 'servicos', label: 'Serviços (OS)',  icon: Wrench },
     { v: 'pagamentos', label: 'Pagamentos',   icon: CreditCard },
+    { v: 'dispositivos', label: 'iPhone x Android', icon: Smartphone },
   ]
 
   return (
@@ -154,6 +157,7 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
             {tab === 'produtos' && 'Ranking de produtos: faturamento, lucro e margem'}
             {tab === 'trafego'  && 'Comparativo entre vendas de tráfego pago e vendas orgânicas'}
             {tab === 'servicos' && 'Ranking das OS do CheckSmart: aparelhos, reparos, bateria/tela por modelo e bairros'}
+            {tab === 'dispositivos' && 'OS, faturamento, lucro, CAC e origem dos clientes: iPhone x Android (use "Tudo" para ver desde o início)'}
             {tab === 'pagamentos' && 'Formas de pagamento das vendas do PDV + OS do CheckSmart: quantidade, valor, % e dia da semana'}
           </p>
         </div>
@@ -280,6 +284,11 @@ export function RelatoriosClient({ data }: { data: RelatoriosData }) {
             : <p className="text-sm" style={{ color: '#94A3B8' }}>Não foi possível carregar os pagamentos do período.</p>}
         </>
       )}
+
+      {/* Aba iPhone x Android */}
+      {tab === 'dispositivos' && (data.deviceReport
+        ? <DeviceReportView report={data.deviceReport} />
+        : <p className="text-sm" style={{ color: '#94A3B8' }}>Não foi possível carregar as OS do período.</p>)}
 
       {/* Aba Pago vs Orgânico */}
       {tab === 'trafego' && (

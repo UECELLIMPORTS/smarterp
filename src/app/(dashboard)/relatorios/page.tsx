@@ -16,8 +16,9 @@ import { loadServiceInsights } from '@/lib/service-insights-loader'
 import type { ServiceInsights } from '@/lib/service-insights'
 import { loadPaymentReport, type PaymentReport } from '@/lib/payment-report'
 import { loadCardFees } from '@/lib/card-fees'
+import { loadDeviceReport, type DeviceReport } from '@/lib/device-report'
 
-export type Tab = 'geral' | 'vendas' | 'produtos' | 'trafego' | 'servicos' | 'pagamentos'
+export type Tab = 'geral' | 'vendas' | 'produtos' | 'trafego' | 'servicos' | 'pagamentos' | 'dispositivos'
 
 export type TrafegoRow = {
   month:          string         // 'yyyy-MM'
@@ -34,7 +35,7 @@ import { brDayRange } from '@/lib/br-day'
 
 export const metadata = { title: 'Relatórios — Smart ERP' }
 
-type Period = 'today' | 'yesterday' | '7d' | '30d' | '90d' | '6m' | 'custom'
+type Period = 'today' | 'yesterday' | '7d' | '30d' | '90d' | '6m' | 'all' | 'custom'
 
 function getPeriodRange(period: Period, from?: string, to?: string): { start: Date; end: Date } {
   if (period === 'yesterday') {
@@ -59,6 +60,7 @@ function getPeriodRange(period: Period, from?: string, to?: string): { start: Da
   else if (period === '30d')  start.setDate(start.getDate() - 29)
   else if (period === '90d')  start.setDate(start.getDate() - 89)
   else if (period === '6m') { start.setMonth(start.getMonth() - 6) }
+  else if (period === 'all')  return { start: new Date('2020-01-01T00:00:00-03:00'), end }
   else                        start.setDate(start.getDate() - 29)
   return { start, end }
 }
@@ -124,6 +126,7 @@ export type RelatoriosData = {
   trafegoRows:    TrafegoRow[]
   serviceInsights: ServiceInsights | null
   paymentReport:   PaymentReport | null
+  deviceReport:    DeviceReport | null
   // Multi-store
   stores:         { id: string; name: string; code: string; color: string; is_default: boolean; monthly_goal_cents: number }[]
   storeFilter:    string  // '', 'all' ou storeId
@@ -157,8 +160,8 @@ export default async function RelatoriosPage({
   const sb = supabase as any
 
   const params = await searchParams
-  const tab = (['geral', 'vendas', 'produtos', 'trafego', 'servicos', 'pagamentos'].includes(params.tab ?? '') ? params.tab : 'geral') as Tab
-  const period = (['today', 'yesterday', '7d', '30d', '90d', '6m', 'custom'].includes(params.period ?? '')
+  const tab = (['geral', 'vendas', 'produtos', 'trafego', 'servicos', 'pagamentos', 'dispositivos'].includes(params.tab ?? '') ? params.tab : 'geral') as Tab
+  const period = (['today', 'yesterday', '7d', '30d', '90d', '6m', 'all', 'custom'].includes(params.period ?? '')
     ? params.period
     : '30d') as Period
   const source = (['total', 'smarterp', 'checksmart'].includes(params.source ?? '')
@@ -486,6 +489,8 @@ export default async function RelatoriosPage({
     }).catch(() => null)
   }
 
+  let deviceReport: DeviceReport | null = null
+  if (tab === 'dispositivos') deviceReport = await loadDeviceReport(sb, tenantId, start, end).catch(() => null)
   let paymentReport: PaymentReport | null = null
   if (tab === 'pagamentos') {
     const fees = await loadCardFees(sb, tenantId)
@@ -543,6 +548,7 @@ export default async function RelatoriosPage({
     trafegoRows,
     serviceInsights,
     paymentReport,
+    deviceReport,
     stores: stores.map(s => ({
       id: s.id, name: s.name, code: s.code, color: s.color,
       is_default: s.is_default, monthly_goal_cents: s.monthly_goal_cents,
